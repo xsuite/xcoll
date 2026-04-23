@@ -98,8 +98,8 @@ class BaseBlock(xt.BeamElement):
             # Set active
             kwargs.setdefault('active', True)
             kwargs.setdefault('_tracking', True)
-            kwargs.setdefault('_acc_ionisation_loss', -1.)
-            kwargs.setdefault('_acc_ionisation_loss_sec', -1.)
+            kwargs.setdefault('_acc_ionisation_loss', 0.)
+            kwargs.setdefault('_acc_ionisation_loss_sec', 0.)
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
             to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)

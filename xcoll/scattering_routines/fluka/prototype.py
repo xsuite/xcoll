@@ -45,10 +45,12 @@ class FlukaPrototype:
             FlukaPrototype._registry.append(self)
         return self
 
-    def __init__(self, fedb_series=None, fedb_tag=None, container=None, *, angle=0, side=None, width=None,
-                 height=None, length=None, material=None, info=None, extra_commands=None,
-                 is_crystal=False, bending_radius=None, _allow_generic=False, is_broken=False,
-                 _force_init=False, **kwargs):
+    def __init__(self, fedb_series=None, fedb_tag=None, container=None, *,
+                 angle=0, side=None, width=None, height=None, length=None,
+                 material=None, info=None, extra_commands=None,
+                 is_crystal=False, bending_radius=None,
+                 allow_prefiltering=None, _allow_generic=False,
+                 is_broken=False, _force_init=False, **kwargs):
         if getattr(self, "_initialized", False) and not _force_init:
             return
         self._idx = None
@@ -75,12 +77,17 @@ class FlukaPrototype:
             self._extra_commands = None
             self._is_broken = None
             self._initialized = True
+            self._allow_prefiltering = False
             return
         if fedb_series == 'generic' and not _allow_generic:
             this_type = self.__class__.__name__[5:].lower()
-            raise ValueError("Cannot use 'generic' as fedb_series, unless creating a generic " \
-                          + f"{this_type}. Please use xcoll.fluka.create_generic_{this_type}() " \
-                          + f"instead.")
+            raise ValueError(f"Cannot use 'generic' as fedb_series, unless "
+                             f"creating a generic {this_type}. Please use "
+                             f"xcoll.fluka.create_generic_{this_type}() "
+                             f"instead.")
+        if allow_prefiltering is None:
+            allow_prefiltering = fedb_series == 'generic'
+        self._allow_prefiltering = allow_prefiltering
         self._fedb_series = fedb_series
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
@@ -189,6 +196,7 @@ class FlukaPrototype:
             'is_crystal': self.is_crystal,
             'bending_radius': self.bending_radius,
             'info': self.info,
+            'allow_prefiltering': self.allow_prefiltering,
             'extra_commands': self.extra_commands,
             'is_broken': self.is_broken,
         }
@@ -427,6 +435,12 @@ class FlukaPrototype:
         if self._is_null:
             return None
         return self._info
+
+    @property
+    def allow_prefiltering(self):
+        if self._is_null:
+            return None
+        return self._allow_prefiltering
 
     @property
     def extra_commands(self):

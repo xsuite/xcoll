@@ -252,7 +252,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
                  "future. Please use `at` instead.", FutureWarning)
             at = at_s
         if not _iterable(names) or not _iterable(elements) \
-        or not _iterable(at):
+        or (at is not None and not _iterable(at)):
             if _iterable(names):
                 raise ValueError("`names` should not be a list if any of the "
                                  "other arguments is not a list.")

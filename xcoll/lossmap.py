@@ -407,10 +407,6 @@ class LossMap:
         Add particles to the loss map. Aperture losses are interpolated and the
         collimator summary is updated.
         """
-        # Check that collimators have been tracked
-        elements = line.get_elements_of_type(block_classes)[0]
-        if len(elements) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in elements]):
-            raise ValueError("Xcoll elements have not been tracked, or LossMap already calculated")
         if interpolation is not None:
             if self.interpolation is not None and not np.isclose(self.interpolation, interpolation):
                 raise ValueError("The interpolation step is different from the one "
@@ -418,7 +414,10 @@ class LossMap:
             self.interpolation = interpolation
         elif self.interpolation is None:
             self.interpolation = 0.1 # Default
-        prim = any([ee.mark_scattered_particles for ee in elements])
+        elements = line.get_elements_of_type(block_classes)[0]
+        prim = all([ee.mark_scattered_particles for ee in elements])
+        if not prim and any([ee.mark_scattered_particles for ee in elements]):
+            raise ValueError("Inconsistent presence of primary hit identification in the line.")
         if self._identify_primary_losses is None:
             self._identify_primary_losses = prim
         elif self._identify_primary_losses != prim:
@@ -429,7 +428,7 @@ class LossMap:
             coll_classes = list(set(collimator_classes) - set(crystal_classes))
             coll_elements = line.get_elements_of_type(coll_classes)[1]
             correct_aperture_absorption = {coll: correct_aperture_absorption
-                                            for coll in coll_elements}
+                                           for coll in coll_elements}
         for coll, this_aper_corr in correct_aperture_absorption.items():
             if this_aper_corr not in (True, False) \
             and this_aper_corr.lower() not in ('after', 'before', 'both'):
@@ -671,10 +670,18 @@ class LossMap:
                 for name in names]
         energy_weights = coll_weights * part.energy[coll_mask]
         deposited_energy = {name: line[name]._acc_ionisation_loss
+                              if line[name]._acc_ionisation_loss > 0.
+                              else 0.
                             for name in names}
+        deposited_energy_sec = {name: line[name]._acc_ionisation_loss_sec
+                                  if line[name]._acc_ionisation_loss_sec > 0.
+                                  else 0.
+                                for name in names}
         eabs = [energy_weights[coll_losses == name].sum()
-                + deposited_energy[name]
+                + deposited_energy[name] + deposited_energy_sec[name]
                 for name in names]
+        for name in names:
+            line[name]._acc_ionisation_loss = 0. # Reset for next time
 
         if self._identify_primary_losses:
             coll_mask_prim = coll_mask
@@ -685,11 +692,11 @@ class LossMap:
             nabs_prim = [coll_weights[coll_losses == name].sum()
                          for name in names]
             energy_weights = coll_weights * part.energy[coll_mask_prim]
-            deposited_energy = {name: line[name]._acc_ionisation_loss_sec
-                                for name in names}
             eabs_prim = [energy_weights[coll_losses == name].sum()
-                         + deposited_energy[name]
+                         + deposited_energy_sec[name]
                          for name in names]
+            for name in names:
+                line[name]._acc_ionisation_loss_sec = 0. # Reset for next time
             self._do_collimator_adding(coll_s=coll_pos,
                                        coll_name=names,
                                        coll_nabs=nabs,

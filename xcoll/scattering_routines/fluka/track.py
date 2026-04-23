@@ -8,16 +8,14 @@ import numpy as np
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from ...constants import (LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL,
-                          VIRTUAL_ENERGY, HIT_ON_FLUKA_COLL)
+from ...constants import (LOST_ON_FLUKA, LOST_ON_FLUKA_SEC,
+                          MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY,
+                          VIRTUAL_ENERGY_SEC, HIT_ON_FLUKA,
+                          HIT_ON_FLUKA_SEC, SECONDARY_PARTICLE)
 
 
 def track_pre(coll, particles):
     import xcoll as xc
-
-    # Initialize ionisation loss accumulation variable
-    if coll._acc_ionisation_loss < 0:
-        coll._acc_ionisation_loss = 0.
 
     if not xc.fluka.engine.assert_ready_to_track_or_skip(
     coll, particles, _necessary_attributes=['fluka_id']):
@@ -56,9 +54,11 @@ def track_pre(coll, particles):
 def track_post(coll, particles):
     coll._drift(particles, -coll.length_back)
     alive_states = np.unique(particles.state[particles.state > 0])
-    assert len(alive_states) <= 1, f"Unexpected alive particle states after tracking: {alive_states}"
-    if len(alive_states) == 1:
-        assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
+    alive_states = alive_states[(alive_states > SECONDARY_PARTICLE) & (alive_states <= 399)]
+    if any(alive_states):
+        raise ValueError(f"After tracking through FLUKA, some particles still "
+                         f"have temporary hit states: {alive_states}. This "
+                         f"should not happen.")
 
 
 def _expand(arr, available_capacity, dtype=float):
@@ -73,7 +73,7 @@ def track_core(coll, part):
         xc.fluka.engine._warn_pyfluka(error)
         return
 
-    send_to_fluka  = part.state == HIT_ON_FLUKA_COLL
+    send_to_fluka  = (part.state==HIT_ON_FLUKA) | (part.state==HIT_ON_FLUKA_SEC)
     npart          = send_to_fluka.sum()
     max_id         = part.particle_id[part.state > -9999].max()
     assert npart  <= part._num_active_particles
@@ -176,30 +176,31 @@ def track_core(coll, part):
     #     Absorbed: trivial
     #     Not hit:    pid+ppid did not change and dE = 0
     #     Hit (MCS):  pid+ppid did not change and dE != 0
-    #     Hit (nucl): above mask + children
-
-    # TODO: FLUKA returns particles that have undergone a nuclear interaction as new particles: we probably want to correct (after registering interaction)
+    #     Hit (nucl): equal to whatever created mask_new
 
     E_diff = np.zeros(len(part.x))
+    mask_alive = new_pid <= max_id
+    mask_new = new_pid > max_id
 
 
     # Update existing particles  (these missed the collimator or only underwent elastic interactions)
     # ===============================================================================================
-    mask_alive = new_pid <= max_id
     idx_old = np.argsort(part.particle_id)
     pid_old_sorted = part.particle_id[idx_old]
     pos = np.searchsorted(pid_old_sorted, new_pid[mask_alive])
     idx_alive = idx_old[pos]
+    idx_alive_prim = idx_alive[part.state[idx_alive] == HIT_ON_FLUKA]
+    idx_alive_sec  = idx_alive[part.state[idx_alive] == HIT_ON_FLUKA_SEC]
 
     # Kill particles that died just now
-    # We cannot do part.state[~idx_alive] = LOST_ON_FLUKA_COLL (as idx_alive is not a mask)
+    # We cannot do part.state[~idx_alive] = LOST_ON_FLUKA (as idx_alive is not a mask)
     # So instead, we flag all as dead, and correct the alive ones later
-    part.state[send_to_fluka] = -LOST_ON_FLUKA_COLL # Do not kill yet to avoid issues with energy updating
+    part.state[part.state==HIT_ON_FLUKA] = -LOST_ON_FLUKA # Do not kill yet to avoid issues with energy updating
+    part.state[part.state==HIT_ON_FLUKA_SEC] = -LOST_ON_FLUKA_SEC
 
     if np.any(mask_alive):
         # Sanity check
         assert np.all(part.particle_id[idx_alive] == new_pid[mask_alive])
-        assert np.all(part.state[idx_alive] == HIT_ON_FLUKA_COLL)
 
         # Update energy
         E_diff[idx_alive] = part.energy[idx_alive] - data['e'][:npart][mask_alive] * 1.e6
@@ -207,21 +208,27 @@ def track_core(coll, part):
             raise ValueError(f"FLUKA returned particle with energy higher than incoming particle!")
         E_diff[E_diff < precision] = 0. # Lower cut on energy loss
         part.add_to_energy(-E_diff)
-        part.weight[idx_alive]     = data['weight'][:npart][mask_alive]
-        coll._acc_ionisation_loss += np.sum(E_diff[idx_alive]*part.weight[idx_alive])
+        part.weight[idx_alive] = data['weight'][:npart][mask_alive]
+        coll._acc_ionisation_loss     += np.sum(E_diff[idx_alive_prim]*part.weight[idx_alive_prim])
+        coll._acc_ionisation_loss_sec += np.sum(E_diff[idx_alive_sec]*part.weight[idx_alive_sec])
+        mask_hit = ~np.isclose(E_diff, 0.) # Hit (MCS)
 
         rpp = part.rpp[idx_alive]  # This is now already updated by the new energy
-        part.x[idx_alive]          = data['x'][:npart][mask_alive] / 1000.
-        part.px[idx_alive]         = data['xp'][:npart][mask_alive] / rpp / 1000. # This is exact because FLUKA uses director cosine
-        part.y[idx_alive]          = data['y'][:npart][mask_alive] / 1000.
-        part.py[idx_alive]         = data['yp'][:npart][mask_alive] / rpp / 1000. # This is exact because FLUKA uses director cosine
-        part.zeta[idx_alive]       = data['zeta'][:npart][mask_alive] / 1000.
-        part.state[idx_alive]      = 1  # These actually survived
+        part.x[idx_alive]    = data['x'][:npart][mask_alive] / 1000.
+        part.px[idx_alive]   = data['xp'][:npart][mask_alive] / rpp / 1000. # This is exact because FLUKA uses director cosine
+        part.y[idx_alive]    = data['y'][:npart][mask_alive] / 1000.
+        part.py[idx_alive]   = data['yp'][:npart][mask_alive] / rpp / 1000. # This is exact because FLUKA uses director cosine
+        part.zeta[idx_alive] = data['zeta'][:npart][mask_alive] / 1000.
+        # First mark the state of surviving particles as they were before
+        part.state[idx_alive_prim] = 1
+        part.state[idx_alive_sec] = SECONDARY_PARTICLE
+        # Then mark scattered particles, if requested
+        if coll.mark_scattered_particles:
+            part.state[mask_hit] = SECONDARY_PARTICLE
 
 
     # Add new particles
     # ================
-    mask_new = new_pid > max_id
     q_new = data['q'][:npart]
     pdg_id = data['pdg_id'][:npart]
     mask_new &= xc.fluka.engine._mask_particle_return_types(pdg_id, q_new)
@@ -281,6 +288,7 @@ def track_core(coll, part):
                 charge_ratio = q / q0,
                 at_element = ele_in,
                 at_turn = turn_in,
+                state = SECONDARY_PARTICLE,
                 pdg_id = data['pdg_id'][:npart][mask_new],
                 particle_id = new_pid[mask_new],
                 parent_particle_id = new_ppid[mask_new],
@@ -311,7 +319,10 @@ def track_core(coll, part):
             part.chi[mask_virtual] = m0 / virtual_mass * part.charge_ratio[mask_virtual]
             new_ptau[mask_virtual] = (1/beta0 + old_ptau)*old_mass/virtual_mass - 1/beta0
             part.update_ptau(new_ptau)
-            part.state[mask_virtual] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==1)] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==LOST_ON_FLUKA)] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==LOST_ON_FLUKA_SEC)] = -VIRTUAL_ENERGY_SEC
+            part.state[mask_virtual & (part.state==SECONDARY_PARTICLE)] = -VIRTUAL_ENERGY_SEC
         # Now update the parent energies
         part.add_to_energy(-E_children)
 
@@ -328,8 +339,10 @@ def track_core(coll, part):
         xc.fluka.engine._max_particle_id = max_particle_id
 
     # Kill all flagged particles
-    part.state[part.state==-LOST_ON_FLUKA_COLL] = LOST_ON_FLUKA_COLL
+    part.state[part.state==-LOST_ON_FLUKA] = LOST_ON_FLUKA
+    part.state[part.state==-LOST_ON_FLUKA_SEC] = LOST_ON_FLUKA_SEC
     part.state[part.state==-VIRTUAL_ENERGY] = VIRTUAL_ENERGY
+    part.state[part.state==-VIRTUAL_ENERGY_SEC] = VIRTUAL_ENERGY_SEC
     # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
     part.state[part.state==-MASSLESS_OR_NEUTRAL] = MASSLESS_OR_NEUTRAL
 

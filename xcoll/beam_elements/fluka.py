@@ -9,12 +9,12 @@ from contextlib import contextmanager
 import xobjects as xo
 import xtrack as xt
 
-from .base import BaseCollimator, BaseCrystal
+from .base import BaseBlock, BaseCollimator, BaseCrystal
 from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
                                         FlukaPrototype, create_generic_assembly
 from ..materials import _resolve_material
-from ..constants import HIT_ON_FLUKA
+from ..constants import HIT_ON_FLUKA, HIT_ON_FLUKA_SEC, SECONDARY_PARTICLE
 
 
 class FlukaCollimator(BaseCollimator):
@@ -181,11 +181,19 @@ class FlukaCollimator(BaseCollimator):
                 raise ValueError(f"Unknown assembly/prototype '{val}'.")
         elif not isinstance(val, FlukaPrototype) and val is not None:
             raise ValueError(f'Invalid assembly/prototype {val}!')
-        if val.is_broken:
+        if val is not None and val.is_broken:
             print(f'Warning: assembly/prototype {val.name} is broken!')
-        if val.is_defunct():
+        if val is not None and val.is_defunct():
             raise ValueError(f'Cannot assign defunct assembly/prototype {val.name}!')
-        val.assert_exists()
+        if val is not None:
+            val.assert_exists()
+            if not val.allow_prefiltering:
+                if self.record_impacts or self.record_exits or self.record_scatterings:
+                    self.record_impacts = False
+                    self.record_exits = False
+                    self.record_scatterings = False
+                    print(f"Warning: assigned assembly/prototype {val.name} "
+                          f"does not allow prefiltering. Impact table deactivated.")
         self._assembly = val
         if self.assembly:
             if self.assembly.length is not None:
@@ -193,6 +201,42 @@ class FlukaCollimator(BaseCollimator):
                 self.length_back = self.assembly.length - self.length - self.length_front
             if self.assembly.side is not None:
                 self._get_side_from_input(self.assembly.side)
+
+    @property
+    def record_impacts(self):
+        return BaseBlock.record_impacts.fget(self)
+
+    @record_impacts.setter
+    def record_impacts(self, val):
+        if val and self.assembly and not self.assembly.allow_prefiltering:
+            print("Warning:Cannot record impacts when assigned assembly/"
+                  "prototype does not allow prefiltering!")
+        else:
+            return BaseBlock.record_impacts.fset(self, val)
+
+    @property
+    def record_exits(self):
+        return BaseBlock.record_exits.fget(self)
+
+    @record_exits.setter
+    def record_exits(self, val):
+        if val and self.assembly and not self.assembly.allow_prefiltering:
+            print("Warning:Cannot record exits when assigned assembly/"
+                  "prototype does not allow prefiltering!")
+        else:
+            return BaseBlock.record_exits.fset(self, val)
+
+    @property
+    def record_scatterings(self):
+        return BaseBlock.record_scatterings.fget(self)
+
+    @record_scatterings.setter
+    def record_scatterings(self, val):
+        if val and self.assembly and not self.assembly.allow_prefiltering:
+            print("Warning:Cannot record scatterings when assigned assembly/"
+                  "prototype does not allow prefiltering!")
+        else:
+            return BaseBlock.record_scatterings.fset(self, val)
 
     def enable_scattering(self):
         import xcoll as xc
@@ -203,13 +247,13 @@ class FlukaCollimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            if self.assembly.name != "IPPIPE":# and False:
-                super().track(part)
+            if self.assembly.allow_prefiltering:
+                xt.BeamElement.track(self, part)
             else:
-                part.state[part.state == 1] = HIT_ON_FLUKA
+                part.state[part.state==1] = HIT_ON_FLUKA
+                part.state[part.state==SECONDARY_PARTICLE] = HIT_ON_FLUKA_SEC
             track_core(self, part)
-            if self.material != "vacuum":
-                track_post(self, part)
+            track_post(self, part)
         else:
             self._drift(part)
 
@@ -468,6 +512,30 @@ class FlukaCrystal(BaseCrystal):
         if self.assembly and not self.assembly.is_crystal:
             raise ValueError('Assigned assembly is not a crystal assembly!')
 
+    @property
+    def record_impacts(self):
+        return FlukaCollimator.record_impacts.fget(self)
+
+    @record_impacts.setter
+    def record_impacts(self, val):
+        return FlukaCollimator.record_impacts.fset(self, val)
+
+    @property
+    def record_exits(self):
+        return FlukaCollimator.record_exits.fget(self)
+
+    @record_exits.setter
+    def record_exits(self, val):
+        return FlukaCollimator.record_exits.fset(self, val)
+
+    @property
+    def record_scatterings(self):
+        return FlukaCollimator.record_scatterings.fget(self)
+
+    @record_scatterings.setter
+    def record_scatterings(self, val):
+        return FlukaCollimator.record_scatterings.fset(self, val)
+
     def enable_scattering(self):
         import xcoll as xc
         xc.fluka.environment.assert_environment_ready()
@@ -476,23 +544,10 @@ class FlukaCrystal(BaseCrystal):
         super().enable_scattering()
 
     def track(self, part):
-        if track_pre(self, part):
-            # super().track(part)
-            part.state[part.state == 1] = HIT_ON_FLUKA
-            track_core(self, part)
-            track_post(self, part)
-        else:
-            self._drift(part)
+        return FlukaCollimator.track(self, part)
 
     def _drift(self, particles, length=None):
-        if length is None:
-            length = self.length
-        if length != self.length:
-            old_length = self._equivalent_drift.length
-            self._equivalent_drift.length = length
-        self._equivalent_drift.track(particles)
-        if length != self.length:
-            self._equivalent_drift.length = old_length
+        return FlukaCollimator._drift(self, particles, length)
 
     def __setattr__(self, name, value):
         import xcoll as xc
