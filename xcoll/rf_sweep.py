@@ -74,7 +74,7 @@ class RFSweep:
     def reset(self):
         if self.sweep_per_turn is None:
             raise ValueError("RFSweep not prepared. Call `prepare` first.")
-        t_turn = self.tw.T_rev0   # To start sweeping from turn 0
+        t_turn = self.tw.t_rev0   # To start sweeping from turn 0
         current_time = self.env['t_turn_s']
         if current_time == 0:
             self.env['rf_sweep_df'] = f"(t_turn_s + {t_turn}) / {t_turn} * {self.sweep_per_turn}"
