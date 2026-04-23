@@ -371,7 +371,6 @@ class BaseEnvironment:
             if cmd.returncode == 0:
                 self._whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
             else:
-                self.stop()
                 stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
                 raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
         return self._whoami
@@ -382,6 +381,5 @@ class BaseEnvironment:
         if cmd.returncode == 0:
             return cmd.stdout.decode('UTF-8').strip().split('\n')
         else:
-            self.stop()
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
