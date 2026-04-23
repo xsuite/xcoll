@@ -408,12 +408,9 @@ class LossMap:
         collimator summary is updated.
         """
         # Check that collimators have been tracked
-        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
-        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
-            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
-        fluka_coll = line.get_elements_of_type((FlukaCollimator, FlukaCrystal))[0]
-        if len(fluka_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in fluka_coll]):
-            raise ValueError("FlukaCollimators have not been tracked, or LossMap already calculated")
+        elements = line.get_elements_of_type(block_classes)[0]
+        if len(elements) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in elements]):
+            raise ValueError("Xcoll elements have not been tracked, or LossMap already calculated")
         if interpolation is not None:
             if self.interpolation is not None and not np.isclose(self.interpolation, interpolation):
                 raise ValueError("The interpolation step is different from the one "
@@ -421,8 +418,7 @@ class LossMap:
             self.interpolation = interpolation
         elif self.interpolation is None:
             self.interpolation = 0.1 # Default
-        blocks = line.get_elements_of_type(block_classes)[0]
-        prim = any([ee.mark_scattered_particles for ee in blocks])
+        prim = any([ee.mark_scattered_particles for ee in elements])
         if self._identify_primary_losses is None:
             self._identify_primary_losses = prim
         elif self._identify_primary_losses != prim:
@@ -657,7 +653,7 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
-        names = np.unique(line.get_elements_of_type(collimator_classes)[1])
+        names = np.unique(line.get_elements_of_type(block_classes)[1])
         coll_lengths = [line[name].length for name in names]
         L = self.machine_length
         coll_pos = np.array([(line.get_s_position(name) + cl/2 + line_shift_s)%L
@@ -667,11 +663,6 @@ class LossMap:
         coll_types = [line[name].__class__.__name__
                       for name in names]
 
-        deposited_energy = {name: line[name]._acc_ionisation_loss
-                                if hasattr(line[name], '_acc_ionisation_loss')
-                                else 0.
-                            for name in names}
-
         coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
         coll_losses = np.array([line.element_names[i]
                                 for i in part.at_element[coll_mask]])
@@ -679,6 +670,8 @@ class LossMap:
         nabs = [coll_weights[coll_losses == name].sum()
                 for name in names]
         energy_weights = coll_weights * part.energy[coll_mask]
+        deposited_energy = {name: line[name]._acc_ionisation_loss
+                            for name in names}
         eabs = [energy_weights[coll_losses == name].sum()
                 + deposited_energy[name]
                 for name in names]
@@ -692,8 +685,11 @@ class LossMap:
             nabs_prim = [coll_weights[coll_losses == name].sum()
                          for name in names]
             energy_weights = coll_weights * part.energy[coll_mask_prim]
+            deposited_energy = {name: line[name]._acc_ionisation_loss_sec
+                                for name in names}
             eabs_prim = [energy_weights[coll_losses == name].sum()
-                    for name in names]
+                         + deposited_energy[name]
+                         for name in names]
             self._do_collimator_adding(coll_s=coll_pos,
                                        coll_name=names,
                                        coll_nabs=nabs,

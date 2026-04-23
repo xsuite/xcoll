@@ -21,9 +21,7 @@ class FlukaCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
         'fluka_id':              xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
         'length_front':          xo.Float64,
-        'length_back':           xo.Float64,
-        '_tracking':             xo.Int8,
-        '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        'length_back':           xo.Float64
     }
 
     isthick = True
@@ -40,11 +38,10 @@ class FlukaCollimator(BaseCollimator):
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCollimator._internal_record_class
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
+    _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -58,8 +55,6 @@ class FlukaCollimator(BaseCollimator):
         with self.__class__._in_constructor(self):
             to_assign = {}
             if '_xobject' not in kwargs:
-                kwargs.setdefault('_tracking', True)
-                kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
                 material = _resolve_material(kwargs.pop('material', None), ref='fluka', allow_none=True)
@@ -274,9 +269,7 @@ class FlukaCrystal(BaseCrystal):
     _xofields = { **BaseCrystal._xofields,
         'fluka_id':              xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
         'length_front':          xo.Float64,
-        'length_back':           xo.Float64,
-        '_tracking':             xo.Int8,
-        '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        'length_back':           xo.Float64
     }
 
     isthick = True
@@ -286,18 +279,17 @@ class FlukaCrystal(BaseCrystal):
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseCrystal, FlukaEngine]
+
     _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCrystal._internal_record_class
-
-    _depends_on = [BaseCrystal, FlukaEngine]
+    _allowed_fields_when_frozen = BaseCrystal._allowed_fields_when_frozen
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','fluka_crystal.h')
     ]
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -312,8 +304,6 @@ class FlukaCrystal(BaseCrystal):
             to_assign = {}
             generic = False
             if '_xobject' not in kwargs:
-                kwargs.setdefault('_tracking', True)
-                kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
                 if assembly:

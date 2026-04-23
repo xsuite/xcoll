@@ -17,6 +17,13 @@ OPEN_JAW = 3
 OPEN_GAP = 999
 
 
+# TODO:
+#      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
+#      but as if 'iscollective = False' for normal tracking as it is natively in C...
+#      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
+#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
+#      get_backtrack_element. We want it nicer..
+
 class InvalidXcoll(xt.BeamElement):
     _xofields = {
         'length': xo.Float64
@@ -48,9 +55,12 @@ class InvalidXcoll(xt.BeamElement):
 
 class BaseBlock(xt.BeamElement):
     _xofields = {
-        'length':                xo.Float64,
-        'active':                xo.Int8,
-        '_record_interactions':  xo.Int8
+        'length':                    xo.Float64,
+        'active':                    xo.Int8,
+        '_tracking':                 xo.Int8,
+        '_record_interactions':      xo.Int8,
+        '_acc_ionisation_loss':      xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        '_acc_ionisation_loss_sec':  xo.Float64
     }
 
     isthick = True
@@ -62,14 +72,16 @@ class BaseBlock(xt.BeamElement):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _noexpr_fields = {'name'}
-    _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
-                         'record_scatterings', 'mark_scattered_particles']
-
     _depends_on = [InvalidXcoll]
 
+    _noexpr_fields = {'name'}
+    _skip_in_to_dict  = ['_tracking', '_record_interactions',
+                         '_acc_ionisation_loss', '_acc_ionisation_loss_sec']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
+                         'record_scatterings', 'mark_scattered_particles']
     _internal_record_class = InteractionRecord
+    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss',
+                                   '_acc_ionisation_loss_sec']
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
@@ -85,6 +97,9 @@ class BaseBlock(xt.BeamElement):
             to_assign['name'] = kwargs.pop('name', None)
             # Set active
             kwargs.setdefault('active', True)
+            kwargs.setdefault('_tracking', True)
+            kwargs.setdefault('_acc_ionisation_loss', -1.)
+            kwargs.setdefault('_acc_ionisation_loss_sec', -1.)
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
             to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
@@ -221,15 +236,15 @@ class BaseCollimator(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseBlock]
+
     _noexpr_fields = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
                          *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
                          'side', 'align', 'emittance']
-
-    _depends_on = [BaseBlock]
-
     _internal_record_class = BaseBlock._internal_record_class
+    _allowed_fields_when_frozen = BaseBlock._allowed_fields_when_frozen
 
 
     # This is an abstract class and cannot be instantiated
@@ -1126,14 +1141,14 @@ class BaseCrystal(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseCollimator]
+
     _noexpr_fields    = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
                          'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
-
-    _depends_on = [BaseCollimator]
-
     _internal_record_class = BaseBlock._internal_record_class
+    _allowed_fields_when_frozen = BaseBlock._allowed_fields_when_frozen
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):

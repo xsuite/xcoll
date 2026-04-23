@@ -11,9 +11,7 @@ from ..general import _pkg_root
 
 
 class BlackAbsorber(BaseCollimator):
-    _xofields = { **BaseCollimator._xofields,
-        '_tracking':        xo.Int8
-    }
+    _xofields = BaseCollimator._xofields
 
     isthick = True
     needs_rng = False
@@ -36,8 +34,6 @@ class BlackAbsorber(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     def __init__(self, **kwargs):
-        if '_xobject' not in kwargs:
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
             raise ValueError('BlackAbsorber is currently not supported on GPU.')
@@ -47,9 +43,7 @@ class BlackAbsorber(BaseCollimator):
 
 
 class BlackCrystal(BaseCrystal):
-    _xofields = { **BaseCrystal._xofields,
-        '_tracking':        xo.Int8
-    }
+    _xofields = BaseCrystal._xofields
 
     isthick = True
     needs_rng = False
@@ -72,8 +66,6 @@ class BlackCrystal(BaseCrystal):
     _internal_record_class = BaseCrystal._internal_record_class
 
     def __init__(self, **kwargs):
-        if '_xobject' not in kwargs:
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
             raise ValueError('BlackCrystal is currently not supported on GPU.')

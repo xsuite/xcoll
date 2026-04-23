@@ -241,9 +241,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 // Hit and survived particles need correcting:
                 if (is_hit!=0 && LocalParticle_get_state(part) > 0){
-                    if (EverestCrystalData_get_mark_scattered_particles(el)) {
-                        LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
-                    }
                     double const rpp_old  = LocalParticle_get_rpp(part);
                     LocalParticle_update_delta(part, pc_out*chi/p0c/qq0 - 1);
                     // Keep angles constant (this is also correct for exact angles): px_new = px_old*(1 + δ_new)/(1 + δ_old)
@@ -264,6 +261,19 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, xp_in, yp_in, length/2) );
                     // then half the length with the new angles:
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, xp, yp, length/2) );
+
+                    // Store deposited energy in the crystal
+                    double e_out = LocalParticle_get_energy(part);
+                    if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
+                        EverestCrystalData_add_to__acc_ionisation_loss_sec(el, e_in - e_out);
+                    } else {
+                        EverestCrystalData_add_to__acc_ionisation_loss(el, e_in - e_out);
+                    }
+
+                    // Mark scattered particles as secondaries (if desired)
+                    if (EverestCrystalData_get_mark_scattered_particles(el)) {
+                        LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
+                    }
                 }
             }
         }
