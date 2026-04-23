@@ -44,25 +44,45 @@ base_fields = {
     '_record_interactions': 0
 }
 base_dict_fields = [
-    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, '_record_interactions': 1}},
-    {'field': 'record_impacts',     'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, '_record_interactions': 0}},
-    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, '_record_interactions': 2}},
-    {'field': 'record_exits',       'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, '_record_interactions': 0}},
-    {'field': 'record_scatterings', 'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
-    {'field': 'record_scatterings', 'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, '_record_interactions': 0}},
-    {'field': 'record_scatterings', 'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
-    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  '_record_interactions': 5}},
-    {'field': 'record_impacts',     'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
-    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  '_record_interactions': 6}},
-    {'field': 'record_exits',       'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
-    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  '_record_interactions': 6}},
-    {'field': 'record_scatterings', 'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, '_record_interactions': 2}},
-    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, '_record_interactions': 3}},
-    {'field': 'record_impacts',     'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, '_record_interactions': 2}},
-    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, '_record_interactions': 3}},
-    {'field': 'record_exits',       'val':  False, 'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, '_record_interactions': 1}},
-    {'field': 'record_scatterings', 'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  '_record_interactions': 5}},
-    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  '_record_interactions': 7}}
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 1}},
+    {'field': 'record_impacts',            'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 0}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 2}},
+    {'field': 'record_exits',              'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 0}},
+    {'field': 'record_scatterings',        'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 4}},
+    {'field': 'record_scatterings',        'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 0}},
+    {'field': 'mark_scattered_particles',  'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 8}},
+    {'field': 'mark_scattered_particles',  'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 0}},
+    {'field': 'mark_scattered_particles',  'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 8}},
+    {'field': 'record_scatterings',        'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 12}},
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 13}},
+    {'field': 'record_impacts',            'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 12}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 14}},
+    {'field': 'record_exits',              'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 12}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 14}},
+    {'field': 'record_scatterings',        'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 10}},
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 11}},
+    {'field': 'record_impacts',            'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 10}},
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 11}},
+    {'field': 'record_exits',              'val':  False, 'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  True,  '_record_interactions': 9}},
+    {'field': 'record_scatterings',        'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 13}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  True,  '_record_interactions': 15}},
+    {'field': 'mark_scattered_particles',  'val':  False, 'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 7}},
+    {'field': 'record_scatterings',        'val':  False, 'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 3}},
+    {'field': 'record_exits',              'val':  False, 'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 1}},
+    {'field': 'record_impacts',            'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 0}},
+    {'field': 'record_scatterings',        'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 4}},
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 5}},
+    {'field': 'record_impacts',            'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 4}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 6}},
+    {'field': 'record_exits',              'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 4}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 6}},
+    {'field': 'record_scatterings',        'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 2}},
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 3}},
+    {'field': 'record_impacts',            'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 2}},
+    {'field': 'record_impacts',            'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 3}},
+    {'field': 'record_exits',              'val':  False, 'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, 'mark_scattered_particles':  False, '_record_interactions': 1}},
+    {'field': 'record_scatterings',        'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 5}},
+    {'field': 'record_exits',              'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  'mark_scattered_particles':  False, '_record_interactions': 7}}
 ]
 base_user_fields = {}
 base_user_fields_read_only = ['gemitt_x', 'gemitt_y']
@@ -235,16 +255,19 @@ fluka_fields = {**base_coll_fields,
     '_tracking':             1,
     '_acc_ionisation_loss':  4.349234923e18
 }
-fluka_dict_fields = [*base_coll_dict_fields[:-9],
+fluka_dict_fields = [
     {'field': 'assembly', 'val': 'hilumi_tcppm',
-        'expected': {'material': None, 'height': None, 'width': None, 'side': None}}
+        'expected': {'material': None, 'height': None, 'width': None, 'side': None}},
+    *base_coll_dict_fields[:-9]
 ]
-fluka_generic_dict_fields = [*base_coll_dict_fields,
+fluka_generic_dict_fields = [
     {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
-    {'field': 'height', 'val': 0.03, 'expected': {'height': 0.03}},
-    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}},
-    {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
+    *base_coll_dict_fields,
+    {'field': 'height',   'val': 0.03, 'expected': {'height': 0.03}},
+    {'field': 'width',    'val': 0.02, 'expected': {'width': 0.02}}
 ]
+fluka_generic_user_fields = base_coll_user_fields
+fluka_generic_user_fields_read_only = base_coll_user_fields_read_only
 
 # FlukaCrystal
 fluka_crystal_fields = {**base_crystal_fields,
@@ -254,16 +277,42 @@ fluka_crystal_fields = {**base_crystal_fields,
     '_tracking':             1,
     '_acc_ionisation_loss':  4.349234923e18
 }
-fluka_crystal_dict_fields = [*base_crystal_dict_fields,
+fluka_crystal_dict_fields = [
     {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
+    *base_crystal_dict_fields,
     {'field': 'height', 'val': 0.03, 'expected': {'height': 0.03}},
-    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}},
-    {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
+    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}}
 ]
+fluka_crystal_user_fields = base_crystal_user_fields
+fluka_crystal_user_fields_read_only = base_crystal_user_fields_read_only
+
+# Geant4Collimator
+geant4_fields = {**base_coll_fields,
+    'geant4_id':             189,
+    '_tracking':             1,
+    '_acc_ionisation_loss':  2.453e17
+}
+geant4_dict_fields =  [*base_coll_dict_fields,
+    {'field': 'material', 'val': xc.materials.Iron, 'expected': {'_material': xc.materials.Iron}}
+]
+geant4_user_fields = base_coll_user_fields
+geant4_user_fields_read_only = base_coll_user_fields_read_only
+
+
+# Geant4CollimatorTip
+geant4_tip_fields = {**geant4_fields,
+    'tip_thickness':         0.05,
+}
+geant4_tip_dict_fields =  [*geant4_dict_fields,
+    {'field': 'tip_material', 'val': xc.materials.Manganese, 'expected': {'_tip_material': xc.materials.Manganese}}
+]
+geant4_tip_user_fields = base_coll_user_fields
+geant4_tip_user_fields_read_only = base_coll_user_fields_read_only
 
 
 # Tests
 # =====
+@pytest.mark.black
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
 )
@@ -274,6 +323,7 @@ def test_black_absorber(test_context):
                         absorber_user_fields_read_only)
 
 
+@pytest.mark.black
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # not on GPU
 )
@@ -284,6 +334,7 @@ def test_black_crystal(test_context):
                         black_crystal_user_fields, black_crystal_user_fields_read_only)
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -306,6 +357,7 @@ def test_everest_block(test_context):
     assert elem.rutherford_rng.Newton_iterations == 7
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -316,6 +368,7 @@ def test_everest(test_context):
                         everest_user_fields_read_only)
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -325,23 +378,43 @@ def test_everest_crystal(test_context):
     _check_all_elements(elem, everest_crystal_fields, everest_crystal_dict_fields, \
                         everest_crystal_user_fields, everest_crystal_user_fields_read_only)
 
+
 @pytest.mark.fluka
 def test_fluka():
     # Test instantiation
     elem = xc.FlukaCollimator(length=1, assembly='lhc_tcp')
     _check_all_elements(elem, fluka_fields, fluka_dict_fields, [], [])
 
+
 @pytest.mark.fluka
 def test_fluka_generic():
     # Test instantiation
     elem = xc.FlukaCollimator(length=1, material=xc.materials.CarbonFibreCarbon)
-    _check_all_elements(elem, fluka_fields, fluka_generic_dict_fields, [], [])
+    _check_all_elements(elem, fluka_fields, fluka_generic_dict_fields,
+                        fluka_generic_user_fields, fluka_generic_user_fields_read_only)
+
 
 # @pytest.mark.fluka
 # def test_fluka_crystal():
 #     # Test instantiation
 #     elem = xc.FlukaCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, bending_radius=20, side='+')
 #     _check_all_elements(elem, fluka_crystal_fields, fluka_crystal_dict_fields, [], [])
+
+
+@pytest.mark.geant4
+def test_geant4_generic():
+    # Test instantiation
+    elem = xc.Geant4Collimator(length=1, material=xc.materials.CarbonFibreCarbon)
+    _check_all_elements(elem, geant4_fields, geant4_dict_fields,
+                        geant4_user_fields, geant4_user_fields_read_only)
+
+
+@pytest.mark.geant4
+def test_geant4_tip():
+    # Test instantiation
+    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreCarbon)
+    _check_all_elements(elem, geant4_tip_fields, geant4_tip_dict_fields,
+                        geant4_tip_user_fields, geant4_tip_user_fields_read_only)
 
 
 def _assert_all_close(expected, setval):

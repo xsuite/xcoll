@@ -15,6 +15,7 @@ from xobjects.test_helpers import for_all_test_contexts
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.xcother
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -98,6 +99,7 @@ def test_install_single_existing_marker(beam, aper, test_context):
     assert np.isclose(machine_length, line.get_length())
 
 
+@pytest.mark.xcother
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )

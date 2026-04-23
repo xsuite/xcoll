@@ -18,6 +18,7 @@ num_turns = 3
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -49,6 +50,7 @@ def test_impacts_from_line(beam, plane, test_context):
     _assert_impacts(impacts, lengths=line.collimators.length)
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -69,6 +71,7 @@ def test_impacts_single_collimator(test_context):
     _assert_impacts(impacts, lengths=coll.length)
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )

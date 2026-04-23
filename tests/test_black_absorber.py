@@ -17,6 +17,7 @@ from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 n_part = int(2.e6)
 
 
+@pytest.mark.black
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
 )
@@ -34,7 +35,7 @@ def test_with_parallel_beam(test_context):
 
     lost = np.unique(part.state[mask_hit])
     alive = np.unique(part.state[~mask_hit])
-    assert len(lost)==1 and lost[0]==-340
+    assert len(lost)==1 and lost[0]==xc.constants.LOST_ON_ABSORBER
     assert len(alive)==1 and alive[0]==1
     s_lost = np.unique(part.s[mask_hit])
     s_alive = np.unique(part.s[~mask_hit])
@@ -44,6 +45,7 @@ def test_with_parallel_beam(test_context):
 
 
 # Should test jaws with different angles
+@pytest.mark.black
 @pytest.mark.parametrize("angle_L, angle_R, tilt_L, tilt_R", [
                         [0,  0,  0,       0],
                         [0,  0,  0.05,    0.05],
@@ -108,7 +110,7 @@ def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     # Check lost and alive
     lost = np.unique(part.state[mask_hit])
     alive = np.unique(part.state[~mask_hit])
-    assert len(lost)==1 and lost[0]==-340
+    assert len(lost)==1 and lost[0]==xc.constants.LOST_ON_ABSORBER
     assert len(alive)==1 and alive[0]==1
     s_alive = np.unique(part.s[~mask_hit])
 

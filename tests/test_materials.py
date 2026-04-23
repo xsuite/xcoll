@@ -14,6 +14,7 @@ from xcoll.compare import deep_equal
 # TODO: make test_crystal_material_creation and test_adapt(), and expand test_db
 
 
+@pytest.mark.xcother
 def test_elemental_material_creation():
     with pytest.raises(ValueError, match="Invalid material definition! Use either `Z` and `A` for "
                        "elemental materials, or `components` and `n_atoms`, `mass_fractions`, "
@@ -342,6 +343,7 @@ def test_elemental_material_creation():
     assert mat._excitation_energy_set_manually is False
 
 
+@pytest.mark.xcother
 def test_compound_material_creation():
     with pytest.raises(ValueError, match="One of `n_atoms`, `mass_fractions`, `volume_fractions`, "
                        "or `molar_fractions` must be provided"):
@@ -552,6 +554,7 @@ def test_compound_material_creation():
     assert mat._excitation_energy_set_manually is False
 
 
+@pytest.mark.xcother
 def test_mixture_material_creation():
     with pytest.raises(ValueError, match="Variable `components` must be provided"):
         Material(mass_fractions=[0.01, 0.001, 0.529107, 0.016, 0.002, 0.033872, 0.337021, 0.013, 0.044, 0.014])
@@ -636,6 +639,7 @@ def test_mixture_material_creation():
     }, debug=True)
 
 
+@pytest.mark.xcother
 def test_different_fractions():
     Ethanol_v0 = Material(components=['C', 'H', 'O'], n_atoms=[2, 6, 1], density=0.78945, name='Ethanol_v0')
     mf = Ethanol_v0.mass_fractions
@@ -662,12 +666,15 @@ def test_different_fractions():
     assert np.allclose(StrongBooze.molar_fractions, [0.16571654, 0.66666667, 0.1676168 ])
 
 
+@pytest.mark.xcother
 def test_crystal_material_creation():
     pass
 
+@pytest.mark.xcother
 def test_adapt():
     pass
 
+@pytest.mark.xcother
 def test_db():
     # Create a material that is not in the database
     this_mat = Material(A=183.84, Z=74, density=19.25)

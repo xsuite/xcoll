@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import numpy as np
 import time
+import pytest
+import numpy as np
 start_time = time.time()
 
 import xpart as xp
@@ -18,6 +19,7 @@ from xcoll.compare import deep_equal
 num_part = int(1e6)
 
 
+@pytest.mark.xcother
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )

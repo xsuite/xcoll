@@ -77,6 +77,7 @@ def _assert_monitor(mon, dct={}):
             assert len(mon.data[col]) == 1
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize("cls", [xc.EmittanceMonitor], ids=["EmittanceMonitor"])
 def test_monitor_instance(cls):
     mon = cls()
@@ -179,6 +180,7 @@ def test_monitor_instance(cls):
         mon = cls(horizontal=False, vertical=False,longitudinal=False)
 
 
+@pytest.mark.xcother
 @retry()
 @for_all_test_contexts
 @pytest.mark.parametrize("aper", [None, "auto", "single", "both"],
@@ -208,6 +210,7 @@ def test_blowup_install(beam, plane, aper, test_context):
                       use_individual_kicks=True, _context=test_context)
 
 
+@pytest.mark.xcother
 @retry()
 @for_all_test_contexts
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
@@ -257,6 +260,7 @@ def test_blowup(beam, plane, test_context):
             assert all([abs(nn-nemitt_x)/nemitt_x < 1.e-1 for nn in mon.nemitt_x])
 
 
+@pytest.mark.xcother
 @for_all_test_contexts
 def test_monitor_reset(test_context):
     beam = 1
