@@ -149,9 +149,11 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                     // Store deposited energy in the block
                     double e_out = LocalParticle_get_energy(part);
                     if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-                        EverestBlockData_add_to__acc_ionisation_loss_sec(el, e_in - e_out);
+                        /*gpuglmem*/ double *acc_loss = EverestBlockData_getp__acc_ionisation_loss_sec(el);
+                        atomicAdd(acc_loss, e_in - e_out);
                     } else {
-                        EverestBlockData_add_to__acc_ionisation_loss(el, e_in - e_out);
+                        /*gpuglmem*/ double *acc_loss = EverestBlockData_getp__acc_ionisation_loss(el);
+                        atomicAdd(acc_loss, e_in - e_out);
                     }
 
                     // Mark scattered particles as secondaries (if desired)

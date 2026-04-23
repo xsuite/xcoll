@@ -179,6 +179,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 double const qq0     = LocalParticle_get_charge_ratio(part);
                 double const chi     = LocalParticle_get_chi(part);
                 double const pc_in   = (1 + delta)*p0c*qq0/chi;
+                double const e_in    = LocalParticle_get_energy(part);
                 double pc_out;
 
                 // Check if hit on jaws
@@ -225,9 +226,11 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     // Store deposited energy in the collimator
                     double e_out = LocalParticle_get_energy(part);
                     if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-                        EverestCollimatorData_add_to__acc_ionisation_loss_sec(el, e_in - e_out);
+                        /*gpuglmem*/ double *acc_loss = EverestCollimatorData_getp__acc_ionisation_loss_sec(el);
+                        atomicAdd(acc_loss, e_in - e_out);
                     } else {
-                        EverestCollimatorData_add_to__acc_ionisation_loss(el, e_in - e_out);
+                        /*gpuglmem*/ double *acc_loss = EverestCollimatorData_getp__acc_ionisation_loss(el);
+                        atomicAdd(acc_loss, e_in - e_out);
                     }
 
                     // Mark scattered particles as secondaries (if desired)

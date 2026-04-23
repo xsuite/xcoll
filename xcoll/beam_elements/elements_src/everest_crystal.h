@@ -219,6 +219,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 double const qq0     = LocalParticle_get_charge_ratio(part);
                 double const chi     = LocalParticle_get_chi(part);
                 double const pc_in   = (1 + delta)*p0c*qq0/chi;
+                double const e_in    = LocalParticle_get_energy(part);
                 double pc_out;
 
                 // Check if hit on jaws
@@ -265,9 +266,11 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Store deposited energy in the crystal
                     double e_out = LocalParticle_get_energy(part);
                     if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-                        EverestCrystalData_add_to__acc_ionisation_loss_sec(el, e_in - e_out);
+                        /*gpuglmem*/ double *acc_loss = EverestCrystalData_getp__acc_ionisation_loss_sec(el);
+                        atomicAdd(acc_loss, e_in - e_out);
                     } else {
-                        EverestCrystalData_add_to__acc_ionisation_loss(el, e_in - e_out);
+                        /*gpuglmem*/ double *acc_loss = EverestCrystalData_getp__acc_ionisation_loss(el);
+                        atomicAdd(acc_loss, e_in - e_out);
                     }
 
                     // Mark scattered particles as secondaries (if desired)
