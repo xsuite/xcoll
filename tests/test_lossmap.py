@@ -33,14 +33,14 @@ path = Path(__file__).parent / 'data'
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
-@pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
-                            [1, 'H', 250, 0.2, True],
-                            [2, 'V', 50, 0.3, True],
-                            [1, 'V', 350, False, False],
-                            [2, 'H', 3000, 0.15, False]
+@pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals, identify_primary_losses", [
+                            [1, 'H', 250, 0.2, True, True],
+                            [2, 'V', 50, 0.3, True, False],
+                            [1, 'V', 350, False, False, False],
+                            [2, 'H', 3000, 0.15, False, True]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
-def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
+def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, identify_primary_losses, do_plot, test_context):
     if do_plot and plt is None:
         pytest.skip("matplotlib not installed")
     if not do_plot and plt is not None:
@@ -89,6 +89,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
     line.collimators.assign_optics()
     if not ignore_crystals:
         line.collimators.align_to_beam_divergence()
+    if identify_primary_losses:
+        line.scattering.identify_primary_losses()
 
     if engine == "fluka":
         xc.fluka.engine.start(line=line, capacity=capacity, verbose=True)
@@ -120,7 +122,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
         cry_cls  = ['Geant4Crystal']
     this_id = f"B{beam}{plane}-{npart}-{engine}-{interpolation}-{ignore_crystals}-{test_context}"
     ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
-                             coll_cls, cry_cls, this_id)
+                             identify_primary_losses, coll_cls, cry_cls, this_id)
     if do_plot:
         zoom = 'betatron' if not ignore_crystals else None
         ThisLM.plot(show=False, zoom=zoom, savefig=f"test-{this_id}.jpg")
@@ -133,7 +135,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
         xc.geant4.engine.stop(clean=True)
 
 
-def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):
+def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
+                    identify_primary_losses, coll_cls, cry_cls, this_id):
     line_is_reversed = True if beam == 2 else False
     ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
                         interpolation=interpolation)
@@ -180,7 +183,10 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
 
     # TODO: check the lossmap quantitaively: rough amount of losses at given positions
     summ = ThisLM.summary
-    assert list(summ.columns) == ['name', 'n', 'e', 'length', 's', 'type']
+    if identify_primary_losses:
+        assert list(summ.columns) == ['name', 'n', 'n_prim', 'e', 'e_prim', 'length', 's', 'type']
+    else:
+        assert list(summ.columns) == ['name', 'n', 'e', 'length', 's', 'type']
     assert len(summ[[tt in coll_cls for tt in summ.type]]) == 10
     if not ignore_crystals:
         assert len(summ[[tt in cry_cls for tt in summ.type]]) == 2
@@ -195,17 +201,26 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
     assert lm['interpolation'] == interpolation
     assert lm['reversed'] == line_is_reversed
     assert np.isclose(lm['machine_length'], line.get_length())
-    assert list(lm['collimator'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
+    if identify_primary_losses:
+        assert list(lm['collimator'].keys()) == ['name', 'n', 'n_prim', 'e', 'e_prim', 'length', 's', 'type']
+    else:
+        assert list(lm['collimator'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
     assert len(lm['collimator']['s']) == len(summ)
     assert len(lm['collimator']['name']) == len(summ)
     assert len(lm['collimator']['length']) == len(summ)
     assert len(lm['collimator']['n']) == len(summ)
     assert len(lm['collimator']['e']) == len(summ)
+    if identify_primary_losses:
+        assert len(lm['collimator']['n_prim']) == len(summ)
+        assert len(lm['collimator']['e_prim']) == len(summ)
     assert np.all(lm['collimator']['s'] == summ.s)
     assert np.all(lm['collimator']['name'] == summ.name)
     assert np.all(lm['collimator']['length'] == summ.length)
     assert np.all(lm['collimator']['n'] == summ.n)
     assert np.all(lm['collimator']['e'] == summ.e)
+    if identify_primary_losses:
+        assert np.all(lm['collimator']['n_prim'] == summ.n_prim)
+        assert np.all(lm['collimator']['e_prim'] == summ.e_prim)
     assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
     assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
     if interpolation:

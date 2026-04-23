@@ -179,10 +179,10 @@ class LossMap:
         if self._identify_primary_losses:
             return pd.DataFrame({
                 'name':   self._coll_name,
-                'n_prim': self._coll_nabs_prim,
                 'n':      self._coll_nabs,
-                'e_prim': self._coll_eabs_prim,
+                'n_prim': self._coll_nabs_prim,
                 'e':      self._coll_eabs,
+                'e_prim': self._coll_eabs_prim,
                 'length': self._coll_length,
                 's':      self._coll_s,
                 'type':   self._coll_type,
