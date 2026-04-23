@@ -52,7 +52,7 @@ inline void E1_approx(double* E1_approx, double x) {
 
         double numerator   = b0 + b1*x + b2*x2 + b3*x3;
         double denominator = c0 + c1*x + c2*x2 + c3*x3;
-        *E1_approx = (exp(-(x)) / x) * (numerator / denominator);
+        *E1_approx         = (exp(-(x)) / x) * (numerator / denominator);
     }
 }
 
@@ -87,7 +87,7 @@ void get_coulomb_interaction_length(double Z, double pc, double N,
                                     double theta_init, double nuclear_slope, double* lambda_coulomb){
     double E2, cs_coulomb;
     double R;
-    double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
+    double t_cut          = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
     double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
     double hbar_c         = 0.197;                                              // [GeV*fm]
     double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
@@ -106,7 +106,7 @@ void get_coulomb_cross_section(double Z, double pc, double N,
                                double theta_init, double nuclear_slope, double* cs_coulomb){
     double E2;
     double R;
-    double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
+    double t_cut          = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
     double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
     double hbar_c         = 0.197;                                              // [GeV*fm]
     double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
@@ -130,13 +130,11 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
                             double cs_tot, double Z, double N,
                             double theta_init, double sqrt_s, double pc) {
 
-    double cs_prod_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1); // production
-    double cs_el_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2); // elastic nucleus
+    double cs_prod_hA    = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1); // production
+    double cs_el_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2); // elastic nucleus
     double cs_el_nucleon = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3); // el nucleon
-    double cs_sd_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4); // single diffractive
+    double cs_sd_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4); // single diffractive
     double nuclear_slope = MaterialData_get__nuclear_slope(material);
-    // double lambda_coulomb;
-    // get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &lambda_coulomb);
 
     // Production
     interaction_lengths[0] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
@@ -151,9 +149,7 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     // Elastic nucleon
     interaction_lengths[2] = 1/(N*cs_el_nucleon*1.0e-27);   // [m]
     // Single diffractive
-    interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);     // [m]
-    printf("Cross sections (mb): prod: %f, el nucleus: %f, el nucleon: %f, sd: %f\n", cs_prod_hA, cs_el_hA, cs_el_nucleon, cs_sd_hA);
-    printf("Interaction lengths: %f, %f, %f, %f\n", interaction_lengths[0], interaction_lengths[1], interaction_lengths[2], interaction_lengths[3]);
+    interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);      // [m]
 }
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H

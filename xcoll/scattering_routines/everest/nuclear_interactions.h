@@ -44,15 +44,14 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     } else {
         double interaction_lengths[5];
         get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc);
-        // // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
         // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
-        double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]); // Production.
         int chosen                    = 1;
+        double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
         double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
         double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
         double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
         double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
-        if (elastic_length < min_length) { // Elastic
+        if (elastic_length < min_length) {         // Elastic
             min_length = elastic_length;
             chosen = 2;
         }
@@ -60,18 +59,17 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
             min_length = elastic_nucleon_length;
             chosen = 3;
         }
-        if (SD_length < min_length) { // Single diffractive
+        if (SD_length < min_length) {              // Single diffractive
             min_length = SD_length;
             chosen = 4;
         }
-        if (coulomb_length < min_length) { // Coulomb
+        if (coulomb_length < min_length) {         // Coulomb
             min_length = coulomb_length;
             chosen = 5;
         }
 
         calculate_ionisation_properties(everest, material, pc);
-        pc = calcionloss(everest, material, part, min_length, pc, 1);
-        // pc = calcionloss(everest, material, part, 1./(fractions[chosen]*N), pc, 1);
+        pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
 
         if (chosen == 1){
             // Production: particle is absorbed
