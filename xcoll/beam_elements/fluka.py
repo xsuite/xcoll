@@ -203,7 +203,7 @@ class FlukaCollimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            if self.material != "vacuum" and False:
+            if self.assembly.name != "IPPIPE":# and False:
                 super().track(part)
             else:
                 part.state[part.state == 1] = HIT_ON_FLUKA
