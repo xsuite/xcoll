@@ -53,18 +53,18 @@ name = f'adtk{plane.lower()}.{pos}.b{beam}'
 tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
 tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
 adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
-adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, need_apertures=False, plane=plane,
+adt = xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, need_apertures=False, plane=plane,
                         stop_at_turn=adt_turns)
 
 
 # Add an emittance monitor
-mon = xc.EmittanceMonitor.install(line, name="emittance monitor", at_s=adt_pos, stop_at_turn=total_turns)
+mon = xc.EmittanceMonitor.install(line, name="emittance monitor", at=adt_pos, stop_at_turn=total_turns)
 
 
 # We also add a particles monitor, to calculate the emittance based on normalised coordinates.
 # This will allow us to see how strongly the beam is mismatched.
 mon2 = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=total_turns, num_particles=num_particles)
-line.insert_element(element=mon2, name="particle monitor", at_s=adt_pos)
+line.insert("particle monitor", mon2, at=adt_pos)
 
 
 # Build the tracker and optimise

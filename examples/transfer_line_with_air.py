@@ -43,18 +43,18 @@ line = xt.Line(elements=elements, element_names=element_names, particle_ref=part
 
 # Add air regions
 # ===============
-line.insert_element(element=xc.EverestBlock(length=10, material=xc.materials.Air), name="Air 1", at_s=20)
-line.insert_element(element=xc.EverestBlock(length=10, material=xc.materials.Air), name="Air 2", at_s=50)
+line.insert("Air1", xc.EverestBlock(length=10, material=xc.materials.Air), at=20)
+line.insert("Air2", xc.EverestBlock(length=10, material=xc.materials.Air), at=50)
 
 
 # Add monitors
 # ============
-xc.EmittanceMonitor.install(line, name="monitor start", at_s=0, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 1 start", at_s=20, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 1 end", at_s=30, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 2 start", at_s=50, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 2 end", at_s=60, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor start", at=0, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 start", at="Air1@start", longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 end", at="Air1@end", longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 start", at="Air2@start", longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 end", at="Air2@end", longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor end", at=100, longitudinal=False)
 
 
 # Generate an initial distribution of particles
