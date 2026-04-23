@@ -8,16 +8,15 @@ import numpy as np
 
 from xtrack import Particles
 
-from ...constants import (LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL,
-    EXCITED_ION_STATE, MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY, HIT_ON_GEANT4_COLL)
+from ...constants import (LOST_ON_MATERIAL, LOST_ON_MATERIAL_SEC,
+                          LOST_WITHOUT_SPEC, EXCITED_ION_STATE,
+                          MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY,
+                          VIRTUAL_ENERGY_SEC, HIT_ON_GEANT4,
+                          HIT_ON_GEANT4_SEC, SECONDARY_PARTICLE)
 
 
 def track_pre(coll, particles):
     import xcoll as xc
-
-    # Initialize ionisation loss accumulation variable
-    if coll._acc_ionisation_loss < 0:
-        coll._acc_ionisation_loss = 0.
 
     if not xc.geant4.engine.assert_ready_to_track_or_skip(
     coll, particles, _necessary_attributes=['geant4_id']):
@@ -26,27 +25,17 @@ def track_pre(coll, particles):
     return True  # Continue tracking
 
 
-def track_post(coll, particles):
-    alive_states = np.unique(particles.state[particles.state > 0])
-    assert len(alive_states) <= 1, f"Unexpected alive particle states after tracking: {alive_states}"
-    if len(alive_states) == 1:
-        assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
-
-
-# TODO: need to rework this logic with HIT_ON_GEANT4_COLL
-
-
 def track_core(coll, part):
     import xcoll as xc
     xc.geant4.engine._g4link.clearData() # Clear the old data - bunch particles and hits
 
-    # send_to_geant4 = part.state == HIT_ON_GEANT4_COLL
-    send_to_geant4 = part.state > 0
-    # npart          = send_to_geant4.sum()
-    # max_id         = part.particle_id[part.state > -9999].max()
-    # assert npart  <= part._num_active_particles
-    # if npart == 0:
-    #     return
+    send_to_geant4 = (part.state == HIT_ON_GEANT4) | (part.state == HIT_ON_GEANT4_SEC)
+    was_secondary  = part.state == HIT_ON_GEANT4_SEC
+    npart          = send_to_geant4.sum()
+    max_id         = part.particle_id[part.state > -9999].max()
+    assert npart  <= part._num_active_particles
+    if npart == 0:
+        return
 
     num_sent = send_to_geant4.sum()
 
@@ -60,7 +49,7 @@ def track_core(coll, part):
     s_in = part.s[send_to_geant4][0]
     ele_in = part.at_element[send_to_geant4][0]
     turn_in = part.at_turn[send_to_geant4][0]
-    precision  = p0c * 1.e-12  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
+    precision  = p0c * 1.e-12  # To avoid numerical issues like negative energy. Ideally this should be 2.22e-15
 
     rpp  = part.rpp[send_to_geant4]
     x    = part.x[send_to_geant4]
@@ -98,12 +87,15 @@ def track_core(coll, part):
     # Kill particles that died just now
     returned_dead = products['state'][:num_sent] == LOST_WITHOUT_SPEC
     idx_dead = np.arange(len(part.x))[send_to_geant4][returned_dead]
-    part.state[idx_dead] = -LOST_ON_GEANT4_COLL
+    part.state[idx_dead] = -LOST_ON_MATERIAL
+    part.state[(part.state == -LOST_ON_MATERIAL) & was_secondary] = -LOST_ON_MATERIAL_SEC
 
     # Update particles that are still alive
     returned_alive = products['state'][:num_sent] > 0
     idx_alive = np.arange(len(part.x))[send_to_geant4][returned_alive]    # BDSIM keeps particle order
     idx_returned_alive = np.nonzero(returned_alive)[0]
+    idx_alive_prim = idx_alive[part.state[idx_alive] == HIT_ON_GEANT4]
+    idx_alive_sec  = idx_alive[part.state[idx_alive] == HIT_ON_GEANT4_SEC]
 
     # Energy needs special treatment
     m_in = part.mass[idx_alive]
@@ -116,14 +108,22 @@ def track_core(coll, part):
     E_diff[E_diff < precision] = 0. # Lower cut on energy loss
     part.add_to_energy(-E_diff)
     part.weight[idx_alive] = products['weight'][idx_returned_alive]
-    coll._acc_ionisation_loss += np.sum(E_diff[idx_alive]*part.weight[idx_alive])
+    coll._acc_ionisation_loss     += np.sum(E_diff[idx_alive_prim]*part.weight[idx_alive_prim])
+    coll._acc_ionisation_loss_sec += np.sum(E_diff[idx_alive_sec]*part.weight[idx_alive_sec])
+    mask_hit = ~np.isclose(E_diff, 0.) # Hit (MCS)
+    # First mark the state of surviving particles as they were before
+    part.state[idx_alive_prim] = 1
+    part.state[idx_alive_sec] = SECONDARY_PARTICLE
+    # Then mark scattered particles, if requested
+    if coll.mark_scattered_particles:
+        part.state[mask_hit] = SECONDARY_PARTICLE
 
     rpp  = part.rpp[idx_alive]
-    part.x[idx_alive]      = products['x'][idx_returned_alive]
-    part.px[idx_alive]     = products['xp'][idx_returned_alive] / rpp   # Director cosine back to px
-    part.y[idx_alive]      = products['y'][idx_returned_alive]
-    part.py[idx_alive]     = products['yp'][idx_returned_alive] / rpp   # Director cosine back to py
-    part.zeta[idx_alive]   = products['zeta'][idx_returned_alive]
+    part.x[idx_alive]    = products['x'][idx_returned_alive]
+    part.px[idx_alive]   = products['xp'][idx_returned_alive] / rpp   # Director cosine back to px
+    part.y[idx_alive]    = products['y'][idx_returned_alive]
+    part.py[idx_alive]   = products['yp'][idx_returned_alive] / rpp   # Director cosine back to py
+    part.zeta[idx_alive] = products['zeta'][idx_returned_alive]
 
     # Add new particles created in Geant4
     q_new = products['q'][num_sent:]
@@ -189,6 +189,7 @@ def track_core(coll, part):
                 charge_ratio = q_new/q0,
                 at_element = ele_in,
                 at_turn = turn_in,
+                state=SECONDARY_PARTICLE,
                 parent_particle_id = products['parent_particle_id'][idx_new],
                 pdg_id = products['pdg_id'][idx_new],
                 weight = products['weight'][idx_new]
@@ -219,7 +220,10 @@ def track_core(coll, part):
             part.chi[mask_virtual] = m0 / virtual_mass * part.charge_ratio[mask_virtual]
             new_ptau[mask_virtual] = (1/beta0 + old_ptau)*old_mass/virtual_mass - 1/beta0
             part.update_ptau(new_ptau)
-            part.state[mask_virtual] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==1)] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==LOST_ON_MATERIAL)] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==LOST_ON_MATERIAL_SEC)] = -VIRTUAL_ENERGY_SEC
+            part.state[mask_virtual & (part.state==SECONDARY_PARTICLE)] = -VIRTUAL_ENERGY_SEC
         # Now update the parent energies
         part.add_to_energy(-E_children)
 
@@ -235,9 +239,13 @@ def track_core(coll, part):
         part.add_particles(new_part)
 
     # Kill all flagged particles
-    part.state[part.state==-LOST_ON_GEANT4_COLL] = LOST_ON_GEANT4_COLL
+    part.state[part.state==-LOST_ON_MATERIAL] = LOST_ON_MATERIAL
+    part.state[part.state==-LOST_ON_MATERIAL_SEC] = LOST_ON_MATERIAL_SEC
     part.state[part.state==-VIRTUAL_ENERGY] = VIRTUAL_ENERGY
+    part.state[part.state==-VIRTUAL_ENERGY_SEC] = VIRTUAL_ENERGY_SEC
+    # TODO: excited ion states are not supported but created by BDSIM
     part.state[part.state==-EXCITED_ION_STATE] = EXCITED_ION_STATE
+    # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
     part.state[part.state==-MASSLESS_OR_NEUTRAL] = MASSLESS_OR_NEUTRAL
 
     # Ensure no leftover states

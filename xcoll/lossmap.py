@@ -19,10 +19,8 @@ from .compare import deep_equal
 from .json import json_load, json_dump
 from .general import __version__
 from .plot import plot_lossmap, _resolve_zoom
-from .constants import (USE_IN_LOSSMAP, USE_IN_LOSSMAP_SEC, LOST_ON_EVEREST,
-                        LOST_ON_EVEREST_SEC, LOST_ON_FLUKA, LOST_ON_FLUKA_SEC,
-                        LOST_ON_GEANT4, LOST_ON_GEANT4_SEC, LOST_ON_ABSORBER,
-                        LOST_ON_ABSORBER_SEC)
+from .constants import (USE_IN_LOSSMAP, USE_IN_LOSSMAP_SEC, LOST_ON_MATERIAL,
+                        LOST_ON_MATERIAL_SEC)
 
 
 class LossMap:
@@ -602,28 +600,10 @@ class LossMap:
             # Unfortunately, as the state is now 0 (aperture loss), there is no
             # way to recognise primary from secondary losses anymore, so we
             # mark them as secondary to be safe.
-            if what_type.startswith('Everest'):
-                if line[coll].mark_scattered_particles:
-                    part.state[mask] = LOST_ON_EVEREST_SEC
-                else:
-                    part.state[mask] = LOST_ON_EVEREST
-            elif what_type.startswith('Fluka'):
-                if line[coll].mark_scattered_particles:
-                    part.state[mask] = LOST_ON_FLUKA_SEC
-                else:
-                    part.state[mask] = LOST_ON_FLUKA
-            elif what_type.startswith('Geant4'):
-                if line[coll].mark_scattered_particles:
-                    part.state[mask] = LOST_ON_GEANT4_SEC
-                else:
-                    part.state[mask] = LOST_ON_GEANT4
-            elif what_type == 'BlackAbsorber' or what_type == 'BlackCrystal':
-                if line[coll].mark_scattered_particles:
-                    part.state[mask] = LOST_ON_ABSORBER_SEC
-                else:
-                    part.state[mask] = LOST_ON_ABSORBER
+            if line[coll].mark_scattered_particles:
+                part.state[mask] = LOST_ON_MATERIAL_SEC
             else:
-                raise ValueError(f"Unknown collimator type {what_type}")
+                part.state[mask] = LOST_ON_MATERIAL
             if verbose and mask.sum() > 0:
                 print(f"Found {mask.sum()} losses at {line.element_names[aper]}, "
                     + f"moved to {line.element_names[elem]}")

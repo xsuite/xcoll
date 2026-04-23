@@ -73,7 +73,6 @@ class Geant4Collimator(BaseCollimator):
                            + 'support unequal jaw rotation angles')
         BaseCollimator.angle.fset(self, val)
 
-
     @property
     def material(self):
         if self._material != _DEFAULT_MATERIAL:
@@ -84,7 +83,6 @@ class Geant4Collimator(BaseCollimator):
         material = _resolve_material(material, ref='geant4')
         if self.material != material:
             self._material = material
-
 
     def enable_scattering(self):
         import xcoll as xc

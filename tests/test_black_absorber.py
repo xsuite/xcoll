@@ -35,7 +35,7 @@ def test_with_parallel_beam(test_context):
 
     lost = np.unique(part.state[mask_hit])
     alive = np.unique(part.state[~mask_hit])
-    assert len(lost)==1 and lost[0]==xc.constants.LOST_ON_ABSORBER
+    assert len(lost)==1 and lost[0]==xc.constants.LOST_ON_MATERIAL
     assert len(alive)==1 and alive[0]==1
     s_lost = np.unique(part.s[mask_hit])
     s_alive = np.unique(part.s[~mask_hit])
@@ -110,7 +110,7 @@ def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     # Check lost and alive
     lost = np.unique(part.state[mask_hit])
     alive = np.unique(part.state[~mask_hit])
-    assert len(lost)==1 and lost[0]==xc.constants.LOST_ON_ABSORBER
+    assert len(lost)==1 and lost[0]==xc.constants.LOST_ON_MATERIAL
     assert len(alive)==1 and alive[0]==1
     s_alive = np.unique(part.s[~mask_hit])
 

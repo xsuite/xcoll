@@ -114,9 +114,9 @@ void BlackCrystal_track_local_particle(BlackCrystalData el, LocalParticle* part0
 
                 if (is_hit != 0){
                     if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-                        LocalParticle_set_state(part, XC_LOST_ON_ABSORBER_SEC);
+                        LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
                     } else {
-                        LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
+                        LocalParticle_set_state(part, XC_LOST_ON_MATERIAL);
                     }
                     if (record_scatterings) {
                         InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame

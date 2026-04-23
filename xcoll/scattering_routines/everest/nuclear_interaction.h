@@ -43,9 +43,9 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
     if (ichoix==1) {
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
         if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_SEC);
+            LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
         } else {
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST);
+            LocalParticle_set_state(part, XC_LOST_ON_MATERIAL);
         }
 
     } else {
@@ -78,9 +78,9 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
                 // Very small (<1eV) or NaN
                 if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
                 if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-                    LocalParticle_set_state(part, XC_LOST_ON_EVEREST_SEC);
+                    LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
                 } else {
-                    LocalParticle_set_state(part, XC_LOST_ON_EVEREST);
+                    LocalParticle_set_state(part, XC_LOST_ON_MATERIAL);
                 }
                 pc = 1.e-9;
                 sqrt_t_p = 0;

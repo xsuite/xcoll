@@ -141,9 +141,9 @@ double calcionloss(EverestData restrict everest, MaterialData restrict material,
     if (dead) {
         if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
         if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_SEC);
+            LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
         } else {
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST);
+            LocalParticle_set_state(part, XC_LOST_ON_MATERIAL);
         }
         return cutoff;
     } else {

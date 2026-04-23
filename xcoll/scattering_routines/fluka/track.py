@@ -8,7 +8,7 @@ import numpy as np
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from ...constants import (LOST_ON_FLUKA, LOST_ON_FLUKA_SEC,
+from ...constants import (LOST_ON_MATERIAL, LOST_ON_MATERIAL_SEC,
                           MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY,
                           VIRTUAL_ENERGY_SEC, HIT_ON_FLUKA,
                           HIT_ON_FLUKA_SEC, SECONDARY_PARTICLE)
@@ -193,10 +193,10 @@ def track_core(coll, part):
     idx_alive_sec  = idx_alive[part.state[idx_alive] == HIT_ON_FLUKA_SEC]
 
     # Kill particles that died just now
-    # We cannot do part.state[~idx_alive] = LOST_ON_FLUKA (as idx_alive is not a mask)
+    # We cannot do part.state[~idx_alive] = LOST_ON_MATERIAL (as idx_alive is not a mask)
     # So instead, we flag all as dead, and correct the alive ones later
-    part.state[part.state==HIT_ON_FLUKA] = -LOST_ON_FLUKA # Do not kill yet to avoid issues with energy updating
-    part.state[part.state==HIT_ON_FLUKA_SEC] = -LOST_ON_FLUKA_SEC
+    part.state[part.state==HIT_ON_FLUKA] = -LOST_ON_MATERIAL # Do not kill yet to avoid issues with energy updating
+    part.state[part.state==HIT_ON_FLUKA_SEC] = -LOST_ON_MATERIAL_SEC
 
     if np.any(mask_alive):
         # Sanity check
@@ -320,8 +320,8 @@ def track_core(coll, part):
             new_ptau[mask_virtual] = (1/beta0 + old_ptau)*old_mass/virtual_mass - 1/beta0
             part.update_ptau(new_ptau)
             part.state[mask_virtual & (part.state==1)] = -VIRTUAL_ENERGY
-            part.state[mask_virtual & (part.state==LOST_ON_FLUKA)] = -VIRTUAL_ENERGY
-            part.state[mask_virtual & (part.state==LOST_ON_FLUKA_SEC)] = -VIRTUAL_ENERGY_SEC
+            part.state[mask_virtual & (part.state==LOST_ON_MATERIAL)] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==LOST_ON_MATERIAL_SEC)] = -VIRTUAL_ENERGY_SEC
             part.state[mask_virtual & (part.state==SECONDARY_PARTICLE)] = -VIRTUAL_ENERGY_SEC
         # Now update the parent energies
         part.add_to_energy(-E_children)
@@ -339,8 +339,8 @@ def track_core(coll, part):
         xc.fluka.engine._max_particle_id = max_particle_id
 
     # Kill all flagged particles
-    part.state[part.state==-LOST_ON_FLUKA] = LOST_ON_FLUKA
-    part.state[part.state==-LOST_ON_FLUKA_SEC] = LOST_ON_FLUKA_SEC
+    part.state[part.state==-LOST_ON_MATERIAL] = LOST_ON_MATERIAL
+    part.state[part.state==-LOST_ON_MATERIAL_SEC] = LOST_ON_MATERIAL_SEC
     part.state[part.state==-VIRTUAL_ENERGY] = VIRTUAL_ENERGY
     part.state[part.state==-VIRTUAL_ENERGY_SEC] = VIRTUAL_ENERGY_SEC
     # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.

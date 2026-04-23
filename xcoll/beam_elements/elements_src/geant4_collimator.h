@@ -96,10 +96,8 @@ void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticl
 
     // Get geometry
     CollimatorGeometry cg;
-    int8_t record_scatterings;
     if (active){
         cg = Geant4Collimator_init_geometry(el, part0);
-        record_scatterings = Geant4CollimatorData_get_record_scatterings(el);
     }
 
     //start_per_particle_block (part0->part)

@@ -323,7 +323,7 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
     if do_assert:
         E_ref = part_init.energy[0]
         if hit:
-            coll_state = xcc.LOST_ON_FLUKA_COLL if engine == 'fluka' else xcc.LOST_ON_GEANT4_COLL
+            coll_state = xcc.LOST_ON_MATERIAL if engine == 'fluka' else xcc.LOST_ON_MATERIAL
             _assert_hit(part, part_init, E_ref, coll, coll_state=coll_state, tol=tol)
         else:
             if engine == "fluka":
