@@ -65,16 +65,9 @@ def test_new_prototype():
                                  'name': 'proto',
                                  'fedb_series': 'test',
                                  'fedb_tag': 'proto',
-                                 'side': None,
                                  'angle': 0,
-                                 'length': None,
-                                 'width': None,
-                                 'height': None,
-                                 'material': None,
                                  'is_crystal': False,
-                                 'bending_radius': None,
-                                 'info': None,
-                                 'extra_commands': None,
+                                 'allow_prefiltering': False,
                                  'is_broken': False}
     with pytest.raises(ValueError, match="Prototype 'proto' does not exist in the FEDB!"):
         coll = xc.FlukaCollimator(assembly=new_pro)
@@ -204,16 +197,9 @@ def test_new_assembly():
                                  'name': 'assm',
                                  'fedb_series': 'test',
                                  'fedb_tag': 'assm',
-                                 'side': None,
                                  'angle': 0,
-                                 'length': None,
-                                 'width': None,
-                                 'height': None,
-                                 'material': None,
                                  'is_crystal': False,
-                                 'bending_radius': None,
-                                 'info': None,
-                                 'extra_commands': None,
+                                 'allow_prefiltering': False,
                                  'is_broken': False}
     with pytest.raises(ValueError, match="Assembly 'assm' does not exist in the FEDB!"):
         coll = xc.FlukaCollimator(assembly=new_assm)

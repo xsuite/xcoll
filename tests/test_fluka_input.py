@@ -45,14 +45,14 @@ def test_fluka_input_single(el_type, register_cleanup):
     name = 'TestColl'.lower()
     assert name in new_coll
     if el_type == 'collimator':
-        assert np.isclose(new_coll[name]['length'],  1.014)
+        assert np.isclose(new_coll[name]['length'],  0.558)
         assert np.isclose(new_coll[name]['angle'],  32)
         assert np.isclose(new_coll[name]['jaw'][0], 0.01)
         assert np.isclose(new_coll[name]['jaw'][1], -0.02)
         assert np.isclose(new_coll[name]['tilt'][0], 10e-6)
         assert np.isclose(new_coll[name]['tilt'][1], -8.7e-6)
     else:
-        assert np.isclose(new_coll[name]['length'],  0.106)
+        assert np.isclose(new_coll[name]['length'],  0.1044)
         assert np.isclose(new_coll[name]['angle'],  90)
         assert new_coll[name]['jaw'][0] is None
         assert np.isclose(new_coll[name]['jaw'][1], -0.01)
@@ -79,12 +79,13 @@ def test_fluka_input_single(el_type, register_cleanup):
     found = False
     with input_file[1].open('r') as fp:
         for line in fp:
-            if "     1          INROT_1              INROT_1             0.279000" in line \
+            if "     1          INROT_1              INROT_1             0.051000" in line \
             and el_type == 'collimator':
                 found = True
-            if "     1          INROT_1              INROT_1             0.052000" in line \
+            if "     1          INROT_1              INROT_1             0.051200" in line \
             and el_type == 'crystal':
                 found = True
+        print(line)
     assert found
 
     # Check material assignment
@@ -166,7 +167,7 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
             'tcp.b6l7.b1':   {'length': 1.482, 'angle': 127.5, 'tilt': [0.0, 0.0], 'jaw': [0.0010997388044970968, -0.001100319238767078]},
             'tcsg.a6l7.b1':  {'length': 1.482, 'angle': 141.1, 'tilt': [0.0, 0.0], 'jaw': [0.0014749366037034584, -0.0014740571819316095]},
             'tcsg.b5l7.b1':  {'length': 1.482, 'angle': 143.5, 'tilt': [0.0, 0.0], 'jaw': [0.001814181900021694, -0.0018086857446322213]},
-            'tcsg.a5l7.b1':  {'length': 1.482, 'angle': 40.7,  'tilt': [0.0, 0.0], 'jaw': [0.0018463405948736522, -0.0018520014167018317]},
+            'tcsg.a5l7.b1':  {'length': 1.102, 'angle': 40.7,  'tilt': [0.0, 0.0], 'jaw': [0.0018463405948736522, -0.0018520014167018317]},
             'tcsg.d4l7.b1':  {'length': 1.482, 'angle': 90.0,  'tilt': [0.0, 0.0], 'jaw': [0.0011923168368670467, -0.0011930737268484037]},
             'tcspm.b4l7.b1': {'length': 1.482, 'angle': 0.0,   'tilt': [0.0, 0.0], 'jaw': [0.0016543438662348642, -0.0016608919799403488]},
             'tcsg.a4l7.b1':  {'length': 1.482, 'angle': 134.6, 'tilt': [0.0, 0.0], 'jaw': [0.0016554613686823316, -0.0016540730713363594]},
@@ -178,11 +179,11 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
             'tcp.c6l7.b1':   {'length': 1.482, 'angle': 0.0,   'tilt': [2.5e-06, -2.5e-06], 'jaw': [0.0013138622732093985, -0.0013103666448213147]},
             'tcp.b6l7.b1':   {'length': 1.482, 'angle': 127.5, 'tilt': [0.0, 0.0], 'jaw': [0.0010997388044393652, -0.0011003192387097904]},
             'tcsg.a6l7.b1':  {'length': 1.482, 'angle': 141.1, 'tilt': [0.0, 0.0], 'jaw': [0.001474936603826471, -0.0014740571820550663]},
-            'tcpcv.a6l7.b1': {'length': 0.11,  'angle': 90.0,  'tilt': [1.66577e-05, None], 'jaw': [0.0017621469072926072, None]},
+            'tcpcv.a6l7.b1': {'length': 0.1068,'angle': 90.0,  'tilt': [1.66577e-05, None], 'jaw': [0.0017621469072926072, None]},
             'tcsg.b5l7.b1':  {'length': 1.482, 'angle': 143.5, 'tilt': [0.0, 0.0], 'jaw': [0.001814181900504419, -0.0018086857451153904]},
-            'tcsg.a5l7.b1':  {'length': 1.482, 'angle': 40.7,  'tilt': [0.0, 0.0], 'jaw': [0.0018463405953683676, -0.001852001417195659]},
+            'tcsg.a5l7.b1':  {'length': 1.102, 'angle': 40.7,  'tilt': [0.0, 0.0], 'jaw': [0.0018463405953683676, -0.001852001417195659]},
             'tcsg.d4l7.b1':  {'length': 1.482, 'angle': 90.0,  'tilt': [0.0, 0.0], 'jaw': [0.0011923168370637782, -0.0011930737270451353]},
-            'tcpch.a4l7.b1': {'length': 0.11,  'angle': 0.0,   'tilt': [1.21108e-05, None], 'jaw': [0.0020205086648474287, None]},
+            'tcpch.a4l7.b1': {'length': 0.1068,'angle': 0.0,   'tilt': [1.21108e-05, None], 'jaw': [0.0020205086648474287, None]},
             'tcspm.b4l7.b1': {'length': 1.482, 'angle': 0.0,   'tilt': [0.0, 0.0], 'jaw': [0.0016543438666660748, -0.0016608919803706712]},
             'tcsg.a4l7.b1':  {'length': 1.482, 'angle': 134.6, 'tilt': [0.0, 0.0], 'jaw': [0.001655461368718747, -0.0016540730713732188]},
             'tcsg.a4r7.b1':  {'length': 1.482, 'angle': 46.3,  'tilt': [0.0, 0.0], 'jaw': [0.001656212580093186, -0.0016637353535662314]}
@@ -215,7 +216,7 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
      3          INROT_3              INROT_3             0.441000   
      4          INROT_4              INROT_4             0.241000   
      5          INROT_5              INROT_5             0.241000   
-     6          INROT_6              INROT_6             0.241000   
+     6          INROT_6              INROT_6             0.051000   
      7          INROT_7              INROT_7             0.241000   
      8          INROT_8              INROT_8             0.241000   
      9          INROT_9              INROT_9             0.241000   
@@ -226,11 +227,11 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
      2          INROT_2              INROT_2             0.441000   
      3          INROT_3              INROT_3             0.441000   
      4          INROT_4              INROT_4             0.241000   
-     5          INROT_5              INROT_5             0.053000   
+     5          INROT_5              INROT_5             0.051400   
      6          INROT_6              INROT_6             0.241000   
-     7          INROT_7              INROT_7             0.241000   
+     7          INROT_7              INROT_7             0.051000   
      8          INROT_8              INROT_8             0.241000   
-     9          INROT_9              INROT_9             0.053000   
+     9          INROT_9              INROT_9             0.051400   
      10         INROT_10             INROT_10            0.241000   
      11         INROT_11             INROT_11            0.241000   
      12         INROT_12             INROT_12            0.241000""" in insertion_txt

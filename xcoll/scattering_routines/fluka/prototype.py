@@ -181,25 +181,35 @@ class FlukaPrototype:
             return {'__class__': self.__class__.__name__}
         if self.is_defunct():
             raise ValueError(f"Cannot serialize defunct {self._type} '{self.name}'!")
-        return {
+        data = {
             '__class__': self.__class__.__name__,
             'name': self.name,
             'fedb_series': self.fedb_series,
-            'fedb_tag': self.fedb_tag,
-            'container': self.container,
-            'side': self.side,
-            'angle': self.angle,
-            'length': self.length,
-            'width': self.width,
-            'height': self.height,
-            'material': self.material.to_dict() if hasattr(self.material, 'to_dict') else self.material,
-            'is_crystal': self.is_crystal,
-            'bending_radius': self.bending_radius,
-            'info': self.info,
-            'allow_prefiltering': self.allow_prefiltering,
-            'extra_commands': self.extra_commands,
-            'is_broken': self.is_broken,
+            'fedb_tag': self.fedb_tag
         }
+        if self.container is not None:
+            data['container'] = self.container
+        if self.side is not None:
+            data['side'] = self.side
+        data['angle'] = self.angle
+        if self.length is not None:
+            data['length'] = self.length
+        if self.width is not None:
+            data['width'] = self.width
+        if self.height is not None:
+            data['height'] = self.height
+        if self.material is not None:
+            data['material'] = self.material.to_dict() if hasattr(self.material, 'to_dict') else self.material
+        data['is_crystal'] = self.is_crystal
+        if self.bending_radius is not None:
+            data['bending_radius'] = self.bending_radius
+        if self.info is not None:
+            data['info'] = self.info
+        data['allow_prefiltering'] = self.allow_prefiltering
+        if self.extra_commands is not None:
+            data['extra_commands'] = self.extra_commands
+        data['is_broken'] = self.is_broken
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -426,7 +436,7 @@ class FlukaPrototype:
 
     @property
     def bending_radius(self):
-        if self._is_null:
+        if self._is_null or not self.is_crystal:
             return None
         return self._bending_radius
 
