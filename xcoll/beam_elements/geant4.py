@@ -68,7 +68,7 @@ class Geant4Collimator(BaseCollimator):
 
     @angle.setter
     def angle(self, val):
-        if hasattr(val, '__iter__'):
+        if hasattr(val, '__iter__') and len(val) == 2 and val[0] != val[1]:
             raise ValueError('The Geant4 scattering engine does not '
                            + 'support unequal jaw rotation angles')
         BaseCollimator.angle.fset(self, val)
