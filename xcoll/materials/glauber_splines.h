@@ -8,61 +8,265 @@
 #include <math.h>
 
 /*gpufun*/
-double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, int key) {
+double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, int key, int particle_id) {
     // Key: 0 = total, 1 = production, 2 = elastic nucleus, 3 = elastic nucleon, 4 = single diffractive
-    int n_points = MaterialData_get__n_points(material);
-    double log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min(material);
-    double log_step = MaterialData_get__cs_log_step(material);
+    double ai, bi, ci, di, knot_i, dx, log_sqrt_s_min, log_step, n_points;
+    int i;
+    switch (particle_id) {
+        case 0: // proton
+            n_points = MaterialData_get__n_points_pp(material);
+            log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_pp(material);
+            log_step = MaterialData_get__cs_log_step_pp(material);
 
-    if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
-        return 0.0;
-    }
+            if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
+                return 0.0;
+            }
+            i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
+            if (i < 0) {
+                i = 0;
+            } else if (i >= n_points - 1) {
+                i = n_points - 2;
+            }
 
-    // O(1) index in log(sqrt_s) space
-    int i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
-    if (i < 0) {
-        i = 0;
-    } else if (i >= n_points - 1) {
-        i = n_points - 2;
-    }
+            knot_i = MaterialData_get__cs_knots_pp(material, i);
+            switch (key) {
+                case 0:
+                    ai = MaterialData_get__cs_tot_pp_hA_a(material, i);
+                    bi = MaterialData_get__cs_tot_pp_hA_b(material, i);
+                    ci = MaterialData_get__cs_tot_pp_hA_c(material, i);
+                    di = MaterialData_get__cs_tot_pp_hA_d(material, i);
+                    break;
+                case 1:
+                    ai = MaterialData_get__cs_prod_pp_hA_a(material, i);
+                    bi = MaterialData_get__cs_prod_pp_hA_b(material, i);
+                    ci = MaterialData_get__cs_prod_pp_hA_c(material, i);
+                    di = MaterialData_get__cs_prod_pp_hA_d(material, i);
+                    break;
+                case 2:
+                    ai = MaterialData_get__cs_el_pp_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_pp_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_pp_hA_c(material, i);
+                    di = MaterialData_get__cs_el_pp_hA_d(material, i);
+                    break;
+                case 3:
+                    ai = MaterialData_get__cs_el_nucleon_pp_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_nucleon_pp_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_nucleon_pp_hA_c(material, i);
+                    di = MaterialData_get__cs_el_nucleon_pp_hA_d(material, i);
+                    break;
+                case 4:
+                    ai = MaterialData_get__cs_sd_pp_hA_a(material, i);
+                    bi = MaterialData_get__cs_sd_pp_hA_b(material, i);
+                    ci = MaterialData_get__cs_sd_pp_hA_c(material, i);
+                    di = MaterialData_get__cs_sd_pp_hA_d(material, i);
+                    break;
+                default:
+                    return 0.0; // Invalid key
+            }
+            break;
+        case 1: // Kaon minus
+            n_points = MaterialData_get__n_points_kmin(material);
+            log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_kmin(material);
+            log_step = MaterialData_get__cs_log_step_kmin(material);
 
-    double ai, bi, ci, di;
-    switch (key) {
-        case 0:
-            ai = MaterialData_get__cs_tot_hA_a(material, i);
-            bi = MaterialData_get__cs_tot_hA_b(material, i);
-            ci = MaterialData_get__cs_tot_hA_c(material, i);
-            di = MaterialData_get__cs_tot_hA_d(material, i);
-            break;
-        case 1:
-            ai = MaterialData_get__cs_prod_hA_a(material, i);
-            bi = MaterialData_get__cs_prod_hA_b(material, i);
-            ci = MaterialData_get__cs_prod_hA_c(material, i);
-            di = MaterialData_get__cs_prod_hA_d(material, i);
-            break;
-        case 2:
-            ai = MaterialData_get__cs_el_hA_a(material, i);
-            bi = MaterialData_get__cs_el_hA_b(material, i);
-            ci = MaterialData_get__cs_el_hA_c(material, i);
-            di = MaterialData_get__cs_el_hA_d(material, i);
-            break;
-        case 3:
-            ai = MaterialData_get__cs_el_nucleon_a(material, i);
-            bi = MaterialData_get__cs_el_nucleon_b(material, i);
-            ci = MaterialData_get__cs_el_nucleon_c(material, i);
-            di = MaterialData_get__cs_el_nucleon_d(material, i);
-            break;
-        case 4:
-            ai = MaterialData_get__cs_sd_hA_a(material, i);
-            bi = MaterialData_get__cs_sd_hA_b(material, i);
-            ci = MaterialData_get__cs_sd_hA_c(material, i);
-            di = MaterialData_get__cs_sd_hA_d(material, i);
+            if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
+                return 0.0;
+            }
+            i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
+            if (i < 0) {
+                i = 0;
+            } else if (i >= n_points - 1) {
+                i = n_points - 2;
+            }
+            knot_i = MaterialData_get__cs_knots_kmin(material, i);
+            switch (key) {
+                case 0:
+                    ai = MaterialData_get__cs_tot_kmin_hA_a(material, i);
+                    bi = MaterialData_get__cs_tot_kmin_hA_b(material, i);
+                    ci = MaterialData_get__cs_tot_kmin_hA_c(material, i);
+                    di = MaterialData_get__cs_tot_kmin_hA_d(material, i);
+                    break;
+                case 1:
+                    ai = MaterialData_get__cs_prod_kmin_hA_a(material, i);
+                    bi = MaterialData_get__cs_prod_kmin_hA_b(material, i);
+                    ci = MaterialData_get__cs_prod_kmin_hA_c(material, i);
+                    di = MaterialData_get__cs_prod_kmin_hA_d(material, i);
+                    break;
+                case 2:
+                    ai = MaterialData_get__cs_el_kmin_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_kmin_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_kmin_hA_c(material, i);
+                    di = MaterialData_get__cs_el_kmin_hA_d(material, i);
+                    break;
+                case 3:
+                    ai = MaterialData_get__cs_el_nucleon_kmin_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_nucleon_kmin_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_nucleon_kmin_hA_c(material, i);
+                    di = MaterialData_get__cs_el_nucleon_kmin_hA_d(material, i);
+                    break;
+                case 4:
+                    ai = MaterialData_get__cs_sd_kmin_hA_a(material, i);
+                    bi = MaterialData_get__cs_sd_kmin_hA_b(material, i);
+                    ci = MaterialData_get__cs_sd_kmin_hA_c(material, i);
+                    di = MaterialData_get__cs_sd_kmin_hA_d(material, i);
+                    break;
+                default:
+                    return 0.0; // Invalid key
+            }
+        case 2: // Kaon plus
+            n_points = MaterialData_get__n_points_kplus(material);
+            log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_kplus(material);
+            log_step = MaterialData_get__cs_log_step_kplus(material);
+
+            if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
+                return 0.0;
+            }
+            i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
+            if (i < 0) {
+                i = 0;
+            } else if (i >= n_points - 1) {
+                i = n_points - 2;
+            }
+            knot_i = MaterialData_get__cs_knots_kplus(material, i);
+            switch (key) {
+                case 0:
+                    ai = MaterialData_get__cs_tot_kplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_tot_kplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_tot_kplus_hA_c(material, i);
+                    di = MaterialData_get__cs_tot_kplus_hA_d(material, i);
+                    break;
+                case 1:
+                    ai = MaterialData_get__cs_prod_kplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_prod_kplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_prod_kplus_hA_c(material, i);
+                    di = MaterialData_get__cs_prod_kplus_hA_d(material, i);
+                    break;
+                case 2:
+                    ai = MaterialData_get__cs_el_kplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_kplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_kplus_hA_c(material, i);
+                    di = MaterialData_get__cs_el_kplus_hA_d(material, i);
+                    break;
+                case 3:
+                    ai = MaterialData_get__cs_el_nucleon_kplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_nucleon_kplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_nucleon_kplus_hA_c(material, i);
+                    di = MaterialData_get__cs_el_nucleon_kplus_hA_d(material, i);
+                    break;
+                case 4:
+                    ai = MaterialData_get__cs_sd_kplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_sd_kplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_sd_kplus_hA_c(material, i);
+                    di = MaterialData_get__cs_sd_kplus_hA_d(material, i);
+                    break;
+                default:
+                    return 0.0; // Invalid key
+            }
+             break;
+        case 3: // Pion minus
+            n_points = MaterialData_get__n_points_pimin(material);
+            log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_pimin(material);
+            log_step = MaterialData_get__cs_log_step_pimin(material);
+
+            if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
+                return 0.0;
+            }
+            i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
+            if (i < 0) {
+                i = 0;
+            } else if (i >= n_points - 1) {
+                i = n_points - 2;
+            } 
+            knot_i = MaterialData_get__cs_knots_pimin(material, i);
+            switch (key) {
+                case 0:
+                    ai = MaterialData_get__cs_tot_pimin_hA_a(material, i);
+                    bi = MaterialData_get__cs_tot_pimin_hA_b(material, i);
+                    ci = MaterialData_get__cs_tot_pimin_hA_c(material, i);
+                    di = MaterialData_get__cs_tot_pimin_hA_d(material, i);
+                    break;
+                case 1:
+                    ai = MaterialData_get__cs_prod_pimin_hA_a(material, i);
+                    bi = MaterialData_get__cs_prod_pimin_hA_b(material, i);
+                    ci = MaterialData_get__cs_prod_pimin_hA_c(material, i);
+                    di = MaterialData_get__cs_prod_pimin_hA_d(material, i);
+                    break;
+                case 2:
+                    ai = MaterialData_get__cs_el_pimin_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_pimin_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_pimin_hA_c(material, i);
+                    di = MaterialData_get__cs_el_pimin_hA_d(material, i);
+                    break;
+                case 3:
+                    ai = MaterialData_get__cs_el_nucleon_pimin_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_nucleon_pimin_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_nucleon_pimin_hA_c(material, i);
+                    di = MaterialData_get__cs_el_nucleon_pimin_hA_d(material, i);
+                    break;
+                case 4:
+                    ai = MaterialData_get__cs_sd_pimin_hA_a(material, i);
+                    bi = MaterialData_get__cs_sd_pimin_hA_b(material, i);
+                    ci = MaterialData_get__cs_sd_pimin_hA_c(material, i);
+                    di = MaterialData_get__cs_sd_pimin_hA_d(material, i);
+                    break;
+                default:
+                    return 0.0; // Invalid key
+            }
+             break;
+        case 4: // Pion plus
+            n_points = MaterialData_get__n_points_pplus(material);
+            log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_pplus(material);
+            log_step = MaterialData_get__cs_log_step_pplus(material);
+
+            if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
+                return 0.0;
+            }
+            i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
+            if (i < 0) {
+                i = 0;
+            } else if (i >= n_points - 1) {
+                i = n_points - 2;
+            }
+            knot_i = MaterialData_get__cs_knots_pplus(material, i);
+            switch (key) {
+                case 0:
+                    ai = MaterialData_get__cs_tot_piplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_tot_piplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_tot_piplus_hA_c(material, i);
+                    di = MaterialData_get__cs_tot_piplus_hA_d(material, i);
+                    break;
+                case 1:
+                    ai = MaterialData_get__cs_prod_piplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_prod_piplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_prod_piplus_hA_c(material, i);
+                    di = MaterialData_get__cs_prod_piplus_hA_d(material, i);
+                    break;
+                case 2:
+                    ai = MaterialData_get__cs_el_piplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_piplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_piplus_hA_c(material, i);
+                    di = MaterialData_get__cs_el_piplus_hA_d(material, i);
+                    break;
+                case 3:
+                    ai = MaterialData_get__cs_el_nucleon_piplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_el_nucleon_piplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_el_nucleon_piplus_hA_c(material, i);
+                    di = MaterialData_get__cs_el_nucleon_piplus_hA_d(material, i);
+                    break;
+                case 4:
+                    ai = MaterialData_get__cs_sd_piplus_hA_a(material, i);
+                    bi = MaterialData_get__cs_sd_piplus_hA_b(material, i);
+                    ci = MaterialData_get__cs_sd_piplus_hA_c(material, i);
+                    di = MaterialData_get__cs_sd_piplus_hA_d(material, i);
+                    break;
+                default:
+                    return 0.0; // Invalid key
+            }
             break;
         default:
-            return 0.0; // Invalid key
+            return 0.0; // Invalid particle_id
     }
 
-    double knot_i = MaterialData_get__cs_knots(material, i);
     double dx = log(sqrt_s) - knot_i;
 
     // Horner's method

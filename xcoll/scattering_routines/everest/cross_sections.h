@@ -128,13 +128,12 @@ void get_coulomb_cross_section(double Z, double pc, double N,
 /*gpufun*/
 void get_interaction_length(MaterialData restrict material, double interaction_lengths[5], 
                             double cs_tot, double Z, double N,
-                            double theta_init, double sqrt_s, double pc) {
+                            double theta_init, double sqrt_s, double pc, double particle_id) {
 
-    double cs_prod_hA    = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1); // production
-    double cs_el_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2); // elastic nucleus
-    double cs_el_nucleon = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3); // el nucleon
-    double cs_sd_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4); // single diffractive
-    double nuclear_slope = MaterialData_get__nuclear_slope(material);
+    double cs_prod_hA    = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1, particle_id); // production
+    double cs_el_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2, particle_id); // elastic nucleus
+    double cs_el_nucleon = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3, particle_id); // el nucleon
+    double cs_sd_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4, particle_id); // single diffractive
 
     // Production
     interaction_lengths[0] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]

@@ -17,7 +17,7 @@ from .parameters import (_approximate_radiation_length, _default_excitation_ener
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
 from ..compare import deep_equal
-from .glauber_gribov import GG_KEYS, load_all_splines, make_nucleon_cs
+from .glauber_gribov import GG_KEYS, SPECIES, load_all_splines, make_nucleon_cs
 from .isotopes import ISOTOPES
 from .build_isotopes import SYMBOL_TO_Z
 _materials_context = xo.ContextCpu()
@@ -57,39 +57,169 @@ class Material(xo.HybridClass):
         '_num_nucleons_eff':        xo.Float64,     # Effective number of nucleons for nuclear interactions
 
         # Cross sections
-        '_cs_knots':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
-        '_n_points':          xo.Int64,                      # Number of points in the GG arrays
-        '_cs_sqrt_s':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
-        '_cs_log_sqrt_s_min': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
-        '_cs_log_step':       xo.Float64,                    # Step size for the spline
-        '_nuclear_slope':     xo.Float64,                    # Nuclear slope parameter
+        '_cs_knots_pp':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points_pp':             xo.Float64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s_pp':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_pp': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_pp':       xo.Float64,                    # Step size for the spline
+        '_cs_knots_kmin':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points_kmin':          xo.Float64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s_kmin':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_kmin': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_kmin':       xo.Float64,                    # Step size for the spline
+        '_cs_knots_kplus':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points_kplus':          xo.Float64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s_kplus':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_kplus': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_kplus':       xo.Float64,                    # Step size for the spline
+        '_cs_knots_pimin':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points_pimin':          xo.Float64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s_pimin':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_pimin': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_pimin':       xo.Float64,                    # Step size for the spline
+        '_cs_knots_piplus':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points_piplus':          xo.Float64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s_piplus':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_piplus': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_piplus':       xo.Float64,                    # Step size for the spline
+
+        '_nuclear_slope':      xo.Float64,                    # Nuclear slope parameter
+        '_nuclear_slope_pion': xo.Float64,                    # Nuclear slope parameter for pions
         # GG raw values (for diagnostics)
-        '_cs_tot_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_el_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_prod_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_sd_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_el_nucleon':    xo.Float64[N_CS_POINTS],
+        '_cs_tot_pp_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_el_pp_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_prod_pp_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_sd_pp_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_el_nucleon_pp':    xo.Float64[N_CS_POINTS],
+
+        '_cs_tot_kmin_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_el_kmin_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_prod_kmin_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_sd_kmin_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_el_nucleon_kmin':    xo.Float64[N_CS_POINTS],
+
+        '_cs_tot_kplus_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_el_kplus_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_prod_kplus_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_sd_kplus_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_el_nucleon_kplus':    xo.Float64[N_CS_POINTS],
+
+        '_cs_tot_pimin_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_el_pimin_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_prod_pimin_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_sd_pimin_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_el_nucleon_pimin':    xo.Float64[N_CS_POINTS],
+
+        '_cs_tot_piplus_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_el_piplus_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_prod_piplus_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_sd_piplus_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_el_nucleon_piplus':    xo.Float64[N_CS_POINTS],
         # Spline coefficients — shape (N_CS_POINTS - 1,) per coefficient
-        '_cs_tot_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_el_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_hA_d':     xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_nucleon_a':  xo.Float64[N_CS_POINTS-1],
-        '_cs_el_nucleon_b':  xo.Float64[N_CS_POINTS-1],
-        '_cs_el_nucleon_c':  xo.Float64[N_CS_POINTS-1],
-        '_cs_el_nucleon_d':  xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pp_a':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pp_b':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pp_c':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pp_d':  xo.Float64[N_CS_POINTS-1],
+
+        '_cs_tot_kmin_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kmin_a':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kmin_b':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kmin_c':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kmin_d':  xo.Float64[N_CS_POINTS-1],
+
+        '_cs_tot_kplus_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kplus_a':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kplus_b':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kplus_c':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_kplus_d':  xo.Float64[N_CS_POINTS-1],
+
+        '_cs_tot_pimin_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pimin_a':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pimin_b':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pimin_c':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_pimin_d':  xo.Float64[N_CS_POINTS-1],
+
+        '_cs_tot_piplus_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_piplus_a':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_piplus_b':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_piplus_c':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_piplus_d':  xo.Float64[N_CS_POINTS-1],
         # Auto-calculated fields but can be provided for more precision
         '_radiation_length':        xo.Float64,     # [m]
         '_excitation_energy':       xo.Float64,     # [eV]
@@ -130,7 +260,8 @@ class Material(xo.HybridClass):
                                 c_name='MaterialData_evaluate_glauber_spline',
                                 args=[xo.Arg(xo.ThisClass, name="material"),
                                       xo.Arg(xo.Float64, name="sqrt_s"),
-                                      xo.Arg(xo.Int8, name="key")],
+                                      xo.Arg(xo.Int8, name="key"),
+                                      xo.Arg(xo.Int8, name="particle_id")],
                                 ret=xo.Arg(xo.Float64, name="evaluate_glauber_spline")),
                 }
     _needs_compilation = True
@@ -148,26 +279,54 @@ class Material(xo.HybridClass):
 
         # Create xobject with all invalid values (-1)
         xokwargs = kwargs.pop('_xokwargs', {})
-        for kk in ('_ZA_mean', '_Z2_eff', '_nuclear_slope', '_radiation_length', '_excitation_energy',
+        for kk in ('_ZA_mean', '_Z2_eff', '_nuclear_slope', '_nuclear_slope_pion', '_radiation_length', '_excitation_energy',
                    '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
                    '_nuclear_elastic_slope', '_hcut', '_crystal_plane_distance',
                    '_crystal_potential', '_eta', '_nuclear_collision_length',
-                   '_cs_log_sqrt_s_min', '_cs_log_step'):
+                   '_cs_log_sqrt_s_min_pp', '_cs_log_step_pp', '_n_points_pp',
+                   '_cs_log_sqrt_s_min_kmin', '_cs_log_step_kmin', '_n_points_kmin',
+                   '_cs_log_sqrt_s_min_kplus', '_cs_log_step_kplus', '_n_points_kplus',
+                   '_cs_log_sqrt_s_min_pimin', '_cs_log_step_pimin', '_n_points_pimin',
+                   '_cs_log_sqrt_s_min_piplus', '_cs_log_step_piplus', '_n_points_piplus'):
             xokwargs[kk] = kwargs.pop(kk, -1.)
 
-        xokwargs['_n_points'] = kwargs.pop('_n_points', -1)
-        xokwargs['_cs_knots'] = kwargs.pop('_cs_knots', [-1.] * N_CS_POINTS)
-
-        for kk in ('_cs_tot_hA', '_cs_el_hA', '_cs_prod_hA',
-                '_cs_sd_hA', '_cs_el_nucleon', '_cs_tot_pp', '_cs_el_pp',
-                '_cs_inel_pp', '_cs_tot_pn', '_cs_sqrt_s'):
+        for kk in ('_cs_tot_pp_hA', '_cs_el_pp_hA', '_cs_prod_pp_hA', '_cs_sd_pp_hA', '_cs_el_nucleon_pp', 
+                   '_cs_tot_kmin_hA', '_cs_el_kmin_hA', '_cs_prod_kmin_hA', '_cs_sd_kmin_hA', '_cs_el_nucleon_kmin',
+                   '_cs_tot_kplus_hA', '_cs_el_kplus_hA', '_cs_prod_kplus_hA', '_cs_sd_kplus_hA', '_cs_el_nucleon_kplus',
+                   '_cs_tot_pimin_hA', '_cs_el_pimin_hA', '_cs_prod_pimin_hA', '_cs_sd_pimin_hA', '_cs_el_nucleon_pimin',
+                   '_cs_tot_piplus_hA', '_cs_el_piplus_hA', '_cs_prod_piplus_hA', '_cs_sd_piplus_hA', '_cs_el_nucleon_piplus',
+                   '_cs_tot_pp', '_cs_el_pp','_cs_inel_pp', '_cs_tot_pn', 'cs_tot_kmin_p', 'cs_el_kmin_p', 'cs_inel_kmin_p', 
+                   'cs_tot_kplus_p', 'cs_el_kplus_p', 'cs_inel_kplus_p','cs_tot_pimin_p', 'cs_el_pimin_p', 'cs_inel_pimin_p',
+                   'cs_tot_piplus_p', 'cs_el_piplus_p', 'cs_inel_piplus_p', 
+                   '_cs_sqrt_s_pp', '_cs_sqrt_s_kmin', '_cs_sqrt_s_kplus', '_cs_sqrt_s_pimin', '_cs_sqrt_s_piplus',
+                   '_cs_knots_pp', '_cs_knots_kmin', '_cs_knots_kplus', '_cs_knots_pimin', '_cs_knots_piplus'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * N_CS_POINTS)
 
-        for kk in ('_cs_tot_hA_a',  '_cs_tot_hA_b',  '_cs_tot_hA_c',  '_cs_tot_hA_d',
-                   '_cs_el_hA_a',   '_cs_el_hA_b',   '_cs_el_hA_c',   '_cs_el_hA_d',
-                   '_cs_prod_hA_a', '_cs_prod_hA_b', '_cs_prod_hA_c', '_cs_prod_hA_d',
-                   '_cs_sd_hA_a',   '_cs_sd_hA_b',   '_cs_sd_hA_c',   '_cs_sd_hA_d',
-                   '_cs_el_nucleon_a',  '_cs_el_nucleon_b',  '_cs_el_nucleon_c',  '_cs_el_nucleon_d'):
+        for kk in ('_cs_tot_pp_hA_a',  '_cs_tot_pp_hA_b',  '_cs_tot_pp_hA_c',  '_cs_tot_pp_hA_d',
+                   '_cs_el_pp_hA_a',   '_cs_el_pp_hA_b',   '_cs_el_pp_hA_c',   '_cs_el_pp_hA_d',
+                   '_cs_prod_pp_hA_a', '_cs_prod_pp_hA_b', '_cs_prod_pp_hA_c', '_cs_prod_pp_hA_d',
+                   '_cs_sd_pp_hA_a',   '_cs_sd_pp_hA_b',   '_cs_sd_pp_hA_c',   '_cs_sd_pp_hA_d',
+                   '_cs_el_nucleon_pp_a',  '_cs_el_nucleon_pp_b',  '_cs_el_nucleon_pp_c',  '_cs_el_nucleon_pp_d',
+                   '_cs_tot_kmin_hA_a',  '_cs_tot_kmin_hA_b',  '_cs_tot_kmin_hA_c',  '_cs_tot_kmin_hA_d',
+                   '_cs_el_kmin_hA_a',   '_cs_el_kmin_hA_b',   '_cs_el_kmin_hA_c',   '_cs_el_kmin_hA_d',
+                   '_cs_prod_kmin_hA_a', '_cs_prod_kmin_hA_b', '_cs_prod_kmin_hA_c', '_cs_prod_kmin_hA_d',
+                   '_cs_sd_kmin_hA_a',   '_cs_sd_kmin_hA_b',   '_cs_sd_kmin_hA_c',   '_cs_sd_kmin_hA_d',
+                   '_cs_el_nucleon_kmin_a',  '_cs_el_nucleon_kmin_b',  '_cs_el_nucleon_kmin_c',  '_cs_el_nucleon_kmin_d'
+                   '_cs_tot_kplus_hA_a',  '_cs_tot_kplus_hA_b',  '_cs_tot_kplus_hA_c',  '_cs_tot_kplus_hA_d',
+                   '_cs_el_kplus_hA_a',   '_cs_el_kplus_hA_b',   '_cs_el_kplus_hA_c',   '_cs_el_kplus_hA_d',
+                   '_cs_prod_kplus_hA_a', '_cs_prod_kplus_hA_b', '_cs_prod_kplus_hA_c', '_cs_prod_kplus_hA_d',
+                   '_cs_sd_kplus_hA_a',   '_cs_sd_kplus_hA_b',   '_cs_sd_kplus_hA_c',   '_cs_sd_kplus_hA_d',
+                   '_cs_el_nucleon_kplus_a',  '_cs_el_nucleon_kplus_b',  '_cs_el_nucleon_kplus_c',  '_cs_el_nucleon_kplus_d'
+                   '_cs_tot_pimin_hA_a',  '_cs_tot_pimin_hA_b',  '_cs_tot_pimin_hA_c',  '_cs_tot_pimin_hA_d',
+                   '_cs_el_pimin_hA_a',   '_cs_el_pimin_hA_b',   '_cs_el_pimin_hA_c',   '_cs_el_pimin_hA_d',
+                   '_cs_prod_pimin_hA_a', '_cs_prod_pimin_hA_b', '_cs_prod_pimin_hA_c', '_cs_prod_pimin_hA_d',
+                   '_cs_sd_pimin_hA_a',   '_cs_sd_pimin_hA_b',   '_cs_sd_pimin_hA_c',   '_cs_sd_pimin_hA_d',
+                   '_cs_el_nucleon_pimin_a',  '_cs_el_nucleon_pimin_b',  '_cs_el_nucleon_pimin_c',  '_cs_el_nucleon_pimin_d'
+                   '_cs_tot_piplus_hA_a',  '_cs_tot_piplus_hA_b',  '_cs_tot_piplus_hA_c',  '_cs_tot_piplus_hA_d',
+                   '_cs_el_piplus_hA_a',   '_cs_el_piplus_hA_b',   '_cs_el_piplus_hA_c',   '_cs_el_piplus_hA_d',
+                   '_cs_prod_piplus_hA_a', '_cs_prod_piplus_hA_b', '_cs_prod_piplus_hA_c', '_cs_prod_piplus_hA_d',
+                   '_cs_sd_piplus_hA_a',   '_cs_sd_piplus_hA_b',   '_cs_sd_piplus_hA_c',   '_cs_sd_piplus_hA_d',
+                   '_cs_el_nucleon_piplus_a',  '_cs_el_nucleon_piplus_b',  '_cs_el_nucleon_piplus_c',  '_cs_el_nucleon_piplus_d'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * (N_CS_POINTS - 1))
 
         xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
@@ -449,47 +608,65 @@ class Material(xo.HybridClass):
         R_fm = self._get_R(A=A) * 1e15
         return np.pi * R_fm**2 * 10.0
 
-    def _glauber_element_single(self, sqrt_s, cs_hN, A=None):
-        """
-        GG nucleus cross sections [mb] for one element at one energy or array of energies.
-        """
+    def _compute_glauber_cs(self, A_sig_tot, A_sig_inel, piR2):
+        cs_tot   = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
+        cs_inel  = piR2 * np.log(1.0 + A_sig_tot / piR2)
+        cs_el    = np.maximum(0.0, cs_tot - cs_inel)
+
+        cs_prod  = piR2 * np.log(1.0 +A_sig_inel / piR2)
+
+        alpha    = A_sig_tot / (2 * piR2 + A_sig_tot)
+        cs_sd    = piR2 * (alpha - np.log(1.0 + alpha))
+
+        cs_el_nucleon = np.maximum(0.0, cs_inel - cs_prod)
+
+        return cs_tot, cs_prod, cs_el, cs_el_nucleon, cs_sd
+
+    def _glauber_element_single(self, sqrt_s, cs_hN, species, A=None):
+
         A_eff  = self.A if A is None else A
         piR2   = self._pi_R2_mb(A=A_eff)
-        sqrt_s = np.asarray(sqrt_s)  # Ensure sqrt_s is an array
+        sqrt_s = np.asarray(sqrt_s)
+        all_species = ["pp", "kmin", "kplus", "pimin", "piplus"]
 
-        # Compute sigma values for each element in sqrt_s
-        A_sig_tot  = np.zeros_like(sqrt_s)
-        A_sig_inel = np.zeros_like(sqrt_s)
-        A_sig_el   = np.zeros_like(sqrt_s)
-        for i, s in enumerate(sqrt_s): 
-            A_sig_tot[i], A_sig_inel[i], A_sig_el[i] = cs_hN(A_eff, self.Z, s)
-               
+        A_sig = {
+            sp: {
+                "tot":  np.zeros_like(sqrt_s),
+                "inel": np.zeros_like(sqrt_s),
+                "el":   np.zeros_like(sqrt_s),
+            }
+            for sp in all_species
+        }
+
+        # Fill hadron–nucleon cross sections
+        for i, s in enumerate(sqrt_s): # sjekk hvirfir garbagde
+            values = cs_hN(A_eff, self.Z, s)
+
+            (A_sig["pp"]["tot"][i], A_sig["pp"]["inel"][i], A_sig["pp"]["el"][i],
+             A_sig["kmin"]["tot"][i], A_sig["kmin"]["inel"][i], A_sig["kmin"]["el"][i],
+             A_sig["kplus"]["tot"][i], A_sig["kplus"]["inel"][i], A_sig["kplus"]["el"][i],
+             A_sig["pimin"]["tot"][i], A_sig["pimin"]["inel"][i], A_sig["pimin"]["el"][i],
+             A_sig["piplus"]["tot"][i],A_sig["piplus"]["inel"][i],A_sig["piplus"]["el"][i],
+            ) = values
+        sp = species
         if A_eff < 4:
             return {
-                "cs_tot_hA"      : A_sig_tot,
-                "cs_inel_hA"     : A_sig_inel,
-                "cs_el_hA"       : A_sig_el,
-                "cs_prod_hA"     : np.zeros_like(A_sig_tot),
-                "cs_sd_hA"       : np.zeros_like(A_sig_tot),
-                "cs_el_nucleon"  : np.zeros_like(A_sig_tot),
+                f"cs_{key}_{sp}_hA": A_sig[sp][key]
+                for sp in species
+                for key in ["tot","inel","el"]
             }
+        results = {}
 
-        cs_tot_hA       = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
-        cs_inel_hA      = piR2 * np.log(1.0 + A_sig_tot / piR2)
-        cs_el_hA        = np.maximum(0.0, cs_tot_hA - cs_inel_hA)
-        cs_prod_hA      = piR2 * np.log(1.0 + A_sig_inel / piR2)
-        alpha           = A_sig_tot / (2 * piR2 + A_sig_tot)
-        cs_sd_hA        = piR2 * (alpha - np.log(1.0 + alpha))
-        cs_el_nucleon   = np.maximum(0.0, cs_inel_hA - cs_prod_hA)
-
-        return {
-            "cs_tot_hA"    : cs_tot_hA,
-            "cs_inel_hA"   : cs_inel_hA,
-            "cs_el_hA"     : cs_el_hA,
-            "cs_prod_hA"   : cs_prod_hA,
-            "cs_sd_hA"     : cs_sd_hA,
-            "cs_el_nucleon": cs_el_nucleon,
-        }
+        cs_tot, cs_prod, cs_el, cs_el_nucl, cs_sd  = self._compute_glauber_cs(A_sig[sp]["tot"],
+                                                                                  A_sig[sp]["inel"],
+                                                                                  piR2)
+        results.update({f"cs_tot_{sp}_hA": cs_tot,
+                            f"cs_prod_{sp}_hA": cs_prod,
+                            f"cs_el_{sp}_hA": cs_el,
+                            f"cs_el_nucleon_{sp}": cs_el_nucl,
+                            f"cs_sd_{sp}_hA": cs_sd,
+                            })
+        return results
 
     def _load_isotopes(self):
         Z = self.Z
@@ -497,144 +674,132 @@ class Material(xo.HybridClass):
         data = np.load(file, allow_pickle=True)
         return data
 
-    def _glauber_isotope_to_element(self, log_sqrt_s, cs_hN):
+    def _glauber_isotope_to_element(self, log_sqrt_s, cs_hN, species):
         try:
             data = self._load_isotopes()
         except FileNotFoundError:
-            return self._glauber_element_single(log_sqrt_s, cs_hN)
+            print(f"Isotope data not found for Z={self.Z}. Falling back to element-level Glauber calculation.")
+            return self._glauber_element_single(log_sqrt_s, cs_hN, species)
 
         symbol = Z_TO_SYMBOL.get(self.Z)
         iso_list = ISOTOPES[symbol]["isotopes"]
         stable = [iso for iso in iso_list if iso["abundance"] is not None]
 
+        sp_data = data[species].item()  # the dict for this species
+    
         # If self.A matches a specific isotope mass number, use only that one
         matching = [iso for iso in stable if iso["mass_number"] == self.A]
         if matching:
             # Pure isotope — find its index in stable list
             idx = stable.index(matching[0])
             combined = {}
-            for k in GG_KEYS:
-                spline = CubicSpline(data[k][idx]["knots"], data[k][idx]["y_values"], bc_type='not-a-knot')
-                combined[k] = spline(log_sqrt_s)
+            for k, records in sp_data.items():
+                spl = CubicSpline(records[idx]["knots"], records[idx]["y_values"], bc_type='not-a-knot')
+                combined[k] = spl(log_sqrt_s)
             return combined
 
         # Otherwise do abundance-weighted mix as before
         abundance = np.array([iso["abundance"] for iso in stable])
         fraction = abundance / np.sum(abundance)
-        combined = {k: np.zeros_like(log_sqrt_s) for k in GG_KEYS}
-        for k in GG_KEYS:
-            for iso in range(len(stable)):
-                spline = CubicSpline(data[k][iso]["knots"], data[k][iso]["y_values"], bc_type='not-a-knot')
-                combined[k] += fraction[iso] * spline(log_sqrt_s)
+        combined  = {k: np.zeros_like(log_sqrt_s) for k in sp_data}
+        for k, records in sp_data.items():
+            for iso_idx, frac in enumerate(fraction):
+                spl = CubicSpline(records[iso_idx]["knots"], records[iso_idx]["y_values"], bc_type='not-a-knot')
+                combined[k] += frac * spl(log_sqrt_s)
         return combined
 
-    def _glauber_component(self, log_sqrt_s, cs_hN):
+    def _glauber_component(self, log_sqrt_s, cs_hN, species):
         """
         Compute component-weighted GG cross sections for a compound material.
         """
         combined = {k: np.zeros_like(log_sqrt_s) for k in GG_KEYS}
         for i, comp in enumerate(self.components):
-            gg = comp._glauber_isotope_to_element(log_sqrt_s, cs_hN)
+            gg = comp._glauber_isotope_to_element(log_sqrt_s, cs_hN, species)
             for k in GG_KEYS:
                 combined[k] += self.molar_fractions[i] * gg[k]
         return combined
 
     def _get_material_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
         splines, grid_min, grid_max = load_all_splines()
-        n_points   = n_points   or N_CS_POINTS
-        sqrt_s_min = sqrt_s_min or grid_min
-        sqrt_s_max = sqrt_s_max or grid_max
-        sqrt_s_arr = np.logspace(np.log10(sqrt_s_min), np.log10(sqrt_s_max), n_points)
-        log_sqrt_s = np.log(sqrt_s_arr)
+        _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_, cs_hN = make_nucleon_cs(splines)
+        n_points = n_points or N_CS_POINTS
+        for sp in SPECIES:
+            smin = sqrt_s_min or grid_min[sp]
+            smax = sqrt_s_max or grid_max[sp]
+            sqrt_s_arr = np.logspace(np.log10(smin), np.log10(smax), n_points)
+            log_sqrt_s = np.log(sqrt_s_arr)
 
-        _,_,_,_, cs_hN = make_nucleon_cs(splines)
-        
-        if self._components is None:
-            gg = self._glauber_isotope_to_element(log_sqrt_s, cs_hN)
-            # nuclear slope
-            if self.A <= 62:
-                self._nuclear_slope = 14.5 * self.A**(2./3.)
+            # Store per-species grid metadata
+            setattr(self, f"_cs_sqrt_s_{sp}",          sqrt_s_arr)
+            setattr(self, f"_cs_log_sqrt_s_min_{sp}",  float(log_sqrt_s[0]))
+            setattr(self, f"_cs_log_step_{sp}",        float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1)))
+            setattr(self, f"_cs_knots_{sp}",           log_sqrt_s)
+            setattr(self, f"_n_points_{sp}",           n_points)
+            
+            if self._components is None:
+                gg = self._glauber_isotope_to_element(log_sqrt_s, cs_hN, sp)
+                # nuclear slope
+                if self.A <= 62:
+                    self._nuclear_slope = 14.5 * self.A**(2./3.)
+                    self._nuclear_slope_pion = 14.5 * self.A**(2./3.)
+                else:
+                    self._nuclear_slope = 60.0 * self.A**(1./3.)
+                    self._nuclear_slope_pion = 60.0 * self.A**(1./3.)
             else:
-                self._nuclear_slope = 60.0 * self.A**(1./3.)
-        else:
-            gg = self._glauber_component(log_sqrt_s, cs_hN)
-            fraction_14 = []
-            fraction_60 = []
-            nuclear_slope_14 = 0
-            nuclear_slope_60 = 0
+                gg = self._glauber_component(log_sqrt_s, cs_hN, sp)
+                fraction_14 = []
+                fraction_60 = []
+                nuclear_slope_14 = 0
+                nuclear_slope_60 = 0
 
-            # Separate the indices based on the condition
-            for i, comp in enumerate(self.components):
-                if comp.A <= 62:
-                    fraction_14.append(i)
-                else: 
-                    fraction_60.append(i)
+                # Separate the indices based on the condition
+                for i, comp in enumerate(self.components):
+                    if comp.A <= 62:
+                        fraction_14.append(i)
+                    else: 
+                        fraction_60.append(i)
 
-            # Calculate the slope for A <= 62
-            for i in fraction_14:
-                nuclear_slope_14 += self.molar_fractions[i] * self.components[i].A**(2./3.)
-            nuclear_slope_14 *= 14.5
+                # Calculate the slope for A <= 62
+                for i in fraction_14:
+                    nuclear_slope_14 += self.molar_fractions[i] * self.components[i].A**(2./3.)
+                nuclear_slope_14 *= 14.5
 
-            # Calculate the slope for A > 62
-            for i in fraction_60:
-                nuclear_slope_60 += self.molar_fractions[i] * self.components[i].A**(1./3.)
-            nuclear_slope_60 *= 60.0
+                # Calculate the slope for A > 62
+                for i in fraction_60:
+                    nuclear_slope_60 += self.molar_fractions[i] * self.components[i].A**(1./3.)
+                nuclear_slope_60 *= 60.0
 
-            # Combine the results
-            self._nuclear_slope = nuclear_slope_14 + nuclear_slope_60
-        # Store grid metadata
-        self._cs_sqrt_s         = sqrt_s_arr
-        self._cs_log_sqrt_s_min = float(log_sqrt_s[0])
-        self._cs_log_step       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
-        self._cs_knots          = log_sqrt_s
-        self._n_points          = n_points
+                # Combine the results
+                self._nuclear_slope = nuclear_slope_14 + nuclear_slope_60
+                self._nuclear_slope_pion = nuclear_slope_14 + nuclear_slope_60
+            for k, arr in gg.items():
+                if not np.all(np.isfinite(arr)):
+                    print(f"Warning: Non-finite values found in {k} for material A={self.A} Z={self.Z} species={sp}")
+                    attr = f"_{k}"
+                    setattr(self, attr, arr)
+                    spl = CubicSpline(log_sqrt_s, 1e-15 * np.ones_like(arr), bc_type='not-a-knot')
+                    setattr(self, f"{attr}hA_a", spl.c[0])
+                    setattr(self, f"{attr}hA_b", spl.c[1])
+                    setattr(self, f"{attr}hA_c", spl.c[2])
+                    setattr(self, f"{attr}hA_d", spl.c[3])
+                else:
+                    attr = f"_{k}"
+                    setattr(self, attr, arr)
+                    spl = CubicSpline(log_sqrt_s, arr)
+                    setattr(self, f"{attr}hA_a", spl.c[0])
+                    setattr(self, f"{attr}hA_b", spl.c[1])
+                    setattr(self, f"{attr}hA_c", spl.c[2])
+                    setattr(self, f"{attr}hA_d", spl.c[3])
 
-        # Store grid metadata
-        self._cs_sqrt_s         = sqrt_s_arr
-        self._cs_log_sqrt_s_min = float(log_sqrt_s[0])
-        self._cs_log_step       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
-        self._cs_knots          = log_sqrt_s
-        self._n_points          = n_points
 
-        # Store raw GG arrays and fit spline coefficients
-        self._cs_tot_hA = gg['cs_tot_hA']
-        self._cs_el_hA = gg['cs_el_hA']
-        self._cs_prod_hA = gg['cs_prod_hA']
-        self._cs_sd_hA = gg['cs_sd_hA']
-        self._cs_el_nucleon = gg['cs_el_nucleon']
-
-        self._cs_tot_hA_a = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[0]
-        self._cs_tot_hA_b = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[1]
-        self._cs_tot_hA_c = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[2]
-        self._cs_tot_hA_d = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[3]
-
-        self._cs_el_hA_a = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[0]
-        self._cs_el_hA_b = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[1]
-        self._cs_el_hA_c = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[2]
-        self._cs_el_hA_d = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[3]
-
-        self._cs_prod_hA_a = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[0]
-        self._cs_prod_hA_b = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[1]
-        self._cs_prod_hA_c = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[2]
-        self._cs_prod_hA_d = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[3]
-
-        self._cs_sd_hA_a = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[0]
-        self._cs_sd_hA_b = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[1]
-        self._cs_sd_hA_c = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[2]
-        self._cs_sd_hA_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
-
-        self._cs_el_nucleon_a = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[0]
-        self._cs_el_nucleon_b = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[1]
-        self._cs_el_nucleon_c = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[2]
-        self._cs_el_nucleon_d = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[3]
-
-    def evaluate_glauber_spline(self, sqrt_s, key):
+    def evaluate_glauber_spline(self, sqrt_s, key, particle_id):
         # Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive
         self.compile_kernels(only_if_needed=True)
         return self._context.kernels.evaluate_glauber_spline(
             material=self,
             sqrt_s=float(sqrt_s),
             key=int(key),
+            particle_id=int(particle_id)
         )
     # ===========
     # === API ===

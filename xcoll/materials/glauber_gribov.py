@@ -12,9 +12,18 @@ from pathlib import Path
 # ===========================================================================
 MP = 0.938270   # proton mass [GeV]
 
-GG_KEYS      = ["cs_tot_hA", "cs_inel_hA", "cs_el_hA",
-                "cs_prod_hA", "cs_sd_hA",  "cs_el_nucleon"]
-NUCLEON_KEYS = ["cs_tot_pp", "cs_el_pp", "cs_inel_pp", "cs_tot_pn"] # Maybe call spline keys
+GG_KEYS      = ["cs_tot_pp_hA", "cs_inel_pp_hA", "cs_el_pp_hA",
+                "cs_prod_pp_hA", "cs_sd_pp_hA",  "cs_el_nucleon_pp",
+                "cs_tot_kmin_hA", "cs_inel_kmin_hA", "cs_el_kmin_hA", 
+                "cs_prod_kmin_hA", "cs_sd_kmin_hA",  "cs_el_nucleon_kmin",
+                "cs_tot_kplus_hA", "cs_inel_kplus_hA", "cs_el_kplus_hA",
+                "cs_prod_kplus_hA", "cs_sd_kplus_hA",  "cs_el_nucleon_kplus",
+                "cs_tot_pimin_hA", "cs_inel_pimin_hA", "cs_el_pimin_hA",
+                "cs_prod_pimin_hA", "cs_sd_pimin_hA",  "cs_el_nucleon_pimin",
+                "cs_tot_piplus_hA", "cs_inel_piplus_hA", "cs_el_piplus_hA",
+                "cs_prod_piplus_hA", "cs_sd_piplus_hA",  "cs_el_nucleon_piplus"]
+SPECIES = ["pp", "kmin", "kplus", "pimin", "piplus"]
+# NUCLEON_KEYS = ["cs_tot_pp", "cs_el_pp", "cs_inel_pp", "cs_tot_pn"] # Maybe call spline keys
 
 
 # ===========================================================================
@@ -66,9 +75,17 @@ def build_spline(filename, smoothing):
 
 
 def save_splines_npz(out_path,
-                     fname_tot="ppcrosstot.dat",
-                     fname_el="ppcross.dat",
-                     fname_pn="pncrosstot.dat"):
+                     fname_pp_tot   ="ppcrosstot.dat",
+                     fname_pp_el    ="ppcross.dat",
+                     fname_pn_tot   ="pncrosstot.dat",
+                     fname_kmin_tot ="k_min_p_tot.dat",
+                     fname_kmin_el  ="k_min_p_el.dat",
+                     fname_kplu_tot ="k_plu_p_tot.dat",
+                     fname_kplu_el  ="k_plu_p_el.dat",
+                     fname_pimin_tot="pi_min_p_tot.dat",
+                     fname_pimin_el ="pi_min_p_el.dat",
+                     fname_piplu_tot="pi_plu_p_tot.dat",
+                     fname_piplu_el ="pi_plu_p_el.dat"):
     """
     Build splines from raw PDG dat files and save the raw data points
     (in log(sqrt_s) space) to an NPZ file.  Run this once to generate
@@ -81,20 +98,36 @@ def save_splines_npz(out_path,
     fname_tot, fname_el, fname_pn : str
         Paths to the three PDG dat files.
     """
-    _, sqrts_tot, sigma_tot = build_spline(fname_tot, smoothing=2000)
-    _, sqrts_el,  sigma_el  = build_spline(fname_el,  smoothing=150)
-    _, sqrts_pn,  sigma_pn  = build_spline(fname_pn,  smoothing=140)
+    _, sqrts_tot, sigma_tot             = build_spline(fname_pp_tot, smoothing=2000)
+    _, sqrts_el,  sigma_el              = build_spline(fname_pp_el,  smoothing=150)
+    _, sqrts_pn,  sigma_pn              = build_spline(fname_pn_tot,  smoothing=140)
+    _, sqrts_kmin_tot, sigma_kmin_tot   = build_spline(fname_kmin_tot, smoothing=1200)
+    _, sqrts_kmin_el,  sigma_kmin_el    = build_spline(fname_kmin_el,  smoothing=900)
+    _, sqrts_kplu_tot, sigma_kplu_tot   = build_spline(fname_kplu_tot, smoothing=500)
+    _, sqrts_kplu_el,  sigma_kplu_el    = build_spline(fname_kplu_el,  smoothing=315)
+    _, sqrts_pimin_tot, sigma_pimin_tot = build_spline(fname_pimin_tot, smoothing=1300)
+    _, sqrts_pimin_el,  sigma_pimin_el  = build_spline(fname_pimin_el,  smoothing=1300)
+    _, sqrts_piplu_tot, sigma_piplu_tot = build_spline(fname_piplu_tot, smoothing=1260)
+    _, sqrts_piplu_el,  sigma_piplu_el  = build_spline(fname_piplu_el,  smoothing=500)
 
     np.savez(out_path,
-             x_tot=np.log(sqrts_tot), y_tot=sigma_tot,
-             x_el=np.log(sqrts_el),   y_el=sigma_el,
-             x_pn=np.log(sqrts_pn),   y_pn=sigma_pn)
+             x_tot      = np.log(sqrts_tot),       y_tot=sigma_tot,
+             x_el       = np.log(sqrts_el),        y_el=sigma_el,
+             x_pn       = np.log(sqrts_pn),        y_pn=sigma_pn,
+             x_kmin_tot = np.log(sqrts_kmin_tot),  y_kmin_tot=sigma_kmin_tot,
+             x_kmin_el  = np.log(sqrts_kmin_el),   y_kmin_el=sigma_kmin_el,
+             x_kplu_tot = np.log(sqrts_kplu_tot),  y_kplu_tot=sigma_kplu_tot,
+             x_kplu_el  = np.log(sqrts_kplu_el),   y_kplu_el=sigma_kplu_el,
+             x_pimin_tot= np.log(sqrts_pimin_tot), y_pimin_tot=sigma_pimin_tot,
+             x_pimin_el = np.log(sqrts_pimin_el),  y_pimin_el=sigma_pimin_el,
+             x_piplu_tot= np.log(sqrts_piplu_tot), y_piplu_tot=sigma_piplu_tot,
+             x_piplu_el = np.log(sqrts_piplu_el),  y_piplu_el=sigma_piplu_el,
+    )
     print(f"Saved splines data -> {out_path}")
 
 # ===========================================================================
 # Loading splines
 # ==========================================================================
-
 def load_all_splines():
     """
     Load the PDG splines from splines_data.npz bundled with the package.
@@ -106,9 +139,39 @@ def load_all_splines():
         "pp tot": UnivariateSpline(data["x_tot"], data["y_tot"], s=900),
         "pp el" : UnivariateSpline(data["x_el"],  data["y_el"],  s=500),
         "pn tot": UnivariateSpline(data["x_pn"],  data["y_pn"],  s=200),
+        "kmin tot": UnivariateSpline(data["x_k_min_tot"], data["y_k_min_tot"], s=1200),
+        "kmin el":  UnivariateSpline(data["x_k_min_el"],  data["y_k_min_el"],  s=900),
+        "kplus tot": UnivariateSpline(data["x_k_plu_tot"], data["y_k_plu_tot"], s=500),
+        "kplus el":  UnivariateSpline(data["x_k_plu_el"],  data["y_k_plu_el"],  s=315),
+        "pimin tot": UnivariateSpline(data["x_pi_min_tot"], data["y_pi_min_tot"], s=1300),
+        "pimin el":  UnivariateSpline(data["x_pi_min_el"],  data["y_pi_min_el"],  s=1300),
+        "piplus tot": UnivariateSpline(data["x_pi_plu_tot"], data["y_pi_plu_tot"], s=1260),
+        "piplus el":  UnivariateSpline(data["x_pi_plu_el"],  data["y_pi_plu_el"],  s=500),
     }
-    grid_min = max(np.exp(data[x].min()) for x in ["x_tot", "x_el"])
-    grid_max = min(np.exp(data[x].max()) for x in ["x_tot", "x_el"])
+    grid_min_pp = max(np.exp(data[x].min()) for x in ["x_tot", "x_el"])
+    grid_max_pp = min(np.exp(data[x].max()) for x in ["x_tot", "x_el"])
+    grid_min_kmin = max(np.exp(data[x].min()) for x in ["x_k_min_tot", "x_k_min_el"])
+    grid_max_kmin = min(np.exp(data[x].max()) for x in ["x_k_min_tot", "x_k_min_el"])
+    grid_min_kplu = max(np.exp(data[x].min()) for x in ["x_k_plu_tot", "x_k_plu_el"])
+    grid_max_kplu = min(np.exp(data[x].max()) for x in ["x_k_plu_tot", "x_k_plu_el"])
+    grid_min_pimin = max(np.exp(data[x].min()) for x in ["x_pi_min_tot", "x_pi_min_el"])
+    grid_max_pimin = min(np.exp(data[x].max()) for x in ["x_pi_min_tot", "x_pi_min_el"])
+    grid_min_piplu = max(np.exp(data[x].min()) for x in ["x_pi_plu_tot", "x_pi_plu_el"])
+    grid_max_piplu = min(np.exp(data[x].max()) for x in ["x_pi_plu_tot", "x_pi_plu_el"])
+    grid_min = {
+        "pp": grid_min_pp,
+        "kmin": grid_min_kmin,
+        "kplus": grid_min_kplu,
+        "pimin": grid_min_pimin,
+        "piplus": grid_min_piplu,
+    }
+    grid_max = {
+        "pp": grid_max_pp,
+        "kmin": grid_max_kmin,
+        "kplus": grid_max_kplu,
+        "pimin": grid_max_pimin,
+        "piplus": grid_max_piplu,
+    }
 
     return splines, grid_min, grid_max
 
@@ -148,15 +211,75 @@ def make_nucleon_cs(splines):
     def cs_el_pn(sqrt_s):
         return cs_el_pp(sqrt_s)     # no pn elastic data
 
+    def cs_tot_kmin_p(sqrt_s):
+        return splines["kmin tot"](np.log(sqrt_s))
+    
+    def cs_el_kmin_p(sqrt_s):
+        return splines["kmin el"](np.log(sqrt_s))
+    
+    def cs_inel_kmin_p(sqrt_s):
+        return max(0.0, cs_tot_kmin_p(sqrt_s) - cs_el_kmin_p(sqrt_s))
+    
+    def cs_tot_kplu_p(sqrt_s):
+        return splines["kplus tot"](np.log(sqrt_s))
+    
+    def cs_el_kplu_p(sqrt_s):
+        return splines["kplus el"](np.log(sqrt_s))
+    
+    def cs_inel_kplu_p(sqrt_s):
+        return max(0.0, cs_tot_kplu_p(sqrt_s) - cs_el_kplu_p(sqrt_s))
+
+    def cs_tot_pimin_p(sqrt_s):
+        return splines["pimin tot"](np.log(sqrt_s))
+    
+    def cs_el_pimin_p(sqrt_s):
+        return splines["pimin el"](np.log(sqrt_s))
+    
+    def cs_inel_pimin_p(sqrt_s):
+        return max(0.0, cs_tot_pimin_p(sqrt_s) - cs_el_pimin_p(sqrt_s))
+
+    def cs_tot_piplu_p(sqrt_s):
+        return splines["piplus tot"](np.log(sqrt_s))
+    
+    def cs_el_piplu_p(sqrt_s):
+        return splines["piplus el"](np.log(sqrt_s))
+
+    def cs_inel_piplu_p(sqrt_s):
+        return max(0.0, cs_tot_piplu_p(sqrt_s) - cs_el_piplu_p(sqrt_s))
+
     def cs_hN(A, Z, sqrt_s):
         """
         Hadron-nucleon cross sections: A*sigma = Z*sigma_pp + (A-Z)*sigma_pn.
         Returns (cs_tot_hN, cs_inel_hN, cs_el_hN).
         """
-        tot  = Z * cs_tot_pp(sqrt_s)  + (A - Z) * cs_tot_pn(sqrt_s)
-        inel = Z * cs_inel_pp(sqrt_s) + (A - Z) * cs_inel_pn(sqrt_s)
-        el   = Z * cs_el_pp(sqrt_s)   + (A - Z) * cs_el_pn(sqrt_s)
-        return tot, inel, el
+        tot_pp  = Z * cs_tot_pp(sqrt_s)  + (A - Z) * cs_tot_pn(sqrt_s)
+        inel_pp = Z * cs_inel_pp(sqrt_s) + (A - Z) * cs_inel_pn(sqrt_s)
+        el_pp   = Z * cs_el_pp(sqrt_s)   + (A - Z) * cs_el_pn(sqrt_s)
 
-    return cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, cs_hN
+        tot_kmin_p  = Z * cs_tot_kmin_p(sqrt_s)  + (A - Z) * cs_tot_kmin_p(sqrt_s)
+        inel_kmin_p = Z * cs_inel_kmin_p(sqrt_s) + (A - Z) * cs_inel_kmin_p(sqrt_s)
+        el_kmin_p   = Z * cs_el_kmin_p(sqrt_s)   + (A - Z) * cs_el_kmin_p(sqrt_s)
+        
+        tot_kplu_p = Z * cs_tot_kplu_p(sqrt_s)  + (A - Z) * cs_tot_kplu_p(sqrt_s)
+        inel_kplu_p = Z * cs_inel_kplu_p(sqrt_s) + (A - Z) * cs_inel_kplu_p(sqrt_s)
+        el_kplu_p   = Z * cs_el_kplu_p(sqrt_s)   + (A - Z) * cs_el_kplu_p(sqrt_s)
+
+        tot_pimin_p = Z * cs_tot_pimin_p(sqrt_s)  + (A - Z) * cs_tot_pimin_p(sqrt_s)
+        inel_pimin_p = Z * cs_inel_pimin_p(sqrt_s) + (A - Z) * cs_inel_pimin_p(sqrt_s)
+        el_pimin_p   = Z * cs_el_pimin_p(sqrt_s)   + (A - Z) * cs_el_pimin_p(sqrt_s)
+
+        tot_piplu_p = Z * cs_tot_piplu_p(sqrt_s)  + (A - Z) * cs_tot_piplu_p(sqrt_s)
+        inel_piplu_p = Z * cs_inel_piplu_p(sqrt_s) + (A - Z) * cs_inel_piplu_p(sqrt_s)
+        el_piplu_p   = Z * cs_el_piplu_p(sqrt_s)   + (A - Z) * cs_el_piplu_p(sqrt_s)
+
+        return tot_pp, inel_pp, el_pp, tot_kmin_p, inel_kmin_p, el_kmin_p, \
+               tot_kplu_p, inel_kplu_p, el_kplu_p, tot_pimin_p, inel_pimin_p, \
+               el_pimin_p, tot_piplu_p, inel_piplu_p, el_piplu_p
+
+    return  cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, \
+            cs_tot_kmin_p, cs_el_kmin_p, cs_inel_kmin_p, \
+            cs_tot_kplu_p, cs_el_kplu_p, cs_inel_kplu_p, \
+            cs_tot_pimin_p, cs_el_pimin_p, cs_inel_pimin_p, \
+            cs_tot_piplu_p, cs_el_piplu_p, cs_inel_piplu_p, \
+            cs_hN
  

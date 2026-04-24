@@ -6,7 +6,22 @@
 #ifndef XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #include <math.h>
-
+/*gpufun*/
+double particle_id(double pdg_id) {
+    if (pdg_id == 2212) {
+        return 0; // proton
+    } else if (pdg_id == 211) {
+        return 4; // pion plus
+    } else if (pdg_id == 321) {
+        return 2; // kaon plus
+    } else if (pdg_id == -211) {
+        return 3; // pion minus
+    } else if (pdg_id == -321) {
+        return 1; // kaon minus
+    } else {
+        return -1; // unknown particle
+    }
+}
 /*gpufun*/
 double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
                                                   MaterialData restrict material, double pc){
@@ -14,22 +29,29 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
 
     double interaction_length_tot;
     double cs_coulomb;
+    double nuclear_slope;
     double cross_section_tot;
     double sqrt_t_p;
     int64_t i_slot = -1;
 
-    double N          = MaterialData_get__atoms_per_volume(material);
-    double Z          = sqrt(MaterialData_get__Z2_eff(material));
-    double X0         = MaterialData_get__radiation_length(material);
-    everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
+    double N           = MaterialData_get__atoms_per_volume(material);
+    double Z           = sqrt(MaterialData_get__Z2_eff(material));
+    double X0          = MaterialData_get__radiation_length(material);
+    double particle_id = particle_id(LocalParticle_get_pdg_id(part));
+    everest->ecmsq     = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
-    double nuclear_slope = MaterialData_get__nuclear_slope(material);
     double theta_init = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
     // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
-
+ 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t scatter               = everest->coll->record_scatterings;
+
+    if (particle_id == 3 || particle_id == 4){
+        nuclear_slope = MaterialData_get__nuclear_slope_pion(material);
+    } else {
+        nuclear_slope = MaterialData_get__nuclear_slope(material);
+    }
 
     get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &cs_coulomb); // [mb]
     cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0) + cs_coulomb; // [mb]
@@ -43,7 +65,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         return pc;
     } else {
         double interaction_lengths[5];
-        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc);
+        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc, particle_id);
         // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
         int chosen                    = 1;
         double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
