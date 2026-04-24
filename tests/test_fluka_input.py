@@ -15,7 +15,7 @@ from xcoll.scattering_routines.fluka.fluka_input import get_collimators_from_inp
 
 @pytest.mark.fluka
 @pytest.mark.parametrize("el_type", ['collimator', 'crystal'])
-def test_fluka_input_single(el_type):
+def test_fluka_input_single(el_type, register_cleanup):
     print(f"\nTesting FLUKA input generation for single {el_type}... in {Path.cwd()}")
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop()
@@ -25,7 +25,8 @@ def test_fluka_input_single(el_type):
         coll = xc.FlukaCrystal(length=0.002, side='-', angle=90, jaw=-0.01, tilt=43e-6, material='Yttrium', bending_radius=65)
     with pytest.raises(ValueError, match="Need to provide either a line with a reference particle, or `particle_ref`."):
         input_file = xc.fluka.engine.generate_input_file(elements=coll, names='TestColl', clean=False)
-    path_tmp = Path.cwd() / f'temp_fluka_test_single_{el_type}'
+    path_tmp = Path.cwd() / f'fluka_run_temp_test_single_{el_type}'
+    register_cleanup(path_tmp)
     particle_ref = xt.Particles('proton', p0c=7e12)
     input_file = xc.fluka.engine.generate_input_file(elements=coll, names='TestColl', clean=False,
                         particle_ref=particle_ref, cwd=path_tmp, filename=path_tmp / 'fluka_input_test.inp')
@@ -123,13 +124,10 @@ def test_fluka_input_single(el_type):
         assert found_2
         assert found_3
 
-    # Clean up
-    shutil.rmtree(path_tmp)
-
 
 @pytest.mark.fluka
 @pytest.mark.parametrize("ignore_crystals", [True, False], ids=['no_crystals', 'with_crystals'])
-def test_fluka_input_line(ignore_crystals):
+def test_fluka_input_line(ignore_crystals, register_cleanup):
     print(f"\nTesting FLUKA input generation for line (ignore_crystals={ignore_crystals})... in {Path.cwd()}")
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop()
@@ -145,7 +143,8 @@ def test_fluka_input_line(ignore_crystals):
     line.collimators.assign_optics()
     if not ignore_crystals:
         line.collimators.align_to_beam_divergence()
-    path_tmp = Path.cwd() / f'temp_fluka_test_line_{ignore_crystals}'
+    path_tmp = Path.cwd() / f'fluka_run_temp_test_line_{ignore_crystals}'
+    register_cleanup(path_tmp)
     particle_ref = xt.Particles('proton', p0c=7e12)
     input_file = xc.fluka.engine.generate_input_file(line=line, clean=False, cwd=path_tmp,
                         particle_ref=particle_ref, filename=path_tmp / 'fluka_input_test.inp')
@@ -235,6 +234,3 @@ def test_fluka_input_line(ignore_crystals):
      10         INROT_10             INROT_10            0.241000   
      11         INROT_11             INROT_11            0.241000   
      12         INROT_12             INROT_12            0.241000""" in insertion_txt
-
-    # Clean up
-    shutil.rmtree(path_tmp)

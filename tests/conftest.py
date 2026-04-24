@@ -4,6 +4,8 @@
 # ######################################### #
 
 import pytest
+import shutil
+from pathlib import Path
 from _common_api import check_skip
 
 
@@ -24,3 +26,21 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.get_closest_marker("serial"):
             item.add_marker(pytest.mark.skip("Serial test cannot run under xdist"))
+
+@pytest.fixture
+def register_cleanup():
+    paths = []
+
+    def add(path):
+        paths.append(path)
+
+    yield add
+
+    for p in paths:
+        if Path(p).is_dir():
+            shutil.rmtree(p, ignore_errors=True)
+        elif Path(p).is_file():
+            try:
+                Path(p).unlink()
+            except Exception:
+                pass

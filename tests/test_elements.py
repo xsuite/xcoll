@@ -288,26 +288,30 @@ fluka_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 
 # Geant4Collimator
 geant4_fields = {**base_coll_fields,
-    'geant4_id':             189,
+    'geant4_id':             '189',
     '_tracking':             1,
     '_acc_ionisation_loss':  2.453e17
 }
-geant4_dict_fields =  [*base_coll_dict_fields,
+geant4_fields['_sin_zR'] = geant4_fields['_sin_zL']
+geant4_fields['_cos_zR'] = geant4_fields['_cos_zL']
+geant4_fields['_sin_zDiff'] = 0.
+geant4_fields['_cos_zDiff'] = 1.
+geant4_dict_fields =  [*base_coll_dict_fields[:41], *base_coll_dict_fields[42:],
     {'field': 'material', 'val': xc.materials.Iron, 'expected': {'_material': xc.materials.Iron}}
 ]
-geant4_user_fields = base_coll_user_fields
+geant4_user_fields = base_coll_user_fields[2:]
 geant4_user_fields_read_only = base_coll_user_fields_read_only
 
 
 # Geant4CollimatorTip
 geant4_tip_fields = {**geant4_fields,
-    'tip_thickness':         0.05,
+    'tip_thickness':         0.05
 }
 geant4_tip_dict_fields =  [*geant4_dict_fields,
     {'field': 'tip_material', 'val': xc.materials.Manganese, 'expected': {'_tip_material': xc.materials.Manganese}}
 ]
-geant4_tip_user_fields = base_coll_user_fields
-geant4_tip_user_fields_read_only = base_coll_user_fields_read_only
+geant4_tip_user_fields = geant4_user_fields
+geant4_tip_user_fields_read_only = geant4_user_fields_read_only
 
 
 # Tests
@@ -412,7 +416,8 @@ def test_geant4_generic():
 @pytest.mark.geant4
 def test_geant4_tip():
     # Test instantiation
-    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreCarbon)
+    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreCarbon,
+                                  tip_thickness=0.02, tip_material=xc.materials.Boron)
     _check_all_elements(elem, geant4_tip_fields, geant4_tip_dict_fields,
                         geant4_tip_user_fields, geant4_tip_user_fields_read_only)
 

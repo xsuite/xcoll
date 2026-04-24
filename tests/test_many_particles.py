@@ -130,7 +130,7 @@ def test_return_baryons():
 @retry()
 def test_protons(engine, hit):
     print(f"Testing protons in {engine.capitalize()} with hit={hit}.")
-    _run(engine, 500, 2500, xt.Particles('proton', p0c=6.8e12), hit)
+    _run(engine, 500, 10000, xt.Particles('proton', p0c=6.8e12), hit)
 
 
 @pytest.mark.parametrize("engine", engine_params)
@@ -138,7 +138,7 @@ def test_protons(engine, hit):
 @retry()
 def test_lead(engine, hit):
     print(f"Testing lead in {engine.capitalize()} with hit={hit}.")
-    _run(engine, 100, 100_000, xt.Particles('Pb208', p0c=6.8e12*82), hit)
+    _run(engine, 50, 100_000, xt.Particles('Pb208', p0c=6.8e12*82), hit)
 
 
 @pytest.mark.parametrize("engine", engine_params)
@@ -149,10 +149,10 @@ def test_antiprotons(engine, proton_ref, hit):
     print(f"Testing antiprotons in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 6.8e12
     if proton_ref:
-        _run(engine, 100, 500, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
+        _run(engine, 100, 2000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
              mass_ratio=1, charge_ratio=-1, pdg_id=-2212)
     else:
-        _run(engine, 100, 500, xt.Particles('antiproton', p0c=p0c), hit)
+        _run(engine, 100, 2000, xt.Particles('antiproton', p0c=p0c), hit)
 
 
 @pytest.mark.parametrize("engine", engine_params)
@@ -169,10 +169,10 @@ def test_electrons(engine, proton_ref, hit):
             ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
         elif engine == 'geant4':
             ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
-        _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
+        _run(engine, 500, 100_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
              ref_mass=ref_mass, charge_ratio=-1, pdg_id=pdg_id)
     else:
-        _run(engine, 500, 50_000, xt.Particles('electron', p0c=p0c), hit)
+        _run(engine, 500, 100_000, xt.Particles('electron', p0c=p0c), hit)
 
 
 @pytest.mark.parametrize("engine", engine_params)
@@ -189,10 +189,10 @@ def test_positrons(engine, proton_ref, hit):
             ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
         elif engine == 'geant4':
             ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
-        _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
+        _run(engine, 500, 100_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
              ref_mass=ref_mass, charge_ratio=1, pdg_id=pdg_id)
     else:
-        _run(engine, 500, 50_000, xt.Particles('positron', p0c=p0c), hit)
+        _run(engine, 500, 100_000, xt.Particles('positron', p0c=p0c), hit)
 
 
 @pytest.mark.parametrize("engine", engine_params)
@@ -323,8 +323,7 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
     if do_assert:
         E_ref = part_init.energy[0]
         if hit:
-            coll_state = xcc.LOST_ON_MATERIAL if engine == 'fluka' else xcc.LOST_ON_MATERIAL
-            _assert_hit(part, part_init, E_ref, coll, coll_state=coll_state, tol=tol)
+            _assert_hit(part, part_init, E_ref, coll, tol=tol)
         else:
             if engine == "fluka":
                 _assert_missed(part, part_init, E_ref, coll, tol=tol, allow_spurious_lost=2)
@@ -383,7 +382,7 @@ def _assert_missed(part, part_init, E0, coll, tol=1e-12, allow_spurious_lost=0):
     _test_drift(part, part_init, E0, mask_alive, coll, tol=tol)
 
 
-def _assert_hit(part, part_init, E0, coll, coll_state, tol=1e-12):
+def _assert_hit(part, part_init, E0, coll, tol=1e-12):
     alive_before = part_init._num_active_particles
     alive_after = part._num_active_particles
     part.sort(interleave_lost_particles=True)
@@ -391,7 +390,11 @@ def _assert_hit(part, part_init, E0, coll, coll_state, tol=1e-12):
     has_children = np.array([pid in part.parent_particle_id[is_child] for pid in part.particle_id])
     print(f"Particles alive before: {alive_before}, after: {alive_after}, children generated: {np.sum(is_child)}")
 
+    mask_alive = (part.state==1) | (part.state==xcc.SECONDARY_PARTICLE)
     mask_hit = part_init.state != LAST_INVALID_STATE
+    mask_lost = (part.state==xcc.LOST_ON_MATERIAL) | (part.state==xcc.LOST_ON_MATERIAL_SEC)
+    mask_virtual = (part.state==xcc.VIRTUAL_ENERGY) | (part.state==xcc.VIRTUAL_ENERGY_SEC)
+    mask_massless = part.state==xcc.MASSLESS_OR_NEUTRAL
 
     # All that are supposed to hit and are still alive should have lost energy
     # Except those (which actually did not hit but barely scratched the collimator):
@@ -407,29 +410,32 @@ def _assert_hit(part, part_init, E0, coll, coll_state, tol=1e-12):
     # The following really should have hit
     assert np.all(part.energy[mask_hit & (part.state==1)] < E0)
     # All that are supposed to hit and died without leaving children should still have all their energy
-    assert np.allclose(part.energy[mask_hit & (part.state==coll_state) & ~has_children], E0, atol=tol, rtol=tol)
+
+    assert np.allclose(part.energy[mask_hit & mask_lost & ~has_children], E0, atol=tol, rtol=tol)
     # All that are supposed to hit and died with children should have lost energy
     assert np.all(part.energy[mask_hit & has_children] < E0)
     # All children should have less energy than the initial
     assert np.all(part.energy[is_child] < E0)
     # All energies need to be positive
-    assert np.all(part.energy[(part.state!=LAST_INVALID_STATE) & (part.state!=xcc.ACC_IONISATION_LOSS)] > -1.e-12)
+    assert np.all(part.energy[part.state!=LAST_INVALID_STATE] > -1.e-12)
 
     with flaky_assertions():
-        Edead = part.energy[part.state==coll_state].sum()
-        if np.any(part.state==coll_state):
+        Edead = part.energy[mask_lost].sum()
+        if np.any(mask_lost):
             assert Edead > 0
         # Eacc = part.energy[part.state==xcc.ACC_IONISATION_LOSS].sum()
-        Eacc = coll._acc_ionisation_loss
+        Eacc = coll._acc_ionisation_loss + coll._acc_ionisation_loss_sec
         assert Eacc >= 0
-        Evirtual = part.energy[part.state==xcc.VIRTUAL_ENERGY].sum()
-        if np.any(part.state==xcc.VIRTUAL_ENERGY):
+        Evirtual = part.energy[mask_virtual].sum()
+        if np.any(mask_virtual):
             assert Evirtual > 0
-        Emassless = part.energy[part.state==xcc.MASSLESS_OR_NEUTRAL].sum()
-        if np.any(part.state==xcc.MASSLESS_OR_NEUTRAL):
+            raise ValueError("FOUND VIRTUAL")
+        Emassless = part.energy[mask_massless].sum()
+        if np.any(mask_massless):
             assert Emassless > 0
-        Eout = part.energy[part.state==1].sum()
+        Eout = part.energy[mask_alive].sum()
         if alive_after > 0:
+            assert np.any(mask_alive)
             assert Eout > 0
         print(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout)
         assert np.isclose(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout, atol=100*tol, rtol=tol)
