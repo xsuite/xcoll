@@ -12,16 +12,16 @@ from pathlib import Path
 # ===========================================================================
 MP = 0.938270   # proton mass [GeV]
 
-GG_KEYS      = ["cs_tot_pp_hA", "cs_inel_pp_hA", "cs_el_pp_hA",
-                "cs_prod_pp_hA", "cs_sd_pp_hA",  "cs_el_nucleon_pp",
-                "cs_tot_kmin_hA", "cs_inel_kmin_hA", "cs_el_kmin_hA", 
-                "cs_prod_kmin_hA", "cs_sd_kmin_hA",  "cs_el_nucleon_kmin",
-                "cs_tot_kplus_hA", "cs_inel_kplus_hA", "cs_el_kplus_hA",
-                "cs_prod_kplus_hA", "cs_sd_kplus_hA",  "cs_el_nucleon_kplus",
-                "cs_tot_pimin_hA", "cs_inel_pimin_hA", "cs_el_pimin_hA",
-                "cs_prod_pimin_hA", "cs_sd_pimin_hA",  "cs_el_nucleon_pimin",
-                "cs_tot_piplus_hA", "cs_inel_piplus_hA", "cs_el_piplus_hA",
-                "cs_prod_piplus_hA", "cs_sd_piplus_hA",  "cs_el_nucleon_piplus"]
+# GG_KEYS      = ["cs_tot_pp_GG", "cs_inel_pp_GG", "cs_el_pp_GG",
+#                 "cs_prod_pp_GG", "cs_sd_pp_GG",  "cs_el_nucleon_pp_GG",
+#                 "cs_tot_kmin_GG", "cs_inel_kmin_GG", "cs_el_kmin_GG", 
+#                 "cs_prod_kmin_GG", "cs_sd_kmin_GG",  "cs_el_nucleon_kmin_GG",
+#                 "cs_tot_kplus_GG", "cs_inel_kplus_GG", "cs_el_kplus_GG",
+#                 "cs_prod_kplus_GG", "cs_sd_kplus_GG",  "cs_el_nucleon_kplus",
+#                 "cs_tot_pimin_GG", "cs_inel_pimin_GG", "cs_el_pimin_GG",
+#                 "cs_prod_pimin_GG", "cs_sd_pimin_GG",  "cs_el_nucleon_pimin_GG",
+#                 "cs_tot_piplus_GG", "cs_inel_piplus_GG", "cs_el_piplus_GG",
+#                 "cs_prod_piplus_GG", "cs_sd_piplus_GG",  "cs_el_nucleon_piplus_GG"]
 SPECIES = ["pp", "kmin", "kplus", "pimin", "piplus"]
 # NUCLEON_KEYS = ["cs_tot_pp", "cs_el_pp", "cs_inel_pp", "cs_tot_pn"] # Maybe call spline keys
 
@@ -107,7 +107,7 @@ def save_splines_npz(out_path,
     _, sqrts_kplu_el,  sigma_kplu_el    = build_spline(fname_kplu_el,  smoothing=315)
     _, sqrts_pimin_tot, sigma_pimin_tot = build_spline(fname_pimin_tot, smoothing=1300)
     _, sqrts_pimin_el,  sigma_pimin_el  = build_spline(fname_pimin_el,  smoothing=1300)
-    _, sqrts_piplu_tot, sigma_piplu_tot = build_spline(fname_piplu_tot, smoothing=1260)
+    _, sqrts_piplu_tot, sigma_piplu_tot = build_spline(fname_piplu_tot, smoothing=1300)
     _, sqrts_piplu_el,  sigma_piplu_el  = build_spline(fname_piplu_el,  smoothing=500)
 
     np.savez(out_path,
@@ -145,7 +145,7 @@ def load_all_splines():
         "kplus el":  UnivariateSpline(data["x_k_plu_el"],  data["y_k_plu_el"],  s=315),
         "pimin tot": UnivariateSpline(data["x_pi_min_tot"], data["y_pi_min_tot"], s=1300),
         "pimin el":  UnivariateSpline(data["x_pi_min_el"],  data["y_pi_min_el"],  s=1300),
-        "piplus tot": UnivariateSpline(data["x_pi_plu_tot"], data["y_pi_plu_tot"], s=1260),
+        "piplus tot": UnivariateSpline(data["x_pi_plu_tot"], data["y_pi_plu_tot"], s=1300),
         "piplus el":  UnivariateSpline(data["x_pi_plu_el"],  data["y_pi_plu_el"],  s=500),
     }
     grid_min_pp = max(np.exp(data[x].min()) for x in ["x_tot", "x_el"])

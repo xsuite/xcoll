@@ -6,22 +6,22 @@
 #ifndef XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #include <math.h>
-/*gpufun*/
-double particle_id(double pdg_id) {
-    if (pdg_id == 2212) {
-        return 0; // proton
-    } else if (pdg_id == 211) {
-        return 4; // pion plus
-    } else if (pdg_id == 321) {
-        return 2; // kaon plus
-    } else if (pdg_id == -211) {
-        return 3; // pion minus
-    } else if (pdg_id == -321) {
-        return 1; // kaon minus
-    } else {
-        return -1; // unknown particle
-    }
-}
+// /*gpufun*/
+// double get_particle_id(double pdg_id) {
+//     if (pdg_id == 2212) {
+//         return 0; // proton
+//     } else if (pdg_id == 211) {
+//         return 4; // pion plus
+//     } else if (pdg_id == 321) {
+//         return 2; // kaon plus
+//     } else if (pdg_id == -211) {
+//         return 3; // pion minus
+//     } else if (pdg_id == -321) {
+//         return 1; // kaon minus
+//     } else {
+//         return -1; // unknown particle
+//     }
+// }
 /*gpufun*/
 double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
                                                   MaterialData restrict material, double pc){
@@ -37,7 +37,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double N           = MaterialData_get__atoms_per_volume(material);
     double Z           = sqrt(MaterialData_get__Z2_eff(material));
     double X0          = MaterialData_get__radiation_length(material);
-    double particle_id = particle_id(LocalParticle_get_pdg_id(part));
+    // double particle_id = get_particle_id(LocalParticle_get_pdg_id(part));
+    double particle_id = 0;
     everest->ecmsq     = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
     double theta_init = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
@@ -52,10 +53,9 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     } else {
         nuclear_slope = MaterialData_get__nuclear_slope(material);
     }
-
     get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &cs_coulomb); // [mb]
-    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0) + cs_coulomb; // [mb]
-    interaction_length_tot = RandomExponential_generate(part) *(1.)/(N*cross_section_tot*1.0e-27); // [m]
+    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0, particle_id) + cs_coulomb; // [mb]
+    interaction_length_tot = RandomExponential_generate(part) *(1.)/(N*cross_section_tot*1.0e-31); // [m]
     //double mcs_path_length = FindRoot_get_path_length(finder);
 
     if ((length - (interaction_length_tot)) < 1e-12) {
@@ -72,7 +72,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
         double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
         double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
-        double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
+        double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
         if (elastic_length < min_length) {         // Elastic
             min_length = elastic_length;
             chosen = 2;
@@ -113,11 +113,12 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
  
         } else if (chosen == 4){
             // Single diffractive
+            printf("Single diffractive interaction chosen.\n");
             double pc_in = pc;
             double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             pc = pc*(1 - xm2/everest->ecmsq);
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
-
+            printf("in SD, pc: %e GeV\n", pc);
             if (pc <= 1.e-9 || pc != pc) {
                 // Very small (<1eV) or NaN
                 if (scatter) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);

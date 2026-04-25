@@ -17,7 +17,7 @@ from .parameters import (_approximate_radiation_length, _default_excitation_ener
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
 from ..compare import deep_equal
-from .glauber_gribov import GG_KEYS, SPECIES, load_all_splines, make_nucleon_cs
+from .glauber_gribov import SPECIES, load_all_splines, make_nucleon_cs
 from .isotopes import ISOTOPES
 from .build_isotopes import SYMBOL_TO_Z
 _materials_context = xo.ContextCpu()
@@ -85,137 +85,137 @@ class Material(xo.HybridClass):
 
         '_nuclear_slope':      xo.Float64,                    # Nuclear slope parameter
         '_nuclear_slope_pion': xo.Float64,                    # Nuclear slope parameter for pions
-        # GG raw values (for diagnostics)
-        '_cs_tot_pp_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_el_pp_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_prod_pp_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_sd_pp_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_el_nucleon_pp':    xo.Float64[N_CS_POINTS],
+        # # GG raw values (for diagnostics)
+        # '_cs_tot_pp_GG':        xo.Float64[N_CS_POINTS],
+        # '_cs_el_pp_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_prod_pp_GG':       xo.Float64[N_CS_POINTS],
+        # '_cs_sd_pp_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_el_nucleon_pp_GG':    xo.Float64[N_CS_POINTS],
 
-        '_cs_tot_kmin_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_el_kmin_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_prod_kmin_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_sd_kmin_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_el_nucleon_kmin':    xo.Float64[N_CS_POINTS],
+        # '_cs_tot_kmin_GG':        xo.Float64[N_CS_POINTS],
+        # '_cs_el_kmin_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_prod_kmin_GG':       xo.Float64[N_CS_POINTS],
+        # '_cs_sd_kmin_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_el_nucleon_kmin_GG':    xo.Float64[N_CS_POINTS],
 
-        '_cs_tot_kplus_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_el_kplus_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_prod_kplus_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_sd_kplus_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_el_nucleon_kplus':    xo.Float64[N_CS_POINTS],
+        # '_cs_tot_kplus_GG':        xo.Float64[N_CS_POINTS],
+        # '_cs_el_kplus_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_prod_kplus_GG':       xo.Float64[N_CS_POINTS],
+        # '_cs_sd_kplus_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_el_nucleon_kplus_GG':    xo.Float64[N_CS_POINTS],
 
-        '_cs_tot_pimin_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_el_pimin_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_prod_pimin_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_sd_pimin_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_el_nucleon_pimin':    xo.Float64[N_CS_POINTS],
+        # '_cs_tot_pimin_GG':        xo.Float64[N_CS_POINTS],
+        # '_cs_el_pimin_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_prod_pimin_GG':       xo.Float64[N_CS_POINTS],
+        # '_cs_sd_pimin_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_el_nucleon_pimin_GG':    xo.Float64[N_CS_POINTS],
 
-        '_cs_tot_piplus_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_el_piplus_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_prod_piplus_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_sd_piplus_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_el_nucleon_piplus':    xo.Float64[N_CS_POINTS],
+        # '_cs_tot_piplus_GG':        xo.Float64[N_CS_POINTS],
+        # '_cs_el_piplus_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_prod_piplus_GG':       xo.Float64[N_CS_POINTS],
+        # '_cs_sd_piplus_GG':         xo.Float64[N_CS_POINTS],
+        # '_cs_el_nucleon_piplus_GG':    xo.Float64[N_CS_POINTS],
         # Spline coefficients — shape (N_CS_POINTS - 1,) per coefficient
-        '_cs_tot_pp_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_pp_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_pp_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_pp_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pp_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pp_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pp_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pp_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pp_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pp_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pp_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pp_hA_d':     xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pp_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pp_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pp_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pp_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pp_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pp_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pp_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pp_d':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pp_a':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pp_b':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pp_c':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pp_d':  xo.Float64[N_CS_POINTS-1],
 
-        '_cs_tot_kmin_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_kmin_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_kmin_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_kmin_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kmin_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kmin_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kmin_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kmin_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kmin_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kmin_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kmin_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kmin_hA_d':     xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kmin_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kmin_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kmin_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kmin_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kmin_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kmin_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kmin_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kmin_d':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kmin_a':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kmin_b':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kmin_c':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kmin_d':  xo.Float64[N_CS_POINTS-1],
 
-        '_cs_tot_kplus_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_kplus_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_kplus_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_kplus_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kplus_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kplus_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kplus_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_kplus_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kplus_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kplus_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kplus_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_kplus_hA_d':     xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kplus_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kplus_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kplus_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_kplus_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_kplus_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_kplus_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_kplus_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_kplus_d':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kplus_a':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kplus_b':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kplus_c':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_kplus_d':  xo.Float64[N_CS_POINTS-1],
 
-        '_cs_tot_pimin_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_pimin_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_pimin_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_pimin_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pimin_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pimin_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pimin_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_pimin_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pimin_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pimin_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pimin_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_pimin_hA_d':     xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pimin_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pimin_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pimin_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_pimin_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_pimin_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_pimin_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_pimin_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_pimin_d':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pimin_a':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pimin_b':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pimin_c':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_pimin_d':  xo.Float64[N_CS_POINTS-1],
 
-        '_cs_tot_piplus_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_piplus_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_piplus_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_tot_piplus_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_el_piplus_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_piplus_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_piplus_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_el_piplus_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_piplus_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_piplus_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_piplus_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_prod_piplus_hA_d':     xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_piplus_hA_a':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_piplus_hA_b':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_piplus_hA_c':       xo.Float64[N_CS_POINTS-1],
-        '_cs_sd_piplus_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_piplus_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_piplus_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_piplus_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_piplus_d':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_piplus_a':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_piplus_b':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_piplus_c':  xo.Float64[N_CS_POINTS-1],
@@ -271,7 +271,11 @@ class Material(xo.HybridClass):
     # ======================
     # === Initialisation ===
     # ======================
+    def __sh__(self):
+        return id(self)
 
+    def __eq__(self, other):
+        return self is other    
     def __init__(self, **kwargs):
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             super().__init__(**kwargs)
@@ -290,42 +294,45 @@ class Material(xo.HybridClass):
                    '_cs_log_sqrt_s_min_piplus', '_cs_log_step_piplus', '_n_points_piplus'):
             xokwargs[kk] = kwargs.pop(kk, -1.)
 
-        for kk in ('_cs_tot_pp_hA', '_cs_el_pp_hA', '_cs_prod_pp_hA', '_cs_sd_pp_hA', '_cs_el_nucleon_pp', 
-                   '_cs_tot_kmin_hA', '_cs_el_kmin_hA', '_cs_prod_kmin_hA', '_cs_sd_kmin_hA', '_cs_el_nucleon_kmin',
-                   '_cs_tot_kplus_hA', '_cs_el_kplus_hA', '_cs_prod_kplus_hA', '_cs_sd_kplus_hA', '_cs_el_nucleon_kplus',
-                   '_cs_tot_pimin_hA', '_cs_el_pimin_hA', '_cs_prod_pimin_hA', '_cs_sd_pimin_hA', '_cs_el_nucleon_pimin',
-                   '_cs_tot_piplus_hA', '_cs_el_piplus_hA', '_cs_prod_piplus_hA', '_cs_sd_piplus_hA', '_cs_el_nucleon_piplus',
+        for kk in (
+                #    '_cs_tot_pp_GG', '_cs_el_pp_GG', '_cs_prod_pp_GG', '_cs_sd_pp_GG', '_cs_el_nucleon_pp_GG', 
+                #    '_cs_tot_kmin_GG', '_cs_el_kmin_GG', '_cs_prod_kmin_GG', '_cs_sd_kmin_GG', '_cs_el_nucleon_kmin_GG',
+                #    '_cs_tot_kplus_GG', '_cs_el_kplus_GG', '_cs_prod_kplus_GG', '_cs_sd_kplus_GG', '_cs_el_nucleon_kplus_GG',
+                #    '_cs_tot_pimin_GG', '_cs_el_pimin_GG', '_cs_prod_pimin_GG', '_cs_sd_pimin_GG', '_cs_el_nucleon_pimin_GG',
+                #    '_cs_tot_piplus_GG', '_cs_el_piplus_GG', '_cs_prod_piplus_GG', '_cs_sd_piplus_GG', '_cs_el_nucleon_piplus_GG',
+        
                    '_cs_tot_pp', '_cs_el_pp','_cs_inel_pp', '_cs_tot_pn', 'cs_tot_kmin_p', 'cs_el_kmin_p', 'cs_inel_kmin_p', 
                    'cs_tot_kplus_p', 'cs_el_kplus_p', 'cs_inel_kplus_p','cs_tot_pimin_p', 'cs_el_pimin_p', 'cs_inel_pimin_p',
                    'cs_tot_piplus_p', 'cs_el_piplus_p', 'cs_inel_piplus_p', 
+    
                    '_cs_sqrt_s_pp', '_cs_sqrt_s_kmin', '_cs_sqrt_s_kplus', '_cs_sqrt_s_pimin', '_cs_sqrt_s_piplus',
                    '_cs_knots_pp', '_cs_knots_kmin', '_cs_knots_kplus', '_cs_knots_pimin', '_cs_knots_piplus'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * N_CS_POINTS)
 
-        for kk in ('_cs_tot_pp_hA_a',  '_cs_tot_pp_hA_b',  '_cs_tot_pp_hA_c',  '_cs_tot_pp_hA_d',
-                   '_cs_el_pp_hA_a',   '_cs_el_pp_hA_b',   '_cs_el_pp_hA_c',   '_cs_el_pp_hA_d',
-                   '_cs_prod_pp_hA_a', '_cs_prod_pp_hA_b', '_cs_prod_pp_hA_c', '_cs_prod_pp_hA_d',
-                   '_cs_sd_pp_hA_a',   '_cs_sd_pp_hA_b',   '_cs_sd_pp_hA_c',   '_cs_sd_pp_hA_d',
+        for kk in ('_cs_tot_pp_a',  '_cs_tot_pp_b',  '_cs_tot_pp_c',  '_cs_tot_pp_d',
+                   '_cs_el_pp_a',   '_cs_el_pp_b',   '_cs_el_pp_c',   '_cs_el_pp_d',
+                   '_cs_prod_pp_a', '_cs_prod_pp_b', '_cs_prod_pp_c', '_cs_prod_pp_d',
+                   '_cs_sd_pp_a',   '_cs_sd_pp_b',   '_cs_sd_pp_c',   '_cs_sd_pp_d',
                    '_cs_el_nucleon_pp_a',  '_cs_el_nucleon_pp_b',  '_cs_el_nucleon_pp_c',  '_cs_el_nucleon_pp_d',
-                   '_cs_tot_kmin_hA_a',  '_cs_tot_kmin_hA_b',  '_cs_tot_kmin_hA_c',  '_cs_tot_kmin_hA_d',
-                   '_cs_el_kmin_hA_a',   '_cs_el_kmin_hA_b',   '_cs_el_kmin_hA_c',   '_cs_el_kmin_hA_d',
-                   '_cs_prod_kmin_hA_a', '_cs_prod_kmin_hA_b', '_cs_prod_kmin_hA_c', '_cs_prod_kmin_hA_d',
-                   '_cs_sd_kmin_hA_a',   '_cs_sd_kmin_hA_b',   '_cs_sd_kmin_hA_c',   '_cs_sd_kmin_hA_d',
-                   '_cs_el_nucleon_kmin_a',  '_cs_el_nucleon_kmin_b',  '_cs_el_nucleon_kmin_c',  '_cs_el_nucleon_kmin_d'
-                   '_cs_tot_kplus_hA_a',  '_cs_tot_kplus_hA_b',  '_cs_tot_kplus_hA_c',  '_cs_tot_kplus_hA_d',
-                   '_cs_el_kplus_hA_a',   '_cs_el_kplus_hA_b',   '_cs_el_kplus_hA_c',   '_cs_el_kplus_hA_d',
-                   '_cs_prod_kplus_hA_a', '_cs_prod_kplus_hA_b', '_cs_prod_kplus_hA_c', '_cs_prod_kplus_hA_d',
-                   '_cs_sd_kplus_hA_a',   '_cs_sd_kplus_hA_b',   '_cs_sd_kplus_hA_c',   '_cs_sd_kplus_hA_d',
-                   '_cs_el_nucleon_kplus_a',  '_cs_el_nucleon_kplus_b',  '_cs_el_nucleon_kplus_c',  '_cs_el_nucleon_kplus_d'
-                   '_cs_tot_pimin_hA_a',  '_cs_tot_pimin_hA_b',  '_cs_tot_pimin_hA_c',  '_cs_tot_pimin_hA_d',
-                   '_cs_el_pimin_hA_a',   '_cs_el_pimin_hA_b',   '_cs_el_pimin_hA_c',   '_cs_el_pimin_hA_d',
-                   '_cs_prod_pimin_hA_a', '_cs_prod_pimin_hA_b', '_cs_prod_pimin_hA_c', '_cs_prod_pimin_hA_d',
-                   '_cs_sd_pimin_hA_a',   '_cs_sd_pimin_hA_b',   '_cs_sd_pimin_hA_c',   '_cs_sd_pimin_hA_d',
-                   '_cs_el_nucleon_pimin_a',  '_cs_el_nucleon_pimin_b',  '_cs_el_nucleon_pimin_c',  '_cs_el_nucleon_pimin_d'
-                   '_cs_tot_piplus_hA_a',  '_cs_tot_piplus_hA_b',  '_cs_tot_piplus_hA_c',  '_cs_tot_piplus_hA_d',
-                   '_cs_el_piplus_hA_a',   '_cs_el_piplus_hA_b',   '_cs_el_piplus_hA_c',   '_cs_el_piplus_hA_d',
-                   '_cs_prod_piplus_hA_a', '_cs_prod_piplus_hA_b', '_cs_prod_piplus_hA_c', '_cs_prod_piplus_hA_d',
-                   '_cs_sd_piplus_hA_a',   '_cs_sd_piplus_hA_b',   '_cs_sd_piplus_hA_c',   '_cs_sd_piplus_hA_d',
+                   '_cs_tot_kmin_a',  '_cs_tot_kmin_b',  '_cs_tot_kmin_c',  '_cs_tot_kmin_d',
+                   '_cs_el_kmin_a',   '_cs_el_kmin_b',   '_cs_el_kmin_c',   '_cs_el_kmin_d',
+                   '_cs_prod_kmin_a', '_cs_prod_kmin_b', '_cs_prod_kmin_c', '_cs_prod_kmin_d',
+                   '_cs_sd_kmin_a',   '_cs_sd_kmin_b',   '_cs_sd_kmin_c',   '_cs_sd_kmin_d',
+                   '_cs_el_nucleon_kmin_a',  '_cs_el_nucleon_kmin_b',  '_cs_el_nucleon_kmin_c',  '_cs_el_nucleon_kmin_d',
+                   '_cs_tot_kplus_a',  '_cs_tot_kplus_b',  '_cs_tot_kplus_c',  '_cs_tot_kplus_d',
+                   '_cs_el_kplus_a',   '_cs_el_kplus_b',   '_cs_el_kplus_c',   '_cs_el_kplus_d',
+                   '_cs_prod_kplus_a', '_cs_prod_kplus_b', '_cs_prod_kplus_c', '_cs_prod_kplus_d',
+                   '_cs_sd_kplus_a',   '_cs_sd_kplus_b',   '_cs_sd_kplus_c',   '_cs_sd_kplus_d',
+                   '_cs_el_nucleon_kplus_a',  '_cs_el_nucleon_kplus_b',  '_cs_el_nucleon_kplus_c',  '_cs_el_nucleon_kplus_d',
+                   '_cs_tot_pimin_a',  '_cs_tot_pimin_b',  '_cs_tot_pimin_c',  '_cs_tot_pimin_d',
+                   '_cs_el_pimin_a',   '_cs_el_pimin_b',   '_cs_el_pimin_c',   '_cs_el_pimin_d',
+                   '_cs_prod_pimin_a', '_cs_prod_pimin_b', '_cs_prod_pimin_c', '_cs_prod_pimin_d',
+                   '_cs_sd_pimin_a',   '_cs_sd_pimin_b',   '_cs_sd_pimin_c',   '_cs_sd_pimin_d',
+                   '_cs_el_nucleon_pimin_a',  '_cs_el_nucleon_pimin_b',  '_cs_el_nucleon_pimin_c',  '_cs_el_nucleon_pimin_d',
+                   '_cs_tot_piplus_a',  '_cs_tot_piplus_b',  '_cs_tot_piplus_c',  '_cs_tot_piplus_d',
+                   '_cs_el_piplus_a',   '_cs_el_piplus_b',   '_cs_el_piplus_c',   '_cs_el_piplus_d',
+                   '_cs_prod_piplus_a', '_cs_prod_piplus_b', '_cs_prod_piplus_c', '_cs_prod_piplus_d',
+                   '_cs_sd_piplus_a',   '_cs_sd_piplus_b',   '_cs_sd_piplus_c',   '_cs_sd_piplus_d',
                    '_cs_el_nucleon_piplus_a',  '_cs_el_nucleon_piplus_b',  '_cs_el_nucleon_piplus_c',  '_cs_el_nucleon_piplus_d'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * (N_CS_POINTS - 1))
 
@@ -613,7 +620,7 @@ class Material(xo.HybridClass):
         cs_inel  = piR2 * np.log(1.0 + A_sig_tot / piR2)
         cs_el    = np.maximum(0.0, cs_tot - cs_inel)
 
-        cs_prod  = piR2 * np.log(1.0 +A_sig_inel / piR2)
+        cs_prod  = piR2 * np.log(1.0 + A_sig_inel / piR2)
 
         alpha    = A_sig_tot / (2 * piR2 + A_sig_tot)
         cs_sd    = piR2 * (alpha - np.log(1.0 + alpha))
@@ -651,20 +658,20 @@ class Material(xo.HybridClass):
         sp = species
         if A_eff < 4:
             return {
-                f"cs_{key}_{sp}_hA": A_sig[sp][key]
+                f"cs_{key}_{sp}_GG": A_sig[sp][key]
                 for sp in species
                 for key in ["tot","inel","el"]
             }
         results = {}
 
         cs_tot, cs_prod, cs_el, cs_el_nucl, cs_sd  = self._compute_glauber_cs(A_sig[sp]["tot"],
-                                                                                  A_sig[sp]["inel"],
-                                                                                  piR2)
-        results.update({f"cs_tot_{sp}_hA": cs_tot,
-                            f"cs_prod_{sp}_hA": cs_prod,
-                            f"cs_el_{sp}_hA": cs_el,
-                            f"cs_el_nucleon_{sp}": cs_el_nucl,
-                            f"cs_sd_{sp}_hA": cs_sd,
+                                                                              A_sig[sp]["inel"],
+                                                                              piR2)
+        results.update({f"cs_tot_{sp}_GG": cs_tot,
+                            f"cs_prod_{sp}_GG": cs_prod,
+                            f"cs_el_{sp}_GG": cs_el,
+                            f"cs_el_nucleon_{sp}_GG": cs_el_nucl,
+                            f"cs_sd_{sp}_GG": cs_sd,
                             })
         return results
 
@@ -679,12 +686,13 @@ class Material(xo.HybridClass):
             data = self._load_isotopes()
         except FileNotFoundError:
             print(f"Isotope data not found for Z={self.Z}. Falling back to element-level Glauber calculation.")
-            return self._glauber_element_single(log_sqrt_s, cs_hN, species)
+            return self._glauber_element_single(np.exp(log_sqrt_s), cs_hN, species)
 
         symbol = Z_TO_SYMBOL.get(self.Z)
         iso_list = ISOTOPES[symbol]["isotopes"]
         stable = [iso for iso in iso_list if iso["abundance"] is not None]
-
+        print(f"Loaded isotope data for {len(stable)} , species {species}, stable isotopes of {symbol} (Z={self.Z})")
+        print(f"sp data keys: {list(data.keys())}")
         sp_data = data[species].item()  # the dict for this species
     
         # If self.A matches a specific isotope mass number, use only that one
@@ -694,6 +702,7 @@ class Material(xo.HybridClass):
             idx = stable.index(matching[0])
             combined = {}
             for k, records in sp_data.items():
+                print(k, records)
                 spl = CubicSpline(records[idx]["knots"], records[idx]["y_values"], bc_type='not-a-knot')
                 combined[k] = spl(log_sqrt_s)
             return combined
@@ -712,17 +721,192 @@ class Material(xo.HybridClass):
         """
         Compute component-weighted GG cross sections for a compound material.
         """
-        combined = {k: np.zeros_like(log_sqrt_s) for k in GG_KEYS}
+        combined = {k: np.zeros_like(log_sqrt_s) 
+        for k in self.components[0]._glauber_isotope_to_element(log_sqrt_s, cs_hN, species)}
         for i, comp in enumerate(self.components):
             gg = comp._glauber_isotope_to_element(log_sqrt_s, cs_hN, species)
-            for k in GG_KEYS:
-                combined[k] += self.molar_fractions[i] * gg[k]
+            for k, v in gg.items():
+                combined[k] += self.molar_fractions[i] * v
         return combined
+
+    def _set_attr(self, gg, species, log_sqrt_s):
+        if species == "pp":
+            spline_pp = CubicSpline(log_sqrt_s, gg["cs_tot_pp_GG"])
+            self._cs_tot_pp_a = spline_pp.c[0]
+            self._cs_tot_pp_b = spline_pp.c[1]
+            self._cs_tot_pp_c = spline_pp.c[2]
+            self._cs_tot_pp_d = spline_pp.c[3]
+            del spline_pp
+            spline_el_pp = CubicSpline(log_sqrt_s, gg["cs_el_pp_GG"])
+            self._cs_el_pp_a = spline_el_pp.c[0]
+            self._cs_el_pp_b = spline_el_pp.c[1]
+            self._cs_el_pp_c = spline_el_pp.c[2]
+            self._cs_el_pp_d = spline_el_pp.c[3]
+            del spline_el_pp
+            spline_prod_pp = CubicSpline(log_sqrt_s, gg["cs_prod_pp_GG"])
+            self._cs_prod_pp_a = spline_prod_pp.c[0]
+            self._cs_prod_pp_b = spline_prod_pp.c[1]
+            self._cs_prod_pp_c = spline_prod_pp.c[2]
+            self._cs_prod_pp_d = spline_prod_pp.c[3]
+            del spline_prod_pp
+            spline_el_nucleon_pp = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_pp_GG"])
+            self._cs_el_nucleon_pp_a = spline_el_nucleon_pp.c[0]
+            self._cs_el_nucleon_pp_b = spline_el_nucleon_pp.c[1]
+            self._cs_el_nucleon_pp_c = spline_el_nucleon_pp.c[2]
+            self._cs_el_nucleon_pp_d = spline_el_nucleon_pp.c[3]
+            del spline_el_nucleon_pp
+            spline_sd_pp = CubicSpline(log_sqrt_s, gg["cs_sd_pp_GG"])
+            self._cs_sd_pp_a = spline_sd_pp.c[0]
+            self._cs_sd_pp_b = spline_sd_pp.c[1]
+            self._cs_sd_pp_c = spline_sd_pp.c[2]
+            self._cs_sd_pp_d = spline_sd_pp.c[3]
+            del spline_sd_pp
+        elif species == "kmin":
+            spline_kmin = CubicSpline(log_sqrt_s, gg["cs_tot_kmin_GG"])
+            self._cs_tot_kmin_a = spline_kmin.c[0]
+            self._cs_tot_kmin_b = spline_kmin.c[1]
+            self._cs_tot_kmin_c = spline_kmin.c[2]
+            self._cs_tot_kmin_d = spline_kmin.c[3]
+            del spline_kmin
+            spline_el_kmin = CubicSpline(log_sqrt_s, gg["cs_el_kmin_GG"])
+            self._cs_el_kmin_a = spline_el_kmin.c[0]
+            self._cs_el_kmin_b = spline_el_kmin.c[1]
+            self._cs_el_kmin_c = spline_el_kmin.c[2]
+            self._cs_el_kmin_d = spline_el_kmin.c[3]
+            del spline_el_kmin
+            spline_prod_kmin = CubicSpline(log_sqrt_s, gg["cs_prod_kmin_GG"])
+            self._cs_prod_kmin_a = spline_prod_kmin.c[0]
+            self._cs_prod_kmin_b = spline_prod_kmin.c[1]
+            self._cs_prod_kmin_c = spline_prod_kmin.c[2]
+            self._cs_prod_kmin_d = spline_prod_kmin.c[3]
+            del spline_prod_kmin
+            spline_el_nucleon_kmin = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_kmin_GG"])
+            self._cs_el_nucleon_kmin_a = spline_el_nucleon_kmin.c[0]
+            self._cs_el_nucleon_kmin_b = spline_el_nucleon_kmin.c[1]
+            self._cs_el_nucleon_kmin_c = spline_el_nucleon_kmin.c[2]
+            self._cs_el_nucleon_kmin_d = spline_el_nucleon_kmin.c[3]
+            del spline_el_nucleon_kmin
+            spline_sd_kmin = CubicSpline(log_sqrt_s, gg["cs_sd_kmin_GG"])
+            self._cs_sd_kmin_a = spline_sd_kmin.c[0]
+            self._cs_sd_kmin_b = spline_sd_kmin.c[1]
+            self._cs_sd_kmin_c = spline_sd_kmin.c[2]
+            self._cs_sd_kmin_d = spline_sd_kmin.c[3]
+            del spline_sd_kmin
+        elif species == "kplus":
+            spline_kplus = CubicSpline(log_sqrt_s, gg["cs_tot_kplus_GG"])
+            self._cs_tot_kplus_a = spline_kplus.c[0]
+            self._cs_tot_kplus_b = spline_kplus.c[1]
+            self._cs_tot_kplus_c = spline_kplus.c[2]
+            self._cs_tot_kplus_d = spline_kplus.c[3]
+            del spline_kplus
+            spline_el_kplus = CubicSpline(log_sqrt_s, gg["cs_el_kplus_GG"])
+            self._cs_el_kplus_a = spline_el_kplus.c[0]
+            self._cs_el_kplus_b = spline_el_kplus.c[1]
+            self._cs_el_kplus_c = spline_el_kplus.c[2]
+            self._cs_el_kplus_d = spline_el_kplus.c[3]
+            del spline_el_kplus
+            spline_prod_kplus = CubicSpline(log_sqrt_s, gg["cs_prod_kplus_GG"])
+            self._cs_prod_kplus_a = spline_prod_kplus.c[0]
+            self._cs_prod_kplus_b = spline_prod_kplus.c[1]
+            self._cs_prod_kplus_c = spline_prod_kplus.c[2]
+            self._cs_prod_kplus_d = spline_prod_kplus.c[3]
+            del spline_prod_kplus
+            spline_el_nucleon_kplus = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_kplus_GG"])
+            self._cs_el_nucleon_kplus_a = spline_el_nucleon_kplus.c[0]
+            self._cs_el_nucleon_kplus_b = spline_el_nucleon_kplus.c[1]
+            self._cs_el_nucleon_kplus_c = spline_el_nucleon_kplus.c[2]
+            self._cs_el_nucleon_kplus_d = spline_el_nucleon_kplus.c[3]
+            del spline_el_nucleon_kplus
+            spline_sd_kplus = CubicSpline(log_sqrt_s, gg["cs_sd_kplus_GG"])
+            self._cs_sd_kplus_a = spline_sd_kplus.c[0]
+            self._cs_sd_kplus_b = spline_sd_kplus.c[1]
+            self._cs_sd_kplus_c = spline_sd_kplus.c[2]
+            self._cs_sd_kplus_d = spline_sd_kplus.c[3]
+            del spline_sd_kplus
+        elif species == "pimin":
+            spline_pimin = CubicSpline(log_sqrt_s, gg["cs_tot_pimin_GG"])
+            self._cs_tot_pimin_a = spline_pimin.c[0]
+            self._cs_tot_pimin_b = spline_pimin.c[1]
+            self._cs_tot_pimin_c = spline_pimin.c[2]
+            self._cs_tot_pimin_d = spline_pimin.c[3]
+            del spline_pimin
+            spline_el_pimin = CubicSpline(log_sqrt_s, gg["cs_el_pimin_GG"])
+            self._cs_el_pimin_a = spline_el_pimin.c[0]
+            self._cs_el_pimin_b = spline_el_pimin.c[1]
+            self._cs_el_pimin_c = spline_el_pimin.c[2]
+            self._cs_el_pimin_d = spline_el_pimin.c[3]
+            del spline_el_pimin
+            spline_prod_pimin = CubicSpline(log_sqrt_s, gg["cs_prod_pimin_GG"])
+            self._cs_prod_pimin_a = spline_prod_pimin.c[0]
+            self._cs_prod_pimin_b = spline_prod_pimin.c[1]
+            self._cs_prod_pimin_c = spline_prod_pimin.c[2]
+            self._cs_prod_pimin_d = spline_prod_pimin.c[3]
+            del spline_prod_pimin
+            spline_el_nucleon_pimin = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_pimin_GG"])
+            self._cs_el_nucleon_pimin_a = spline_el_nucleon_pimin.c[0]
+            self._cs_el_nucleon_pimin_b = spline_el_nucleon_pimin.c[1]
+            self._cs_el_nucleon_pimin_c = spline_el_nucleon_pimin.c[2]
+            self._cs_el_nucleon_pimin_d = spline_el_nucleon_pimin.c[3]
+            del spline_el_nucleon_pimin
+            spline_sd_pimin = CubicSpline(log_sqrt_s, gg["cs_sd_pimin_GG"])
+            self._cs_sd_pimin_a = spline_sd_pimin.c[0]
+            self._cs_sd_pimin_b = spline_sd_pimin.c[1]
+            self._cs_sd_pimin_c = spline_sd_pimin.c[2]
+            self._cs_sd_pimin_d = spline_sd_pimin.c[3]
+            del spline_sd_pimin
+        elif species == "piplus":
+            spline_piplus = CubicSpline(log_sqrt_s, gg["cs_tot_piplus_GG"])
+            self._cs_tot_piplus_a = spline_piplus.c[0]
+            self._cs_tot_piplus_b = spline_piplus.c[1]
+            self._cs_tot_piplus_c = spline_piplus.c[2]
+            self._cs_tot_piplus_d = spline_piplus.c[3]
+            del spline_piplus
+            spline_el_piplus = CubicSpline(log_sqrt_s, gg["cs_el_piplus_GG"])
+            self._cs_el_piplus_a = spline_el_piplus.c[0]
+            self._cs_el_piplus_b = spline_el_piplus.c[1]
+            self._cs_el_piplus_c = spline_el_piplus.c[2]
+            self._cs_el_piplus_d = spline_el_piplus.c[3]
+            del spline_el_piplus
+            spline_prod_piplus = CubicSpline(log_sqrt_s, gg["cs_prod_piplus_GG"])
+            self._cs_prod_piplus_a = spline_prod_piplus.c[0]
+            self._cs_prod_piplus_b = spline_prod_piplus.c[1]
+            self._cs_prod_piplus_c = spline_prod_piplus.c[2]
+            self._cs_prod_piplus_d = spline_prod_piplus.c[3]
+            del spline_prod_piplus
+            spline_el_nucleon_piplus = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_piplus_GG"])
+            self._cs_el_nucleon_piplus_a = spline_el_nucleon_piplus.c[0]
+            self._cs_el_nucleon_piplus_b = spline_el_nucleon_piplus.c[1]
+            self._cs_el_nucleon_piplus_c = spline_el_nucleon_piplus.c[2]
+            self._cs_el_nucleon_piplus_d = spline_el_nucleon_piplus.c[3]
+            del spline_el_nucleon_piplus
+            spline_sd_piplus = CubicSpline(log_sqrt_s, gg["cs_sd_piplus_GG"])
+            self._cs_sd_piplus_a = spline_sd_piplus.c[0]
+            self._cs_sd_piplus_b = spline_sd_piplus.c[1]
+            self._cs_sd_piplus_c = spline_sd_piplus.c[2]
+            self._cs_sd_piplus_d = spline_sd_piplus.c[3]
+            del spline_sd_piplus
+        else:
+            raise ValueError(f"Unknown species {species}")
 
     def _get_material_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
         splines, grid_min, grid_max = load_all_splines()
         _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_, cs_hN = make_nucleon_cs(splines)
         n_points = n_points or N_CS_POINTS
+
+        if self._components is None:
+            if self.A <= 62:
+                self._nuclear_slope      = 14.5 * self.A**(2./3.)
+                self._nuclear_slope_pion = 14.5 * self.A**(2./3.)
+            else:
+                self._nuclear_slope      = 60.0 * self.A**(1./3.)
+                self._nuclear_slope_pion = 60.0 * self.A**(1./3.)
+        else:
+            nuclear_slope_14 = sum(self.molar_fractions[i] * comp.A**(2./3.)
+                                   for i, comp in enumerate(self.components) if comp.A <= 62) * 14.5
+            nuclear_slope_60 = sum(self.molar_fractions[i] * comp.A**(1./3.)
+                                   for i, comp in enumerate(self.components) if comp.A > 62) * 60.0
+            self._nuclear_slope      = nuclear_slope_14 + nuclear_slope_60
+            self._nuclear_slope_pion = nuclear_slope_14 + nuclear_slope_60
         for sp in SPECIES:
             smin = sqrt_s_min or grid_min[sp]
             smax = sqrt_s_max or grid_max[sp]
@@ -738,59 +922,9 @@ class Material(xo.HybridClass):
             
             if self._components is None:
                 gg = self._glauber_isotope_to_element(log_sqrt_s, cs_hN, sp)
-                # nuclear slope
-                if self.A <= 62:
-                    self._nuclear_slope = 14.5 * self.A**(2./3.)
-                    self._nuclear_slope_pion = 14.5 * self.A**(2./3.)
-                else:
-                    self._nuclear_slope = 60.0 * self.A**(1./3.)
-                    self._nuclear_slope_pion = 60.0 * self.A**(1./3.)
             else:
                 gg = self._glauber_component(log_sqrt_s, cs_hN, sp)
-                fraction_14 = []
-                fraction_60 = []
-                nuclear_slope_14 = 0
-                nuclear_slope_60 = 0
-
-                # Separate the indices based on the condition
-                for i, comp in enumerate(self.components):
-                    if comp.A <= 62:
-                        fraction_14.append(i)
-                    else: 
-                        fraction_60.append(i)
-
-                # Calculate the slope for A <= 62
-                for i in fraction_14:
-                    nuclear_slope_14 += self.molar_fractions[i] * self.components[i].A**(2./3.)
-                nuclear_slope_14 *= 14.5
-
-                # Calculate the slope for A > 62
-                for i in fraction_60:
-                    nuclear_slope_60 += self.molar_fractions[i] * self.components[i].A**(1./3.)
-                nuclear_slope_60 *= 60.0
-
-                # Combine the results
-                self._nuclear_slope = nuclear_slope_14 + nuclear_slope_60
-                self._nuclear_slope_pion = nuclear_slope_14 + nuclear_slope_60
-            for k, arr in gg.items():
-                if not np.all(np.isfinite(arr)):
-                    print(f"Warning: Non-finite values found in {k} for material A={self.A} Z={self.Z} species={sp}")
-                    attr = f"_{k}"
-                    setattr(self, attr, arr)
-                    spl = CubicSpline(log_sqrt_s, 1e-15 * np.ones_like(arr), bc_type='not-a-knot')
-                    setattr(self, f"{attr}hA_a", spl.c[0])
-                    setattr(self, f"{attr}hA_b", spl.c[1])
-                    setattr(self, f"{attr}hA_c", spl.c[2])
-                    setattr(self, f"{attr}hA_d", spl.c[3])
-                else:
-                    attr = f"_{k}"
-                    setattr(self, attr, arr)
-                    spl = CubicSpline(log_sqrt_s, arr)
-                    setattr(self, f"{attr}hA_a", spl.c[0])
-                    setattr(self, f"{attr}hA_b", spl.c[1])
-                    setattr(self, f"{attr}hA_c", spl.c[2])
-                    setattr(self, f"{attr}hA_d", spl.c[3])
-
+            self._set_attr(gg, sp, log_sqrt_s)
 
     def evaluate_glauber_spline(self, sqrt_s, key, particle_id):
         # Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive

@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from scipy.interpolate import CubicSpline
 from .isotopes import ISOTOPES
-from .glauber_gribov import GG_KEYS, make_nucleon_cs, load_all_splines, SPECIES
+from .glauber_gribov import make_nucleon_cs, load_all_splines, SPECIES
 N_CS_POINTS = 1000
 # Map element symbol -> Z
 SYMBOL_TO_Z = {
@@ -48,7 +48,7 @@ def _compute_glauber_cs(A_sig_tot, A_sig_inel, piR2):
 
         cs_el_nucleon = np.maximum(0.0, cs_inel - cs_prod)
 
-        return cs_tot, cs_prod, cs_inel, cs_el, cs_el_nucleon, cs_sd
+        return cs_tot, cs_prod, cs_el, cs_el_nucleon, cs_sd
 
 def _glauber_isotope(A, Z, sqrt_s, cs_hN, species):
 
@@ -92,30 +92,28 @@ def _glauber_isotope(A, Z, sqrt_s, cs_hN, species):
     # -----------------------------
     if A < 4:
         return {
-            f"cs_tot_{species}_hA": A_sig["tot"],
-            f"cs_inel_{species}_hA": A_sig["inel"],
-            f"cs_el_{species}_hA": A_sig["el"],
-            f"cs_prod_{species}_hA": np.zeros_like(sqrt_s),
-            f"cs_sd_{species}_hA": np.zeros_like(sqrt_s),
-            f"cs_el_nucleon_{species}": np.zeros_like(sqrt_s),
+            f"cs_tot_{species}_GG": A_sig["tot"],
+            f"cs_el_{species}_GG": A_sig["el"],
+            f"cs_prod_{species}_GG": np.zeros_like(sqrt_s),
+            f"cs_sd_{species}_GG": np.zeros_like(sqrt_s),
+            f"cs_el_nucleon_{species}_GG": np.zeros_like(sqrt_s),
         }
 
     # -----------------------------
     # Glauber computation
     # -----------------------------
-    cs_tot, cs_inel, cs_el, cs_prod, cs_sd, cs_el_nucl = _compute_glauber_cs(
+    cs_tot, cs_prod, cs_el, cs_el_nucl, cs_sd = _compute_glauber_cs(
         A_sig["tot"],
         A_sig["inel"],
         piR2
     )
 
     return {
-        f"cs_tot_{species}_hA": cs_tot,
-        f"cs_inel_{species}_hA": cs_inel,
-        f"cs_el_{species}_hA": cs_el,
-        f"cs_prod_{species}_hA": cs_prod,
-        f"cs_sd_{species}_hA": cs_sd,
-        f"cs_el_nucleon_{species}": cs_el_nucl,
+        f"cs_tot_{species}_GG": cs_tot,
+        f"cs_el_{species}_GG": cs_el,
+        f"cs_prod_{species}_GG": cs_prod,
+        f"cs_sd_{species}_GG": cs_sd,
+        f"cs_el_nucleon_{species}_GG": cs_el_nucl,
     }
 
 # def _glauber_isotope(A, Z, sqrt_s, cs_hN):
@@ -203,8 +201,8 @@ def build_element_file(
             continue
 
         # output container (species × GG_KEYS)
-        out = {sp: {f"cs_{ch}_{sp}_hA" if ch != "el_nucleon" else f"cs_el_nucleon_{sp}": [] 
-               for ch in ["tot", "inel", "el", "prod", "sd", "el_nucleon"]}
+        out = {sp: {f"cs_{ch}_{sp}_GG" if ch != "el_nucleon" else f"cs_el_nucleon_{sp}_GG": [] 
+               for ch in ["tot", "el", "prod", "sd", "el_nucleon"]}
                for sp in SPECIES}
         print(out.keys())
         A_list = []

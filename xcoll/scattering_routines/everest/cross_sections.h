@@ -99,7 +99,7 @@ void get_coulomb_interaction_length(double Z, double pc, double N,
     if (cs_coulomb < 1e-15){
         printf("Coulomb cross section is very small: %e mb.\n", cs_coulomb);
     }
-    *lambda_coulomb = 1. / (N * cs_coulomb*1.0e-27);
+    *lambda_coulomb = 1. / (N * cs_coulomb*1.0e-31);
 }
 /*gpufun*/
 void get_coulomb_cross_section(double Z, double pc, double N,
@@ -136,19 +136,21 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     double cs_sd_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4, particle_id); // single diffractive
 
     // Production
-    interaction_lengths[0] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
+    interaction_lengths[0] = (1)/(N*cs_prod_hA*1.0e-31);   // [m]
 
     // Elastic Nucleus: Total - Inelastic
     if (cs_el_hA < 1e-15){
         cs_el_hA = 1e-12; // In case. Makes Lambda large
     } else {
-        interaction_lengths[1] = (1)/(N*cs_el_hA*1.0e-27); // [m]
+        interaction_lengths[1] = (1)/(N*cs_el_hA*1.0e-31); // [m]
     }
 
     // Elastic nucleon
-    interaction_lengths[2] = 1/(N*cs_el_nucleon*1.0e-27);   // [m]
+    interaction_lengths[2] = 1/(N*cs_el_nucleon*1.0e-31);   // [m]
     // Single diffractive
-    interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);      // [m]
+    interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-31);      // [m]
+    printf("cross sections: prod = %e mb, el nucleus = %e mb, el nucleon = %e mb, sd = %e mb\n", cs_prod_hA, cs_el_hA, cs_el_nucleon, cs_sd_hA);
+    printf("interaction lengths: prod = %e m, el nucleus = %e m, el nucleon = %e m, sd = %e m\n", interaction_lengths[0], interaction_lengths[1], interaction_lengths[2], interaction_lengths[3]);
 }
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H
