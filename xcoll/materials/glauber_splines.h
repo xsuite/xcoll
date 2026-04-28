@@ -14,7 +14,6 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
     int i;
     switch (particle_id) {
         case 0: // proton
-            printf("Evaluating spline for proton\n");
             n_points = MaterialData_get__n_points_pp(material);
             log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_pp(material);
             log_step = MaterialData_get__cs_log_step_pp(material);

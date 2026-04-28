@@ -618,14 +618,14 @@ class Material(xo.HybridClass):
     def _compute_glauber_cs(self, A_sig_tot, A_sig_inel, piR2):
         cs_tot   = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
         cs_inel  = piR2 * np.log(1.0 + A_sig_tot / piR2)
-        cs_el    = np.maximum(0.0, cs_tot - cs_inel)
+        cs_el    = np.maximum(1e-15, cs_tot - cs_inel)
 
         cs_prod  = piR2 * np.log(1.0 + A_sig_inel / piR2)
 
         alpha    = A_sig_tot / (2 * piR2 + A_sig_tot)
         cs_sd    = piR2 * (alpha - np.log(1.0 + alpha))
 
-        cs_el_nucleon = np.maximum(0.0, cs_inel - cs_prod)
+        cs_el_nucleon = np.maximum(1e-15, cs_inel - cs_prod)
 
         return cs_tot, cs_prod, cs_el, cs_el_nucleon, cs_sd
 
@@ -634,7 +634,6 @@ class Material(xo.HybridClass):
         A_eff  = self.A if A is None else A
         piR2   = self._pi_R2_mb(A=A_eff)
         sqrt_s = np.asarray(sqrt_s)
-        all_species = ["pp", "kmin", "kplus", "pimin", "piplus"]
 
         A_sig = {
             sp: {
@@ -642,7 +641,7 @@ class Material(xo.HybridClass):
                 "inel": np.zeros_like(sqrt_s),
                 "el":   np.zeros_like(sqrt_s),
             }
-            for sp in all_species
+            for sp in SPECIES
         }
 
         # Fill hadron–nucleon cross sections
@@ -653,13 +652,12 @@ class Material(xo.HybridClass):
              A_sig["kmin"]["tot"][i], A_sig["kmin"]["inel"][i], A_sig["kmin"]["el"][i],
              A_sig["kplus"]["tot"][i], A_sig["kplus"]["inel"][i], A_sig["kplus"]["el"][i],
              A_sig["pimin"]["tot"][i], A_sig["pimin"]["inel"][i], A_sig["pimin"]["el"][i],
-             A_sig["piplus"]["tot"][i],A_sig["piplus"]["inel"][i],A_sig["piplus"]["el"][i],
-            ) = values
+             A_sig["piplus"]["tot"][i],A_sig["piplus"]["inel"][i],A_sig["piplus"]["el"][i],) = values
         sp = species
         if A_eff < 4:
             return {
                 f"cs_{key}_{sp}_GG": A_sig[sp][key]
-                for sp in species
+                for sp in SPECIES
                 for key in ["tot","inel","el"]
             }
         results = {}
@@ -671,8 +669,7 @@ class Material(xo.HybridClass):
                             f"cs_prod_{sp}_GG": cs_prod,
                             f"cs_el_{sp}_GG": cs_el,
                             f"cs_el_nucleon_{sp}_GG": cs_el_nucl,
-                            f"cs_sd_{sp}_GG": cs_sd,
-                            })
+                            f"cs_sd_{sp}_GG": cs_sd,})
         return results
 
     def _load_isotopes(self):
@@ -685,14 +682,11 @@ class Material(xo.HybridClass):
         try:
             data = self._load_isotopes()
         except FileNotFoundError:
-            print(f"Isotope data not found for Z={self.Z}. Falling back to element-level Glauber calculation.")
             return self._glauber_element_single(np.exp(log_sqrt_s), cs_hN, species)
 
         symbol = Z_TO_SYMBOL.get(self.Z)
         iso_list = ISOTOPES[symbol]["isotopes"]
         stable = [iso for iso in iso_list if iso["abundance"] is not None]
-        print(f"Loaded isotope data for {len(stable)} , species {species}, stable isotopes of {symbol} (Z={self.Z})")
-        print(f"sp data keys: {list(data.keys())}")
         sp_data = data[species].item()  # the dict for this species
     
         # If self.A matches a specific isotope mass number, use only that one
@@ -702,7 +696,6 @@ class Material(xo.HybridClass):
             idx = stable.index(matching[0])
             combined = {}
             for k, records in sp_data.items():
-                print(k, records)
                 spl = CubicSpline(records[idx]["knots"], records[idx]["y_values"], bc_type='not-a-knot')
                 combined[k] = spl(log_sqrt_s)
             return combined

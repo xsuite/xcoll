@@ -149,8 +149,6 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     interaction_lengths[2] = 1/(N*cs_el_nucleon*1.0e-31);   // [m]
     // Single diffractive
     interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-31);      // [m]
-    printf("cross sections: prod = %e mb, el nucleus = %e mb, el nucleon = %e mb, sd = %e mb\n", cs_prod_hA, cs_el_hA, cs_el_nucleon, cs_sd_hA);
-    printf("interaction lengths: prod = %e m, el nucleus = %e m, el nucleon = %e m, sd = %e m\n", interaction_lengths[0], interaction_lengths[1], interaction_lengths[2], interaction_lengths[3]);
 }
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H

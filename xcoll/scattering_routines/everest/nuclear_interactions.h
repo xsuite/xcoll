@@ -113,12 +113,10 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
  
         } else if (chosen == 4){
             // Single diffractive
-            printf("Single diffractive interaction chosen.\n");
             double pc_in = pc;
             double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             pc = pc*(1 - xm2/everest->ecmsq);
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
-            printf("in SD, pc: %e GeV\n", pc);
             if (pc <= 1.e-9 || pc != pc) {
                 // Very small (<1eV) or NaN
                 if (scatter) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
