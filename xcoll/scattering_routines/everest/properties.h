@@ -83,6 +83,8 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
         }
     }
     everest->cprob[5] = 1;
+    printf("\n\nCross sections cla= %f, %f, %f, %f, %f, %f, %f\n", csect[0]*1e3, csect[1]*1e3, csect[2]*1e3, csect[3]*1e3, csect[4]*1e3, csect[5]*1e3, csect[5]); // --- IGNORE ---
+    printf("Nuclear slope = %f, bpp slope = %f\n", everest->bn, everest->bpp); // --- IGNORE ---
 }
 
 

@@ -629,12 +629,13 @@ class Material(xo.HybridClass):
 
         return cs_tot, cs_prod, cs_el, cs_el_nucleon, cs_sd
 
-    def _glauber_element_single(self, sqrt_s, cs_hN, species, A=None):
+    def _glauber_element_single(self, sqrt_s, cs_hN, beam, A=None):
 
         A_eff  = self.A if A is None else A
         piR2   = self._pi_R2_mb(A=A_eff)
         sqrt_s = np.asarray(sqrt_s)
 
+        # cs_hN returns all species, so we need to store all of them.
         A_sig = {
             sp: {
                 "tot":  np.zeros_like(sqrt_s),
@@ -645,7 +646,7 @@ class Material(xo.HybridClass):
         }
 
         # Fill hadron–nucleon cross sections
-        for i, s in enumerate(sqrt_s): # sjekk hvirfir garbagde
+        for i, s in enumerate(sqrt_s):
             values = cs_hN(A_eff, self.Z, s)
 
             (A_sig["pp"]["tot"][i], A_sig["pp"]["inel"][i], A_sig["pp"]["el"][i],
@@ -653,23 +654,21 @@ class Material(xo.HybridClass):
              A_sig["kplus"]["tot"][i], A_sig["kplus"]["inel"][i], A_sig["kplus"]["el"][i],
              A_sig["pimin"]["tot"][i], A_sig["pimin"]["inel"][i], A_sig["pimin"]["el"][i],
              A_sig["piplus"]["tot"][i],A_sig["piplus"]["inel"][i],A_sig["piplus"]["el"][i],) = values
-        sp = species
         if A_eff < 4:
             return {
-                f"cs_{key}_{sp}_GG": A_sig[sp][key]
-                for sp in SPECIES
+                f"cs_{key}_{beam}_GG": A_sig[beam][key]
                 for key in ["tot","inel","el"]
             }
         results = {}
 
-        cs_tot, cs_prod, cs_el, cs_el_nucl, cs_sd  = self._compute_glauber_cs(A_sig[sp]["tot"],
-                                                                              A_sig[sp]["inel"],
+        cs_tot, cs_prod, cs_el, cs_el_nucl, cs_sd  = self._compute_glauber_cs(A_sig[beam]["tot"],
+                                                                              A_sig[beam]["inel"],
                                                                               piR2)
-        results.update({f"cs_tot_{sp}_GG": cs_tot,
-                            f"cs_prod_{sp}_GG": cs_prod,
-                            f"cs_el_{sp}_GG": cs_el,
-                            f"cs_el_nucleon_{sp}_GG": cs_el_nucl,
-                            f"cs_sd_{sp}_GG": cs_sd,})
+        results.update({f"cs_tot_{beam}_GG": cs_tot,
+                            f"cs_prod_{beam}_GG": cs_prod,
+                            f"cs_el_{beam}_GG": cs_el,
+                            f"cs_el_nucleon_{beam}_GG": cs_el_nucl,
+                            f"cs_sd_{beam}_GG": cs_sd,})
         return results
 
     def _load_isotopes(self):
@@ -722,8 +721,13 @@ class Material(xo.HybridClass):
                 combined[k] += self.molar_fractions[i] * v
         return combined
 
-    def _set_attr(self, gg, species, log_sqrt_s):
+    def _set_attr(self, gg, species, log_sqrt_s, sqrt_s_arr, n_points):
         if species == "pp":
+            self._cs_sqrt_s_pp         = sqrt_s_arr
+            self._cs_log_sqrt_s_min_pp = float(log_sqrt_s[0])
+            self._cs_log_step_pp       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+            self._cs_knots_pp          = log_sqrt_s
+            self._n_points_pp          = n_points
             spline_pp = CubicSpline(log_sqrt_s, gg["cs_tot_pp_GG"])
             self._cs_tot_pp_a = spline_pp.c[0]
             self._cs_tot_pp_b = spline_pp.c[1]
@@ -755,6 +759,11 @@ class Material(xo.HybridClass):
             self._cs_sd_pp_d = spline_sd_pp.c[3]
             del spline_sd_pp
         elif species == "kmin":
+            self._cs_sqrt_s_kmin         = sqrt_s_arr
+            self._cs_log_sqrt_s_min_kmin = float(log_sqrt_s[0])
+            self._cs_log_step_kmin       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+            self._cs_knots_kmin          = log_sqrt_s
+            self._n_points_kmin          = n_points
             spline_kmin = CubicSpline(log_sqrt_s, gg["cs_tot_kmin_GG"])
             self._cs_tot_kmin_a = spline_kmin.c[0]
             self._cs_tot_kmin_b = spline_kmin.c[1]
@@ -786,6 +795,11 @@ class Material(xo.HybridClass):
             self._cs_sd_kmin_d = spline_sd_kmin.c[3]
             del spline_sd_kmin
         elif species == "kplus":
+            self._cs_sqrt_s_kplus         = sqrt_s_arr
+            self._cs_log_sqrt_s_min_kplus = float(log_sqrt_s[0])
+            self._cs_log_step_kplus       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+            self._cs_knots_kplus          = log_sqrt_s
+            self._n_points_kplus          = n_points
             spline_kplus = CubicSpline(log_sqrt_s, gg["cs_tot_kplus_GG"])
             self._cs_tot_kplus_a = spline_kplus.c[0]
             self._cs_tot_kplus_b = spline_kplus.c[1]
@@ -817,6 +831,11 @@ class Material(xo.HybridClass):
             self._cs_sd_kplus_d = spline_sd_kplus.c[3]
             del spline_sd_kplus
         elif species == "pimin":
+            self._cs_sqrt_s_pimin         = sqrt_s_arr
+            self._cs_log_sqrt_s_min_pimin = float(log_sqrt_s[0])
+            self._cs_log_step_pimin       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+            self._cs_knots_pimin          = log_sqrt_s
+            self._n_points_pimin          = n_points
             spline_pimin = CubicSpline(log_sqrt_s, gg["cs_tot_pimin_GG"])
             self._cs_tot_pimin_a = spline_pimin.c[0]
             self._cs_tot_pimin_b = spline_pimin.c[1]
@@ -848,6 +867,11 @@ class Material(xo.HybridClass):
             self._cs_sd_pimin_d = spline_sd_pimin.c[3]
             del spline_sd_pimin
         elif species == "piplus":
+            self._cs_sqrt_s_piplus         = sqrt_s_arr
+            self._cs_log_sqrt_s_min_piplus = float(log_sqrt_s[0])
+            self._cs_log_step_piplus       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+            self._cs_knots_piplus          = log_sqrt_s
+            self._n_points_piplus          = n_points
             spline_piplus = CubicSpline(log_sqrt_s, gg["cs_tot_piplus_GG"])
             self._cs_tot_piplus_a = spline_piplus.c[0]
             self._cs_tot_piplus_b = spline_piplus.c[1]
@@ -900,24 +924,17 @@ class Material(xo.HybridClass):
                                    for i, comp in enumerate(self.components) if comp.A > 62) * 60.0
             self._nuclear_slope      = nuclear_slope_14 + nuclear_slope_60
             self._nuclear_slope_pion = nuclear_slope_14 + nuclear_slope_60
-        for sp in SPECIES:
-            smin = sqrt_s_min or grid_min[sp]
-            smax = sqrt_s_max or grid_max[sp]
+        for beam in SPECIES:
+            smin = sqrt_s_min or grid_min[beam]
+            smax = sqrt_s_max or grid_max[beam]
             sqrt_s_arr = np.logspace(np.log10(smin), np.log10(smax), n_points)
             log_sqrt_s = np.log(sqrt_s_arr)
 
-            # Store per-species grid metadata
-            setattr(self, f"_cs_sqrt_s_{sp}",          sqrt_s_arr)
-            setattr(self, f"_cs_log_sqrt_s_min_{sp}",  float(log_sqrt_s[0]))
-            setattr(self, f"_cs_log_step_{sp}",        float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1)))
-            setattr(self, f"_cs_knots_{sp}",           log_sqrt_s)
-            setattr(self, f"_n_points_{sp}",           n_points)
-            
             if self._components is None:
-                gg = self._glauber_isotope_to_element(log_sqrt_s, cs_hN, sp)
+                gg = self._glauber_isotope_to_element(log_sqrt_s, cs_hN, beam)
             else:
-                gg = self._glauber_component(log_sqrt_s, cs_hN, sp)
-            self._set_attr(gg, sp, log_sqrt_s)
+                gg = self._glauber_component(log_sqrt_s, cs_hN, beam)
+            self._set_attr(gg, beam, log_sqrt_s, sqrt_s_arr, n_points)
 
     def evaluate_glauber_spline(self, sqrt_s, key, particle_id):
         # Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive

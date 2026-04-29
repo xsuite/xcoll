@@ -103,21 +103,32 @@ void get_coulomb_interaction_length(double Z, double pc, double N,
 }
 /*gpufun*/
 void get_coulomb_cross_section(double Z, double pc, double N,
-                               double theta_init, double nuclear_slope, double* cs_coulomb){
-    double E2;
-    double R;
-    double t_cut          = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
-    double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
+                               double theta_init, double nuclear_slope, double KE, double* cs_coulomb){
+    // double E2;
+    // double R;
+    // double t_cut          = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
+    // double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
     double hbar_c         = 0.197;                                              // [GeV*fm]
-    double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
-    double R_fm           = 2.0 * hbar_c * sqrt(nuclear_slope);                 // fm
-    double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
+    // double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
+    // double R_fm           = 2.0 * hbar_c * sqrt(nuclear_slope);                 // fm
+    // double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
+    // E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
+    // *cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2))/((R_GeV*R_GeV*(856.)*t_cut));
+    // if (*cs_coulomb < 1e-15){
+    //     *cs_coulomb = 1e-15; // Avoid negative cross section
+    // }
+    // double hbar_c         = 0.197;                                              // [GeV*fm]
+    printf("KE %f GeV, pc = %f GeV, theta_init = %e rad\n,", KE, pc, theta_init); // --- IGNORE ---
+    double theta_coulomb = 1e-3;
+    // if (theta_init < 1e-15){
+    //     // Avoid unphysically large Coulomb cross section at very small angles
+    //     theta_coulomb = 1e-10;
+    // } else {
+    //     theta_coulomb = 2.325*theta_init;
+    // }
+    double constant = (1./137. * hbar_c)/(KE); // fm squared
+    *cs_coulomb = 10*(M_PI * Z * Z * constant * constant * (1 + cos(theta_coulomb))/(1 - cos(theta_coulomb))); //in fm2, so convert to mb * 10
 
-    E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
-    *cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2))/((R_GeV*R_GeV*(856.)*t_cut));
-    if (*cs_coulomb < 1e-15){
-        *cs_coulomb = 1e-15; // Avoid negative cross section
-    }
 }
 
 
@@ -126,7 +137,7 @@ void get_coulomb_cross_section(double Z, double pc, double N,
 // =======================================================
 
 /*gpufun*/
-void get_interaction_length(MaterialData restrict material, double interaction_lengths[5], 
+void get_interaction_length(MaterialData restrict material, double interaction_lengths[4], 
                             double cs_tot, double Z, double N,
                             double theta_init, double sqrt_s, double pc, double particle_id) {
 
@@ -134,7 +145,9 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     double cs_el_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2, particle_id); // elastic nucleus
     double cs_el_nucleon = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3, particle_id); // el nucleon
     double cs_sd_hA      = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4, particle_id); // single diffractive
+    printf("cross sections = %f, %f, %f, %f\n", cs_prod_hA, cs_el_hA, cs_el_nucleon, cs_sd_hA); // --- IGNORE ---
 
+     // Production
     // Production
     interaction_lengths[0] = (1)/(N*cs_prod_hA*1.0e-31);   // [m]
 

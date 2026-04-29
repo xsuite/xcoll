@@ -53,7 +53,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     } else {
         nuclear_slope = MaterialData_get__nuclear_slope(material);
     }
-    get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &cs_coulomb); // [mb]
+    double KE = (LocalParticle_get_energy0(part) - LocalParticle_get_mass0(part))/1e9; // [GeV]
+    get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, KE, &cs_coulomb); // [mb]
     cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0, particle_id) + cs_coulomb; // [mb]
     interaction_length_tot = RandomExponential_generate(part) *(1.)/(N*cross_section_tot*1.0e-31); // [m]
     //double mcs_path_length = FindRoot_get_path_length(finder);
@@ -64,7 +65,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         pc = calcionloss(everest, material, part, length, pc, 1);
         return pc;
     } else {
-        double interaction_lengths[5];
+        double interaction_lengths[4];
         get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc, particle_id);
         // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
         int chosen                    = 1;
@@ -73,19 +74,23 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
         double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
         double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
-        if (elastic_length < min_length) {         // Elastic
+        printf("nuclear slope = %f:\n", nuclear_slope); // --- IGNORE ---")
+        printf("bpp slope = %f \n", 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)));
+        printf("coulomb cs: %f mb, length: %e m\n", cs_coulomb, coulomb_length); // --- IGNORE ---
+        printf("min lengths = %f, %f, %f, %f, %e\n", min_length, elastic_length, elastic_nucleon_length, SD_length, coulomb_length); // --- IGNORE ---
+        if ((min_length - elastic_length) > 1e-12) {         // Elastic
             min_length = elastic_length;
             chosen = 2;
         }
-        if (elastic_nucleon_length < min_length) { // Elastic nucleon 
+        if ((min_length - elastic_nucleon_length) > 1e-12) { // Elastic nucleon 
             min_length = elastic_nucleon_length;
             chosen = 3;
         }
-        if (SD_length < min_length) {              // Single diffractive
+        if ((min_length - SD_length) > 1e-12) {              // Single diffractive
             min_length = SD_length;
             chosen = 4;
         }
-        if (coulomb_length < min_length) {         // Coulomb
+        if ((min_length - coulomb_length) > 1e-12) {         // Coulomb
             min_length = coulomb_length;
             chosen = 5;
         }
@@ -113,13 +118,13 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
  
         } else if (chosen == 4){
             // Single diffractive
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
             double pc_in = pc;
             double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             pc = pc*(1 - xm2/everest->ecmsq);
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
             if (pc <= 1.e-9 || pc != pc) {
                 // Very small (<1eV) or NaN
-                if (scatter) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+                if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
                 LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
                 pc = 1.e-9; 
                 sqrt_t_p = 0;
@@ -145,7 +150,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
             printf("Error in nuclear interaction choice.\n");
             return pc; // No interaction, return original momentum
         }
-
+        printf("chosen, islot, pc = %d, %lld, %e GeV\n", chosen, i_slot, pc); // --- IGNORE ---
         double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
         double alpha = 2*M_PI*RandomUniform_generate(part);
         double tan_theta_x = tan_theta*cos(alpha);
