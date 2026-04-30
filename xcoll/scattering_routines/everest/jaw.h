@@ -18,7 +18,7 @@ double jaw(EverestData restrict everest, MaterialData restrict material, LocalPa
     }
 
     pc /= 1.e9; // [GeV]
-
+    printf("length = %f m, pc = %f GeV\n", length, pc);
     double rlen = length;
     double s0 = LocalParticle_get_s(part);
     while (1) {
@@ -37,7 +37,7 @@ double jaw(EverestData restrict everest, MaterialData restrict material, LocalPa
             break;
         }
 
-        mcs(everest, material, part, length_step, pc, edge_check);
+        // mcs(everest, material, part, length_step, pc, edge_check);
         if (LocalParticle_get_state(part) < 1 || (edge_check && LocalParticle_get_x(part) <= 0)){
             // Particle lost all energy due to ionisation, or left the collimator
             break;

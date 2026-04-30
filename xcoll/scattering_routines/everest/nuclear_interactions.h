@@ -41,8 +41,9 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double particle_id = 0;
     everest->ecmsq     = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
-    double theta_init = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
-    // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
+    double theta_rms = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
+    printf("theta_rms = %e rad, theta init times 6 %e\n", theta_rms, 10.0 * theta_rms); // --- IGNORE ---
+    // double theta_rms = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
  
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
@@ -54,7 +55,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         nuclear_slope = MaterialData_get__nuclear_slope(material);
     }
     double KE = (LocalParticle_get_energy0(part) - LocalParticle_get_mass0(part))/1e9; // [GeV]
-    get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, KE, &cs_coulomb); // [mb]
+    get_coulomb_cross_section(Z, pc, N, theta_rms, nuclear_slope, KE, &cs_coulomb); // [mb]
     cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0, particle_id) + cs_coulomb; // [mb]
     interaction_length_tot = RandomExponential_generate(part) *(1.)/(N*cross_section_tot*1.0e-31); // [m]
     //double mcs_path_length = FindRoot_get_path_length(finder);
@@ -66,7 +67,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         return pc;
     } else {
         double interaction_lengths[4];
-        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc, particle_id);
+        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, sqrt_s, pc, particle_id);
         // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
         int chosen                    = 1;
         double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
@@ -98,50 +99,50 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         calculate_ionisation_properties(everest, material, pc);
         pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
 
-        if (chosen == 1){
-            // Production: particle is absorbed
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-            pc = 1.e-9; 
-            sqrt_t_p = 0;
+        // if (chosen == 1){
+        //     // Production: particle is absorbed
+        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+        //     LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+        //     pc = 1.e-9; 
+        //     sqrt_t_p = 0;
 
-        } else if (chosen == 2){
-            // Elastic Nucleus
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
+        // } else if (chosen == 2){
+        //     // Elastic Nucleus
+        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
+        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
 
-        } else if (chosen == 3){
-            // Elastic Nucleon
-            double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
+        // } else if (chosen == 3){
+        //     // Elastic Nucleon
+        //     double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
+        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
  
-        } else if (chosen == 4){
-            // Single diffractive
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
-            double pc_in = pc;
-            double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
-            pc = pc*(1 - xm2/everest->ecmsq);
-            if (pc <= 1.e-9 || pc != pc) {
-                // Very small (<1eV) or NaN
-                if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-                pc = 1.e-9; 
-                sqrt_t_p = 0;
-            } else {
-                double bsd;
-                double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
-                if (xm2 < 2.) {
-                    bsd = 2* pp_new;//everest->bpp;
-                } else if (xm2 >= 2. && xm2 <= 5.) {
-                    bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
-                } else {
-                    bsd = (7*pp_new)/12.0;
-                } // THIS IS THE REASON FOR THE TAILS say ok here
-                sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
-            }
+        // } else if (chosen == 4){
+        //     // Single diffractive
+        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+        //     double pc_in = pc;
+        //     double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
+        //     pc = pc*(1 - xm2/everest->ecmsq);
+        //     if (pc <= 1.e-9 || pc != pc) {
+        //         // Very small (<1eV) or NaN
+        //         if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+        //         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+        //         pc = 1.e-9; 
+        //         sqrt_t_p = 0;
+        //     } else {
+        //         double bsd;
+        //         double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
+        //         if (xm2 < 2.) {
+        //             bsd = 2* pp_new;//everest->bpp;
+        //         } else if (xm2 >= 2. && xm2 <= 5.) {
+        //             bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
+        //         } else {
+        //             bsd = (7*pp_new)/12.0;
+        //         } // THIS IS THE REASON FOR THE TAILS say ok here
+        //         sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+        //     }
 
-        } else if (chosen == 5){
+        if (chosen == 5){
             // Coulomb
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
