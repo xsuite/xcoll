@@ -24,13 +24,12 @@
 // }
 /*gpufun*/
 double sample_rutherford(double theta_min, LocalParticle* part) {
-    double r = RandomUniform_generate(part);  // r in [0, 1]
+    double random_uniform = RandomUniform_generate(part);  // r in [0, 1]
 
     double a = 1.0 / pow(sin(theta_min / 2.0), 2);
     // b = 1/sin²(π/2) = 1/1 = 1
     
-    double sin2_half_theta = 1.0 / (a - r * (a - 1.0));
-
+    double sin2_half_theta = 1.0 / (a - random_uniform * (a - 1.0));
     return 2.0 * asin(sqrt(sin2_half_theta));
 }
 
@@ -81,16 +80,13 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         double interaction_lengths[4];
         get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, sqrt_s, pc, particle_id);
         // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
+        cs_coulomb = 0.094;
         int chosen                    = 1;
         double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
         double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
         double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
         double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
         double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
-        printf("nuclear slope = %f:\n", nuclear_slope); // --- IGNORE ---")
-        printf("bpp slope = %f \n", 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)));
-        printf("coulomb cs: %f mb, length: %e m\n", cs_coulomb, coulomb_length); // --- IGNORE ---
-        printf("min lengths = %f, %f, %f, %f, %e\n", min_length, elastic_length, elastic_nucleon_length, SD_length, coulomb_length); // --- IGNORE ---
         if ((min_length - elastic_length) > 1e-12) {         // Elastic
             min_length = elastic_length;
             chosen = 2;
@@ -107,7 +103,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
             min_length = coulomb_length;
             chosen = 5;
         }
-
+        printf("coulomb cs = %e mb, coulomb length = %e m\n", cs_coulomb, coulomb_length); // --- IGNORE ---
         calculate_ionisation_properties(everest, material, pc);
         pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
 

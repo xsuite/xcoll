@@ -9,124 +9,14 @@
 #include <stddef.h>
 #include <math.h>
 
-// ====== Splines & Helper functions =============
-// // Allen & Hastings Approximation for the Exponential Integral function E1(x) = int_x^inf (e^-t / t) dt
-// /*gpufun*/
-// inline void E1_approx(double* E1_approx, double x) {
-//     if (x <= 0.0) {
-//         *E1_approx = 1e21;  // E1 undefined for x <= 0
-//         return;
-//     }
-//     if (x <= 1.0) {
-
-//         // Small x expansion
-//         const double a0 = -0.57722;
-//         const double a1 =  0.99999;
-//         const double a2 = -0.24991;
-//         const double a3 =  0.05519;
-//         const double a4 = -0.00976;
-//         const double a5 =  0.00108;
-
-//         double x2 = x * x;
-//         double x3 = x2 * x;
-//         double x4 = x3 * x;
-//         double x5 = x4 * x;
-
-//         *E1_approx = -log(x) + (a0 + a1*x + a2*x2 + a3*x3 + a4*x4 + a5*x5);
-
-//     } else {
-
-//         // Large x rational approximation
-//         const double b0 =  0.26777;
-//         const double b1 =  8.63476;
-//         const double b2 = 18.05902;
-//         const double b3 =  8.57333;
-
-//         const double c0 =  3.95850;
-//         const double c1 = 21.09965;
-//         const double c2 = 25.63296;
-//         const double c3 =  9.57332;
-
-//         double x2 = x * x;
-//         double x3 = x2 * x;
-
-//         double numerator   = b0 + b1*x + b2*x2 + b3*x3;
-//         double denominator = c0 + c1*x + c2*x2 + c3*x3;
-//         *E1_approx         = (exp(-(x)) / x) * (numerator / denominator);
-//     }
-// }
-
-
-// /*gpufun*/
-// void E2_approx(double* E2, double x) {
-//     const double gamma = 0.5772156649015328606;
-//     if (x > 10.0) {
-//         double invx = 1.0 / x;
-//         double invx2 = invx * invx;
-
-//         *E2 = invx * (1.0
-//             - 2.0 * invx
-//             + 6.0 * invx2
-//             - 24.0 * invx2 * invx);
-//         return;
-//     }
-//     // small x: use series (stable)
-//     if (x < 1e-3) {
-//         *E2 = 1.0 - x * (log(x) + gamma - 1.0);
-//         return;
-//     }
-//     double E1;
-//     E1_approx(&E1, x);
-//     *E2 = exp(-x) - x * E1;
-// }
 // =======================================================
 // ====== Coulomb Cross Sections =====================
 // =======================================================
-// /*gpufun*/
-// void get_coulomb_interaction_length(double Z, double pc, double N,
-//                                     double theta_init, double nuclear_slope, double* lambda_coulomb){
-//     double E2, cs_coulomb;
-//     double R;
-//     double t_cut          = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
-//     double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
-//     double hbar_c         = 0.197;                                              // [GeV*fm]
-//     double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
-//     double R_fm           = 2.0 * hbar_c * sqrt(nuclear_slope);                 // fm
-//     double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
-
-//     E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
-//     cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2));
-//     if (cs_coulomb < 1e-15){
-//         printf("Coulomb cross section is very small: %e mb.\n", cs_coulomb);
-//     }
-//     *lambda_coulomb = 1. / (N * cs_coulomb*1.0e-31);
-// }
 /*gpufun*/
 void get_coulomb_cross_section(double Z, double pc, double N,
                                double theta_rms, double nuclear_slope, double KE, double* cs_coulomb){
-    // double E2;
-    // double R;
-    // double t_cut          = ((pc)*2.325*(theta_rms))*((pc)*2.325*(theta_rms));
-    // double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
-    double hbar_c         = 0.197;                                              // [GeV*fm]
-    // double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
-    // double R_fm           = 2.0 * hbar_c * sqrt(nuclear_slope);                 // fm
-    // double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
-    // E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
-    // *cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2))/((R_GeV*R_GeV*(856.)*t_cut));
-    // if (*cs_coulomb < 1e-15){
-    //     *cs_coulomb = 1e-15; // Avoid negative cross section
-    // }
-    // double hbar_c         = 0.197;                                              // [GeV*fm]
-    printf("\n\nKE %f GeV, pc = %f GeV, theta_rms = %e rad\n,", KE, pc, theta_rms); // --- IGNORE ---
-    // double theta_coulomb = 12. * theta_rms;
-    // if (theta_rms < 1e-15){
-    //     // Avoid unphysically large Coulomb cross section at very small angles
-    //     theta_coulomb = 1e-10;
-    // } else {
-    //     theta_coulomb = 2.325*theta_rms;
-    // }
-    double constant = (1./137. * hbar_c * Z*Z)/(KE); // fm squared
+    double hbar_c         = 0.197;  // [GeV*fm] 
+    double constant = (1./137. * hbar_c * 1*Z)/(KE); // fm
     *cs_coulomb = 10*(M_PI/4. * constant * constant * (1 + cos(theta_rms))/(1 - cos(theta_rms))); //in fm2, so convert to mb * 10
 
 }
