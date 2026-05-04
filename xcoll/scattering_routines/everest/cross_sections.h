@@ -118,8 +118,7 @@ void get_coulomb_cross_section(double Z, double pc, double N,
     //     *cs_coulomb = 1e-15; // Avoid negative cross section
     // }
     // double hbar_c         = 0.197;                                              // [GeV*fm]
-    printf("KE %f GeV, pc = %f GeV, theta_rms = %e rad\n,", KE, pc, theta_rms); // --- IGNORE ---
-    double theta_coulomb = 1e-5;
+    printf("\n\nKE %f GeV, pc = %f GeV, theta_rms = %e rad\n,", KE, pc, theta_rms); // --- IGNORE ---
     // double theta_coulomb = 12. * theta_rms;
     // if (theta_rms < 1e-15){
     //     // Avoid unphysically large Coulomb cross section at very small angles
@@ -127,8 +126,8 @@ void get_coulomb_cross_section(double Z, double pc, double N,
     // } else {
     //     theta_coulomb = 2.325*theta_rms;
     // }
-    double constant = (1./137. * hbar_c)/(KE); // fm squared
-    *cs_coulomb = 10*(M_PI * Z * Z * constant * constant * (1 + cos(theta_coulomb))/(1 - cos(theta_coulomb))); //in fm2, so convert to mb * 10
+    double constant = (1./137. * hbar_c * Z*Z)/(KE); // fm squared
+    *cs_coulomb = 10*(M_PI/4. * constant * constant * (1 + cos(theta_rms))/(1 - cos(theta_rms))); //in fm2, so convert to mb * 10
 
 }
 

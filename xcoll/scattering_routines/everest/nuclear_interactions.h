@@ -23,6 +23,18 @@
 //     }
 // }
 /*gpufun*/
+double sample_rutherford(double theta_min, LocalParticle* part) {
+    double r = RandomUniform_generate(part);  // r in [0, 1]
+
+    double a = 1.0 / pow(sin(theta_min / 2.0), 2);
+    // b = 1/sin²(π/2) = 1/1 = 1
+    
+    double sin2_half_theta = 1.0 / (a - r * (a - 1.0));
+
+    return 2.0 * asin(sqrt(sin2_half_theta));
+}
+
+/*gpufun*/
 double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
                                                   MaterialData restrict material, double pc){
                                                 //   LocalTrajectory traj, MaterialData restrict material, double pc) {
@@ -41,8 +53,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double particle_id = 0;
     everest->ecmsq     = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
-    double theta_rms = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
-    printf("theta_rms = %e rad, theta init times 6 %e\n", theta_rms, 10.0 * theta_rms); // --- IGNORE ---
+    // double theta_rms = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
+    double theta_rms   = 1e-3;
     // double theta_rms = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
  
     InteractionRecordData record = everest->coll->record;
@@ -99,60 +111,66 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         calculate_ionisation_properties(everest, material, pc);
         pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
 
-        // if (chosen == 1){
-        //     // Production: particle is absorbed
-        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-        //     LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-        //     pc = 1.e-9; 
-        //     sqrt_t_p = 0;
+        double tan_theta;   
 
-        // } else if (chosen == 2){
-        //     // Elastic Nucleus
-        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
+        if (chosen == 1){
+            // Production: particle is absorbed
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+            pc = 1.e-9; 
+            sqrt_t_p = 0;
+            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
 
-        // } else if (chosen == 3){
-        //     // Elastic Nucleon
-        //     double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
-        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
-        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
+        } else if (chosen == 2){
+            // Elastic Nucleus
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
+            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+
+        } else if (chosen == 3){
+            // Elastic Nucleon
+            double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
+            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
  
-        // } else if (chosen == 4){
-        //     // Single diffractive
-        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
-        //     double pc_in = pc;
-        //     double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
-        //     pc = pc*(1 - xm2/everest->ecmsq);
-        //     if (pc <= 1.e-9 || pc != pc) {
-        //         // Very small (<1eV) or NaN
-        //         if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-        //         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-        //         pc = 1.e-9; 
-        //         sqrt_t_p = 0;
-        //     } else {
-        //         double bsd;
-        //         double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
-        //         if (xm2 < 2.) {
-        //             bsd = 2* pp_new;//everest->bpp;
-        //         } else if (xm2 >= 2. && xm2 <= 5.) {
-        //             bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
-        //         } else {
-        //             bsd = (7*pp_new)/12.0;
-        //         } // THIS IS THE REASON FOR THE TAILS say ok here
-        //         sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
-        //     }
+        } else if (chosen == 4){
+            // Single diffractive
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+            double pc_in = pc;
+            double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
+            pc = pc*(1 - xm2/everest->ecmsq);
+            if (pc <= 1.e-9 || pc != pc) {
+                // Very small (<1eV) or NaN
+                if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+                pc = 1.e-9; 
+                sqrt_t_p = 0;
+                tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+            } else {
+                double bsd;
+                double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
+                if (xm2 < 2.) {
+                    bsd = 2* pp_new;//everest->bpp;
+                } else if (xm2 >= 2. && xm2 <= 5.) {
+                    bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
+                } else {
+                    bsd = (7*pp_new)/12.0;
+                } // THIS IS THE REASON FOR THE TAILS say ok here
+                sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+                tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+            }
 
-        if (chosen == 5){
+        } else if (chosen == 5){
             // Coulomb
+            printf("Chosen interaction: %d\n", chosen); // --- IGNORE --
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
-            sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
-
+            tan_theta = tan(sample_rutherford(theta_rms, part)); // Sample angle from Rutherford distribution
         } else {
             printf("Error in nuclear interaction choice.\n");
             return pc; // No interaction, return original momentum
         }
-        printf("chosen, islot, pc = %d, %lld, %e GeV\n", chosen, i_slot, pc); // --- IGNORE ---
-        double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+        // double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
         double alpha = 2*M_PI*RandomUniform_generate(part);
         double tan_theta_x = tan_theta*cos(alpha);
         double tan_theta_y = tan_theta*sin(alpha);

@@ -37,48 +37,50 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
     //    from Mandelstam t = (p1-p3)^2) = 2m^2 - 2E1E3 + 2p1.p3
     //    if elastic, p1 = p3, and hence t = 2m^2 - 2(m^2 + p^2) + 2p^2 cos(theta)
     int64_t i_slot = -1;
+    printf("ichoix: %d\n", ichoix); // --- IGNORE ---
     if (ichoix==1) {
-        if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-        LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+        printf("ichoix: %d\n", ichoix); // --- IGNORE ---
+    //     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+    //     LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
 
     } else {
         double sqrt_t_p;
-        if (ichoix==2) {
-            // p-n elastic
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
+        // if (ichoix==2) {
+        //     // p-n elastic
+        //     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
+        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
 
-        } else if (ichoix==3) {
-            // p-p elastic
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
+        // } else if (ichoix==3) {
+        //     // p-p elastic
+        //     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
 
-        } else if (ichoix==4) {
-            // Single diffractive
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
-            double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
-            double bsd;
-            if (xm2 < 2.) {
-                bsd = 2*everest->bpp;
-            } else if (xm2 >= 2. && xm2 <= 5.) {
-                bsd = ((106.0 - 17.0*xm2)*everest->bpp)/36.0;
-            } else {
-                bsd = (7*everest->bpp)/12.0;
-            }
-            double pc_in = pc;
-            pc = pc*(1 - xm2/everest->ecmsq);
-            if (pc <= 1.e-9 || pc != pc) {
-                // Very small (<1eV) or NaN
-                if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-                pc = 1.e-9;
-                sqrt_t_p = 0;
-            } else {
-                // Corrected 1/p into 1/sqrt(pp')
-                sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
-            }
+        // } else if (ichoix==4) {
+        //     // Single diffractive
+        //     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+        //     double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
+        //     double bsd;
+        //     if (xm2 < 2.) {
+        //         bsd = 2*everest->bpp;
+        //     } else if (xm2 >= 2. && xm2 <= 5.) {
+        //         bsd = ((106.0 - 17.0*xm2)*everest->bpp)/36.0;
+        //     } else {
+        //         bsd = (7*everest->bpp)/12.0;
+        //     }
+        //     double pc_in = pc;
+        //     pc = pc*(1 - xm2/everest->ecmsq);
+        //     if (pc <= 1.e-9 || pc != pc) {
+        //         // Very small (<1eV) or NaN
+        //         if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+        //         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+        //         pc = 1.e-9;
+        //         sqrt_t_p = 0;
+        //     } else {
+        //         // Corrected 1/p into 1/sqrt(pp')
+        //         sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+        //     }
 
-        } else {
+        if (ichoix != 2 && ichoix != 3 && ichoix != 4) {
             // Coulomb
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
