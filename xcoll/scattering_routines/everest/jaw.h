@@ -43,8 +43,8 @@ double jaw(EverestData restrict everest, MaterialData restrict material, LocalPa
             break;
         }
 
-        // pc = nuclear_interaction(everest, material, part, pc);
-        pc = do_nuclear_interaction_and_ionisation_loss(everest, part, rlen, material, pc);
+        pc = nuclear_interaction(everest, material, part, pc);
+        // pc = do_nuclear_interaction_and_ionisation_loss(everest, part, length_step, material, pc);
         if (LocalParticle_get_state(part) < 1){
             // Particle was absorbed
             break;
@@ -53,9 +53,9 @@ double jaw(EverestData restrict everest, MaterialData restrict material, LocalPa
         // Calculate the remaining interaction length and close the iteration loop.
         rlen = rlen - length_step;
     }
-    // calculate_ionisation_properties(everest, material, pc);
-    // double ionisation_length = LocalParticle_get_s(part) - s0;
-    // pc = calcionloss(everest, material, part, ionisation_length, pc, 1);
+    calculate_ionisation_properties(everest, material, pc);
+    double ionisation_length = LocalParticle_get_s(part) - s0;
+    pc = calcionloss(everest, material, part, ionisation_length, pc, 1);
     return pc*1e9;  // Back to eV
 }
 

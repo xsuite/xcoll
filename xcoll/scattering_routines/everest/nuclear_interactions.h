@@ -71,115 +71,115 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     interaction_length_tot = RandomExponential_generate(part) *(1.)/(N*cross_section_tot*1.0e-31); // [m]
     //double mcs_path_length = FindRoot_get_path_length(finder);
 
-    if ((length - (interaction_length_tot)) < 1e-12) {
+    // if ((length - (interaction_length_tot)) < 1e-12) {
         // MCS to exit
-        calculate_ionisation_properties(everest, material, pc);
-        pc = calcionloss(everest, material, part, length, pc, 1);
-        return pc;
-    } else {
-        double interaction_lengths[4];
-        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, sqrt_s, pc, particle_id);
-        // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
-        cs_coulomb = 0.094;
-        int chosen                    = 1;
-        double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
-        double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
-        double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
-        double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
-        double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
-        if ((min_length - elastic_length) > 1e-12) {         // Elastic
-            min_length = elastic_length;
-            chosen = 2;
-        }
-        if ((min_length - elastic_nucleon_length) > 1e-12) { // Elastic nucleon 
-            min_length = elastic_nucleon_length;
-            chosen = 3;
-        }
-        if ((min_length - SD_length) > 1e-12) {              // Single diffractive
-            min_length = SD_length;
-            chosen = 4;
-        }
-        if ((min_length - coulomb_length) > 1e-12) {         // Coulomb
-            min_length = coulomb_length;
-            chosen = 5;
-        }
-        printf("coulomb cs = %e mb, coulomb length = %e m\n", cs_coulomb, coulomb_length); // --- IGNORE ---
-        calculate_ionisation_properties(everest, material, pc);
-        pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
+        // calculate_ionisation_properties(everest, material, pc);
+        // pc = calcionloss(everest, material, part, length, pc, 1);
+        // return pc;
+    // } else {
+    double interaction_lengths[4];
+    get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, sqrt_s, pc, particle_id);
+    // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
+    int chosen                    = 1;
+    double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
+    double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
+    double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
+    double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
+    double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
+    if ((min_length - elastic_length) > 1e-12) {         // Elastic
+        min_length = elastic_length;
+        chosen = 2;
+    }
+    if ((min_length - elastic_nucleon_length) > 1e-12) { // Elastic nucleon 
+        min_length = elastic_nucleon_length;
+        chosen = 3;
+    }
+    if ((min_length - SD_length) > 1e-12) {              // Single diffractive
+        min_length = SD_length;
+        chosen = 4;
+    }
+    if ((min_length - coulomb_length) > 1e-12) {         // Coulomb
+        min_length = coulomb_length;
+        chosen = 5;
+    }
 
-        double tan_theta;   
+    printf("coulomb cs = %e mb, coulomb length = %e m\n", cs_coulomb, coulomb_length); // --- IGNORE ---
+    calculate_ionisation_properties(everest, material, pc);
+    pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
 
-        if (chosen == 1){
-            // Production: particle is absorbed
+    double tan_theta;   
+
+    if (chosen == 1){
+        // Production: particle is absorbed
+        if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+        LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+        pc = 1.e-9; 
+        sqrt_t_p = 0;
+        tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+
+    } else if (chosen == 2){
+        // Elastic Nucleus
+        if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
+        sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
+        tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+
+    } else if (chosen == 3){
+        // Elastic Nucleon
+        double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
+        if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+        sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
+        tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+
+    } else if (chosen == 4){
+        // Single diffractive
+        if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+        double pc_in = pc;
+        double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
+        pc = pc*(1 - xm2/everest->ecmsq);
+        if (pc <= 1.e-9 || pc != pc) {
+            // Very small (<1eV) or NaN
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
             pc = 1.e-9; 
             sqrt_t_p = 0;
             tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-
-        } else if (chosen == 2){
-            // Elastic Nucleus
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
-            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-
-        } else if (chosen == 3){
-            // Elastic Nucleon
-            double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
-            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
- 
-        } else if (chosen == 4){
-            // Single diffractive
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
-            double pc_in = pc;
-            double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
-            pc = pc*(1 - xm2/everest->ecmsq);
-            if (pc <= 1.e-9 || pc != pc) {
-                // Very small (<1eV) or NaN
-                if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
-                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-                pc = 1.e-9; 
-                sqrt_t_p = 0;
-                tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-            } else {
-                double bsd;
-                double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
-                if (xm2 < 2.) {
-                    bsd = 2* pp_new;//everest->bpp;
-                } else if (xm2 >= 2. && xm2 <= 5.) {
-                    bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
-                } else {
-                    bsd = (7*pp_new)/12.0;
-                } // THIS IS THE REASON FOR THE TAILS say ok here
-                sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
-                tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-            }
-
-        } else if (chosen == 5){
-            // Coulomb
-            printf("Chosen interaction: %d\n", chosen); // --- IGNORE --
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
-            tan_theta = tan(sample_rutherford(theta_rms, part)); // Sample angle from Rutherford distribution
         } else {
-            printf("Error in nuclear interaction choice.\n");
-            return pc; // No interaction, return original momentum
+            double bsd;
+            double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
+            if (xm2 < 2.) {
+                bsd = 2* pp_new;//everest->bpp;
+            } else if (xm2 >= 2. && xm2 <= 5.) {
+                bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
+            } else {
+                bsd = (7*pp_new)/12.0;
+            } // THIS IS THE REASON FOR THE TAILS say ok here
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
         }
-        // double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-        double alpha = 2*M_PI*RandomUniform_generate(part);
-        double tan_theta_x = tan_theta*cos(alpha);
-        double tan_theta_y = tan_theta*sin(alpha);
 
-        // Change the angles
-        #ifdef XCOLL_USE_EXACT
-                LocalParticle_add_to_exact_xp_yp(part, tan_theta_x, tan_theta_y);
-        #else
-                LocalParticle_add_to_xp_yp(part, tan_theta_x, tan_theta_y);
-        #endif
-
-        if (scatter) InteractionRecordData_log_child(record, i_slot, part);
+    } else if (chosen == 5){
+        // Coulomb
+        printf("Chosen interaction: %d\n", chosen); // --- IGNORE --
+        if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
+        tan_theta = tan(sample_rutherford(theta_rms, part)); // Sample angle from Rutherford distribution
+    } else {
+        printf("Error in nuclear interaction choice.\n");
+        return pc; // No interaction, return original momentum
     }
+    // double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+    double alpha = 2*M_PI*RandomUniform_generate(part);
+    double tan_theta_x = tan_theta*cos(alpha);
+    double tan_theta_y = tan_theta*sin(alpha);
+
+    // Change the angles
+    #ifdef XCOLL_USE_EXACT
+            LocalParticle_add_to_exact_xp_yp(part, tan_theta_x, tan_theta_y);
+    #else
+            LocalParticle_add_to_xp_yp(part, tan_theta_x, tan_theta_y);
+    #endif
+
+    if (scatter) InteractionRecordData_log_child(record, i_slot, part);
+// }
     return pc;
 }
 #endif /* XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H */

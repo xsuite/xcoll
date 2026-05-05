@@ -43,6 +43,7 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     // Elastic Nucleus: Total - Inelastic
     if (cs_el_hA < 1e-15){
         cs_el_hA = 1e-12; // In case. Makes Lambda large
+        interaction_lengths[1] = (1)/(N*cs_el_hA*1.0e-31);
     } else {
         interaction_lengths[1] = (1)/(N*cs_el_hA*1.0e-31); // [m]
     }
