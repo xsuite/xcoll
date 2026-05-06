@@ -301,9 +301,9 @@ class Material(xo.HybridClass):
                 #    '_cs_tot_pimin_GG', '_cs_el_pimin_GG', '_cs_prod_pimin_GG', '_cs_sd_pimin_GG', '_cs_el_nucleon_pimin_GG',
                 #    '_cs_tot_piplus_GG', '_cs_el_piplus_GG', '_cs_prod_piplus_GG', '_cs_sd_piplus_GG', '_cs_el_nucleon_piplus_GG',
         
-                   '_cs_tot_pp', '_cs_el_pp','_cs_inel_pp', '_cs_tot_pn', 'cs_tot_kmin_p', 'cs_el_kmin_p', 'cs_inel_kmin_p', 
-                   'cs_tot_kplus_p', 'cs_el_kplus_p', 'cs_inel_kplus_p','cs_tot_pimin_p', 'cs_el_pimin_p', 'cs_inel_pimin_p',
-                   'cs_tot_piplus_p', 'cs_el_piplus_p', 'cs_inel_piplus_p', 
+                   '_cs_tot_pp', '_cs_el_pp','_cs_inel_pp', '_cs_tot_pn', '_cs_tot_kmin_p', '_cs_el_kmin_p', '_cs_inel_kmin_p', 
+                   '_cs_tot_kplus_p', '_cs_el_kplus_p', '_cs_inel_kplus_p','_cs_tot_pimin_p', '_cs_el_pimin_p', '_cs_inel_pimin_p',
+                   '_cs_tot_piplus_p', '_cs_el_piplus_p', '_cs_inel_piplus_p', 
     
                    '_cs_sqrt_s_pp', '_cs_sqrt_s_kmin', '_cs_sqrt_s_kplus', '_cs_sqrt_s_pimin', '_cs_sqrt_s_piplus',
                    '_cs_knots_pp', '_cs_knots_kmin', '_cs_knots_kplus', '_cs_knots_pimin', '_cs_knots_piplus'):
@@ -729,30 +729,35 @@ class Material(xo.HybridClass):
             self._cs_knots_pp          = log_sqrt_s
             self._n_points_pp          = n_points
             spline_pp = CubicSpline(log_sqrt_s, gg["cs_tot_pp_GG"])
+            self._cs_tot_pp   = gg["cs_tot_pp_GG"]
             self._cs_tot_pp_a = spline_pp.c[0]
             self._cs_tot_pp_b = spline_pp.c[1]
             self._cs_tot_pp_c = spline_pp.c[2]
             self._cs_tot_pp_d = spline_pp.c[3]
             del spline_pp
             spline_el_pp = CubicSpline(log_sqrt_s, gg["cs_el_pp_GG"])
+            self._cs_el_pp   = gg["cs_el_pp_GG"]
             self._cs_el_pp_a = spline_el_pp.c[0]
             self._cs_el_pp_b = spline_el_pp.c[1]
             self._cs_el_pp_c = spline_el_pp.c[2]
             self._cs_el_pp_d = spline_el_pp.c[3]
             del spline_el_pp
             spline_prod_pp = CubicSpline(log_sqrt_s, gg["cs_prod_pp_GG"])
+            self._cs_prod_pp   = gg["cs_prod_pp_GG"]
             self._cs_prod_pp_a = spline_prod_pp.c[0]
             self._cs_prod_pp_b = spline_prod_pp.c[1]
             self._cs_prod_pp_c = spline_prod_pp.c[2]
             self._cs_prod_pp_d = spline_prod_pp.c[3]
             del spline_prod_pp
             spline_el_nucleon_pp = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_pp_GG"])
+            self._cs_el_nucleon_pp   = gg["cs_el_nucleon_pp_GG"]
             self._cs_el_nucleon_pp_a = spline_el_nucleon_pp.c[0]
             self._cs_el_nucleon_pp_b = spline_el_nucleon_pp.c[1]
             self._cs_el_nucleon_pp_c = spline_el_nucleon_pp.c[2]
             self._cs_el_nucleon_pp_d = spline_el_nucleon_pp.c[3]
             del spline_el_nucleon_pp
             spline_sd_pp = CubicSpline(log_sqrt_s, gg["cs_sd_pp_GG"])
+            self._cs_sd_pp   = gg["cs_sd_pp_GG"]
             self._cs_sd_pp_a = spline_sd_pp.c[0]
             self._cs_sd_pp_b = spline_sd_pp.c[1]
             self._cs_sd_pp_c = spline_sd_pp.c[2]
