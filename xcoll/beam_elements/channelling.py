@@ -68,16 +68,28 @@ class BentChannellingDev(InvalidXcoll):
 
     _xofields = {
 
-        # geometry / basic parameters
-        'length' : xo.Float64,
-        'U0'     : xo.Float64,     # potential depth (harmonic model)
-        'Umax'   : xo.Float64,    # potential depth [eV]
-        'R'      : xo.Float64,     # bending radius
+        # geometry / collimator-like parameters
+        'length'          : xo.Float64,
+        'width'           : xo.Float64,
+        'height'          : xo.Float64,
+        'angle'           : xo.Float64,
+        'bending_radius'  : xo.Float64,
 
+	# temporary xcoll-compatibility fields
+        'jaw_U'           : xo.Float64,
+        'jaw_D'           : xo.Float64,
+        'tilt'            : xo.Float64,
+        'gap'             : xo.Float64,
+
+	 # material / potential parameters
         'dp'      : xo.Float64,    # interplanar distance [m]
         'aTF'     : xo.Float64,    # Thomas–Fermi screening length [m]
         'uT'      : xo.Float64,    # thermal vibration amplitude [m]
 
+
+	'U0'     : xo.Float64,     # potential depth (harmonic model)
+        'Umax'   : xo.Float64,    # potential depth [eV]
+        
         'alpha_i' : xo.Float64,    # dimensionless
         'beta_i'  : xo.Float64,    # dimensionless
 
@@ -125,8 +137,16 @@ class BentChannellingDev(InvalidXcoll):
         # Geometry
         # =========================================================
         kwargs.setdefault('length', 1e-4)
-        kwargs.setdefault('R', 10.0)
-
+        kwargs.setdefault('width',  2.0e-3)
+        kwargs.setdefault('height', 35.0e-3)
+        kwargs.setdefault('angle',  90.0)
+        kwargs.setdefault('bending_radius', 10.0)
+        
+        # Temporary xcoll-compatibility defaults
+        kwargs.setdefault('jaw_U', 0.0)
+        kwargs.setdefault('jaw_D', 0.0)
+        kwargs.setdefault('tilt',  0.0)
+        kwargs.setdefault('gap',   0.0)
         # =========================================================
         # Material defaults: Silicon (110)
         # =========================================================
@@ -151,6 +171,8 @@ class BentChannellingDev(InvalidXcoll):
         # =========================================================
         # Automatic n_steps computation (ONLY if user did not set it)
         # =========================================================
+        kwargs.setdefault('_n_steps_auto', 0.0)
+        
         if 'n_steps' not in kwargs:
             kwargs['n_steps'] = -1  # trigger for automatic
             method = kwargs['method']
@@ -166,7 +188,7 @@ class BentChannellingDev(InvalidXcoll):
             dp      = kwargs['dp']
             # This value is only used to calculate the default number of steps.
             # The particle takes the real value from <track_bent_channelling.h>.
-            bpc     = kwargs.get('bpc', 150e9)  # safeguard
+            #bpc     = kwargs.get('bpc', 150e9)  # safeguard
 
             Uxx0 = (
                 2.0*Umax * alpha_i/beta_i

@@ -24,7 +24,7 @@ void BentChannellingDev_track_local_particle(
 
     double U0      = BentChannellingDevData_get_U0(el);
     double Umax    = BentChannellingDevData_get_Umax(el);
-    double R       = BentChannellingDevData_get_R(el);
+    double R       = BentChannellingDevData_get_bending_radius(el);
 
     double dp      = BentChannellingDevData_get_dp(el);
     double aTF     = BentChannellingDevData_get_aTF(el);
