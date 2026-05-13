@@ -6,7 +6,7 @@
 import xobjects as xo
 import numpy as np
 from ..general import _pkg_root
-from .base import InvalidXcoll
+from .base import InvalidXcoll, BaseCrystal
 
 
 class ChannellingDev(InvalidXcoll):
@@ -57,7 +57,7 @@ class BentChannellingDev(InvalidXcoll):
 # what would be the proper class once the code is ready? xt.BeamElement with particular settings? BaseCrystal? something different?
 
 
-class BentChannellingDev(InvalidXcoll):
+class BentChannellingDev(BaseCrystal):
     """
     Bent channelling element with ?harmonic-period step selection (needs to be done) and
     symplectic integrators.
@@ -66,20 +66,9 @@ class BentChannellingDev(InvalidXcoll):
     M4 = Simplified Moliere + bending
     """
 
-    _xofields = {
+    _xofields = {**BaseCrystal._xofields,
 
-        # geometry / collimator-like parameters
-        'length'          : xo.Float64,
-        'width'           : xo.Float64,
-        'height'          : xo.Float64,
-        'angle'           : xo.Float64,
-        'bending_radius'  : xo.Float64,
-
-	# temporary xcoll-compatibility fields
-        'jaw_U'           : xo.Float64,
-        'jaw_D'           : xo.Float64,
-        'tilt'            : xo.Float64,
-        'gap'             : xo.Float64,
+        
 
 	 # material / potential parameters
         'dp'      : xo.Float64,    # interplanar distance [m]
@@ -108,13 +97,20 @@ class BentChannellingDev(InvalidXcoll):
     }
 
     isthick = True
-    behaves_like_drift = False
+    needs_rng = False #temporarilly
     allow_track = True
-    needs_rng = False
+    allow_double_sided = False #no double sided
+    behaves_like_drift = True
+    allow_rot_and_shift = False #its own mechanism for these things
+    allow_loss_refinement = True #for now only for compatibility reasons-->after integrating absorption will be useful
     skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
+    
+    _noexpr_fields         = BaseCrystal._noexpr_fields
+    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
+    _store_in_to_dict      = BaseCrystal._store_in_to_dict
+    _internal_record_class = BaseCrystal._internal_record_class
 
-    _depends_on = [InvalidXcoll]
+    _depends_on = [BaseCrystal]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements', 'elements_src', 'elliptic_functions.h'),
@@ -133,20 +129,50 @@ class BentChannellingDev(InvalidXcoll):
 
     def __init__(self, **kwargs):
 
-        # =========================================================
-        # Geometry
-        # =========================================================
-        kwargs.setdefault('length', 1e-4)
-        kwargs.setdefault('width',  2.0e-3)
-        kwargs.setdefault('height', 35.0e-3)
-        kwargs.setdefault('angle',  90.0)
-        kwargs.setdefault('bending_radius', 10.0)
+        to_assign = {}
+
+        if '_xobject' not in kwargs:
+ 
+            # ---------------------------------------------------------
+            # User-facing BaseCrystal geometry parameters
+            # ---------------------------------------------------------
+            required = ['length', 'width', 'height', 'bending_radius']
+
+            missing = [key for key in required if key not in kwargs]
+            if missing:
+                raise ValueError(
+                    "Missing required BentChannellingDev geometry parameters: "
+                    + ", ".join(missing)
+                    + ". Please provide length, width, height and bending_radius."
+                )
+
+            # Keep public parameters aside and assign them through properties
+            # after BaseCrystal construction.
+            to_assign['width'] = kwargs.pop('width')
+            to_assign['height'] = kwargs.pop('height')
+            to_assign['bending_radius'] = kwargs.pop('bending_radius')
+
+            # Optional public parameters
+            to_assign['angle'] = kwargs.pop('angle', 90.0)
+            to_assign['tilt'] = kwargs.pop('tilt', 0.0)
+
+            if 'gap' in kwargs:
+                to_assign['gap'] = kwargs.pop('gap')
+
+            if 'jaw_U' in kwargs:
+                to_assign['jaw_U'] = kwargs.pop('jaw_U')
+
+            # jaw_D is not stored directly in BaseCrystal, so ignore it for now.
+            kwargs.pop('jaw_D', None)
+
+            # BaseCrystal internal defaults only where necessary
+            kwargs.setdefault('_side', 1)
+            kwargs.setdefault('_align', 0)
+            kwargs.setdefault('active', True)
+            kwargs.setdefault('_record_interactions', False)
+            kwargs.setdefault('_nemitt_x', 0.0)
+            kwargs.setdefault('_nemitt_y', 0.0)
         
-        # Temporary xcoll-compatibility defaults
-        kwargs.setdefault('jaw_U', 0.0)
-        kwargs.setdefault('jaw_D', 0.0)
-        kwargs.setdefault('tilt',  0.0)
-        kwargs.setdefault('gap',   0.0)
         # =========================================================
         # Material defaults: Silicon (110)
         # =========================================================
@@ -204,7 +230,8 @@ class BentChannellingDev(InvalidXcoll):
         # constructor LAST
         # =========================================================
         super().__init__(**kwargs)
-
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
 
     # user helpers
@@ -234,7 +261,7 @@ class BentChannellingDev(InvalidXcoll):
         self.dp      = dp
         self.aTF     = aTF
         self.uT      = uT
-        self.U0mol   = U0mol
+        self.U0mol   = U0mol #something's wrong here
         self.alpha_i = alpha_i
         self.beta_i  = beta_i
        

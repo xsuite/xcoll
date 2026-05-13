@@ -9,6 +9,57 @@
 #include <stdint.h>
 
 
+// Helpers for recording interactions
+
+/*gpufun*/
+int8_t BentChannellingDevData_get_record_impacts(BentChannellingDevData el){
+    return BentChannellingDevData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t BentChannellingDevData_get_record_exits(BentChannellingDevData el){
+    return (BentChannellingDevData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t BentChannellingDevData_get_record_scatterings(BentChannellingDevData el){
+    return (BentChannellingDevData_get__record_interactions(el) >> 2) % 2;
+}
+
+/*gpufun*/
+void BentChannellingDev_log_in_jaw_frame(
+        InteractionRecordData record,
+        RecordIndex record_index,
+        LocalParticle* part,
+        int64_t interaction_type,
+        double q_active,
+        double p_active,
+        double q_passive,
+        double p_passive
+){
+    // Save lab-frame coordinates
+    double x_lab  = LocalParticle_get_x(part);
+    double px_lab = LocalParticle_get_xp(part);
+    double y_lab  = LocalParticle_get_y(part);
+    double py_lab = LocalParticle_get_yp(part);
+
+    // Temporarily write jaw-frame coordinates:
+    // active plane -> x/px, passive plane -> y/py.
+    LocalParticle_set_x(part,  q_active);
+    LocalParticle_set_xp(part, p_active);
+    LocalParticle_set_y(part,  q_passive);
+    LocalParticle_set_yp(part, p_passive);
+
+    // Log in jaw frame, Everest-compatible convention.
+    InteractionRecordData_log(record, record_index, part, interaction_type);
+
+    // Restore lab-frame coordinates
+    LocalParticle_set_x(part,  x_lab);
+    LocalParticle_set_xp(part, px_lab);
+    LocalParticle_set_y(part,  y_lab);
+    LocalParticle_set_yp(part, py_lab);
+}
+
 // ================================================================
 //  Single-particle tracking (BODY)
 // ================================================================
@@ -39,7 +90,20 @@ void track_bent_channelling_body_single_particle(
     if (LocalParticle_get_state(part) <= 0)
         return;
     
+    // ------------------------------------------------------------
+    // Interaction record
+    // ------------------------------------------------------------
+    InteractionRecordData record = BentChannellingDevData_getp_internal_record(el, part);
+    RecordIndex record_index = NULL;
 
+    int8_t record_impacts = 0;
+    int8_t record_scatterings = 0;
+
+    if (record) {
+        record_index = InteractionRecordData_getp__index(record);
+        record_impacts = BentChannellingDevData_get_record_impacts(el);
+        record_scatterings = BentChannellingDevData_get_record_scatterings(el);
+    }
  
     
     int8_t method  = BentChannellingDevData_get_method(el);
@@ -47,12 +111,16 @@ void track_bent_channelling_body_single_particle(
     int8_t variant = BentChannellingDevData_get_variant(el);
     
     // Geometry and Position collimator-like parameters
-    double width  = BentChannellingDevData_get_width(el);
-    double height = BentChannellingDevData_get_height(el);
-    double angle  = BentChannellingDevData_get_angle(el);
-    double jaw_U  = BentChannellingDevData_get_jaw_U(el);
-    double tilt   = BentChannellingDevData_get_tilt(el);
+    double width  = BentChannellingDevData_get__width(el);
+    double height = BentChannellingDevData_get__height(el);
+    // angle
+    double sin_z = BentChannellingDevData_get__sin_z(el);
+    double cos_z = BentChannellingDevData_get__cos_z(el);
+    int is_vertical = (fabs(sin_z) > fabs(cos_z));
     
+    double jaw_U  = BentChannellingDevData_get__jaw_U(el);
+    //double tilt   = BentChannellingDevData_get__tan_y(el);
+    double tilt = atan(BentChannellingDevData_get__tan_y(el));
     
     // Initial phase-space coordinates
     const double x0  = LocalParticle_get_x(part);
@@ -63,35 +131,48 @@ void track_bent_channelling_body_single_particle(
     const double py0 = LocalParticle_get_yp(part);
 
 
-    // ------------------------------------------------------------
-    // Transform from machine frame to collimator frame
-    // ------------------------------------------------------------
-    // The collimator angle is given in degrees.
-    // In the collimator frame, x_col is the active jaw coordinate.
-    // For angle = 90 deg, x_col is approximately y.
-
-    double alpha = angle * 3.14159265358979323846 / 180.0;
-    double ca = cos(alpha);
-    double sa = sin(alpha);
-
-    double x_col  =  x0 * ca + y0 * sa;
-    double y_col  = -x0 * sa + y0 * ca;
-
-    double px_col =  px0 * ca + py0 * sa;
-    double py_col = -px0 * sa + py0 * ca;
 
     // ------------------------------------------------------------
-    // Jaw-local coordinates
+    // Select active plane and define jaw-local coordinates
     // ------------------------------------------------------------
-    // For a left jaw, the crystal material starts at x_col = jaw_U.
-    // Therefore q_in > 0 means that the particle is already inside
-    // the crystal material at the element entrance.
+    // For the TWOCRYST vertical TCCP case:
+    //   active coordinate = y
+    //   active angle      = yp
 
-    double q_in = x_col - jaw_U;
-    double p0   = px_col - tilt;
+    // For a horizontal crystal:
+    //   active coordinate = x
+    //   active angle      = xp
 
-    // Passive coordinate: used only for checking the finite crystal height.
-    double q_passive = y_col;
+    // Here, angle/orientation is used only to choose the active plane.
+    // We do not rotate the coordinates explicitly.
+
+    double q_in;
+    double p0;
+    double q_passive;
+    double p_passive;
+
+    if (is_vertical) {
+
+        // Vertical crystal:
+        // channelling happens in y/yp.
+        q_in = y0 - jaw_U;
+        p0   = py0 - tilt;
+
+        // x is only used to check the finite transverse size.
+        q_passive = x0;
+        p_passive = px0;
+    }
+    else {
+
+        // Horizontal crystal:
+        // channelling happens in x/xp.
+        q_in = x0 - jaw_U;
+        p0   = px0 - tilt;
+
+        // y is only used to check the finite transverse size.
+        q_passive = y0;
+        p_passive = py0;
+    }
 
     // ------------------------------------------------------------
     // First-impact approximation
@@ -140,6 +221,24 @@ void track_bent_channelling_body_single_particle(
     }
 
 
+
+    // particle has entered the crystal jaw
+    if (record && record_impacts) {
+    BentChannellingDev_log_in_jaw_frame(
+        record,
+        record_index,
+        part,
+        XC_ENTER_JAW_L,
+        q0,
+        p0,
+        q_passive,
+        p_passive
+    );
+    }
+    
+    
+    
+
     int n_steps = BentChannellingDevData_get_n_steps(el);
     if (n_steps < 0){
         double _n_steps_auto = BentChannellingDevData_get__n_steps_auto(el);
@@ -176,7 +275,20 @@ void track_bent_channelling_body_single_particle(
         LocalParticle_add_to_zeta(part, length_eff);
     return;
     }
- 
+    
+    // particle passed the channelling acceptance conditions
+    if (record && record_scatterings) {
+    BentChannellingDev_log_in_jaw_frame(
+        record,
+        record_index,
+        part,
+        XC_CHANNELLING,
+        q0,
+        p0,
+        q_passive,
+        p_passive
+    );
+    }
 
 
     // Working variables
@@ -226,27 +338,29 @@ void track_bent_channelling_body_single_particle(
     // ------------------------------------------------------------
     double q_final = channel_center + x;
 
-    // Final coordinates in the collimator frame
-    double x_col_out  = q_final + jaw_U;
     double bend_angle = length_eff / R;
-    //it worked, after trial and error
-    double px_col_out = px + bend_angle + tilt;
-    
-    // Passive coordinate is unchanged in this first approximation
-    double y_col_out  = y_col;
-    double py_col_out = py_col;
+    double p_final = px + bend_angle + tilt;
 
-    // Transform back from collimator frame to machine frame
-    double x_out  = x_col_out * ca - y_col_out * sa;
-    double y_out  = x_col_out * sa + y_col_out * ca;
+    if (is_vertical) {
 
-    double px_out = px_col_out * ca - py_col_out * sa;
-    double py_out = px_col_out * sa + py_col_out * ca;
+        // Write back to y/yp for a vertical crystal.
+        LocalParticle_set_y(part,  q_final + jaw_U);
+        LocalParticle_set_yp(part, p_final);
 
-    LocalParticle_set_x(part,  x_out);
-    LocalParticle_set_y(part,  y_out);
-    LocalParticle_set_xp(part, px_out);
-    LocalParticle_set_yp(part, py_out);
+        // x/xp are passive and remain unchanged in this approximation.
+        LocalParticle_set_x(part,  x0);
+        LocalParticle_set_xp(part, px0);
+    }
+    else {
+
+        // Write back to x/xp for a horizontal crystal.
+        LocalParticle_set_x(part,  q_final + jaw_U);
+        LocalParticle_set_xp(part, p_final);
+
+        // y/yp are passive and remain unchanged in this approximation.
+        LocalParticle_set_y(part,  y0);
+        LocalParticle_set_yp(part, py0);
+    }
         
     
     LocalParticle_add_to_s(part, length_eff);
