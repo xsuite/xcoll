@@ -262,18 +262,46 @@ void track_bent_channelling_body_single_particle(
     return;
     }
 
-// // Checking if particle energy allows channelling after all
+
+
+
+// // Checking if particle energy allows channelling after all plus Bending angular acceptance condition
 
     double arg = 0.5 * beta_over_aTF * x_local;
     double sinh_arg = sinh(arg);
     double U_local = 2.0 * U_N * sinh_arg * sinh_arg;
-    
-    double E_T = 0.5 * bpc * p0 * p0 + U_local;
 
-    if (E_T > Umax) {
+    // Critical bending radius estimate.
+    // If R <= Rcrit, the effective potential well disappears.
+    double Rcrit = bpc * (0.5 * dp) / (2.0 * Umax);
+
+    if (R <= Rcrit) {
         LocalParticle_add_to_s(part, length_eff);
         LocalParticle_add_to_zeta(part, length_eff);
-    return;
+        return;
+    }
+
+
+    
+    double U_bend = bpc * x_local / R;
+    double U_eff = U_local + U_bend;
+
+
+    // This avoids using the straight-crystal Umax when the well is tilted.
+    double Umax_eff = Umax * (1.0 - Rcrit / R);
+
+    if (Umax_eff <= 0.0) {
+        LocalParticle_add_to_s(part, length_eff);
+        LocalParticle_add_to_zeta(part, length_eff);
+        return;
+    }
+
+    double E_T_eff = 0.5 * bpc * p0 * p0 + U_eff;
+
+    if (E_T_eff > Umax_eff) {
+        LocalParticle_add_to_s(part, length_eff);
+        LocalParticle_add_to_zeta(part, length_eff);
+        return;
     }
     
     // particle passed the channelling acceptance conditions
