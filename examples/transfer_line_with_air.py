@@ -43,10 +43,8 @@ line = xt.Line(elements=elements, element_names=element_names, particle_ref=part
 
 # Add air regions
 # ===============
-X0_air = 301
-air = xc.Material(radiation_length=X0_air, name="Air (1 atm 20C)")
-line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 1", at_s=20)
-line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 2", at_s=50)
+line.insert_element(element=xc.EverestBlock(length=10, material=xc.materials.Air), name="Air 1", at_s=20)
+line.insert_element(element=xc.EverestBlock(length=10, material=xc.materials.Air), name="Air 2", at_s=50)
 
 
 # Add monitors
@@ -61,8 +59,6 @@ xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=Fal
 
 # Generate an initial distribution of particles
 # =============================================
-line.build_tracker()
-
 # Scattering need to be disabled to be able to twiss
 line.scattering.disable()
 

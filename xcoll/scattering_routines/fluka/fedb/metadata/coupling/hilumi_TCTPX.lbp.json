@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCTPX",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TCTPX",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "OLD - alternative tertiary",
+    "extra_commands": null,
+    "is_broken": false
+}

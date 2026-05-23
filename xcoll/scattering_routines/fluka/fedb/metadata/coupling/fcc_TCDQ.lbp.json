@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCDQ",
+    "fedb_series": "fcc",
+    "fedb_tag": "TCDQ",
+    "side": "right",
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "dump protection",
+    "extra_commands": null,
+    "is_broken": false
+}

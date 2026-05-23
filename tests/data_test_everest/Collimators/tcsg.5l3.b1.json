@@ -4,26 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "material": {
-  "__class__": "Material",
-  "name": "Lead",
-  "Z": 82,
-  "A": 207.19,
-  "density": 11.35,
-  "excitation_energy": 8.23e-07,
-  "nuclear_radius": 0.542,
-  "nuclear_elastic_slope": 455.3,
-  "cross_section": [
-   3.016,
-   1.724,
-   0,
-   0,
-   0,
-   0.00907
-  ],
-  "hcut": 0.01,
-  "radiation_length": 0.0056
- },
+ "material": "K2Lead",
  "jaw_L": 0.0011370711739733482,
  "jaw_R": -0.0011370099010377592
 }

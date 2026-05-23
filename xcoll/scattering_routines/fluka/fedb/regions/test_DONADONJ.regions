@@ -1,0 +1,517 @@
+REG1         5 +DONADONJ -body8 -body9 -body10 -body11 -body12 -body13 -body14 -body15 -body16 -body17 -body18
+               -body19 -body20
+               -body21 -body22 -body23 -body24 -body25 -body26
+               -body27 -body28 -body29 -body30 -body31 -body32
+               -body33 -body34  -body36 -body37 -body38
+               -body39 -body40 -body41 -body42 -body43 -body44
+               -body45 -body46 -body47 -body48 -body49 -body50
+               -body51 -body52 -body53 -body54 -body55 -body56
+                -body58 -body59 -body60 -body61 -body62
+               -body63 -body64 -body65 -body66 -body67 -body68
+               -body69 -body70 -body71 -body72 -body73 -body74
+               -body75 -body76 -body77 -body78  -body80
+               -body81 -body82 -body83 -body84 -body85 -body86
+               -body87 -body88 -body89 -body90 -body91 -body92
+               -body93 -body94 -body95 -body96 -body97 -body98
+               -body99 -body100  -body102 -body103 -body104
+               -body105 -body106 -body107 -body108 -body109 -body110
+               -body111 -body112 -body113 -body114 -body115 -body116
+               -body117 -body118 -body119 -body120 -body121 -body122
+                -body124 -body125 -body126 -body127 -body128
+               -body129 -body130 -body131 -body132 -body133 -body134
+               -body135 -body136 -body137 -body138 -body139 -body140
+               -body141 -body142 -body143 -body144  -body146
+               -body147 -body148 -body149 -body150 -body151 -body152
+               -body153 -body154 -body155 -body156 -body157 -body158
+               -body159 -body160 -body161 -body162 -body163 -body164
+               -body165 -body166  -body168 -body169 -body170
+               -body171 -body172 -body173 -body174 -body175 -body176
+               -body177 -body178 -body179 -body180 -body181 -body182
+               -body183 -body184 -body185 -body186 -body187 -body188
+                -body190 -body191 -body192 -body193 -body194
+               -body195 -body196 -body197 -body198 -body199 -body200
+               -body201 -body202 -body203 -body204 -body205 -body206
+               -body207 -body208 -body209 -body210  -body212
+               -body213 -body214 -body215 -body216 -body217 -body218
+               -body219 -body220 -body221 -body222 -body223 -body224
+               -body225 -body226 -body227 -body228 -body229 -body230
+               -body231 -body232  -body234 -body235 -body236
+               -body237 -body238 -body239 -body240 -body241 -body242
+               -body243 -body244 -body245 -body246 -body247 -body248
+               -body249 -body250 -body251 -body252 -body253 -body254
+                -body256 -body257 -body258 -body259 -body260
+               -body261 -body262 -body263 -body264 -body265 -body266
+               -body267 -body268 -body269 -body270 -body271 -body272
+               -body273 -body274 -body275 -body276  -body278
+               -body279 -body280 -body281 -body282 -body283 -body284
+               -body285 -body286 -body287 -body288 -body289 -body290
+               -body291 -body292 -body293 -body294 -body295 -body296
+               -body297 -body298  -body300 -body301 -body302
+               -body303 -body304 -body305 -body306 -body307 -body308
+               -body309 -body310 -body311 -body312 -body313 -body314
+               -body315 -body316 -body317 -body318 -body319 -body320
+                -body322 -body323 -body324 -body325 -body326
+               -body327 -body328 -body329 -body330 -body331 -body332
+               -body333 -body334 -body335 -body336 -body337 -body338
+               -body339 -body340 -body341 -body342  -body344
+               -body345 -body346 -body347 -body348 -body349 -body350
+               -body351 -body352 -body353 -body354 -body355 -body356
+               -body357 -body358 -body359 -body360 -body361 -body362
+               -body363 -body364  -body366 -body367 -body368
+               -body369 -body370 -body371 -body372 -body373 -body374
+               -body375 -body376 -body377 -body378 -body379 -body380
+               -body381 -body382 -body383 -body384 -body385 -body386
+                -body388 -body389 -body390 -body391 -body392
+               -body393 -body394 -body395 -body396 -body397 -body398
+               -body399 -body400 -body401 -body402 -body403 -body404
+               -body405 -body406 -body407 -body408  -body410
+               -body411 -body412 -body413 -body414 -body415 -body416
+               -body417 -body418 -body419 -body420 -body421 -body422
+               -body423 -body424 -body425 -body426 -body427 -body428
+               -body429 -body430  -body432 -body433 -body434
+               -body435 -body436 -body437 -body438 -body439 -body440
+               -body441 -body442 -body443 -body444 -body445 -body446
+               -body447 -body448 -body449 -body450 -body451 -body452
+                -body454 -body455 -body456 -body457 -body458
+               -body459 -body460 -body461 -body462 -body463 -body464
+               -body465 -body466 -body467 -body468 -body469
+REG2         5 +body8
+REG3         5 +body9
+REG4         5 +body10
+REG5         5 +body11
+REG6         5 +body12
+REG8         5 +body14
+REG9         5 +body15
+REG10        5 +body16
+REG11        5 +body17
+REG12        5 +body18
+REG13        5 +body19
+REG14        5 +body20
+REG15        5 +body21
+REG16        5 +body22
+REG17        5 +body23
+REG18        5 +body24
+REG19        5 +body25
+REG20        5 +body26
+REG21        5 +body27
+REG22        5 +body28
+REG23        5 +body29
+REG24        5 +body30
+REG25        5 +body31
+REG26        5 +body32
+REG27        5 +body33
+REG28        5 +body34
+REG30        5 +body36
+REG31        5 +body37
+REG32        5 +body38
+REG33        5 +body39
+REG34        5 +body40
+REG35        5 +body41
+REG36        5 +body42
+REG37        5 +body43
+REG38        5 +body44
+REG39        5 +body45
+REG40        5 +body46
+REG41        5 +body47
+REG42        5 +body48
+REG43        5 +body49
+REG44        5 +body50
+REG45        5 +body51
+REG46        5 +body52
+REG47        5 +body53
+REG48        5 +body54
+REG49        5 +body55
+REG50        5 +body56
+REG52        5 +body58
+REG53        5 +body59
+REG54        5 +body60
+REG55        5 +body61
+REG56        5 +body62
+REG57        5 +body63
+REG58        5 +body64
+REG59        5 +body65
+REG60        5 +body66
+REG61        5 +body67
+REG62        5 +body68
+REG63        5 +body69
+REG64        5 +body70
+REG65        5 +body71
+REG66        5 +body72
+REG67        5 +body73
+REG68        5 +body74
+REG69        5 +body75
+REG70        5 +body76
+REG71        5 +body77
+REG72        5 +body78
+REG74        5 +body80
+REG75        5 +body81
+REG76        5 +body82
+REG77        5 +body83
+REG78        5 +body84
+REG79        5 +body85
+REG80        5 +body86
+REG81        5 +body87
+REG82        5 +body88
+REG83        5 +body89
+REG84        5 +body90
+REG85        5 +body91
+REG86        5 +body92
+REG87        5 +body93
+REG88        5 +body94
+REG89        5 +body95
+REG90        5 +body96
+REG91        5 +body97
+REG92        5 +body98
+REG93        5 +body99
+REG94        5 +body100
+REG96        5 +body102
+REG97        5 +body103
+REG98        5 +body104
+REG99        5 +body105
+REG100       5 +body106
+REG101       5 +body107
+REG102       5 +body108
+REG103       5 +body109
+REG104       5 +body110
+REG105       5 +body111
+REG106       5 +body112
+REG107       5 +body113
+REG108       5 +body114
+REG109       5 +body115
+REG110       5 +body116
+REG111       5 +body117
+REG112       5 +body118
+REG113       5 +body119
+REG114       5 +body120
+REG115       5 +body121
+REG116       5 +body122
+REG118       5 +body124
+REG119       5 +body125
+REG120       5 +body126
+REG121       5 +body127
+REG122       5 +body128
+REG123       5 +body129
+REG124       5 +body130
+REG125       5 +body131
+REG126       5 +body132
+REG127       5 +body133
+REG128       5 +body134
+REG129       5 +body135
+REG130       5 +body136
+REG131       5 +body137
+REG132       5 +body138
+REG133       5 +body139
+REG134       5 +body140
+REG135       5 +body141
+REG136       5 +body142
+REG137       5 +body143
+REG138       5 +body144
+REG140       5 +body146
+REG141       5 +body147
+REG142       5 +body148
+REG143       5 +body149
+REG144       5 +body150
+REG145       5 +body151
+REG146       5 +body152
+REG147       5 +body153
+REG148       5 +body154
+REG149       5 +body155
+REG150       5 +body156
+REG151       5 +body157
+REG152       5 +body158
+REG153       5 +body159
+REG154       5 +body160
+REG155       5 +body161
+REG156       5 +body162
+REG157       5 +body163
+REG158       5 +body164
+REG159       5 +body165
+REG160       5 +body166
+REG162       5 +body168
+REG163       5 +body169
+REG164       5 +body170
+REG165       5 +body171
+REG166       5 +body172
+REG167       5 +body173
+REG168       5 +body174
+REG169       5 +body175
+REG170       5 +body176
+REG171       5 +body177
+REG172       5 +body178
+REG173       5 +body179
+REG174       5 +body180
+REG175       5 +body181
+REG176       5 +body182
+REG177       5 +body183
+REG178       5 +body184
+REG179       5 +body185
+REG180       5 +body186
+REG181       5 +body187
+REG182       5 +body188
+REG184       5 +body190
+REG185       5 +body191
+REG186       5 +body192
+REG187       5 +body193
+REG188       5 +body194
+REG189       5 +body195
+REG190       5 +body196
+REG191       5 +body197
+REG192       5 +body198
+REG193       5 +body199
+REG194       5 +body200
+REG195       5 +body201
+REG196       5 +body202
+REG197       5 +body203
+REG198       5 +body204
+REG199       5 +body205
+REG201       5 +body207
+REG202       5 +body208
+REG203       5 +body209
+REG204       5 +body210
+REG206       5 +body212
+REG207       5 +body213
+REG208       5 +body214
+REG209       5 +body215
+REG210       5 +body216
+REG211       5 +body217
+REG212       5 +body218
+REG213       5 +body219
+REG214       5 +body220
+REG215       5 +body221
+REG216       5 +body222
+REG217       5 +body223
+REG218       5 +body224
+REG219       5 +body225
+REG220       5 +body226
+REG221       5 +body227
+REG222       5 +body228
+REG223       5 +body229
+REG224       5 +body230
+REG225       5 +body231
+REG226       5 +body232
+REG228       5 +body234
+REG229       5 +body235
+REG230       5 +body236
+REG231       5 +body237
+REG232       5 +body238
+REG233       5 +body239
+REG234       5 +body240
+REG235       5 +body241
+REG236       5 +body242
+REG237       5 +body243
+REG238       5 +body244
+REG239       5 +body245
+REG240       5 +body246
+REG241       5 +body247
+REG242       5 +body248
+REG243       5 +body249
+REG244       5 +body250
+REG245       5 +body251
+REG246       5 +body252
+REG247       5 +body253
+REG248       5 +body254
+REG250       5 +body256
+REG251       5 +body257
+REG252       5 +body258
+REG253       5 +body259
+REG254       5 +body260
+REG255       5 +body261
+REG256       5 +body262
+REG257       5 +body263
+REG258       5 +body264
+REG259       5 +body265
+REG260       5 +body266
+REG261       5 +body267
+REG262       5 +body268
+REG263       5 +body269
+REG264       5 +body270
+REG265       5 +body271
+REG266       5 +body272
+REG267       5 +body273
+REG268       5 +body274
+REG269       5 +body275
+REG270       5 +body276
+REG272       5 +body278
+REG273       5 +body279
+REG274       5 +body280
+REG275       5 +body281
+REG276       5 +body282
+REG277       5 +body283
+REG278       5 +body284
+REG279       5 +body285
+REG280       5 +body286
+REG281       5 +body287
+REG282       5 +body288
+REG283       5 +body289
+REG284       5 +body290
+REG285       5 +body291
+REG286       5 +body292
+REG287       5 +body293
+REG288       5 +body294
+REG289       5 +body295
+REG290       5 +body296
+REG291       5 +body297
+REG292       5 +body298
+REG294       5 +body300
+REG295       5 +body301
+REG296       5 +body302
+REG297       5 +body303
+REG298       5 +body304
+REG299       5 +body305
+REG300       5 +body306
+REG301       5 +body307
+REG302       5 +body308
+REG303       5 +body309
+REG304       5 +body310
+REG305       5 +body311
+REG306       5 +body312
+REG307       5 +body313
+REG308       5 +body314
+REG309       5 +body315
+REG310       5 +body316
+REG311       5 +body317
+REG312       5 +body318
+REG313       5 +body319
+REG314       5 +body320
+REG316       5 +body322
+REG317       5 +body323
+REG318       5 +body324
+REG319       5 +body325
+REG320       5 +body326
+REG321       5 +body327
+REG322       5 +body328
+REG323       5 +body329
+REG324       5 +body330
+REG325       5 +body331
+REG326       5 +body332
+REG327       5 +body333
+REG328       5 +body334
+REG329       5 +body335
+REG330       5 +body336
+REG331       5 +body337
+REG332       5 +body338
+REG333       5 +body339
+REG334       5 +body340
+REG335       5 +body341
+REG336       5 +body342
+REG338       5 +body344
+REG339       5 +body345
+REG340       5 +body346
+REG341       5 +body347
+REG342       5 +body348
+REG343       5 +body349
+REG344       5 +body350
+REG345       5 +body351
+REG346       5 +body352
+REG347       5 +body353
+REG348       5 +body354
+REG349       5 +body355
+REG350       5 +body356
+REG351       5 +body357
+REG352       5 +body358
+REG353       5 +body359
+REG354       5 +body360
+REG355       5 +body361
+REG356       5 +body362
+REG357       5 +body363
+REG358       5 +body364
+REG360       5 +body366
+REG361       5 +body367
+REG362       5 +body368
+REG363       5 +body369
+REG364       5 +body370
+REG365       5 +body371
+REG366       5 +body372
+REG367       5 +body373
+REG368       5 +body374
+REG369       5 +body375
+REG370       5 +body376
+REG371       5 +body377
+REG372       5 +body378
+REG373       5 +body379
+REG374       5 +body380
+REG375       5 +body381
+REG376       5 +body382
+REG377       5 +body383
+REG378       5 +body384
+REG379       5 +body385
+REG380       5 +body386
+REG382       5 +body388
+REG383       5 +body389
+REG384       5 +body390
+REG385       5 +body391
+REG386       5 +body392
+REG387       5 +body393
+REG388       5 +body394
+REG389       5 +body395
+REG390       5 +body396
+REG391       5 +body397
+REG392       5 +body398
+REG393       5 +body399
+REG394       5 +body400
+REG395       5 +body401
+REG396       5 +body402
+REG397       5 +body403
+REG398       5 +body404
+REG399       5 +body405
+REG400       5 +body406
+REG401       5 +body407
+REG402       5 +body408
+REG404       5 +body410
+REG405       5 +body411
+REG406       5 +body412
+REG407       5 +body413
+REG408       5 +body414
+REG409       5 +body415
+REG410       5 +body416
+REG411       5 +body417
+REG412       5 +body418
+REG413       5 +body419
+REG414       5 +body420
+REG415       5 +body421
+REG416       5 +body422
+REG417       5 +body423
+REG418       5 +body424
+REG419       5 +body425
+REG420       5 +body426
+REG421       5 +body427
+REG422       5 +body428
+REG423       5 +body429
+REG424       5 +body430
+REG426       5 +body432
+REG427       5 +body433
+REG428       5 +body434
+REG429       5 +body435
+REG430       5 +body436
+REG431       5 +body437
+REG432       5 +body438
+REG433       5 +body439
+REG434       5 +body440
+REG435       5 +body441
+REG436       5 +body442
+REG437       5 +body443
+REG438       5 +body444
+REG439       5 +body445
+REG440       5 +body446
+REG441       5 +body447
+REG442       5 +body448
+REG443       5 +body449
+REG444       5 +body450
+REG445       5 +body451
+REG446       5 +body452
+REG448       5 +body454
+REG449       5 +body455
+REG450       5 +body456
+REG451       5 +body457
+REG452       5 +body458
+REG453       5 +body459
+REG454       5 +body460
+REG455       5 +body461
+REG456       5 +body462
+REG457       5 +body463
+REG458       5 +body464
+REG459       5 +body465
+REG460       5 +body466
+REG461       5 +body467
+REG462       5 +body468
+REG463       5 +body469

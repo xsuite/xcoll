@@ -4,6 +4,8 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
+from numbers import Number
 
 import xobjects as xo
 import xtrack as xt
@@ -45,48 +47,68 @@ class BlowUp(InvalidXcoll):
         to_assign = {}
         if '_xobject' not in kwargs:
             start_at_turn = int(kwargs.get('start_at_turn', 0))
-            stop_at_turn  = int(kwargs.get('stop_at_turn', start_at_turn+1))
+            stop_at_turn = int(kwargs.get('stop_at_turn', start_at_turn+1))
+            if stop_at_turn <= start_at_turn:
+                raise ValueError("`stop_at_turn` must be larger than `start_at_turn`!")
             kwargs['start_at_turn'] = start_at_turn
-            kwargs['stop_at_turn']  = stop_at_turn
+            kwargs['stop_at_turn'] = stop_at_turn
             kwargs['_rans'] = 2*np.random.uniform(size=stop_at_turn-start_at_turn) - 1
             if 'plane' in kwargs:
-                to_assign['plane']   = kwargs.pop('plane')
+                to_assign['plane'] = kwargs.pop('plane')
             to_assign['calibration'] = kwargs.pop('calibration', 1.)
-            to_assign['amplitude']   = kwargs.pop('amplitude', 1)
-            kwargs['_calibration']   = 1.
+            to_assign['amplitude'] = kwargs.pop('amplitude', 1)
+            kwargs['_calibration'] = 1.
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
 
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, **kwargs):
-        self = cls(**kwargs)
+    def install(cls, line, name, *, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, at_s=None, **kwargs):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
+        if not isinstance(at, Number):
+            # TODO: this could be generalised to allow the same API as
+            # line.insert, however, this has to be implemented cautiously
+            # and well-tested.
+            raise NotImplementedError("`at` must be a number indicating the s "
+                                      "position of the blow-up element.")
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
-        line.insert_element(element=self, name=name, at_s=at_s, at=at, s_tol=s_tol)
+
+        self = cls(**kwargs)
+        env = line.env
+        env.elements[name] = self
+        insertions = []
+        insertions.append(env.place(name, at=at))
         self._name = name
         self._line = line
         if need_apertures:
             if aperture is not None:
-                aper_upstream   = aperture.copy()
-                aper_downstream = aperture.copy()
+                if not hasattr(aperture, '__iter__') and not isinstance(aperture, str):
+                    aperture = [aperture]
+                if len(aperture) == 1:
+                    aperture = [aperture[0], aperture[0]]
+                elif len(aperture) != 2:
+                    raise ValueError("`aperture` must be either a single element or a list of two elements.")
+                aper_upstream   = aperture[0].copy()
+                aper_downstream = aperture[1].copy()
             else:
-                idx = line.element_names.index(name)
-                while True:
-                    if xt.line._is_aperture(line.elements[idx], line):
-                        aper_upstream = line.elements[idx].copy()
-                        break
-                    idx -= 1
-                idx = line.element_names.index(name)
-                while True:
-                    if xt.line._is_aperture(line.elements[idx], line):
-                        aper_downstream = line.elements[idx].copy()
-                        break
-                    idx += 1
-            line.insert_element(element=aper_upstream, name=f'{name}_aper_upstream', at=name, s_tol=s_tol)
-            idx = line.element_names.index(name) + 1
-            line.insert_element(element=aper_downstream, name=f'{name}_aper_downstream', at=idx, s_tol=s_tol)
+                tt = line.get_table()
+                ttt = tt.rows[0.:at:'s']
+                aper_upstream = ttt.rows.match('Limit.*', 'element_type')
+                aper_upstream = line.get(aper_upstream.name[-1])
+                ttt = tt.rows[at:tt.s[-1]:'s']
+                aper_downstream = ttt.rows.match('Limit.*', 'element_type')
+                aper_downstream = line.get(aper_downstream.name[0])
+            env.elements[f'{name}_aper_upstream'] = aper_upstream
+            env.elements[f'{name}_aper_downstream'] = aper_downstream
+            insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
+            insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
+        line.insert(insertions, s_tol=s_tol)
+
         return self
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):

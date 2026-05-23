@@ -6,6 +6,11 @@
 #ifndef XCOLL_BLOWUP_H
 #define XCOLL_BLOWUP_H
 
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
+
+
 /*gpufun*/
 void BlowUp_track_local_particle(BlowUpData el, LocalParticle* part0){
 

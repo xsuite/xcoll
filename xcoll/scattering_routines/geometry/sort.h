@@ -5,10 +5,10 @@
 
 #ifndef XCOLL_GEOM_SORT_H
 #define XCOLL_GEOM_SORT_H
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
+
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"

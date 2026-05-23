@@ -6,16 +6,21 @@
 #ifndef XCOLL_EMITTANCE_MONITOR_H
 #define XCOLL_EMITTANCE_MONITOR_H
 
+#ifdef XO_CONTEXT_CPU
+#include <math.h>    // for round
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
+
 #ifndef C_LIGHT
 #define C_LIGHT 299792458.0
 #endif
 
+
 /*gpufun*/
 void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticle* part0){
-    EmittanceMonitorData_set__cached(el, 0);
     int64_t const start_at_turn = EmittanceMonitorData_get_start_at_turn(el);
-    int64_t const part_id_start = EmittanceMonitorData_get_part_id_start(el);
-    int64_t const part_id_end   = EmittanceMonitorData_get_part_id_end(el);
+    int64_t const particle_id_start = EmittanceMonitorData_get_particle_id_start(el);
+    int64_t const particle_id_stop = EmittanceMonitorData_get_particle_id_stop(el);
     double const frev = EmittanceMonitorData_get_frev(el);
     double const sampling_frequency = EmittanceMonitorData_get_sampling_frequency(el);
 
@@ -24,13 +29,13 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
     int64_t max_slot = EmittanceMonitorRecord_len_count(record);
 
     int const plane_selector = EmittanceMonitorData_get__plane_selector(el);
-    int const monitor_horizontal   =  plane_selector % 2;
-    int const monitor_vertical     = (plane_selector >> 1) % 2;
+    int const monitor_horizontal =  plane_selector % 2;
+    int const monitor_vertical = (plane_selector >> 1) % 2;
     int const monitor_longitudinal = (plane_selector >> 2) % 2;
 
     //start_per_particle_block(part0->part)
         int64_t particle_id = LocalParticle_get_particle_id(part);
-        if (part_id_end < 0 || (part_id_start <= particle_id && particle_id < part_id_end)){
+        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop)){
 
             // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
             // but without limits, i.e. it can exceed the circumference (for coasting beams)
@@ -50,6 +55,8 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
 
             if (slot >= 0 && slot < max_slot){
                 /*gpuglmem*/ double *count = EmittanceMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);
+                EmittanceMonitorRecord_set_cached(record, slot, 0);
+                EmittanceMonitorRecord_set_cached_modes(record, slot, 0);
 
                 if (monitor_horizontal){
                     x  = LocalParticle_get_x(part);

@@ -24,7 +24,13 @@ class FsPath(PosixPath):
         shutil.move(self, other)
     def rmtree(self, *args, **kwargs):
         shutil.rmtree(self, *args, **kwargs)
-
+    def __eq__(self, other):
+        try:
+            other = FsPath(other).expanduser().resolve()
+        except:
+            return False
+        self = self.expanduser().resolve()
+        return self.as_posix() == other.as_posix()
 
 
 def ranID(*, length=12, size=1, only_alphanumeric=False):

@@ -4,14 +4,18 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 
 import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
 
+
 class EmittanceMonitorRecord(xo.Struct):
     count            = xo.Float64[:]
+    cached           = xo.Int8[:]
+    cached_modes     = xo.Int8[:]
     x_sum1           = xo.Float64[:]
     px_sum1          = xo.Float64[:]
     y_sum1           = xo.Float64[:]
@@ -40,17 +44,17 @@ class EmittanceMonitorRecord(xo.Struct):
     zeta_pzeta_sum2  = xo.Float64[:]
     pzeta_pzeta_sum2 = xo.Float64[:]
 
+
 class EmittanceMonitor(xt.BeamElement):
     _xofields={
-        'part_id_start':      xo.Int64,
-        'part_id_end':        xo.Int64,
+        'particle_id_start':  xo.Int64,
+        'particle_id_stop':   xo.Int64,
         'start_at_turn':      xo.Int64,
         'stop_at_turn':       xo.Int64,
         'frev':               xo.Float64,
         'sampling_frequency': xo.Float64,
         '_index':             xt.RecordIndex,
         'data':               EmittanceMonitorRecord,
-        '_cached':            xo.Int8,
         '_plane_selector':    xo.Int8
     }
 
@@ -73,6 +77,10 @@ class EmittanceMonitor(xt.BeamElement):
         for more information on how to use `frev` and `sampling_frequency`.
 
         Args:
+            particle_id_start (int, optional): Id of first particle to monitor.
+                Defaults to 0.
+            particle_id_stop (int, optional): Id of last particle to monitor.
+                Defaults to -1 which means ALL.
             num_particles (int, optional): Number of particles to monitor,
                 starting from 0. Defaults to -1 which means ALL.
             particle_id_range (tuple, optional): Range of particle ids to
@@ -89,30 +97,83 @@ class EmittanceMonitor(xt.BeamElement):
                 Defaults to True.
             vertical (bool): Whether or not to monitor the vertical plane.
                 Defaults to True.
-            longitudinal (bool): Whether or not to monitor the longitudinal plane.
-                Defaults to True.
+            longitudinal (bool): Whether or not to monitor the longitudinal
+                plane. Defaults to True.
+            suppress_warnings (bool): Whether or not to suppress warnings
+                about high condition number or rank deficiency in the
+                calculation of the emittance modes. Defaults to False.
         """
         if '_xobject' not in kwargs:
+            if 'part_id_start' in kwargs:
+                warn("Warning: `part_id_start` is deprecated and will be removed in "
+                     "the future. Please use `particle_id_start` instead.", FutureWarning)
+                kwargs['particle_id_start'] = kwargs.pop('part_id_start')
+            if 'part_id_end' in kwargs:
+                warn("Warning: `part_id_end` is deprecated and will be removed in "
+                     "the future. Please use `particle_id_stop` instead.", FutureWarning)
+                kwargs['particle_id_stop'] = kwargs.pop('part_id_end')
             if 'particle_id_range' in kwargs:
-                assert 'num_particles' not in kwargs
+                if 'num_particles' in kwargs:
+                    raise ValueError("Cannot specify both `particle_id_range` "
+                                     "and `num_particles`!")
+                if 'particle_id_start' in kwargs or 'particle_id_stop' in kwargs:
+                    raise ValueError("Cannot specify `particle_id_start` or "
+                                     "`particle_id_stop` together with "
+                                     "`particle_id_range`!")
                 particle_id_range = kwargs.pop('particle_id_range')
-                kwargs['part_id_start'] = int(particle_id_range[0])
-                kwargs['part_id_end'] = int(particle_id_range[1])
-            else:
-                num_particles = int(kwargs.pop('num_particles', -1))
+                if not hasattr(particle_id_range, '__iter__') or isinstance(particle_id_range, str) or len(particle_id_range) != 2:
+                    raise ValueError("`particle_id_range` must be an iterable of length 2!")
+                kwargs['particle_id_start'] = particle_id_range[0]
+                kwargs['particle_id_stop'] = particle_id_range[1]
+            elif 'num_particles' in kwargs:
+                num_particles = kwargs.pop('num_particles', -1)
                 if num_particles == -1:
-                    kwargs['part_id_start'] = 0
-                    kwargs['part_id_end'] = -1
+                    if 'particle_id_start' in kwargs or 'particle_id_stop' in kwargs:
+                        raise ValueError("Cannot specify `particle_id_start` or "
+                                         "`particle_id_stop` together with "
+                                         "`num_particles=-1` (which means ALL).")
                 else:
-                    kwargs['part_id_start'] = kwargs.pop('particle_id_start', 0)
-                    kwargs['part_id_end'] = kwargs['part_id_start'] + num_particles
-            kwargs['start_at_turn'] = int(kwargs.get('start_at_turn', 0))
-            kwargs['stop_at_turn']  = int(kwargs.get('stop_at_turn', kwargs['start_at_turn']+1))
+                    if 'particle_id_start' in kwargs and 'particle_id_stop' in kwargs:
+                        raise ValueError("Cannot specify both `particle_id_start` and "
+                                         "`particle_id_stop` together with "
+                                         "`num_particles`!")
+                    if 'particle_id_stop' in kwargs:
+                        kwargs['particle_id_start'] = kwargs['particle_id_stop'] - num_particles
+                    else:
+                        kwargs['particle_id_stop'] = kwargs.get('particle_id_start', 0) + num_particles
+            kwargs.setdefault('particle_id_start', 0)
+            kwargs.setdefault('particle_id_stop', -1)
+            if kwargs['particle_id_start'] < 0:
+                raise ValueError("`particle_id_start` must be non-negative!")
+            if kwargs['particle_id_stop'] < 0 and kwargs['particle_id_stop'] != -1:
+                raise ValueError("`particle_id_stop` must be non-negative or -1 (for ALL)!")
+            if kwargs['particle_id_stop'] != -1 and kwargs['particle_id_stop'] <= kwargs['particle_id_start']:
+                raise ValueError("`particle_id_stop` must be larger than `particle_id_start`!")
+            kwargs['start_at_turn'] = kwargs.get('start_at_turn', 0)
+            kwargs['stop_at_turn']  = kwargs.get('stop_at_turn', kwargs['start_at_turn']+1)
+            if kwargs['stop_at_turn'] <= kwargs['start_at_turn']:
+                raise ValueError("`stop_at_turn` must be larger than `start_at_turn`!")
             kwargs.setdefault('frev', 1.)
             kwargs.setdefault('sampling_frequency', 1.)
-            horizontal = kwargs.pop('horizontal', True)
-            vertical = kwargs.pop('vertical', True)
-            longitudinal = kwargs.pop('longitudinal', True)
+            horizontal = kwargs.pop('horizontal', None)
+            vertical = kwargs.pop('vertical', None)
+            longitudinal = kwargs.pop('longitudinal', None)
+            # Small hack to allow e.g. horizontal=False to imply
+            # vertical=True and longitudinal=True
+            setval = np.unique([v for v in [horizontal, vertical, longitudinal]
+                                if v is not None])
+            if len(setval) == 0:
+                setval = True
+            elif len(setval) == 1:
+                setval = not setval[0]
+            else:
+                setval = False
+            if horizontal is None: horizontal = setval
+            if vertical is None: vertical = setval
+            if longitudinal is None: longitudinal = setval
+            if not horizontal and not vertical and not longitudinal:
+                raise ValueError("At least one of `horizontal`, `vertical` and "
+                                 "`longitudinal` must be True!")
             kwargs['_plane_selector']  =   int(horizontal)
             kwargs['_plane_selector'] += 2*int(vertical)
             kwargs['_plane_selector'] += 4*int(longitudinal)
@@ -128,22 +189,50 @@ class EmittanceMonitor(xt.BeamElement):
                 kwargs['data'].update({field.name: size_h for field in EmittanceMonitorRecord._fields if 'x' in field.name})
                 kwargs['data'].update({field.name: size_v for field in EmittanceMonitorRecord._fields if 'y' in field.name})
                 kwargs['data'].update({field.name: size_l for field in EmittanceMonitorRecord._fields if 'zeta' in field.name})
+            suppress_warnings = kwargs.pop('suppress_warnings', False)
         super().__init__(**kwargs)
-        if not hasattr(self, '_cached'):
-            self._cached = False
-        if not hasattr(self, '_cached_modes'):
-            self._cached_modes = False
+        self._suppress_warnings = suppress_warnings
+
+
+    def copy(self, *args, **kwargs):
+        """Create a copy of the monitor including its data."""
+        line = self.line
+        del self._line    # Have to delete to avoid copying all line elements (including monitor itself)
+        new_monitor = super().copy(*args, **kwargs)
+        self._line = line # Restore
+        new_monitor._line = line
+        return new_monitor
 
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
-        self = cls(**kwargs)
+    def install(cls, line, name, *, at=None, s_tol=1.e-6, at_s=None, **kwargs):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
+
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
-        line.insert_element(element=self, name=name, at_s=at_s, at=at, s_tol=s_tol)
+        self = cls(**kwargs)
+        line.insert(name, self, at=at, s_tol=s_tol)
         self._name = name
         self._line = line
         return self
+
+    def reset(self):
+        """Reset the monitor data (to avoid accumulation after re-tracking)."""
+        for field in [f.name for f in EmittanceMonitorRecord._fields]:
+            ff = getattr(self.data, field)
+            zeros = np.zeros(len(ff), dtype=ff._itemtype._dtype)
+            setattr(self.data, field, zeros)
+
+    @property
+    def suppress_warnings(self):
+        return self._suppress_warnings
+
+    @suppress_warnings.setter
+    def suppress_warnings(self, val):
+        self._suppress_warnings = bool(val)
 
 
     @property
@@ -292,15 +381,18 @@ class EmittanceMonitor(xt.BeamElement):
 
 
     def _calculate(self):
-        if self._cached:
-            return
-
         # Calculate mean, variance, and std
         N = self.count
-        mask = N > 0
+        mask = (N > 0) & (self.cached == 0)
+        if not np.any(mask):
+            return
+
         N = N[mask]
-        self._turns = np.array(range(self.start_at_turn, self.stop_at_turn))[mask]
-        with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
+        self._turns = np.array(range(self.start_at_turn,
+                                     self.stop_at_turn))[mask]
+
+        # NaN for zero particles is expected behaviour
+        with np.errstate(invalid='ignore'):
             for field in [f.name for f in EmittanceMonitorRecord._fields]:
                 if field.endswith('_sum2'):
                     x1, x2 = field[:-5].split('_')
@@ -313,21 +405,41 @@ class EmittanceMonitor(xt.BeamElement):
                     ff = getattr(self, field)
                     ff = ff[mask] if len(ff) == len(mask) else ff
                     variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
-                    setattr(self, f'_{x1}_{x2}_var', variance)
-        self._cached = True
-        self._cached_modes = False
+                    # Assign to attribute (create if does not exist yet):
+                    attr_name = f'_{x1}_{x2}_var'
+                    arr = getattr(self, attr_name, None)
+                    if arr is None:
+                        arr = np.full(self.count.shape, -1, dtype=float)
+                        setattr(self, attr_name, arr)
+                    arr[mask] = variance
 
-        # Calculate emittances
-        gemitt_x = np.sqrt(self.x_x_var * self.px_px_var - self.x_px_var**2)
-        gemitt_y = np.sqrt(self.y_y_var * self.py_py_var - self.y_py_var**2)
-        gemitt_zeta = np.sqrt(self.zeta_zeta_var * self.pzeta_pzeta_var - self.zeta_pzeta_var**2)
-        setattr(self, '_gemitt_x', gemitt_x)
-        setattr(self, '_gemitt_y', gemitt_y)
-        setattr(self, '_gemitt_zeta', gemitt_zeta)
+        # Set calculated values as cached
+        for i in np.arange(len(self.count))[mask]:
+            self.data.cached[i] = 1
+            self.data.cached_modes[i] = 0
+
+        # Store calculated emittances in attributes (create if needed):
+        gemitt_x = np.sqrt(self.x_x_var[mask] * self.px_px_var[mask]
+                           - self.x_px_var[mask]**2)
+        gemitt_y = np.sqrt(self.y_y_var[mask] * self.py_py_var[mask]
+                           - self.y_py_var[mask]**2)
+        gemitt_zeta = np.sqrt(self.zeta_zeta_var[mask]
+                              * self.pzeta_pzeta_var[mask]
+                              - self.zeta_pzeta_var[mask]**2)
+        for nn, val in zip(['gemitt_x', 'gemitt_y', 'gemitt_zeta'],
+                           [gemitt_x, gemitt_y, gemitt_zeta]):
+            arr = getattr(self, f'_{nn}', None)
+            if arr is None:
+                arr = np.full(self.count.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+            arr[mask] = np.array(val)
 
 
     def _calculate_modes(self):
-        if self._cached_modes:
+        # Calculate emittance modes
+        N = self.count
+        mask = (N > 0) & (self.cached_modes == 0)
+        if not np.any(mask):
             return
 
         S = np.array([[ 0., 1., 0., 0., 0., 0.],
@@ -336,18 +448,25 @@ class EmittanceMonitor(xt.BeamElement):
                       [ 0., 0.,-1., 0., 0., 0.],
                       [ 0., 0., 0., 0., 0., 1.],
                       [ 0., 0., 0., 0.,-1., 0.]])
-        gemitt_I   = []
-        gemitt_II  = []
-        gemitt_III = []
-        N = self.count
-        N = N[N > 0]
+
+        # Create arrays for modes in attributes if needed
+        for nn in ['gemitt_I', 'gemitt_II', 'gemitt_III']:
+            if getattr(self, f'_{nn}', None) is None:
+                arr = np.full(N.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+
+        # Loop over turns
         for i in range(len(N)):
+            if not mask[i]:
+                continue
+
             if N[i] < 25:
                 # Not enough statistics for a reliable calculation of the modes
-                gemitt_I.append(0)
-                gemitt_II.append(0)
-                gemitt_III.append(0)
+                self._gemitt_I[i] = 0
+                self._gemitt_II[i] = 0
+                self._gemitt_III[i] = 0
                 continue
+
             if self.horizontal:
                 block_x = np.array([[self.x_x_var[i],  self.x_px_var[i]],
                                     [self.x_px_var[i], self.px_px_var[i]]])
@@ -359,8 +478,10 @@ class EmittanceMonitor(xt.BeamElement):
             else:
                 block_y = np.zeros((2, 2))
             if self.longitudinal:
-                block_z = np.array([[self.zeta_zeta_var[i],  self.zeta_pzeta_var[i]],
-                                    [self.zeta_pzeta_var[i], self.pzeta_pzeta_var[i]]])
+                block_z = np.array([[self.zeta_zeta_var[i],
+                                     self.zeta_pzeta_var[i]],
+                                    [self.zeta_pzeta_var[i],
+                                     self.pzeta_pzeta_var[i]]])
             else:
                 block_z = np.zeros((2, 2))
             if self.horizontal and self.vertical:
@@ -369,47 +490,53 @@ class EmittanceMonitor(xt.BeamElement):
             else:
                 block_xy = np.zeros((2, 2))
             if self.horizontal and self.longitudinal:
-                block_xz = np.array([[self.x_zeta_var[i],  self.x_pzeta_var[i]],
-                                     [self.px_zeta_var[i], self.px_pzeta_var[i]]])
+                block_xz = np.array([[self.x_zeta_var[i],
+                                      self.x_pzeta_var[i]],
+                                     [self.px_zeta_var[i],
+                                      self.px_pzeta_var[i]]])
             else:
                 block_xz = np.zeros((2, 2))
             if self.vertical and self.longitudinal:
-                block_yz = np.array([[self.y_zeta_var[i],  self.y_pzeta_var[i]],
-                                     [self.py_zeta_var[i], self.py_pzeta_var[i]]])
+                block_yz = np.array([[self.y_zeta_var[i],
+                                      self.y_pzeta_var[i]],
+                                     [self.py_zeta_var[i],
+                                      self.py_pzeta_var[i]]])
             else:
                 block_yz = np.zeros((2, 2))
 
-            covariance_S = np.dot(np.block([[block_x,    block_xy,   block_xz],
-                                            [block_xy.T, block_y,    block_yz],
-                                            [block_xz.T, block_yz.T, block_z]]),
-                                  S)
+            covariance_S = np.dot(
+                        np.block([[block_x,    block_xy,   block_xz],
+                                  [block_xy.T, block_y,    block_yz],
+                                  [block_xz.T, block_yz.T, block_z]]),
+                        S)
+
+            # Check for all zero matrix -> zero emittance
+            if np.all(covariance_S < 1E-16):
+                self._gemitt_I[i] = 0
+                self._gemitt_II[i] = 0
+                self._gemitt_III[i] = 0
+                continue
+
             cond_number = np.linalg.cond(covariance_S)
-            if cond_number > 1e10:
-                print(f"Warning: High condition number when calculating "
-                    + f"the emittances modes at time step {i}: {cond_number}.\n"
-                    + f"One of the coordinates might be close to zero or not "
-                    + f"varying enough among the different particles. Only "
-                    + f"{N[i]} particles were logged at this step.")
+            if cond_number > 1e10 and not self.suppress_warnings:
+                print(f"Warning: High condition number at time step {i}: "
+                    + f"{cond_number}.\n{N[i]} particles logged.")
+
             rank = np.linalg.matrix_rank(covariance_S)
             expected_rank = int(self.horizontal) + int(self.vertical) + int(self.longitudinal)
-            if rank < expected_rank:
-                print(f"Warning: Matrix is rank deficient when calculating "
-                    + f"the emittances modes at time step {i}: rank {rank} "
-                    + f"instead of expected {len(covariance_S)}.\n"
-                    + f"One of the coordinates might be close to zero or not "
-                    + f"varying enough among the different particles. Only "
-                    + f"{N[i]} particles were logged at this step.")
+            if rank < expected_rank and not self.suppress_warnings:
+                print(f"Warning: Matrix is rank deficient at time step {i}: "
+                    + f"rank {rank} instead of expected {len(covariance_S)}.\n"
+                    + f"{N[i]} particles logged.")
 
             from xtrack.linear_normal_form import compute_linear_normal_form
             _, _, _, eigenvalues = compute_linear_normal_form(covariance_S)
-            gemitt_I.append(eigenvalues[0].imag)
-            gemitt_II.append(eigenvalues[1].imag)
-            gemitt_III.append(eigenvalues[2].imag)
+            self._gemitt_I[i] = eigenvalues[0].imag
+            self._gemitt_II[i] = eigenvalues[1].imag
+            self._gemitt_III[i] = eigenvalues[2].imag
 
-        setattr(self, '_gemitt_I',   np.array(gemitt_I))
-        setattr(self, '_gemitt_II',  np.array(gemitt_II))
-        setattr(self, '_gemitt_III', np.array(gemitt_III))
-        self._cached_modes = True
+            # Set calculated modes as cached
+            self.data.cached_modes[i] = 1
 
 
     def __getattr__(self, attr):

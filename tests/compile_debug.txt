@@ -1,0 +1,5 @@
+export CFLAGS="-g3 -fsanitize=address -static-libasan "$CFLAGS
+export LDFLAGS="-g3 -fsanitize=address -static-libasan "$LDFLAGS
+export LD_PRELOAD=/home/fvanderv/miniforge3/envs/xcoll/lib/libasan.so.8
+xsuite-prebuild r
+gdb pytest test_adt.py::test_blow_up\[B1H-ContextCPU\]

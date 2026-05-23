@@ -5,10 +5,13 @@
 
 #ifndef XCOLL_GEOM_SEGMENTS_H
 #define XCOLL_GEOM_SEGMENTS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
 
 
 // These functions compare a particle trajectory (straight line with slope part_tan going

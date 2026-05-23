@@ -24,6 +24,8 @@ Collimation in xtrack simulations
     * pandas
     * xsuite (in particular xobjects, xdeps, xtrack, xpart)
 
+* Geant4 and BDSIM: conda install bdsim-g4 -c conda-forge
+
 ### Installing
 `xcoll` is packaged using `poetry`, and can be easily installed with `pip`:
 ```bash

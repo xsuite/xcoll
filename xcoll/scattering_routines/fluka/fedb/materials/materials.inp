@@ -1,0 +1,350 @@
+*
+*
+*       Fluka Element DataBase
+*        MATERIAL DEFINITIONS
+*
+*
+* *******************************
+*
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+...
+* to overwrite a pre-defined FLUKA material, you must specify in WHAT(4)
+* its original number, otherwise its name will be referred to the lower
+* matching number in your material list
+*
+* *******************************
+*
+* PLEASE READ CAREFULLY
+*
+*  Keep this file clean. Don't add here compounds related to any material budget
+*
+*  Keep it commented, expecially if you use non standard materials (differerent
+*  density, isotope and neutron x-section). Write a small comment of where you get
+*  those parameters so that future users will be able to understand why that
+*  particular configuration was used.
+*
+*
+*  Avoid to redefine the implicit fluka materials such as:
+*
+*
+*  Fluka name  Fluka number    Common name                 A        Z    Density
+*
+*  - BLCKHOLE         1       Blackhole or External Vacuum   0        0    0
+*  - VACUUM           2       Vacuum or Internal Vacuum      0        0    0
+*  - HYDROGEN         3       Hydrogen                      1.00794   1.   0.0000837
+*  - HELIUM           4       Helium                        4.002602  2.   0.000166
+*  - BERYLLIU         5       Beryllium                     9.012182  4.   1.848
+*  - CARBON           6       Carbon                       12.0107    6.   2.000
+*  - NITROGEN         7       Nitrogen                     14.0067    7.   0.00117
+*  - OXYGEN           8       Oxygen                       15.9994    8.   0.00133
+*  - SODIUM          19       Sodium                       22.989770 11.   0.971
+*  - MAGNESIU         9       Magnesium                    24.3050   12.   1.740
+*  - ALUMINUM        10       Aluminium                    26.981538 13.   2.699
+*  - SILICON         14       Silicon                      28.0855   14.   2.329
+*  - ARGON           20       Argon                        39.948    18.   0.00166
+*  - CALCIUM         21       Calcium                      40.078    20.   1.550
+*  - TITANIUM        24       Titanium                     47.867    22.   4.540
+*  - IRON            11       Iron                         55.845    26.   7.874
+*  - NICKEL          25       Nickel                       58.6934   28.   8.902
+*  - COPPER          12       Copper                       63.546    29.   8.960
+*  - SILVER          13       Silver                      107.8682   47.  10.500
+*  - TIN             22       Tin                         118.710    50.   7.310
+*  - TANTALUM        18       Tantalum                    180.9479   73.  16.654
+*  - TUNGSTEN        23       Tungsten                    183.84     74.  19.300
+*  - GOLD            15       Gold                        196.96655  79.  19.320
+*  - MERCURY         16       Mercury                     200.59     80.  13.546
+*  - LEAD            17       Lead                        207.2      82.  11.350
+*
+*
+*
+* Boron
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         5.0               2.340                              BORON
+*
+*
+* Graphite for collimator jaws
+* New density to 1.67 down from 1.8 addopted after 06/2014 following discussion with
+* Alessandro Bertarelli which is an average of 1.63 and 1.71
+* i.e. TCP, TCSG etc...
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         6.0                1.67                              AC150GPH
+LOW-PWXS              graphite     296.0  AC150GPH
+*
+*
+*
+* Carbon-Composite different densities, no specific name provided
+*  (as of now, June 2012, used in the proposed new TCDQ)
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         6.0                1.85                              CC_1_85
+LOW-PWXS              graphite     296.0   CC_1_85
+*
+MATERIAL         6.0                1.80                              CC_1_80
+LOW-PWXS              graphite     296.0   CC_1_80
+*
+MATERIAL         6.0                1.75                              CC_1_75
+LOW-PWXS              graphite     296.0   CC_1_75
+*
+MATERIAL         6.0                1.40                              CC_1_40
+LOW-PWXS              graphite     296.0   CC_1_40
+*
+*
+* Graphite R4550 Steinemann carbon
+*  i.e. TCDQ
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         6.0                1.83                              GRAR4550
+LOW-PWXS              graphite     296.0  GRAR4550
+*
+*
+* Phosphor
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        15.0                 2.2                              PHOSPHO
+*
+*
+* Sulfur
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        16.0                2.07                              SULFUR
+*
+*
+* Vanadium
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         23.                6.11                              VANADIUM
+*
+*
+* Chromium
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        24.0                7.19                              CHROMIUM
+*
+*
+* Manganes
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        25.0                7.43                              MANGANES
+*
+*
+* Cobalt
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        27.0                 8.9                              COBALT
+*
+*
+* Pure ZINC
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        30.0                7.14                              ZINC
+*
+*
+* Zirconium
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         40.                6.51                              ZIRCONIU
+*
+*
+* Niobium
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        41.0                8.57                              NIOBIUM
+*
+*
+* Molybden
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL        42.0               10.22                              MOLYBDEN
+*
+*
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         72.               13.31                              HAFNIUM
+*
+*
+* crystalline, hot pressed hBN, pure material;
+* density as received from F.Maciariello, 2012-09-26;
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            2.25                              hBNpure
+COMPOUND         1.0     BORON       1.0  NITROGEN                    hBNpure
+*
+*
+* SiO2: dry sand;
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            1.92                              SiO2
+COMPOUND         1.0   SILICON       2.0    OXYGEN                    SiO2
+*
+*
+* B2O3
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            2.46                              B2O3
+COMPOUND         2.0     BORON       3.0    OXYGEN                    B2O3
+*
+*
+* Al2O3 or ALUMINA Aluminum Oxide (alpha) for glidcop
+*        The density of aluminum oxide will vary by 5% according to the
+*        method of preparation. old density in IR1/IR5 was 3.6....
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            3.98                              Al2O3
+COMPOUND         2.0  ALUMINUM       3.0    OXYGEN                    Al2O3
+*
+*
+*
+* BN 5000 from Sintek Keramik (UK) Ltd., hot pressed hBN
+* Density and composition from manufacturer data sheet (provided by O. Aberle)
+*   -> see fedb/documents/materials/BN5000.pdf
+* NB: mass fractions: the actual density of hBNpure is not used in order
+*     to compute atom contents of hBNpure in the present compound (see note 5
+*     in the FLUKA manual);
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7...
+MATERIAL                           1.925                              BN5000
+COMPOUND       -92.9   hBNpure      -0.2      SiO2      -4.0    OXYGENBN5000
+COMPOUND        -0.4      B2O3      -2.5   CALCIUM                    BN5000
+*
+* Material ASTM F-15. For BPM button
+* Composition and density according to http://www.stratedge.com/astm.htm
+* By E.Skordis
+MATERIAL                            8.35                              ASTMF-15
+COMPOUND       -0.54      IRON     -0.29    NICKEL     -0.17    COBALTASTMF-15
+*
+*
+* GLIDCP15: Glidcop 15 (Cu 99.85%, Al2O3 0.15%)
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             8.9                              GLIDCP15
+COMPOUND      -.9985    COPPER   -0.0015     Al2O3                    GLIDCP15
+*
+*
+*
+* CuNiFeMn: CopperNickel Iron Manganes alloy
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            8.87                              CuNiFeMn
+COMPOUND      -0.875    COPPER       -.1    NICKEL     -.015      IRONCuNiFeMn
+COMPOUND       -0.01  MANGANES                                        CuNiFeMn
+*
+*
+* Inermet 180: Real material for tungsten jaw collimators
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            18.0                              INERM180
+COMPOUND       -0.95  TUNGSTEN    -0.035    NICKEL    -0.015    COPPERINERM180
+*
+*
+* Stainless Steels:
+* *****************
+*
+* AISI Steels
+* name SS3[xx][L][N]
+*              |  `--> Nitrogen enriched
+*              `-----> Low Carbon
+*
+* SS304L:  AISI304L Stainless Steel
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            8.02                              SS304L
+COMPOUND    -0.67145      IRON    -0.185  CHROMIUM   -0.1125    NICKELSS304L
+COMPOUND       -0.02  MANGANES     -0.01   SILICON  -0.00045   PHOSPHOSS304L
+COMPOUND     -0.0003    SULFUR   -0.0003    CARBON                    SS304L
+*
+* material specific to collimator springs... Approximate the springs
+* TC.Spr 50% SS304L 50% VACUUM
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            4.01                              TC.Spr
+COMPOUND    -0.67145      IRON    -0.185  CHROMIUM   -0.1125    NICKELTC.Spr
+COMPOUND       -0.02  MANGANES     -0.01   SILICON  -0.00045   PHOSPHOTC.Spr
+COMPOUND     -0.0003    SULFUR   -0.0003    CARBON                    TC.Spr
+*
+*
+* SS316L:  AISI316L Stainless Steel
+* (used in MBXC, MCXB, MCXS, MQXD and MQXS
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             8.0                              SS316L
+COMPOUND    -0.61395      IRON    -0.185  CHROMIUM     -0.14    NICKELSS316L
+COMPOUND       -0.03  MOLYBDEN     -0.02  MANGANES     -0.01   SILICONSS316L
+COMPOUND    -0.00045   PHOSPHO   -0.0003    SULFUR   -0.0003    CARBONSS316L
+*
+*
+* SS316LN:  AISI316LN Stainless Steel (cryogenic steel)
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            8.03                              SS316LN
+COMPOUND    -0.65093      IRON   -0.1700  CHROMIUM  -0.12000    NICKELSS316LN
+COMPOUND    -0.02500  MOLYBDEN   -0.0200  MANGANES  -0.00750   SILICONSS316LN
+COMPOUND    -0.00150  TITANIUM   -0.0014  NITROGEN  -0.00100   NIOBIUMSS316LN
+COMPOUND    -0.00100    COPPER   -0.0005    COBALT  -0.00045   PHOSPHOSS316LN
+COMPOUND    -0.00030    CARBON   -0.0003    SULFUR  -0.00010  TANTALUMSS316LN
+COMPOUND    -0.00002     BORON                                        SS316LN
+*
+*
+*
+* Ferrite
+* *******
+* from A.Lechner, about kicker in LHC IR2
+* Material: NiZn ferrite (8C11), with a density of 5.2g/cm3,
+*           composition Ni_(1-x)Zn_xFe2O4, with x between 0.5 and 0.6,
+*           from M. Barnes.
+*           (cf. LHCMKIMA0056: NiZn ferrite)
+MATERIAL                             5.2                              NIZNFER2
+COMPOUND        0.45    NICKEL      0.55      ZINC       2.0      IRONNIZNFER2
+COMPOUND         4.0    OXYGEN                                        NIZNFER2
+*
+*
+* P. G. Ortega, 17/04/2015, for TCT showering into IP5 triplet
+*
+* CUDIAM75: Copper-Diamond (@75.48% atomic fraction)
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             5.4                              CUDIAM75
+COMPOUND      0.2359    COPPER    0.7548    CARBON    0.0093     BORONCUDIAM75
+*
+* MoGR64: Molybdenum-Graphite Composite, grade MG 6400U
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            2.48                              MoGRMG64
+COMPOUND      0.0146  MOLYBDEN    0.9854    CARBON                    MoGRMG64
+*
+*
+* A.Mereghetti, 21/12/2016, for HLLHC TCSPM simulations
+*
+* MG6403Fc: Molybdenum-Graphite, grade MG6403Fc
+* estimated atomic composition as from email by Jorge Guardia Velenzuela, 2016-12-20
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            2.55                              MG6403Fc
+COMPOUND        1.84  MOLYBDEN     98.09    CARBON      0.07  TITANIUMMG6403Fc
+*
+* A.Mereghetti, 26/06/2018, for TCSPM prototype installed in LHC during runII
+*    (2017 and 2018)
+*
+* TitNat: Titanium Nitride
+* infos from web, as circulated by F.Carra (26/06/2018)
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                            5.22                              TITNAT
+COMPOUND       -77.0  TITANIUM     -23.0  NITROGEN                    TITNAT
+*
+*
+* M. I. Frankl, 09/03/2017
+* TZM
+* Elemental composition as from email by Alessandro Bertarelli
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                           10.22                              TZM
+COMPOUND      98.762  MOLYBDEN     0.158    CARBON     0.996  TITANIUMTZM
+COMPOUND       0.084  ZIRCONIU                                        TZM
+*
+* Materials for TIDP
+* Antico
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             2.7                              ANTICO
+COMPOUND      -97.25  ALUMINUM       -.6   SILICON      -0.5      IRONANTICO
+COMPOUND         -.4  MAGNESIU       -.4  MANGANES      -.35  CHROMIUMANTICO
+COMPOUND         -.2  TITANIUM       -.2      ZINC       -.1    COPPERANTICO
+*
+* CuCr
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             8.8                              CUCR
+COMPOUND       -99.1    COPPER       -.9  CHROMIUM                    CUCR
+*
+* Iron for shielding
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL         26.               7.874                              IRONS
+*
+* Cast Pig Iron (for large shielding blocks )
+* Compount (wt) Iron 94% - Carbon 4% - Silicon 2%
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             7.2                              CASTIRON
+COMPOUND       -0.94     IRONS     -0.04    CARBON     -0.02   SILICONCASTIRON
+*
+* J. B. Monago, 02/05/2016
+* CuCrZr
+* Elemental composition [%-wt] from Zollern
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+MATERIAL                             8.9                              CuCrZr
+COMPOUND    -0.98805    COPPER   -0.0085  CHROMIUM   -0.0008      IRONCuCrZr
+COMPOUND      -0.001   SILICON  -0.00165  ZIRCONIU                    CuCrZr
+*
+* V.Rodin, 09/10/2023, for HLLHC TCSPM Graphite Cu coated simulations
+* BPM matera
+* Ti Grade 2: value taken fron the web
+* confirmed by email from Luisa Puddu and Frederico Carra
+MATERIAL                            4.51                              TiGr2
+COMPOUND    -0.99325  TITANIUM    -0.003      IRON   -0.0008    CARBONTiGr2
+COMPOUND     -0.0025    OXYGEN   -0.0003  NITROGEN  -0.00015  HYDROGENTiGr2

@@ -6,6 +6,11 @@
 #ifndef XCOLL_ABSORBER_H
 #define XCOLL_ABSORBER_H
 
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
+
 
 /*gpufun*/
 int8_t BlackAbsorberData_get_record_impacts(BlackAbsorberData el){
@@ -115,7 +120,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 int8_t is_hit = hit_jaws_check_and_transform(part, cg);
 
                 if (is_hit != 0){
-                    LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
+                    LocalParticle_set_state(part, XC_LOST_ON_BLACK_ABSORBER);
                     if (record_scatterings) {
                         InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame
                     }

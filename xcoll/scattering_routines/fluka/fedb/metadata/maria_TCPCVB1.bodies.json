@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaPrototype",
+    "fedb_series": "maria",
+    "fedb_tag": "TCPCVB1",
+    "side": "left",
+    "angle": 90,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": true,
+    "bending_radius": null,
+    "info": "crystal",
+    "extra_commands": null,
+    "is_broken": false
+}

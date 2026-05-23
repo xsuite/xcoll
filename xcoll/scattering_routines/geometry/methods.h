@@ -5,10 +5,13 @@
 
 #ifndef XCOLL_GEOM_METHODS_H
 #define XCOLL_GEOM_METHODS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
 
 #define S_MAX 1.e21
 

@@ -23,14 +23,6 @@
     #define   XC_PP_CS_REF ( 0.04 )
 #endif
 
-#if !defined( XC_FREE_CO )
-    #define   XC_FREE_CO ( 1.618 )
-#endif
-
-#if !defined( XC_AVOGADRO )
-    #define   XC_AVOGADRO ( 6.02214076e23 )
-#endif
-
 // -------------------------
 // #### Crystal-specific ###
 // -------------------------
@@ -53,7 +45,7 @@
 // Classical radius of electron [m]
 #if !defined( XC_CRADE )
     #define   XC_CRADE ( 2.817940285e-15 )
-#endif 
+#endif
 
 
 #endif /* XCOLL_EVEREST_CONSTANTS_H */

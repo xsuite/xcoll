@@ -4,26 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "material": {
-  "__class__": "Material",
-  "name": "Berylium",
-  "Z": 4,
-  "A": 9.01,
-  "density": 1.848,
-  "excitation_energy": 6.37e-08,
-  "nuclear_radius": 0.22,
-  "nuclear_elastic_slope": 74.7,
-  "cross_section": [
-   0.271,
-   0.192,
-   0,
-   0,
-   0,
-   3.5e-05
-  ],
-  "hcut": 0.02,
-  "radiation_length": 0.353
- },
+ "material": "K2Beryllium",
  "jaw_L": 0.0013568190949925136,
  "jaw_R": -0.0013573754239385677
 }

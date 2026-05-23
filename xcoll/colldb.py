@@ -1,27 +1,28 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import io
 import re
 import json
+import warnings
 import numpy as np
 import pandas as pd
 from pathlib import Path
 
 import xtrack as xt
 
-from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           BaseCollimator, BaseCrystal, collimator_classes
-from .scattering_routines.everest.materials import SixTrack_to_xcoll
+from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, FlukaCrystal,
+                            FlukaCollimator, Geant4Collimator, Geant4CollimatorTip, collimator_classes)
 
 
 def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
-    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
+    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None, 'assembly': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
     fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
+    fields.update({'s_center': None, 'tip_material': None, 'tip_thickness': 0})  # TODO: add s_start and s_end and make them sync etc
     for f, val in fields.items():
         if f not in dct.keys():
             dct[f] = val
@@ -36,7 +37,7 @@ def _dict_keys_to_lower(dct):
     else:
         return dct
 
-
+# TODO: need better handling of beam argument (not hardcoded 'b1' and 'b2' strings)
 def _get_coll_dct_by_beam(coll, beam):
     # The dictionary can be a CollimatorDatabase for a single beam (beam=None)
     # or for both beams (beam='b1' or beam='b2)
@@ -51,7 +52,7 @@ def _get_coll_dct_by_beam(coll, beam):
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
         return coll[beam]
 
-    elif len(beam_in_db) == 1:
+    elif len(beam_in_db) == 1 and beam_in_db[0].lower() in ['b1','b2']:
         if beam is None:
             beam = beam_in_db[0].lower()
         elif beam != beam_in_db[0].lower():
@@ -94,7 +95,8 @@ class CollimatorDatabase:
         crystals = []
         for thiscoll, settings in coll.items():
             settings = {k.lower(): v for k,v in settings.items()}
-            if 'family' in settings.keys() and settings['family'] is not None:
+            if 'family' in settings.keys() and settings['family'] is not None \
+            and isinstance(settings['family'], str):
                 settings['family'] = settings['family'].lower()
                 thisfam = settings['family']
                 if thisfam not in fam.keys():
@@ -198,7 +200,11 @@ class CollimatorDatabase:
                     raise ValueError(f"Error in {coll}: Cannot use merging for families "
                                     + "and manually specify family as well!")
                 elif len(full_coll.merge) > 0:
-                    coll['family'] = full_coll.merge[0][1].anchor.value.lower()
+                    try:
+                        coll['family'] = full_coll.merge[0][1].anchor.value.lower()
+                    except KeyError:
+                        # Newer ruamel
+                        coll['family'] = full_coll.merge[0].anchor.value.lower()
                     # Check if some family settings are overwritten for this collimator
                     overwritten_keys = [key.lower() for key in full_coll.keys()
                                         if full_coll._unmerged_contains(key)
@@ -306,12 +312,18 @@ class CollimatorDatabase:
         names = ['name', 'gap', 'material', 'length', 'angle', 'offset']
 
         df = pd.read_csv(io.StringIO(coll_data_string), sep=r'\s+', index_col=False, names=names)
+        df['gap'] = df['gap'].astype('object')
+        df['material'] = df['material'].astype('object')
         df['family'] = df['gap'].copy()
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
+        df['family'] = df['family'].astype('object')
         df.insert(5,'stage', df['gap'].apply(lambda s: None if s in family_types else 'UNKNOWN'))
+        df['stage'] = df['stage'].astype('object')
 
-        df['gap'] = df['gap'].apply(lambda s: None if not isinstance(s, str) and s > 900 else s)
-        df['gap'] = df['gap'].apply(lambda s: None if isinstance(s, str) else s)
+        sss = pd.to_numeric(df['gap'], errors='coerce')
+        sss = sss.mask(sss > 900).astype(object)
+        sss[pd.isna(sss)] = None
+        df['gap'] = sss
 
         # TODO this breaks code if a key has upper case, e.g. gap_L
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
@@ -332,6 +344,7 @@ class CollimatorDatabase:
         df['side'] = ['both'  if s==0 else s for s in df['side']]
         df['side'] = ['left'  if s==1 else s for s in df['side']]
         df['side'] = ['right' if s==2 else s for s in df['side']]
+        df['side'] = df['side'].astype('object')
         if not np.allclose(np.unique(df.offset.values), 0):
             print("Warning: Keyword 'offset' is currently not supported in xcoll! Ignoring.")
         df = df.drop('offset', axis=1)
@@ -354,162 +367,61 @@ class CollimatorDatabase:
         return cls.from_dict({'collimators': colldict, 'families': famdct}, \
                              ignore_crystals=ignore_crystals, **kwargs)
 
+
     def to_pandas(self):
         return pd.DataFrame(self._collimator_dict).transpose()
 
-    def to_yaml(self, out, lhc_style=True):
-        raise NotImplementedError("This functionality needs to be updated to be compatible with tilts and read "
-                                + "the families from the colldb instead of hard-coding them!")
-        # """
-        # Writes a colldb in memory to disk in the yaml format.
 
-        # > colldb_object.write_to_yaml(<path+name>, lhc_style=Bool)
+    def to_dict(self):
+        default_values = {}
+        _initialise_None(default_values)
+        colls = {}
+        for coll, vals in self._collimator_dict.items():
+            colls[coll] = {}
+            for kk, vv in vals.items():
+                if kk == 'overwritten_keys':
+                    continue
+                if kk in vals['overwritten_keys']:
+                    colls[coll][kk] = vv
+                elif vv != default_values.get(kk):
+                    if 'family' in vals and vals['family']:
+                        if kk not in self._family_dict[vals['family']]:
+                            colls[coll][kk] = vv
+                    else:
+                        colls[coll][kk] = vv
+        return {
+            'families': self._family_dict,
+            'emittance': {'x': self.nemitt_x, 'y': self.nemitt_y},
+            'collimators': colls
+        }
 
-        # if lhc_style == True, it will add comments assuming that the collimators are named
-        # as in the lhc.
 
-        # The function can dump b1, b2 and a general bx, however multi-beam functionality is not yet
-        # added to the collmanager. TODO
+    def to_json(self, file, **kwargs):
+        if isinstance(file, io.IOBase):
+            json.dump(self.to_dict(), file, **kwargs)
+        else:
+            file = Path(file).resolve()
+            if file.suffix != '.json':
+                file = file.with_suffix('.json')
+            with file.open('w') as fid:
+                json.dump(self.to_dict(), fid, indent=4, **kwargs)
 
-        # If any of the dumped keys contains capital letters (e.g. gap_L), it will not be possible
-        # to load it back into xcoll, since all keys are set to lowercase when importing TODO
-        # """
-        # # Dumps collimator database to a YAML file with optional LHC style formatting
-        # import re
 
-        # # Local helper functions
-        # def _format_dict_entry(key, value, spacing='', mapping=False, key_width=15):
-        #     # Formats a dictionary entry into a string for YAML output
-        #     formatted_values = ',    '.join(f"{k}: {v}" for k, v in value.items())
-        #     formatted_values = re.sub(r'none', 'null', formatted_values, flags=re.IGNORECASE)
-        #     # Ensure key has a fixed width for alignment
-        #     if mapping:
-        #         formatted_key = f'{key}'.ljust(key_width)
-        #     else:
-        #         formatted_key = f'{key}:'.ljust(key_width)
-        #     #formatted_values = formatted_values.ljust(key_width)
-        #     return f"{spacing}{formatted_key} {{ {formatted_values} }}\n"
+    def to_yaml(self, file, **kwargs):
+        # Only do the import here, as to not force people to install
+        # ruamel if they don't load CollimatorDatabase yaml's
+        from ruamel.yaml import YAML
+        yaml = YAML() # Cannot be typ='safe' because we need to keep the ordering
+        yaml.default_flow_style = False  # More readable format
 
-        # def _print_values(keys, dct, file, spacing='', mapping=False):
-        #     # Writes formatted dictionary entries to a file
-        #     for key in keys:
-        #         file.write(_format_dict_entry(key, dct[key], spacing=spacing, mapping=mapping))
-
-        # def _print_colls(colls, dcts, beam, file):
-        #     # Filters and formats collimator data, then writes to a file
-        #     coll_items_to_print = ['<<','gap','angle','material','active','length','side']
-        #     file.write(f'  {beam}:\n')
-        #     for coll in colls:
-        #         coll_dict = dcts.to_pandas().transpose().to_dict()[coll]
-        #         fam = coll_dict['family']
-        #         fam_keys = []
-        #         if fam is not None:
-        #             fam_keys = dcts._family_dict[fam].keys()
-        #             coll_dict = {**{'<<': '*'+fam}, **coll_dict}
-        #         temp_items_to_print = []
-        #         if coll_dict['crystal'] and str(coll_dict['crystal'])!='nan':
-        #             temp_items_to_print = ['bending_radius','width','height','miscut','crystal']
-        #         # if 'angle_L' in coll_dict and coll_dict['angle_L'] == coll_dict['angle_R']:
-        #         #     coll_dict.update({'angle': coll_dict['angle_L']})
-        #         # else:
-        #         #     temp_items_to_print = temp_items_to_print + ['angle_L','angle_R']
-        #         # if coll_dict['gap_L'] == coll_dict['gap_R']:
-        #         #     coll_dict.update({'gap': coll_dict['gap_L']})
-        #         # elif coll_dict['gap_L'] is None and coll_dict['gap_R'] is not None:
-        #         #     coll_dict.update({'gap': coll_dict['gap_R']})
-        #         # elif coll_dict['gap_L'] is not None and coll_dict['gap_R'] is None:
-        #         #     coll_dict.update({'gap': coll_dict['gap_L']})
-        #         # else:
-        #         #     temp_items_to_print = temp_items_to_print + ['gap_L','gap_R']
-        #         value = {}
-        #         overwritten_keys = coll_dict['overwritten_keys']
-        #         for key, val in coll_dict.items():
-        #             if key == 'active_length':
-        #                 key = 'length'
-        #             if (key in coll_items_to_print+temp_items_to_print) and (key not in (set(fam_keys)-set(overwritten_keys))) and (val != 'both'):
-        #                 value.update({key: val})
-        #         file.write(_format_dict_entry(coll, value, spacing='    '))
-        #     file.write('\n')
-
-        # LHC_families = ['tcp3', 'tcsg3', 'tcsm3', 'tcla3', 'tcp7', 'tcsg7', 'tcsm7', 'tcla7', 'tcli', 'tdi', 'tcdq', 'tcstcdq', 'tcth1', 'tcth2', 'tcth5', 'tcth8', 'tctv1', 'tctv2', 'tctv5', 'tctv8', 'tclp', 'tcxrp', 'tcryo', 'tcl4', 'tcl5', 'tcl6', 'tct15', 'tct2', 'tct8', 'tcsp', 'tcld']
-        # with open(f'{out}.yaml', 'w') as file:
-        #     if '_family_dict' in self.__dict__.keys():
-        #         file.write('families:\n')
-        #         if lhc_style:
-        #             printed_families = []
-        #             fams_in_dict = self._family_dict.keys()
-
-        #             # Momentum cleaning
-        #             file.write('  # Momentum cleaning\n')
-        #             sel_fam = [fam for fam in LHC_families if re.match('.*3', fam) and (fam in fams_in_dict)]
-        #             printed_families += sel_fam
-        #             _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
-
-        #             # Betatron cleaning
-        #             file.write('  # Betatron cleaning\n')
-        #             sel_fam = [fam for fam in LHC_families if re.match('.*7', fam) and (fam in fams_in_dict)]
-        #             printed_families += sel_fam
-        #             _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
-
-        #             # Injection protection
-        #             file.write('  # Injection protection\n')
-        #             sel_fam = [fam for fam in LHC_families if (fam in ['tcli', 'tdi']) and (fam in fams_in_dict)]
-        #             printed_families += sel_fam
-        #             _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
-
-        #             # Dump protection
-        #             file.write('  # Dump protection\n')
-        #             sel_fam = [fam for fam in LHC_families if (fam in ['tcdq', 'tcsp', 'tcstcdq']) and (fam in fams_in_dict)]
-        #             printed_families += sel_fam
-        #             _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
-
-        #             # Physics background / debris
-        #             file.write('  # Physics background / debris\n')
-        #             sel_fam = [fam for fam in LHC_families if ((re.match('tc[lt][0-9dp].*', fam)) or (fam in ['tcryo', 'tcxrp'])) and (fam in fams_in_dict)]
-        #             printed_families += sel_fam
-        #             _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
-
-        #             # Other families
-        #             if set(printed_families) != set(fams_in_dict):
-        #                 file.write('  # Other families\n')
-        #                 _print_values(set(fams_in_dict) - set(printed_families), self._family_dict, file, spacing='  - &', mapping=True)
-        #         else:
-        #             file.write('  # Families\n')
-        #             _print_values(self._family_dict.keys(), self._family_dict, file, spacing='  - &', mapping=True)
-
-        #     # Emittance section
-        #     ex = self.nemitt_x
-        #     ey = self.nemitt_y
-        #     file.write(f'\nemittance:\n  x: {ex}\n  y: {ey}\n')
-
-        #     # Collimators section
-        #     file.write('\ncollimators:\n')
-        #     b1_colls, b2_colls, bx_colls = [], [], []
-        #     for coll in self.to_pandas().index:
-        #         if coll == 'tclia.4r2' or coll == 'tclia.4l8':    # TODO: hardcoded!!!
-        #             b1_colls.append(coll)
-        #             b2_colls.append(coll)
-        #         elif coll[-2:] == 'b1':
-        #             b1_colls.append(coll)
-        #         elif coll[-2:] == 'b2':
-        #             b2_colls.append(coll)
-        #         else:
-        #             bx_colls.append(coll)
-
-        #     # Handle special cases for collimators
-        #     if (('tclia.4r2' in b1_colls) or ('tclia.4l8' in b1_colls)) and (len(b1_colls) <= 2):
-        #         b1_colls = []
-        #     if (('tclia.4r2' in b2_colls) or ('tclia.4l8' in b2_colls)) and (len(b2_colls) <= 2):
-        #         b2_colls = []
-
-        #     # Print collimators for each beam
-        #     if len(b1_colls) > 0:
-        #         _print_colls(b1_colls, self, 'b1', file)
-        #     if len(b2_colls) > 0:
-        #         _print_colls(b2_colls, self, 'b2', file)
-        #     if len(bx_colls) > 0:
-        #         _print_colls(bx_colls, self, 'bx', file)
-        #         print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')
+        if isinstance(file, io.IOBase):
+            yaml.dump(self.to_dict(), file, **kwargs)
+        else:
+            file = Path(file).resolve()
+            if file.suffix != '.yaml':
+                file = file.with_suffix('.yaml')
+            with file.open('w') as fid:
+                yaml.dump(self.to_dict(), fid, **kwargs)
 
 
     # ====================================
@@ -517,6 +429,10 @@ class CollimatorDatabase:
     # ====================================
 
     def _get_names_from_line(self, line, names, families):
+        if names is not None and (not hasattr(names, '__iter__') or isinstance(names, str)):
+            names = [names]
+        if families is not None and (not hasattr(families, '__iter__') or isinstance(families, str)):
+            families = [families]
         if names is None and families is None:
             names = self.collimator_names
         elif names is None:
@@ -526,6 +442,7 @@ class CollimatorDatabase:
         return list(set(names)) # Remove duplicates
 
     def _check_installed(self, line, name, collimator_class):
+        if name in line.element_names:
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             if isinstance(line[name], collimator_classes):
@@ -540,6 +457,10 @@ class CollimatorDatabase:
                                + f"but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
                                + f"element.")
+        else:
+            if getattr(self, 's_center')[name] is None:
+                raise ValueError(f"Collimator {name} not found in line as Marker, nor  `s_center` "
+                               + f"defined, cannot install in line at correct position!")
 
     def _create_collimator(self, cls, line, name, **kwargs):
         self._check_installed(line, name, cls)
@@ -551,7 +472,8 @@ class CollimatorDatabase:
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
-        if 'family' in self[name] and self[name]['family'].lower() != 'unknown':
+        if 'family' in self[name] and self[name]['family'] \
+        and self[name]['family'].lower() != 'unknown':
             if self[name]['family'] == name:
                 raise ValueError(f"Collimator {name} has the same name as its family!")
             el.family = self[name]['family']
@@ -559,7 +481,8 @@ class CollimatorDatabase:
         el.name = name
         return el
 
-    def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+    def install_black_absorbers(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
         names = self._get_names_from_line(line, names, families)
         for name in names:
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
@@ -567,22 +490,120 @@ class CollimatorDatabase:
                 self._create_collimator(BlackCrystal, line, name, verbose=verbose)
             else:
                 self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
+        at = []
+        elements = []
+        for name in names:
+            s_center = getattr(self, 's_center')[name]
+            if s_center is None:
+                at.append(None)
+            else:
+                at.append(s_center - 0.5*getattr(self, 'length')[name])
+            elements.append(self._elements[name])
+        line.collimators.install(names, elements, at=at, apertures=apertures,
+                                 need_apertures=need_apertures, s_tol=s_tol)
+
+    def install_everest_collimators(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
+        names = self._get_names_from_line(line, names, families)
+        for name in names:
+            mat = self[name]['material']
+            if mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", FutureWarning)
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
+                self._create_collimator(EverestCrystal, line, name, material=mat, verbose=verbose)
+            else:
+                self._create_collimator(EverestCollimator, line, name, material=mat, verbose=verbose)
+        at = []
+        elements = []
+        for name in names:
+            s_center = getattr(self, 's_center')[name]
+            if s_center is None:
+                at.append(None)
+            else:
+                at.append(s_center - 0.5*getattr(self, 'length')[name])
+            elements.append(self._elements[name])
+        line.collimators.install(names, elements, at=at, apertures=apertures,
+                                 need_apertures=need_apertures, s_tol=s_tol)
+
+    def install_fluka_collimators(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
+        import xcoll as xc
+        if xc.fluka.engine.is_running():
+            print("Warning: FlukaEngine is already running. Stopping it to install collimators.")
+            xc.fluka.engine.stop()
+        names = self._get_names_from_line(line, names, families)
+        for name in names:
+            crystal_assembly = False
+            extra_kwargs = {}
+            if 'assembly' in self[name] and self[name]['assembly']:
+                mat = self[name].pop('material', None)
+                self[name].pop('side', None)
+                self[name].pop('bending_radius', None)
+                self[name].pop('bending_angle', None)
+                if self[name]['assembly'] in xc.fluka.assemblies:
+                    pro = xc.fluka.assemblies[self[name]['assembly']]
+                elif self[name]['assembly'] in xc.fluka.prototypes:
+                    pro = xc.fluka.prototypes[self[name]['assembly']]
+                else:
+                    raise ValueError(f"Unknown assembly or prototype "
+                                   + f"'{self[name]['assembly']}'.")
+                crystal_assembly = pro.is_crystal
+            else:
+                for kwarg in ['assembly', 'side', 'bending_radius', 'bending_angle']:
+                    if self[name].get(kwarg):
+                        extra_kwargs[kwarg] = self[name][kwarg]
+            mat = self[name].get('material')
+            if mat and mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", FutureWarning)
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']) \
+            or crystal_assembly:
+                self._create_collimator(FlukaCrystal, line, name, material=mat, verbose=verbose, **extra_kwargs)
+            else:
+                self._create_collimator(FlukaCollimator, line, name, material=mat, verbose=verbose, **extra_kwargs)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
-    def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+    def install_geant4_collimators(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
+        import xcoll as xc
+        if xc.geant4.engine.is_running():
+            print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
+            xc.geant4.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll(self[name]['material'])
+            mat = self[name].get('material')
+            if mat and mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", FutureWarning)
+            tip_material = self[name]['tip_material']
+            tip_thickness = self[name]['tip_thickness']
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']):
-                self._create_collimator(EverestCrystal, line, name, material=mat[1],
+                raise ValueError("Geant4Crystal not yet supported!")
+            elif tip_material is not None and tip_thickness > 0:
+                self._create_collimator(Geant4CollimatorTip, line, name, material=mat,
+                                        tip_material=tip_material, tip_thickness=tip_thickness,
                                         verbose=verbose)
             else:
-                self._create_collimator(EverestCollimator, line, name, material=mat[0],
-                                        verbose=verbose)
-        elements = [self._elements[name] for name in names]
-        line.collimators.install(names, elements, need_apertures=need_apertures)
+                self._create_collimator(Geant4Collimator, line, name, material=mat, verbose=verbose)
+        at = []
+        elements = []
+        for name in names:
+            s_center = getattr(self, 's_center')[name]
+            if s_center is None:
+                at.append(None)
+            else:
+                at.append(s_center - 0.5*getattr(self, 'length')[name])
+            elements.append(self._elements[name])
+        line.collimators.install(names, elements, at=at, apertures=apertures,
+                                 need_apertures=need_apertures, s_tol=s_tol)
 
 
     # ==================================
