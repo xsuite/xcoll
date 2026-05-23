@@ -6,7 +6,7 @@
 import xobjects as xo
 import numpy as np
 from ..general import _pkg_root
-from .base import InvalidXcoll
+from .base import InvalidXcoll, BaseCrystal
 
 
 class ChannellingDev(InvalidXcoll):
@@ -57,7 +57,7 @@ class BentChannellingDev(InvalidXcoll):
 # what would be the proper class once the code is ready? xt.BeamElement with particular settings? BaseCrystal? something different?
 
 
-class BentChannellingDev(InvalidXcoll):
+class BentChannellingDev(BaseCrystal):
     """
     Bent channelling element with ?harmonic-period step selection (needs to be done) and
     symplectic integrators.
@@ -66,18 +66,19 @@ class BentChannellingDev(InvalidXcoll):
     M4 = Simplified Moliere + bending
     """
 
-    _xofields = {
+    _xofields = {**BaseCrystal._xofields,
 
-        # geometry / basic parameters
-        'length' : xo.Float64,
-        'U0'     : xo.Float64,     # potential depth (harmonic model)
-        'Umax'   : xo.Float64,    # potential depth [eV]
-        'R'      : xo.Float64,     # bending radius
+        
 
+	 # material / potential parameters
         'dp'      : xo.Float64,    # interplanar distance [m]
         'aTF'     : xo.Float64,    # Thomas–Fermi screening length [m]
         'uT'      : xo.Float64,    # thermal vibration amplitude [m]
 
+
+	'U0'     : xo.Float64,     # potential depth (harmonic model)
+        'Umax'   : xo.Float64,    # potential depth [eV]
+        
         'alpha_i' : xo.Float64,    # dimensionless
         'beta_i'  : xo.Float64,    # dimensionless
 
@@ -91,20 +92,28 @@ class BentChannellingDev(InvalidXcoll):
         # If <0 --> automatic step selection (Μ2, Μ3 --> 60/harmonic period and M4 --> 10 per harmonic period)
         'n_steps' : xo.Int64,
         '_n_steps_auto': xo.Float64,
+        
+
     }
 
     isthick = True
-    behaves_like_drift = False
+    needs_rng = False #temporarilly
     allow_track = True
-    needs_rng = False
+    allow_double_sided = False #no double sided
+    behaves_like_drift = True
+    allow_rot_and_shift = False #its own mechanism for these things
+    allow_loss_refinement = True #for now only for compatibility reasons-->after integrating absorption will be useful
     skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
+    
+    _noexpr_fields         = BaseCrystal._noexpr_fields
+    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
+    _store_in_to_dict      = BaseCrystal._store_in_to_dict
+    _internal_record_class = BaseCrystal._internal_record_class
 
-    _depends_on = [InvalidXcoll]
+    _depends_on = [BaseCrystal]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements', 'elements_src', 'elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements', 'elements_src', 'bent_channelling_default_config.h'),
         _pkg_root.joinpath('beam_elements', 'elements_src', 'bent_channelling_kernels.h'),
         _pkg_root.joinpath('beam_elements', 'elements_src', 'bent_channelling_integrators.h'),
         _pkg_root.joinpath('beam_elements', 'elements_src', 'track_bent_channelling.h'),
@@ -120,12 +129,50 @@ class BentChannellingDev(InvalidXcoll):
 
     def __init__(self, **kwargs):
 
-        # =========================================================
-        # Geometry
-        # =========================================================
-        kwargs.setdefault('length', 1e-4)
-        kwargs.setdefault('R', 10.0)
+        to_assign = {}
 
+        if '_xobject' not in kwargs:
+ 
+            # ---------------------------------------------------------
+            # User-facing BaseCrystal geometry parameters
+            # ---------------------------------------------------------
+            required = ['length', 'width', 'height', 'bending_radius']
+
+            missing = [key for key in required if key not in kwargs]
+            if missing:
+                raise ValueError(
+                    "Missing required BentChannellingDev geometry parameters: "
+                    + ", ".join(missing)
+                    + ". Please provide length, width, height and bending_radius."
+                )
+
+            # Keep public parameters aside and assign them through properties
+            # after BaseCrystal construction.
+            to_assign['width'] = kwargs.pop('width')
+            to_assign['height'] = kwargs.pop('height')
+            to_assign['bending_radius'] = kwargs.pop('bending_radius')
+
+            # Optional public parameters
+            to_assign['angle'] = kwargs.pop('angle', 90.0)
+            to_assign['tilt'] = kwargs.pop('tilt', 0.0)
+
+            if 'gap' in kwargs:
+                to_assign['gap'] = kwargs.pop('gap')
+
+            if 'jaw_U' in kwargs:
+                to_assign['jaw_U'] = kwargs.pop('jaw_U')
+
+            # jaw_D is not stored directly in BaseCrystal, so ignore it for now.
+            kwargs.pop('jaw_D', None)
+
+            # BaseCrystal internal defaults only where necessary
+            kwargs.setdefault('_side', 1)
+            kwargs.setdefault('_align', 0)
+            kwargs.setdefault('active', True)
+            kwargs.setdefault('_record_interactions', False)
+            kwargs.setdefault('_nemitt_x', 0.0)
+            kwargs.setdefault('_nemitt_y', 0.0)
+        
         # =========================================================
         # Material defaults: Silicon (110)
         # =========================================================
@@ -150,11 +197,13 @@ class BentChannellingDev(InvalidXcoll):
         # =========================================================
         # Automatic n_steps computation (ONLY if user did not set it)
         # =========================================================
+        kwargs.setdefault('_n_steps_auto', 0.0)
+        
         if 'n_steps' not in kwargs:
             kwargs['n_steps'] = -1  # trigger for automatic
             method = kwargs['method']
             if method ==4:
-                npp = 8
+                npp = 10
             else: 
                 npp = 60 
             length = kwargs['length']
@@ -165,7 +214,7 @@ class BentChannellingDev(InvalidXcoll):
             dp      = kwargs['dp']
             # This value is only used to calculate the default number of steps.
             # The particle takes the real value from <track_bent_channelling.h>.
-            bpc     = kwargs.get('bpc', 150e9)  # safeguard
+            #bpc     = kwargs.get('bpc', 150e9)  # safeguard
 
             Uxx0 = (
                 2.0*Umax * alpha_i/beta_i
@@ -175,12 +224,14 @@ class BentChannellingDev(InvalidXcoll):
             omega = np.sqrt(Uxx0) * beta_i/aTF  # 1/m
 
             kwargs['_n_steps_auto'] = length * npp * omega / (2.0 * np.pi)
-
+            
+      
         # =========================================================
         # constructor LAST
         # =========================================================
         super().__init__(**kwargs)
-
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
 
     # user helpers
@@ -210,719 +261,10 @@ class BentChannellingDev(InvalidXcoll):
         self.dp      = dp
         self.aTF     = aTF
         self.uT      = uT
-        self.U0mol   = U0mol
+        self.U0mol   = U0mol #something's wrong here
         self.alpha_i = alpha_i
         self.beta_i  = beta_i
        
         
         
-# Model 2
-# --- Order 2 ---
-class BentChannellingDevM2V1o02(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
 
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V1o02.h')
-    ]
-    
-class BentChannellingDevM2V2o02(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V2o02.h')
-    ] 
-    
-# --- Order 4 ---
-class BentChannellingDevM2V1o04(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V1o04.h')
-    ]
-    
-class BentChannellingDevM2V2o04(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V2o04.h')
-    ] 
-    
-    
-# --- Order 6 ---
-class BentChannellingDevM2V1o06(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V1o06.h')
-    ]
-    
-class BentChannellingDevM2V2o06(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V2o06.h')
-    ] 
-    
-# --- Order 8 ---
-class BentChannellingDevM2V1o08(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V1o08.h')
-    ]
-    
-class BentChannellingDevM2V2o08(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V2o08.h')
-    ]
-
-# --- Order 10 ---
-class BentChannellingDevM2V1o10(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V1o10.h')
-    ]
-    
-class BentChannellingDevM2V2o10(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V2o10.h')
-    ]
-
-# --- Order 12 ---
-class BentChannellingDevM2V1o12(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V1o12.h')
-    ]
-    
-class BentChannellingDevM2V2o12(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM2V2o12.h')
-    ]
-
-
-# Model 3
-# --- Order 2 ---
-class BentChannellingDevM3V1o02(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V1o02.h')
-    ]
-    
-class BentChannellingDevM3V2o02(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V2o02.h')
-    ] 
-    
-# --- Order 4 ---
-class BentChannellingDevM3V1o04(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V1o04.h')
-    ]
-    
-class BentChannellingDevM3V2o04(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V2o04.h')
-    ] 
-    
-    
-# --- Order 6 ---
-class BentChannellingDevM3V1o06(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V1o06.h')
-    ]
-    
-class BentChannellingDevM3V2o06(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V2o06.h')
-    ] 
-    
-# --- Order 8 ---
-class BentChannellingDevM3V1o08(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V1o08.h')
-    ]
-    
-class BentChannellingDevM3V2o08(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V2o08.h')
-    ]
-
-# --- Order 10 ---
-class BentChannellingDevM3V1o10(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V1o10.h')
-    ]
-    
-class BentChannellingDevM3V2o10(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V2o10.h')
-    ]
-
-# --- Order 12 ---
-class BentChannellingDevM3V1o12(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V1o12.h')
-    ]
-    
-class BentChannellingDevM3V2o12(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM3V2o12.h')
-    ]
-
-# Model 4
-# --- Order 2 ---
-class BentChannellingDevM4V1o02(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V1o02.h')
-    ]
-    
-class BentChannellingDevM4V2o02(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V2o02.h')
-    ] 
-    
-# --- Order 4 ---
-class BentChannellingDevM4V1o04(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V1o04.h')
-    ]
-    
-class BentChannellingDevM4V2o04(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V2o04.h')
-    ] 
-    
-    
-# --- Order 6 ---
-class BentChannellingDevM4V1o06(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V1o06.h')
-    ]
-    
-class BentChannellingDevM4V2o06(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V2o06.h')
-    ] 
-    
-# --- Order 8 ---
-class BentChannellingDevM4V1o08(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V1o08.h')
-    ]
-    
-class BentChannellingDevM4V2o08(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V2o08.h')
-    ]
-
-# --- Order 10 ---
-class BentChannellingDevM4V1o10(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V1o10.h')
-    ]
-    
-class BentChannellingDevM4V2o10(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V2o10.h')
-    ]
-
-# --- Order 12 ---
-class BentChannellingDevM4V1o12(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V1o12.h')
-    ]
-    
-class BentChannellingDevM4V2o12(InvalidXcoll):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    behaves_like_drift = False
-    allow_track = True
-    needs_rng = False
-    skip_in_loss_location_refinement = True
-    allow_loss_refinement = False
-
-    _depends_on = [InvalidXcoll]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','bent_channellingM4V2o12.h')
-    ]
-
-                                       
