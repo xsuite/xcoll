@@ -34,6 +34,7 @@ typedef struct CrystalGeometry_ {
     double s_P;    // Miscut centre
     double x_P;
     double t_VImax;
+    int8_t is_precise;
     // Segments
     Segment* segments;
     // Impact table

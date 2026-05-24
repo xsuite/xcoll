@@ -25,7 +25,7 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
                                    CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
-    double const atoms = MaterialData_get__atoms_per_volume((MaterialData)material);
+    double const atoms = MaterialData_get__atoms_per_volume(material);
     double const eum  = MaterialData_get__crystal_potential(material);
 
     double bend_r = cg->bending_radius;
@@ -75,7 +75,8 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
 
 /*gpufun*/
 double* channel_transport(EverestData restrict everest, MaterialData restrict material,
-                          LocalParticle* part, double pc, double L_chan, double t_I, double t_P) {
+                          LocalParticle* part, CrystalGeometry restrict cg, double pc,
+                          double L_chan, int8_t is_precise) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
     //             This equates to an opening angle t_P wrt. to the point P (center of miscut if at start of crystal)
     //             The chord angle xp at the start of channelling (I) is t_P/2 + t_I
@@ -93,27 +94,36 @@ double* channel_transport(EverestData restrict everest, MaterialData restrict ma
     int64_t i_slot = -1;
     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELLING);
 
+    double s_in = LocalParticle_get_s(part);
+
     // Do channelling.
-    // The distance from I to F is the chord length of the angle t_P: d = 2 r sin(t_P/2)
-    // Hence the longitudinal distance (the length to be drifted) is the projection of this using the
-    // xp at the start of channelling: s = 2 r sin(t_P/2)cos(t_P/2 + t_I)
-    double t_chord= t_I + t_P/2.;
-    double drift_length = 2.*L_chan/t_P * sin(t_P/2.) * cos(t_chord);
-    LocalParticle_set_xp(part, t_chord);          // Angle at start of channelling
-    Drift_single_particle_4d(part, drift_length);
-    // In reality,the particle oscillates horizontally between the planes while channelling.
-    // This effect is mimicked by giving a random angle spread at the exit
-    double sigma_ran = 0.5*everest->t_c;
-    double ran = RandomNormal_generate(part);
-    while (fabs(ran) > 2.0) {
-        // Ensure that the kick is within [-tc, +tc]
-        ran = RandomNormal_generate(part);
+    if (is_precise){
+        precise_channelling_transport(everest, material, part, cg, pc, L_chan);
+
+    } else {
+        // The distance from I to F is the chord length of the angle t_P: d = 2 r sin(t_P/2)
+        // Hence the longitudinal distance (the length to be drifted) is the projection of this using the
+        // xp at the start of channelling: s = 2 r sin(t_P/2)cos(t_P/2 + t_I)
+        double t_I = everest->t_I;
+        double t_P = L_chan / everest->r;
+        double t_chord = t_I + t_P/2.;
+        double drift_length = 2.*L_chan/t_P * sin(t_P/2.) * cos(t_chord);
+        LocalParticle_set_xp(part, t_chord);          // Angle at start of channelling
+        Drift_single_particle_4d(part, drift_length);
+        // In reality,the particle oscillates horizontally between the planes while channelling.
+        // This effect is mimicked by giving a random angle spread at the exit
+        double sigma_ran = 0.5*everest->t_c;
+        double ran = RandomNormal_generate(part);
+        while (fabs(ran) > 2.0) {
+            // Ensure that the kick is within [-tc, +tc]
+            ran = RandomNormal_generate(part);
+        }
+        double ran_angle = ran*sigma_ran;
+        LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channelling
     }
-    double ran_angle = ran*sigma_ran;
-    LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channelling
 
     // Apply energy loss along trajectory
-    pc = calcionloss(everest, (MaterialData) material, part, L_chan, pc, 0.5);
+    pc = calcionloss(everest, material, part, L_chan, pc, 0.5);
     // TODO: LocalParticle_add_to_energy(part, - energy_loss*1.e9, change_angle);
     // if change_angle = 0  => LocalParticle_scale_px(part, old_rpp / new_rpp) such that xp remains the same
     // It is done in K2, so we should do it. Though, it seems that with the current implementation in xtrack
@@ -122,45 +132,11 @@ double* channel_transport(EverestData restrict everest, MaterialData restrict ma
     // Finally log particle at end of channelling
     if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
-    result[0] = drift_length;
+    result[0] = LocalParticle_get_s(part) - s_in;
     result[1] = pc;
     return result;
 }
 
-
-double do_crystal(EverestData restrict everest, MaterialData restrict material,
-                  LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
-    calculate_initial_angle(everest, part, cg);
-    calculate_opening_angle(everest, part, cg);
-#ifdef XCOLL_REFINE_ENERGY
-    calculate_critical_angle(everest, material, part, cg, pc);
-#endif
-#ifdef XCOLL_USE_EXACT
-    double const xp = LocalParticle_get_exact_xp(part);
-#else
-    double const xp = LocalParticle_get_xp(part);
-#endif
-    if (fabs(xp - everest->t_I) < everest->t_c) {
-        double alpha = fabs(xp - everest->t_I) / everest->t_c;
-        double ratio = everest->Rc_over_R;
-        double eta = MaterialData_get__eta(material);
-        double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(eta);
-        if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
-#ifdef XCOLL_TRANSITION_VRCH
-#ifdef XCOLL_REFINE_ENERGY
-            calculate_VI_parameters(everest, part, pc);
-#endif
-            volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_CH);
-#endif
-            pc = Amorphous(everest, material, part, cg, pc, length, 1);
-        } else {
-            pc = Channel(everest, material, part, cg, pc, length);
-        }
-    } else {
-        pc = Amorphous(everest, material, part, cg, pc, length, 1);
-    }
-    return pc;
-}
 
 double Channel(EverestData restrict everest, MaterialData restrict material,
                LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
@@ -169,11 +145,19 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
         return pc;
     }
 
+    calculate_initial_angle(everest, part, cg);
+    calculate_opening_angle(everest, part, cg);
+#ifdef XCOLL_REFINE_ENERGY
+    calculate_scattering(everest, material, pc);
+    calculate_ionisation_properties(everest, material, pc);
+    calculate_critical_angle(everest, material, part, cg, pc);
+    calculate_potentials(everest, cg, pc);
+#endif
+
     // CHANNEL
-    double t_I = everest->t_I;
-    double t_P = everest->t_P;
-    double L_chan = everest->r*t_P;
+    double L_chan = everest->r * everest->t_P;
     double ratio = everest->Rc_over_R;
+    int8_t is_precise = everest->coll->is_precise;
 
     // ------------------------------------------------
     // Calculate curved length L_dechan of dechannelling
@@ -204,14 +188,14 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
     // ------------------------------------------------------------------------
     if (L_chan <= fmin(L_dechan, L_nucl)){
         // Channel full length
-        double* result_chan = channel_transport(everest, material, part, pc, L_chan, t_I, t_P);
+        double* result_chan = channel_transport(everest, material, part, cg, pc, L_chan, is_precise);
         // double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
 
     } else if (L_dechan < L_nucl) {
         // Channel up to L_dechan, then amorphous
-        double* result_chan = channel_transport(everest, material, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan);
+        double* result_chan = channel_transport(everest, material, part, cg, pc, L_dechan, is_precise);
         double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
@@ -225,24 +209,18 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
 
     } else {
         // Channel up to L_nucl, then scatter, then amorphous
-        double* result_chan = channel_transport(everest, material, part, pc, L_nucl, t_I, t_P*L_nucl/L_chan);
+        double* result_chan = channel_transport(everest, material, part, cg, pc, L_nucl, is_precise);
         double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
         // Rescale nuclear interaction parameters
         everest->rescale_scattering = avrrho;
-#ifndef XCOLL_REFINE_ENERGY
-        calculate_scattering(everest, (MaterialData) material, pc);
-#endif
-        pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
+        pc = nuclear_interaction(everest, material, part, pc);
         if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
         } else {
             // We call the main Amorphous function for the leftover
             everest->rescale_scattering = 1;
-#ifndef XCOLL_REFINE_ENERGY
-            calculate_scattering(everest, (MaterialData) material, pc);
-#endif
             pc = Amorphous(everest, material, part, cg, pc, length - channeled_length, 1);
         }
     }

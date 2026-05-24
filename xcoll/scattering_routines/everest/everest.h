@@ -22,7 +22,20 @@ typedef struct EverestCollData_ {
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;
+    // Crystal properties
     int8_t orient;
+    // Exact channelling
+    int8_t is_precise;
+    double x_c;
+    double U_N;       // potential normalisation [eV]
+    double aTF_over_beta;
+    double beta_over_aTF;
+    // integrator configuration
+    int8_t method;    // 2, 3, 4: M2, M3, M4 are PHYSICAL MODELS
+    int8_t order;     // 2,4,6,8,10,12
+    int8_t variant;   // 1: Drift-Kick-Drift, 2: Kick-Drift-Kick
+    int64_t n_steps;
+    double  _n_steps_auto;
 } EverestCollData_;
 typedef EverestCollData_ *EverestCollData;
 
@@ -54,6 +67,9 @@ typedef struct EverestData_ {
     double t_I;
     double t_P;
     double r;
+    double U_min;
+    double U_well;
+    int8_t overbent;
 } EverestData_;
 typedef EverestData_ *EverestData;
 

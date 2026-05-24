@@ -3,10 +3,13 @@
 // Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
-#ifndef BENT_CHANNELLING_INTEGRATORS_H
-#define BENT_CHANNELLING_INTEGRATORS_H
+#ifndef XCOLL_EVEREST_PRECISE_CHANNELLING_INTEGRATORS_H
+#define XCOLL_EVEREST_PRECISE_CHANNELLING_INTEGRATORS_H
 
+#ifdef XO_CONTEXT_CPU
 #include <stdint.h>  // for int8_t
+#endif  // XO_CONTEXT_CPU
+
 
 // ============================================================================
 // Yoshida coefficients 
@@ -175,7 +178,7 @@ GPUFUN void yoshida_get_weights(int8_t order,
     double bpc,  double U_N, double U, double sqrt_U, double R, \
     double* x, double* px
 
-    #define FM_SIG_H1 \
+#define FM_SIG_H1 \
     double length, double x0, double px0, \
     double bpc,  double U_N, double U, \
     double aTF_over_beta, double beta_over_aTF, double R,\
@@ -491,4 +494,4 @@ GPUFUN void fM4_apply_yoshida(
     *px = pp;
 }
 
-#endif // BENT_CHANNELLING_INTEGRATORS_H
+#endif // XCOLL_EVEREST_PRECISE_CHANNELLING_INTEGRATORS_H

@@ -28,7 +28,12 @@ class EverestEngine(xt.BeamElement):
         _pkg_root.joinpath('scattering_routines','everest','multiple_coulomb_scattering.h'),
         _pkg_root.joinpath('scattering_routines','everest','nuclear_interaction.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal_parameters.h'),
+        _pkg_root.joinpath('scattering_routines','everest','elliptic_functions.h'),
+        _pkg_root.joinpath('scattering_routines','everest','precise_channelling_kernels.h'),
+        _pkg_root.joinpath('scattering_routines','everest','precise_channelling_integrators.h'),
+        _pkg_root.joinpath('scattering_routines','everest','precise_channelling.h'),
         _pkg_root.joinpath('scattering_routines','everest','amorphous.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
-        _pkg_root.joinpath('scattering_routines','everest','channelling.h')
+        _pkg_root.joinpath('scattering_routines','everest','channelling.h'),
+        _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
     ]

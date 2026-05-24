@@ -24,7 +24,7 @@ class ChannellingDev(InvalidXcoll):
     _depends_on = [InvalidXcoll]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
+        _pkg_root.joinpath('scattering_routines','everest','elliptic_functions.h'),
         _pkg_root.joinpath('beam_elements','elements_src','channelling.h')
     ]
 
@@ -113,9 +113,9 @@ class BentChannellingDev(BaseCrystal):
     _depends_on = [BaseCrystal]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements', 'elements_src', 'elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements', 'elements_src', 'bent_channelling_kernels.h'),
-        _pkg_root.joinpath('beam_elements', 'elements_src', 'bent_channelling_integrators.h'),
+        _pkg_root.joinpath('scattering_routines','everest', 'elliptic_functions.h'),
+        _pkg_root.joinpath('scattering_routines','everest', 'precise_channelling_kernels.h'),
+        _pkg_root.joinpath('scattering_routines','everest', 'precise_channelling_integrators.h'),
         _pkg_root.joinpath('beam_elements', 'elements_src', 'track_bent_channelling.h'),
         _pkg_root.joinpath('beam_elements', 'elements_src', 'bent_channelling.h'),
 

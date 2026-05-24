@@ -18,9 +18,10 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, 
     double x = LocalParticle_get_x(part);
     double s_P = cg->s_P;
     double x_P = cg->x_P;
-    double r   = sqrt((s-s_P)*(s-s_P) + (x-x_P)*(x-x_P));
+    double r   = hypot(s-s_P, x-x_P);  // r = sqrt((s-s_P)^2 + (x-x_P)^2) but optimised for overflow/underflow
     everest->r = r;
-    everest->t_I = R/fabs(R)*asin( (s-s_P)/r); // Tangent angle of the channelling planes (not necessarily the same as xp)
+    double sign_R = copysign(1.0, R);
+    everest->t_I = sign_R * asin( (s-s_P)/r); // Tangent angle of the channelling planes (not necessarily the same as xp)
 }
 
 

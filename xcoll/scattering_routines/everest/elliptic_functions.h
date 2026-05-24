@@ -1,16 +1,22 @@
-#ifndef MYFUNCTIONS_H
-#define MYFUNCTIONS_H
+// copyright ############################### #
+// This file is part of the Xcoll package.   #
+// Copyright (c) CERN, 2025.                 #
+// ######################################### #
 
+#ifndef XCOLL_EVEREST_ELLIPTIC_FUNCTIONS_H
+#define XCOLL_EVEREST_ELLIPTIC_FUNCTIONS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
+#endif  // XO_CONTEXT_CPU
+
 
 // ================================================================
 //  Mathematical constants (GPU/CPU safe)
 // ===============================================================
-#define MY_PI       3.14159265358979323846
 #define MY_PIO2     1.57079632679489661923
 //Cephes uses MACHEP 2^(-53) as a tight bound on relative rounding error in many formulas and stopping criteria.
 #define MY_MACHEP   1.11022302462515654042E-16
-#define MY_MAXNUM   1.7976931348623158E308
 
 
 // ================================================================
@@ -70,7 +76,7 @@ GPUFUN double ellpk(double x)
 
     // Very small x: use asymptotic form
     if (x == 0.0) {
-        return MY_MAXNUM;  // singularity
+        return DBL_MAX;  // singularity
     }
 
     return C1 - 0.5 * log(x);
@@ -89,7 +95,7 @@ GPUFUN double ellik(double phi, double m)
     // m → 1: logarithmic singularity
     if (a == 0.0) {
         if (fabs(phi) >= MY_PIO2) {
-            return MY_MAXNUM;
+            return DBL_MAX;
         }
         return log(tan((MY_PIO2 + phi) * 0.5));
     }
@@ -141,8 +147,8 @@ GPUFUN double ellik(double phi, double m)
 
     while (fabs(c / a) > MY_MACHEP) {
         double temp = b / a;
-        phi = phi + atan(t * temp) + mod * MY_PI;
-        mod = (int)((phi + MY_PIO2) / MY_PI);
+        phi = phi + atan(t * temp) + mod * PI;
+        mod = (int)((phi + MY_PIO2) / PI);
 
         t = t * (1.0 + temp) / (1.0 - temp * t * t);
 
@@ -154,7 +160,7 @@ GPUFUN double ellik(double phi, double m)
         d += d;
     }
 
-    double temp = (atan(t) + mod * MY_PI) / (d * a);
+    double temp = (atan(t) + mod * PI) / (d * a);
     if (sign < 0) {
         temp = -temp;
     }
@@ -180,8 +186,8 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn)
         //double t = sin(u);
         //double c = cos(u);
 
-        double t, c;
-        sincos(u, &t, &c);
+        double t = sin(u);
+        double c = cos(u);
 
         double ai = 0.25 * m * (u - t*c);
 
@@ -248,8 +254,8 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn)
     //*cn = cos(phi);
     //*dn = sqrt(1.0 - m * s * s);
     //*ph = phi;
-    double sphi, cphi;
-    sincos(phi, &sphi, &cphi);
+    double sphi = sin(phi);
+    double cphi = cos(phi);
 
     *sn = sphi;
     *cn = cphi;
@@ -259,4 +265,4 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn)
 }
 
 
-#endif // MYFUNCTIONS_H
+#endif // XCOLL_EVEREST_ELLIPTIC_FUNCTIONS_H

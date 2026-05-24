@@ -14,7 +14,6 @@
 
 /*gpufun*/
 void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t transition) {
-
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
@@ -49,7 +48,6 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 /*gpufun*/
 double amorphous_transport(EverestData restrict everest, MaterialData restrict material,
                            LocalParticle* part, double pc, double length, int8_t transition) {
-
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
@@ -76,7 +74,7 @@ double amorphous_transport(EverestData restrict everest, MaterialData restrict m
     Drift_single_particle_4d(part, length);
 
     // Energy lost because of ionisation process[GeV]
-    pc = calcionloss(everest, (MaterialData) material, part, length, pc, 1);
+    pc = calcionloss(everest, material, part, length, pc, 1);
 
     // Store new angles
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
@@ -110,11 +108,6 @@ double volume_interaction(EverestData restrict everest, MaterialData restrict ma
             InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE);
         }
         // We call the main Channel function for the leftover
-        calculate_initial_angle(everest, part, cg);
-        calculate_opening_angle(everest, part, cg);
-        #ifdef XCOLL_REFINE_ENERGY
-            calculate_critical_angle(everest, material, part, cg, pc);
-        #endif
         pc = Channel(everest, material, part, cg, pc, length);
     }
     return pc;
@@ -123,13 +116,16 @@ double volume_interaction(EverestData restrict everest, MaterialData restrict ma
 // /*gpufun*/
 double Amorphous(EverestData restrict everest, MaterialData restrict material,
            LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
-
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
         return pc;
     }
 
     calculate_initial_angle(everest, part, cg);
+#ifdef XCOLL_REFINE_ENERGY
+    calculate_scattering(everest, material, pc);
+    calculate_ionisation_properties(everest, material, pc);
+#endif
 
     // -----------------------------------------------
     // Calculate longitudinal position where we go out
@@ -210,7 +206,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
         // MCS to nuclear interaction
         pc = amorphous_transport(everest, material, part, pc, length_nucl, 0);
         // interact
-        pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
+        pc = nuclear_interaction(everest, material, part, pc);
         if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
         } else {

@@ -6,10 +6,10 @@
 from .general import _pkg_root, __version__, citation
 
 from .beam_elements import (BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal,
-                            EverestBlock, EverestCollimator, EverestCrystal, Geant4Collimator,
-                            Geant4CollimatorTip, Geant4Crystal, FlukaCollimator, FlukaCrystal,
-                            BlowUp, EmittanceMonitor, collimator_classes, crystal_classes,
-                            element_classes)
+                            EverestBlock, EverestCollimator, EverestCrystal, EverestPreciseCrystal,
+                            Geant4Collimator, Geant4CollimatorTip, Geant4Crystal, FlukaCollimator,
+                            FlukaCrystal, BlowUp, EmittanceMonitor, ChannellingDev, BentChannellingDev,
+                            collimator_classes, crystal_classes, element_classes)
 from .materials import Material, RefMaterial
 from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, create_generic_assembly
 from .scattering_routines.geant4 import Geant4Engine
