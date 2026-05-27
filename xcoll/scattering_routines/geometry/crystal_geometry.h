@@ -128,7 +128,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
         LocalParticle_set_s(part, new_s);
         if (cg->side == 1){
             if (cg->record_impacts){
-                InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L, 1);
             }
 
         } else {
@@ -140,7 +140,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
             LocalParticle_scale_xp(part, -1);
 #endif
             if (cg->record_impacts){
-                InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R, -1);
             }
         }
         return cg->side;
@@ -193,7 +193,7 @@ void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeome
     if (is_hit != 0){
         if (LocalParticle_get_state(part) > 0){
             if (cg->record_exits){
-                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW, is_hit);
             }
         }
         if (cg->side == -1){

@@ -230,6 +230,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
                     EverestData everest = EverestCrystal_init_data(part, material, coll, cg);
+                    everest->shape_id = is_hit;
                     pc_out = do_crystal(everest, material, part, cg, pc_in/1.e9, remaining_length)*1.e9;
                     free(everest);
                 }

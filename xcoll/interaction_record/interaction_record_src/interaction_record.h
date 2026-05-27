@@ -15,7 +15,7 @@
 // probably can do RecordIndex record_index = InteractionRecordData_getp__index(record);  ?
 /*gpufun*/
 int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex record_index, LocalParticle* parent,
-                                  int64_t interaction){
+                                  int64_t interaction, int64_t shape_id){
     // This can be used for a point-like interaction where there is no child (or because it's equal to the parent)
     // or to log the parent first, to be followed up with InteractionRecordData_log_child on the same slot
 
@@ -26,9 +26,10 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
         // The returned slot id is negative if record is NULL or if record is full
 
         if (i_slot>=0){
-            InteractionRecordData_set_at_element(record, i_slot, LocalParticle_get_at_element(parent));
             InteractionRecordData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(parent));
+            InteractionRecordData_set_at_element(record, i_slot, LocalParticle_get_at_element(parent));
             InteractionRecordData_set__inter(record, i_slot, interaction);
+            InteractionRecordData_set_shape_id(record, i_slot, shape_id);
 
             double charge_ratio = LocalParticle_get_charge_ratio(parent);
             double mass_ratio = charge_ratio / LocalParticle_get_chi(parent);

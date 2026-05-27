@@ -93,7 +93,7 @@ def track_core(coll, part):
     _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
     A          = np.array([0 if pdgid < 0 else aa for aa, pdgid in zip(A, pdg_id)])  # FLUKA treats antiprotons as A = 0 = Z
     Z          = np.array([0 if pdgid < 0 else zz for zz, pdgid in zip(Z, pdg_id)])
-    precision  = p0c * 1.e-12  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
+    precision  = p0c * 1.e-12  # To avoid numerical issues like negative energy. Ideally this should be 2.22e-15
 
     # Decide how much extra capacity to send to FLUKA
     min_capacity = 50
@@ -222,9 +222,6 @@ def track_core(coll, part):
         # First mark the state of surviving particles as they were before
         part.state[idx_alive_prim] = 1
         part.state[idx_alive_sec] = SECONDARY_PARTICLE
-        # Then mark scattered particles, if requested
-        if coll.mark_scattered_particles:
-            part.state[mask_hit] = SECONDARY_PARTICLE
 
 
     # Add new particles
@@ -244,18 +241,25 @@ def track_core(coll, part):
 
         # Parent particle IDs
         parents = new_ppid[mask_new]
-        pids = part.particle_id[send_to_fluka]
-        max_id_in = int(pids.max())
         assert np.all(parents >= 0)        # Sanity check
-        assert parents.max() <= max_id_in  # Sanity check
+        assert parents.max() <= part.particle_id[send_to_fluka].max()  # Sanity check
 
         # Build dense lookup table: ID -> index in `pids`
+        # First check that all parent IDs are present in the sent particle IDs
+        pids = part.particle_id[send_to_fluka]
+        max_id_in = int(pids.max())
         lookup = np.full(max_id_in + 1, -1, dtype=np.int64)
         lookup[pids] = np.arange(pids.size, dtype=np.int64)
         idx_parents = lookup[parents]   # MUCH faster than solution with np.where
         if np.any(idx_parents < 0):
             missing = np.unique(parents[idx_parents < 0])
             raise RuntimeError(f"Parent IDs not found in particle_id: {missing}")
+        # Now we create the lookup table on the full pids, to be able to use it for the energy correction of the parents
+        pids = part.particle_id[part.particle_id>-1]
+        max_id_in = int(pids.max())
+        lookup = np.full(max_id_in + 1, -1, dtype=np.int64)
+        lookup[pids] = np.arange(pids.size, dtype=np.int64)
+        idx_parents = lookup[parents]   # MUCH faster than solution with np.where
 
         # Create new particles
         E = data['e'][:npart][mask_new] * 1.e6
@@ -288,12 +292,21 @@ def track_core(coll, part):
                 charge_ratio = q / q0,
                 at_element = ele_in,
                 at_turn = turn_in,
-                state = SECONDARY_PARTICLE,
                 pdg_id = data['pdg_id'][:npart][mask_new],
                 particle_id = new_pid[mask_new],
                 parent_particle_id = new_ppid[mask_new],
                 weight = data['weight'][:npart][mask_new],
                 start_tracking_at_element = start)
+
+        # Mark scattered particles corretly
+        if coll.mark_scattered_particles:
+            new_part.state[new_part.state == 1] = SECONDARY_PARTICLE
+        else:
+            # Only mark those for which the parent was marked as secondary
+            sec_states = np.array([LOST_ON_MATERIAL_SEC, VIRTUAL_ENERGY_SEC, SECONDARY_PARTICLE])
+            idx_sec = np.searchsorted(pid_old_sorted, new_part.parent_particle_id)
+            parent_states = part.state[idx_old][idx_sec]
+            new_part.state[np.isin(parent_states, sec_states)] = SECONDARY_PARTICLE
 
         # Correct the deposited energy of parent particles: not everything was lost there.
         E_children = np.bincount(idx_parents, weights=new_part.energy, minlength=part._capacity)
@@ -320,8 +333,8 @@ def track_core(coll, part):
             new_ptau[mask_virtual] = (1/beta0 + old_ptau)*old_mass/virtual_mass - 1/beta0
             part.update_ptau(new_ptau)
             part.state[mask_virtual & (part.state==1)] = -VIRTUAL_ENERGY
-            part.state[mask_virtual & (part.state==LOST_ON_MATERIAL)] = -VIRTUAL_ENERGY
-            part.state[mask_virtual & (part.state==LOST_ON_MATERIAL_SEC)] = -VIRTUAL_ENERGY_SEC
+            part.state[mask_virtual & (part.state==-LOST_ON_MATERIAL)] = -VIRTUAL_ENERGY
+            part.state[mask_virtual & (part.state==-LOST_ON_MATERIAL_SEC)] = -VIRTUAL_ENERGY_SEC
             part.state[mask_virtual & (part.state==SECONDARY_PARTICLE)] = -VIRTUAL_ENERGY_SEC
         # Now update the parent energies
         part.add_to_energy(-E_children)
@@ -335,7 +348,7 @@ def track_core(coll, part):
         if max_particle_id <= xc.fluka.engine.max_particle_id:
             raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
                            + f"lower than the highest ID known ({xc.fluka.engine.max_particle_id}).\n"
-                           + "This should not happen. Please report this issue to the developers.")
+                           + f"This should not happen. Please report this issue to the developers.")
         xc.fluka.engine._max_particle_id = max_particle_id
 
     # Kill all flagged particles
@@ -345,6 +358,12 @@ def track_core(coll, part):
     part.state[part.state==-VIRTUAL_ENERGY_SEC] = VIRTUAL_ENERGY_SEC
     # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
     part.state[part.state==-MASSLESS_OR_NEUTRAL] = MASSLESS_OR_NEUTRAL
+
+    # Finally, mark scattered particles that survived, if requested.
+    # This can only be done now to avoid issues with the energy updating
+    # of virtual particles.
+    if coll.mark_scattered_particles:
+        part.state[mask_hit] = SECONDARY_PARTICLE
 
     # Reshuffle
     part.reorganize()

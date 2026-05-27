@@ -174,7 +174,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), asin(cg->sin_yL));
         LocalParticle_set_s(part, new_s);
         if (cg->record_impacts){
-            InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
+            InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L, is_hit);
         }
 
     } else if (is_hit == -1){
@@ -198,7 +198,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
         LocalParticle_scale_xp(part, -1);
 #endif
         if (cg->record_impacts){
-            InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
+            InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R, is_hit);
         }
 
     } else {
@@ -260,7 +260,7 @@ void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry rest
 void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
     if (is_hit != 0 && LocalParticle_get_state(part) > 0){
         if (cg->record_exits){
-            InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
+            InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW, is_hit);
         }
     }
     if (is_hit == 1){

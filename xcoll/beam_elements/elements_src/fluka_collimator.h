@@ -93,7 +93,8 @@ void FlukaCollimator_free(CollimatorGeometry restrict cg){
 /*gpufun*/
 void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle* part0){
     int8_t active = FlukaCollimatorData_get_active(el);
-    active       *= FlukaCollimatorData_get__tracking(el);
+    active *= FlukaCollimatorData_get__tracking(el);
+    double length_front = FlukaCollimatorData_get_length_front(el);
 
     // Get geometry
     CollimatorGeometry cg;
@@ -104,8 +105,7 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
-            double length = FlukaCollimatorData_get_length(el);
-            length += FlukaCollimatorData_get_length_front(el);
+            double length = FlukaCollimatorData_get_length(el) + length_front;
             length += FlukaCollimatorData_get_length_back(el);
             Drift_single_particle(part, length);
 
@@ -116,7 +116,7 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
             if (is_tracking) {
                 // Store s-location of start of collimator
                 double s_coll = LocalParticle_get_s(part);
-                LocalParticle_set_s(part, 0);
+                LocalParticle_set_s(part, 0); // Such that impact table is wrt start of jaw
 
                 // Check if hit on jaws
                 int8_t is_hit;

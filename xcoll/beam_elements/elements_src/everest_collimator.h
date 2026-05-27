@@ -190,6 +190,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
                     EverestData everest = EverestCollimator_init_data(part, material, coll);
+                    everest->shape_id = is_hit;
                     pc_out = jaw(everest, material, part, pc_in, remaining_length, 1);
                     free(everest);
                 }

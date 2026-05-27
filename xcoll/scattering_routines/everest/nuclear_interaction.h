@@ -41,7 +41,7 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
     //    if elastic, p1 = p3, and hence t = 2m^2 - 2(m^2 + p^2) + 2p^2 cos(theta)
     int64_t i_slot = -1;
     if (ichoix==1) {
-        if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+        if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED, everest->shape_id);
         if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
             LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
         } else {
@@ -52,17 +52,17 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
         double sqrt_t_p;
         if (ichoix==2) {
             // p-n elastic
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
+            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC, everest->shape_id);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
 
         } else if (ichoix==3) {
             // p-p elastic
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC, everest->shape_id);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
 
         } else if (ichoix==4) {
             // Single diffractive
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE, everest->shape_id);
             double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             double bsd;
             if (xm2 < 2.) {
@@ -76,7 +76,7 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
             pc = pc*(1 - xm2/everest->ecmsq);
             if (pc <= 1.e-9 || pc != pc) {
                 // Very small (<1eV) or NaN
-                if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+                if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED, everest->shape_id);
                 if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
                     LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
                 } else {
@@ -91,7 +91,7 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
 
         } else {
             // Coulomb
-            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
+            if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB, everest->shape_id);
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
         }
 

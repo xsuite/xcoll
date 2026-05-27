@@ -80,8 +80,11 @@ class BaseBlock(xt.BeamElement):
     _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
                          'record_scatterings', 'mark_scattered_particles']
     _internal_record_class = InteractionRecord
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss',
-                                   '_acc_ionisation_loss_sec']
+    _allowed_fields_when_frozen = ['_tracking', '_record_interactions',
+                            '_acc_ionisation_loss', '_acc_ionisation_loss_sec',
+                            'record_scatterings', 'mark_scattered_particles',
+                            'record_impacts', 'record_exits', 'io_buffer',
+                            'record']
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
