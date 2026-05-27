@@ -22,3 +22,6 @@ pytest -n 12 -m xcother
 
 # Run xaux tests
 pytest -n 12 -m xaux
+
+# Run with ipdb
+pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb

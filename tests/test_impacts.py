@@ -8,7 +8,6 @@ import numpy as np
 from pathlib import Path
 
 import xtrack as xt
-import xpart as xp
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -62,7 +61,7 @@ def test_impacts_single_collimator(test_context):
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
     impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
     coll.track(part)
@@ -88,7 +87,7 @@ def test_impacts_single_crystal(R, side, test_context):
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
     impacts = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
     coll.track(part)
