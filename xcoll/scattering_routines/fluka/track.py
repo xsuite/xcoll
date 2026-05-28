@@ -303,7 +303,7 @@ def track_core(coll, part):
             new_part.state[new_part.state == 1] = SECONDARY_PARTICLE
         else:
             # Only mark those for which the parent was marked as secondary
-            sec_states = np.array([LOST_ON_MATERIAL_SEC, VIRTUAL_ENERGY_SEC, SECONDARY_PARTICLE])
+            sec_states = np.array([-LOST_ON_MATERIAL_SEC, -VIRTUAL_ENERGY_SEC, -SECONDARY_PARTICLE])
             idx_sec = np.searchsorted(pid_old_sorted, new_part.parent_particle_id)
             parent_states = part.state[idx_old][idx_sec]
             new_part.state[np.isin(parent_states, sec_states)] = SECONDARY_PARTICLE
