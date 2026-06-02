@@ -66,6 +66,8 @@ def test_impacts(jaw, angle, tilt):
 
     impacts.stop(names=[coll.name], elements=[coll])
 
+    import pdb; pdb.set_trace()
+
     df = pd.read_csv(file_path, sep=r"\s+", comment='*')
 
     # FLUKA ids start in 1. Changed to 0
@@ -74,17 +76,17 @@ def test_impacts(jaw, angle, tilt):
     xcoll_ids = np.unique(impacts.id_before)
 
     # 4. Compare: find which xcoll_ids are present in IDP (and vice versa)
-    in_idp_not_in_impacts = np.setdiff1d(fluka_ids, xcoll_ids)
-    in_impacts_not_in_idp = np.setdiff1d(xcoll_ids, fluka_ids)
+    in_fluka_not_in_xcoll = np.setdiff1d(fluka_ids, xcoll_ids)
+    in_xcoll_not_in_fluka = np.setdiff1d(xcoll_ids, fluka_ids)
     common = np.intersect1d(fluka_ids, xcoll_ids)
 
-    assert len(in_idp_not_in_impacts) == 0
+    assert len(in_fluka_not_in_xcoll) == 0
 
     # print(f"FLUKA values:           {fluka_ids}")
     # print(f"Xcoll: {xcoll_ids}")
     # print(f"Common:               {common}")
-    print(f"In FLUKA but not Xcoll: {in_idp_not_in_impacts}")
-    print(f"In Xcoll but not FLUKA: {in_impacts_not_in_idp}")
+    print(f"In FLUKA but not Xcoll: {in_fluka_not_in_xcoll}")
+    print(f"In Xcoll but not FLUKA: {in_xcoll_not_in_fluka}")
 
     import subprocess
 
