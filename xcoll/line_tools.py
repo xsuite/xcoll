@@ -18,6 +18,45 @@ def _iterable(obj):
     return  hasattr(obj, '__iter__') and not isinstance(obj, str)
 
 
+class XcollLineAPI:
+    def __init__(self, line):
+        self._line = line
+
+    @property
+    def line(self):
+        return self._line
+
+    @property
+    def scattering(self):
+        """
+        Interface to Xcoll scattering tools for this line.
+
+        Returns
+        -------
+        scattering : object
+            Xcoll scattering API bound to this line.
+        """
+        if not hasattr(self.line, '_scattering') or self.line._scattering is None:
+            self.line._scattering = XcollScatteringAPI(line=self.line)
+
+        return self.line._scattering
+
+    @property
+    def collimators(self):
+        """
+        Interface to Xcoll collimator tools for this line.
+
+        Returns
+        -------
+        collimators : object
+            Xcoll collimator API bound to this line.
+        """
+        if not hasattr(self.line, '_collimators') or self.line._collimators is None:
+            self.line._collimators = XcollCollimatorAPI(line=self.line)
+
+        return self.line._collimators
+
+
 class XcollLineAccessor:
     _typename = 'element'
 
@@ -121,7 +160,12 @@ class XcollScatteringAPI(XcollLineAccessor):
     def names(self):
         # This makes sure the accessor can access the names of the
         # collimators dynamically
-        return self.line.get_elements_of_type(element_classes)[1]
+        tt = self.line.get_table()
+        names = []
+        for cc in element_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            names += list(ttcc.name)
+        return names
 
     def enable(self):
         if len(self) == 0:
@@ -168,7 +212,12 @@ class XcollCollimatorAPI(XcollLineAccessor):
     def names(self):
         # This makes sure the accessor can access the names of the
         # collimators dynamically
-        return self.line.get_elements_of_type(collimator_classes)[1]
+        tt = self.line.get_table()
+        names = []
+        for cc in collimator_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            names += list(ttcc.name)
+        return names
 
     @property
     def families(self):
@@ -224,26 +273,15 @@ class XcollCollimatorAPI(XcollLineAccessor):
             warn("Warning: `at_s` is deprecated and will be removed in the "
                  "future. Please use `at` instead.", FutureWarning)
             at = at_s
-        if not _iterable(names) or not _iterable(elements) \
-        or not _iterable(at):
-            if _iterable(names):
-                raise ValueError("`names` should not be a list if any of the "
-                                 "other arguments is not a list.")
-            if _iterable(elements):
-                raise ValueError("`elements` should not be a list if any of "
-                                 "the other arguments is not a list.")
-            if _iterable(at):
-                raise ValueError("`at` should not be a list if any of the "
-                                 "other arguments is not a list.")
+        if not _iterable(names):
             names = [names]
+        if not _iterable(elements):
             elements = [elements]
+        if not _iterable(at):
             at = [at for _ in range(len(names))]
-            apertures = [apertures for _ in range(len(names))]
-        if not _iterable(apertures):
-            apertures = [apertures for _ in range(len(names))]
-        names = np.array(names)
-        length = np.array([coll.length for coll in elements])
-        if len(length) != len(names):
+        apertures = [apertures for _ in range(len(names))]  # TODO: this should be done smarter! What if we want to provide a different aperture for each element?
+        # names = np.array(names)
+        if len(elements) != len(names):
             raise ValueError("Length of `elements` does not match length of "
                              "`names`.")
         if len(at) != len(names):
@@ -252,6 +290,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
         if len(apertures) != len(names):
             raise ValueError("Length of `apertures` does not match length of "
                              "`names`.")
+        length = np.array([coll.length for coll in elements])
 
         # Verify elements
         for name, el in zip(names, elements):
@@ -483,7 +522,12 @@ class XcollCollimatorAPI(XcollLineAccessor):
                                twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 
     def align_to_beam_divergence(self):
-        crystals = self.line.get_elements_of_type(crystal_classes)[0]
+        tt = self.line.get_table()
+        crystal_names = []
+        for cc in crystal_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            crystal_names += list(ttcc.name)
+        crystals = [self.line.get(nn) for nn in crystal_names]
         if len(crystals) == 0:
             warn("No crystals found in line to align to beam divergence.")
         for el in crystals:

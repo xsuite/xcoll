@@ -140,11 +140,14 @@ def test_fluka_input_line(ignore_crystals):
     colldb = xc.CollimatorDatabase.from_yaml(path / 'data' / f'colldb_lhc_run3_ir7.yaml', beam=beam,
                                              ignore_crystals=ignore_crystals)
     colldb.install_fluka_collimators(line=line, verbose=True)
-    colls, _ = line.get_elements_of_type(xc.collimator_classes)
+    tt_colls = line.get_table().rows.match(
+        element_type='|'.join(cc.__name__ for cc in xc.collimator_classes)
+    )
+    colls = [line[name] for name in tt_colls.name]
     line.build_tracker()
-    line.collimators.assign_optics()
+    line.xcoll.collimators.assign_optics()
     if not ignore_crystals:
-        line.collimators.align_to_beam_divergence()
+        line.xcoll.collimators.align_to_beam_divergence()
     path_tmp = Path.cwd() / f'temp_fluka_test_line_{ignore_crystals}'
     particle_ref = xt.Particles('proton', p0c=7e12)
     input_file = xc.fluka.engine.generate_input_file(line=line, clean=False, cwd=path_tmp,

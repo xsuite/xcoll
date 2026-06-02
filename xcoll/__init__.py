@@ -18,6 +18,8 @@ from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
 from .particles_tree import ParticlesTree
+from .line_tools import XcollLineAPI
+from .environment_tools import XcollEnvironmentAPI
 
 from .constants import particle_states, particle_state_names, interactions, interaction_names
 

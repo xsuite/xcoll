@@ -35,7 +35,7 @@ line = env[f'lhcb{beam}']
 TCPH = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
 TCPV = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, angle=90, emittance=3.5e-6)
 TCPS = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.Carbon, angle=127.5, emittance=3.5e-6)
-line.collimators.install(['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
+line.xcoll.collimators.install(['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
 
 
 # Aperture model check
@@ -49,7 +49,7 @@ line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
-line.collimators.assign_optics()
+line.xcoll.collimators.assign_optics()
 
 
 # --------------------------------------------------------
@@ -73,9 +73,9 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking first test.. ")
-line.scattering.enable()
+line.xcoll.scattering.enable()
 line.track(part, num_turns=1)
-line.scattering.disable()
+line.xcoll.scattering.disable()
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)
@@ -102,7 +102,7 @@ plt.show()
 # oscillations would make the cut profile symmetric anyway.
 
 line['tcp.c6l7.b1'].angle = 15
-line.collimators.open()
+line.xcoll.collimators.open()
 line['tcp.c6l7.b1'].gap = [4, -7]
 
 # Create initial particles
@@ -113,9 +113,9 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking second test.. ")
-line.scattering.enable()
+line.xcoll.scattering.enable()
 line.track(part, num_turns=1)
-line.scattering.disable()
+line.xcoll.scattering.disable()
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)

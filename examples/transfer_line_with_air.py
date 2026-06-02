@@ -43,24 +43,26 @@ line = xt.Line(elements=elements, element_names=element_names, particle_ref=part
 
 # Add air regions
 # ===============
-line.insert_element(element=xc.EverestBlock(length=10, material=xc.materials.Air), name="Air 1", at_s=20)
-line.insert_element(element=xc.EverestBlock(length=10, material=xc.materials.Air), name="Air 2", at_s=50)
+line.insert("Air 1", xc.EverestBlock(length=10, material=xc.materials.Air),
+            anchor='start', at=20)
+line.insert("Air 2", xc.EverestBlock(length=10, material=xc.materials.Air),
+            anchor='start', at=50)
 
 
 # Add monitors
 # ============
-xc.EmittanceMonitor.install(line, name="monitor start", at_s=0, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 1 start", at_s=20, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 1 end", at_s=30, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 2 start", at_s=50, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor air 2 end", at_s=60, longitudinal=False)
-xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor start", at=0, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 start", at=20, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 end", at=30, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 start", at=50, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 end", at=60, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor end", at=100, longitudinal=False)
 
 
 # Generate an initial distribution of particles
 # =============================================
 # Scattering need to be disabled to be able to twiss
-line.scattering.disable()
+line.xcoll.scattering.disable()
 
 # Matched initial parameters
 betx0 = 154.0835045206266
@@ -86,7 +88,7 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
 
 # Track!
 # ======
-line.scattering.enable()
+line.xcoll.scattering.enable()
 line.track(part)
 print("Done Tracking!")
 
@@ -95,8 +97,9 @@ print("Done Tracking!")
 # ===============
 _, ax = plt.subplots(figsize=(6,4))
 s = [0, 20, 30, 50, 60, 100]
-ex = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
-ey = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
+tt_mon = line.get_table().rows.match(element_type='EmittanceMonitor')
+ex = np.array([line[name].nemitt_x for name in tt_mon.name])
+ey = np.array([line[name].nemitt_y for name in tt_mon.name])
 ax.plot(s, 1.e6*ex, label='H')
 ax.plot(s, 1.e6*ey, label='V')
 ax.set_ylabel(r"$\epsilon_N\; [\mu\mathrm{m}]$")

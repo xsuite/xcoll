@@ -1,9 +1,9 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2025.                 #
+# Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-from xcoll import __version__
 
-def test_version():
-    assert __version__ == '0.10.0'
+class XcollEnvironmentAPI:
+    def __init__(self, env):
+        self._env = env

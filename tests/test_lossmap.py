@@ -86,9 +86,9 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
-    line.collimators.assign_optics()
+    line.xcoll.collimators.assign_optics()
     if not ignore_crystals:
-        line.collimators.align_to_beam_divergence()
+        line.xcoll.collimators.align_to_beam_divergence()
 
     if engine == "fluka":
         xc.fluka.engine.start(line=line, capacity=capacity, verbose=True)
@@ -105,9 +105,9 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
         elif plane == 'V':
             part.y[(part.y > 0) & (part.state > -99999)] += 1e-5
             part.y[(part.y < 0) & (part.state > -99999)] -= 1e-5
-    line.scattering.enable()
+    line.xcoll.scattering.enable()
     line.track(part, num_turns=num_turns, with_progress=1)
-    line.scattering.disable()
+    line.xcoll.scattering.disable()
 
     if engine == "everest":
         coll_cls = ['EverestCollimator']

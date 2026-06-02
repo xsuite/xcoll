@@ -12,9 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from .beam_elements import (collimator_classes, crystal_classes,
-                            FlukaCollimator, FlukaCrystal,
-                            Geant4Collimator, Geant4Crystal)
+from .beam_elements import collimator_classes, crystal_classes
 from .compare import deep_equal
 from .json import json_load, json_dump
 from .general import __version__
@@ -384,10 +382,13 @@ class LossMap:
         collimator summary is updated.
         """
         # Check that collimators have been tracked
-        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
+        tt = line.get_table()
+        tt_geant4 = tt.rows.match(element_type='Geant4Collimator|Geant4Crystal')
+        geant4_coll = [line.get(nn) for nn in tt_geant4.name]
         if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
             raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
-        fluka_coll = line.get_elements_of_type((FlukaCollimator, FlukaCrystal))[0]
+        tt_fluka = tt.rows.match(element_type='FlukaCollimator|FlukaCrystal')
+        fluka_coll = [line.get(nn) for nn in tt_fluka.name]
         if len(fluka_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in fluka_coll]):
             raise ValueError("FlukaCollimators have not been tracked, or LossMap already calculated")
         if interpolation is not None:
@@ -399,7 +400,10 @@ class LossMap:
             self.interpolation = 0.1 # Default
         if not isinstance(correct_aperture_absorption, dict):
             coll_classes = list(set(collimator_classes) - set(crystal_classes))
-            coll_elements = line.get_elements_of_type(coll_classes)[1]
+            coll_elements = []
+            for cc in coll_classes:
+                ttcc = tt.rows.match(element_type=cc.__name__)
+                coll_elements += list(ttcc.name)
             correct_aperture_absorption = {coll: correct_aperture_absorption
                                             for coll in coll_elements}
         for coll, this_aper_corr in correct_aperture_absorption.items():
@@ -610,14 +614,19 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
-        names = np.unique(line.get_elements_of_type(collimator_classes)[1])
+        tt = line.get_table()
+        coll_names = []
+        for cc in collimator_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            coll_names += list(ttcc.name)
+        names = np.unique(coll_names)
         coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
         coll_losses = np.array([line.element_names[i]
                                 for i in part.at_element[coll_mask]])
         coll_lengths = [line[name].length for name in names]
 
         L = self.machine_length
-        coll_pos = np.array([(line.get_s_position(name) + cl/2 + line_shift_s)%L
+        coll_pos = np.array([(tt['s', name] + cl/2 + line_shift_s)%L
                     for name, cl in zip(names, coll_lengths)])
         if self.line_is_reversed:
             coll_pos = L - coll_pos

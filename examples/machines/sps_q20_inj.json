@@ -8562,7 +8562,7 @@
   },
   "actcse.31632": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8571,7 +8571,7 @@
   },
   "actcse.31637": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8580,7 +8580,7 @@
   },
   "actcse.31654": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8593,7 +8593,7 @@
   },
   "actcsf.31672": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8602,7 +8602,7 @@
   },
   "actcsf.31678": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8611,7 +8611,7 @@
   },
   "actcsf.31695": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8663,7 +8663,7 @@
   },
   "acl.31735": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 3.52913,
    "_model": 0,
    "_integrator": 0,
@@ -8676,7 +8676,7 @@
   },
   "actcsg.31751": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8685,7 +8685,7 @@
   },
   "actcsg.31758": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8694,7 +8694,7 @@
   },
   "actcsg.31774": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8703,7 +8703,7 @@
   },
   "actcsg.31780": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8754,7 +8754,7 @@
   },
   "actcsh.31832": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8763,7 +8763,7 @@
   },
   "actcsh.31838": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8772,7 +8772,7 @@
   },
   "actcsh.31854": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8785,7 +8785,7 @@
   },
   "actcsi.31872": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8794,7 +8794,7 @@
   },
   "actcsi.31878": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8803,7 +8803,7 @@
   },
   "actcsi.31895": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8847,7 +8847,7 @@
   },
   "acl.31936": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 3.52913,
    "_model": 0,
    "_integrator": 0,
@@ -8860,7 +8860,7 @@
   },
   "actcsj.31952": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8869,7 +8869,7 @@
   },
   "actcsj.31958": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8878,7 +8878,7 @@
   },
   "actcsj.31974": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -8887,7 +8887,7 @@
   },
   "actcsj.31991": {
    "__class__": "Cavity",
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "length": 4.114,
    "_model": 0,
    "_integrator": 0,
@@ -33354,8 +33354,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcse.31632'].lag",
-   "vars['lag200']"
+   "element_refs['actcse.31632'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcse.31637'].frequency",
@@ -33366,8 +33366,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcse.31637'].lag",
-   "vars['lag200']"
+   "element_refs['actcse.31637'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcse.31654'].frequency",
@@ -33378,8 +33378,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcse.31654'].lag",
-   "vars['lag200']"
+   "element_refs['actcse.31654'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsf.31672'].frequency",
@@ -33390,8 +33390,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsf.31672'].lag",
-   "vars['lag200']"
+   "element_refs['actcsf.31672'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsf.31678'].frequency",
@@ -33402,8 +33402,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsf.31678'].lag",
-   "vars['lag200']"
+   "element_refs['actcsf.31678'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsf.31695'].frequency",
@@ -33414,8 +33414,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsf.31695'].lag",
-   "vars['lag200']"
+   "element_refs['actcsf.31695'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsg.31751'].frequency",
@@ -33426,8 +33426,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsg.31751'].lag",
-   "vars['lag200']"
+   "element_refs['actcsg.31751'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsg.31758'].frequency",
@@ -33438,8 +33438,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsg.31758'].lag",
-   "vars['lag200']"
+   "element_refs['actcsg.31758'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsg.31774'].frequency",
@@ -33450,8 +33450,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsg.31774'].lag",
-   "vars['lag200']"
+   "element_refs['actcsg.31774'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsg.31780'].frequency",
@@ -33462,8 +33462,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsg.31780'].lag",
-   "vars['lag200']"
+   "element_refs['actcsg.31780'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsh.31832'].frequency",
@@ -33474,8 +33474,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsh.31832'].lag",
-   "vars['lag200']"
+   "element_refs['actcsh.31832'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsh.31838'].frequency",
@@ -33486,8 +33486,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsh.31838'].lag",
-   "vars['lag200']"
+   "element_refs['actcsh.31838'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsh.31854'].frequency",
@@ -33498,8 +33498,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsh.31854'].lag",
-   "vars['lag200']"
+   "element_refs['actcsh.31854'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsi.31872'].frequency",
@@ -33510,8 +33510,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsi.31872'].lag",
-   "vars['lag200']"
+   "element_refs['actcsi.31872'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsi.31878'].frequency",
@@ -33522,8 +33522,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsi.31878'].lag",
-   "vars['lag200']"
+   "element_refs['actcsi.31878'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsi.31895'].frequency",
@@ -33534,8 +33534,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsi.31895'].lag",
-   "vars['lag200']"
+   "element_refs['actcsi.31895'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsj.31952'].frequency",
@@ -33546,8 +33546,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsj.31952'].lag",
-   "vars['lag200']"
+   "element_refs['actcsj.31952'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsj.31958'].frequency",
@@ -33558,8 +33558,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsj.31958'].lag",
-   "vars['lag200']"
+   "element_refs['actcsj.31958'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsj.31974'].frequency",
@@ -33570,8 +33570,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsj.31974'].lag",
-   "vars['lag200']"
+   "element_refs['actcsj.31974'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['actcsj.31991'].frequency",
@@ -33582,8 +33582,8 @@
    "(vars['volt200'] / 20.0)"
   ],
   [
-   "element_refs['actcsj.31991'].lag",
-   "vars['lag200']"
+   "element_refs['actcsj.31991'].phase",
+   "(0.017453292519943295 * vars['lag200'])"
   ],
   [
    "element_refs['acl.31735'].frequency",
@@ -33594,8 +33594,8 @@
    "(vars['volt800'] / 2.0)"
   ],
   [
-   "element_refs['acl.31735'].lag",
-   "vars['lag800']"
+   "element_refs['acl.31735'].phase",
+   "(0.017453292519943295 * vars['lag800'])"
   ],
   [
    "element_refs['acl.31936'].frequency",
@@ -33606,8 +33606,8 @@
    "(vars['volt800'] / 2.0)"
   ],
   [
-   "element_refs['acl.31936'].lag",
-   "vars['lag800']"
+   "element_refs['acl.31936'].phase",
+   "(0.017453292519943295 * vars['lag800'])"
   ]
  ],
  "metadata": {},

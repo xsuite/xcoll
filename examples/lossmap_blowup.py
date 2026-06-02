@@ -45,8 +45,9 @@ pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
 name = f'adtk{plane.lower()}.{pos}.b{beam}'
 tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
 tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
-adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
-adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, plane=plane, stop_at_turn=num_turns,
+tt = line.get_table()
+adt_pos = 0.5*tt['s', tank_start] + 0.5*tt['s', tank_end]
+adt = xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, plane=plane, stop_at_turn=num_turns,
                         amplitude=0.5, use_individual_kicks=True)
 
 
@@ -58,7 +59,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 # Assign the optics to deduce the gap settings, and calibrate the ADT
 tw = line.twiss()
-line.collimators.assign_optics(twiss=tw)
+line.xcoll.collimators.assign_optics(twiss=tw)
 if plane == 'H':
     adt.calibrate_by_emittance(nemitt=colldb.nemitt_x, twiss=tw)
 else:
@@ -81,11 +82,11 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-line.scattering.enable()
+line.xcoll.scattering.enable()
 adt.activate()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 adt.deactivate()
-line.scattering.disable()
+line.xcoll.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 

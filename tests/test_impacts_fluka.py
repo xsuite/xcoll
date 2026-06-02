@@ -50,7 +50,7 @@ def test_impacts(jaw, angle, tilt):
     xc.fluka.engine.start(elements=coll, capacity=capacity, verbose=True, touches=True)
     particle_ref = xc.fluka.engine.particle_ref
 
-    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
+    part_init = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
                                                 jaw_band=jaw_band, jaw_accuracy=jaw_accuracy, angular_spread=1e-3,
                                                 delta_spread=1e-3, zeta_spread=5e-2, exact_drift=exact_drift,
                                                 x_dim=x_dim, y_dim=y_dim, _capacity=capacity)
@@ -63,6 +63,8 @@ def test_impacts(jaw, angle, tilt):
     file_path = os.path.join(fluka_path, "fluka_input001_toucMap.dat")
 
     xc.fluka.engine.stop(clean=False)
+
+    impacts.stop(names=[coll.name], elements=[coll])
 
     df = pd.read_csv(file_path, sep=r"\s+", comment='*')
 
@@ -148,10 +150,5 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1
         px = 0; py = 0; pz = 1; px_new = 0; py_new = 0
     part_init = xp.build_particles(x=x_new, y=y_new, px=px_new, py=py_new, delta=delta,
                                    zeta=zeta, particle_ref=particle_ref, _capacity=_capacity)
-    mask  = (x + px/pz*coll.jaw_s_LU >= coll.jaw_LU) | (x + px/pz*coll.jaw_s_LD >= coll.jaw_LD)
-    mask |= (x + px/pz*coll.jaw_s_RU <= coll.jaw_RU) | (x + px/pz*coll.jaw_s_RD <= coll.jaw_RD)
-    mask = np.concatenate([mask, np.full(_capacity-num_part, False)])
-    expected_hit_ids = part_init.particle_id[mask & (part_init.state > 0)]
-    expected_not_hit_ids = part_init.particle_id[~mask & (part_init.state > 0)]
 
-    return part_init, expected_hit_ids, expected_not_hit_ids
+    return part_init

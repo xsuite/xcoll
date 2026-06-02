@@ -51,8 +51,8 @@ tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{
 
 
 # Assign the optics to deduce the gap settings
-line.collimators.assign_optics()
-line.collimators.align_to_beam_divergence()
+line.xcoll.collimators.assign_optics()
+line.xcoll.collimators.align_to_beam_divergence()
 
 
 # Connect to FLUKA
@@ -83,9 +83,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-line.scattering.enable()
+line.xcoll.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-line.scattering.disable()
+line.xcoll.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 

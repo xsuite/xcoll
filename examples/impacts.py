@@ -27,7 +27,7 @@ impacts = xc.InteractionRecord.start(line=line)
 
 # Build tracker, assign optics and generate particles 
 line.build_tracker()
-line.collimators.assign_optics()
+line.xcoll.collimators.assign_optics()
 part = line['tcp.d6l7.b1'].generate_pencil(5000)
 
 # This is not needed, but is done here so that we can track with 12 treads.
@@ -35,9 +35,9 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 
 # Track
-line.scattering.enable()
+line.xcoll.scattering.enable()
 line.track(part, num_turns=20, time=True, with_progress=1)
-line.scattering.disable()
+line.xcoll.scattering.disable()
 line.discard_tracker()
 impacts.stop()
 

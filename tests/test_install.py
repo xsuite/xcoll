@@ -47,11 +47,13 @@ def test_install_single_existing_marker(beam, aper, test_context):
     # Test absorber
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
     assert not isinstance(line[name], xc.BlackAbsorber)
-    pos_centre = line.get_s_position(name) + line[name].length/2
+    tt = line.get_table()
+    pos_centre = tt['s', name] + line[name].length/2
     coll = xc.BlackAbsorber(length=0.6, angle=127.5, _context=test_context)
-    line.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
+    line.xcoll.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
     assert np.isclose(line[name].length, 0.6)
-    assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
+    assert np.isclose(pos_centre - line[name].length/2,
+                      line.get_table()['s', name])
     assert isinstance(line[name], xc.BlackAbsorber)
     tab = line.get_table()
     if need_apertures:
@@ -81,12 +83,14 @@ def test_install_single_existing_marker(beam, aper, test_context):
             assert line[idx].length > existing_length/2
             line[idx].length -= existing_length/2
             break
-    pos_centre = line.get_s_position(name) + line[name].length/2
+    tt = line.get_table()
+    pos_centre = tt['s', name] + line[name].length/2
     coll = xc.EverestCollimator(length=0.6, angle=90, _context=test_context,
                                 material=xc.materials.MolybdenumGraphite)
-    line.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
+    line.xcoll.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
     assert np.isclose(line[name].length, 0.6)
-    assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
+    assert np.isclose(pos_centre - line[name].length/2,
+                      line.get_table()['s', name])
     assert isinstance(line[name], xc.EverestCollimator)
     tab = line.get_table()
     if need_apertures:
@@ -111,11 +115,11 @@ def test_install_single_no_marker(beam, test_context):
     name = 'test_absorber'
     assert name not in line.element_names
     coll = xc.BlackAbsorber(length=1.738, angle=127.5, _context=test_context)
-    line.collimators.install(name, coll, at=12.4, need_apertures=True,
+    line.xcoll.collimators.install(name, coll, at=12.4, need_apertures=True,
                              apertures=xt.LimitEllipse(0.4, 0.4))
     assert name in line.element_names
     assert np.isclose(line[name].length, 1.738)
-    assert np.isclose(line.get_s_position(name), 12.4)
+    assert np.isclose(line.get_table()['s', name], 12.4)
     assert isinstance(line[name], xc.BlackAbsorber)
     tab = line.get_table()
     idx = tab.rows.indices[[name]][0]
@@ -132,10 +136,10 @@ def test_install_single_no_marker(beam, test_context):
     name = 'test_block'
     assert name not in line.element_names
     el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon, _context=test_context)
-    line.collimators.install(name, el, need_apertures=False, at=17.89)
+    line.xcoll.collimators.install(name, el, need_apertures=False, at=17.89)
     assert name in line.element_names
     assert np.isclose(line[name].length, 0.63)
-    assert np.isclose(line.get_s_position(name), 17.89)
+    assert np.isclose(line.get_table()['s', name], 17.89)
     assert isinstance(line[name], xc.EverestBlock)
 
     # Verify line length did not corrupt

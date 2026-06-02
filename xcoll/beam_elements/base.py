@@ -1002,7 +1002,7 @@ class BaseCollimator(BaseBlock):
                         longitudinal_betatron_cut=None, tw=None, **kwargs):
         if not hasattr(self, '_line') or not hasattr(self, '_name'):
             raise ValueError("Collimator is missing a pointer to the line. Install collimators "
-                           + "with `line.collimators.install()` (or use "
+                           + "with `line.xcoll.collimators.install()` (or use "
                            + "`xcoll.initial_distribution.generate_pencil_on_collimator()`).")
         from xcoll.initial_distribution import generate_pencil_on_collimator
         return generate_pencil_on_collimator(line=self._line, name=self._name, side=side,
@@ -1015,7 +1015,7 @@ class BaseCollimator(BaseBlock):
                        match_at_front=True, twiss=None):
         if not hasattr(self, '_line') or not hasattr(self, '_name'):
             raise ValueError("Collimator is missing a pointer to the line. Install collimators "
-                           + "with `line.collimators.install()` (or use "
+                           + "with `line.xcoll.collimators.install()` (or use "
                            + "`xcoll.initial_distribution.generate_delta_from_dispersion()`).")
         from xcoll.initial_distribution import generate_delta_from_dispersion
         return generate_delta_from_dispersion(line=self._line, at_element=self._name, plane=plane,

@@ -20,7 +20,7 @@ def test_gaps(beam):
     line = env[f'lhcb{beam}']
     coll = xc.BlackAbsorber(length=1.738, angle=127.5)
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
-    line.collimators.install(name, coll, need_apertures=True)
+    line.xcoll.collimators.install(name, coll, need_apertures=True)
     line.build_tracker()
     tw = line.twiss()
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
