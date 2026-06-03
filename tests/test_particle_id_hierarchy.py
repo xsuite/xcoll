@@ -20,6 +20,7 @@ path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
+@pytest.mark.longtest
 @pytest.mark.parametrize("engine", engine_params)
 @retry()
 def test_hierarchy(engine):

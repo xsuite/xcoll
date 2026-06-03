@@ -432,7 +432,12 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
         if elements is not None:
             raise ValueError("Cannot provide both line and elements!")
         if names is None or names is True:
-            elements, names = line.get_elements_of_type(block_classes)
+            tt = line.get_table()
+            names = []
+            for cc in block_classes:
+                ttcc = tt.rows.match(element_type=cc.__name__)
+                names += list(ttcc.name)
+            elements = [line.get(nn) for nn in names]
             if len(names) == 0:
                 raise ValueError("No Xcoll elements in line!")
         elif names is False:
@@ -442,7 +447,7 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
             for name in names:
                 if name not in line.element_names:
                     raise ValueError(f"Element {name} not found in line!")
-            elements = [line[name] for name in names]
+            elements = [line.get(nn) for nn in names]
     for nn, ee in zip(names, elements):
         if not isinstance(ee, block_classes):
             raise ValueError(f"Element {nn} not an Xcoll element (expected one"

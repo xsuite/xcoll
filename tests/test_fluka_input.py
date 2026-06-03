@@ -104,6 +104,7 @@ def test_fluka_input_single(el_type, register_cleanup):
                 found_2 = True
             if f"MAT-PROP                           379.0  {coll.material.fluka_name}" in line:
                 found_3 = True
+        print(line)
     assert found_1
     assert found_2
     assert found_3
@@ -139,11 +140,14 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
     colldb = xc.CollimatorDatabase.from_yaml(path / 'data' / f'colldb_lhc_run3_ir7.yaml', beam=beam,
                                              ignore_crystals=ignore_crystals)
     colldb.install_fluka_collimators(line=line, verbose=True)
-    colls, _ = line.get_elements_of_type(xc.collimator_classes)
+    tt_colls = line.get_table().rows.match(
+        element_type='|'.join(cc.__name__ for cc in xc.collimator_classes)
+    )
+    colls = [line[name] for name in tt_colls.name]
     line.build_tracker()
-    line.collimators.assign_optics()
+    line.xcoll.collimators.assign_optics()
     if not ignore_crystals:
-        line.collimators.align_to_beam_divergence()
+        line.xcoll.collimators.align_to_beam_divergence()
     path_tmp = Path.cwd() / f'fluka_run_temp_test_line_{ignore_crystals}'
     register_cleanup(path_tmp)
     particle_ref = xt.Particles('proton', p0c=7e12)

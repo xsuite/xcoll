@@ -666,16 +666,14 @@ class BaseEngine(xo.HybridClass):
                 self.stop()
                 raise ValueError("Cannot provide both `line` and `elements`.")
             if names is None:
-                elements, names = self.line.get_elements_of_type(self._element_classes)
-                # This method can return duplicate elements if there are subclasses (like Geant4Collimator
-                # and Geant4CollimatorTip) as elements of the child type will also be found by searching
-                # for the parent type.
-                d = {}
-                for nn, ee in zip(names, elements):
-                    d[nn] = ee # last one wins, not important here
-                names, elements = list(d.keys()), list(d.values())
+                tt = self.line.get_table()
+                names = []
+                for cc in self._element_classes:
+                    ttcc = tt.rows.match(element_type=cc.__name__)
+                    names += list(ttcc.name)
+                elements = [self.line.get(nn) for nn in names]
             else:
-                elements = [self.line[name] for name in names]
+                elements = [self.line.get(nn) for nn in names]
         this_names = []
         this_elements = []
         for ee, name in zip(elements, names):

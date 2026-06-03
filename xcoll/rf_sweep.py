@@ -58,7 +58,7 @@ class RFSweep:
             self._install_zeta_shift()
             self.tw = self.line.twiss()
             self.reset() # Initialize rf_sweep_df
-            self.env['rf_sweep'].dzeta = f"{self.L} * rf_sweep_df / ({self.f_RF} + rf_sweep_df)"
+            self.env['rf_sweep'].shift_zeta = f"{self.L} * rf_sweep_df / ({self.f_RF} + rf_sweep_df)"
             for cavs in self.cavities:
                 for cav in cavs['names']:
                     scale_factor = int(np.round(cavs['freq'] / self.f_RF))
@@ -164,7 +164,8 @@ class RFSweep:
         self._resolve_cavity_frequency()
         freq = np.array([self.env[cav].frequency for cav in self.cavities])
         volt = np.array([self.env[cav].voltage for cav in self.cavities])
-        lag  = np.array([self.env[cav].lag for cav in self.cavities])
+        phase = np.array([self.env[cav].phase + np.deg2rad(self.env[cav].lag)
+                          for cav in self.cavities])
         s_pos = []
         name_first_in_line = []
         for cav in self.cavities:
@@ -187,14 +188,14 @@ class RFSweep:
                 'freq': np.mean(freq[gidx]),
                 'voltage': volt[gidx].sum(),
                 's_pos': np.array(s_pos)[gidx],
-                'lag': lag[gidx],
+                'phase': phase[gidx],
                 'name_first_in_line': np.array(name_first_in_line)[gidx],
             })
         self.cavities = sorted(groups, key=lambda g: (g['voltage'], g['freq']), reverse=True)
         if np.isclose(self.cavities[0]['voltage'], 0):
             raise ValueError("No active cavity found!")
         self.f_RF = self.cavities[0]['freq']
-        self.phi = np.deg2rad(self.cavities[0]['lag'].mean())
+        self.phi = self.cavities[0]['phase'].mean()
         self.V = self.cavities[0]['voltage']
         self.L = self.line.get_length()
         if len(self.cavities) > 1:
@@ -210,5 +211,5 @@ class RFSweep:
         if 'rf_sweep' not in self.env.elements:
             idx = np.argsort(self.cavities[0]['s_pos'])
             first_cavity = self.cavities[0]['name_first_in_line'][idx[0]]
-            self.env.elements['rf_sweep'] = xt.ZetaShift(dzeta=0)
+            self.env.elements['rf_sweep'] = xt.TimeDelay(shift_zeta=0)
             self.line.insert('rf_sweep', at=f'{first_cavity}@start')

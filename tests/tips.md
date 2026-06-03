@@ -17,6 +17,9 @@ pytest -n 12 -m "fluka or geant4"
 # Run everything except FLUKA/Geant4
 pytest -n 12 -m "not fluka and not geant4"
 
+# Skip very long tests
+pytest -n 12 -m "not longtest"
+
 # Run other xcoll tests
 pytest -n 12 -m xcother
 

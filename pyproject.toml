@@ -22,10 +22,10 @@ dependencies = [
     "ruamel-yaml>=0.17.31",
     "numpy>=1.0",
     "pandas>=1.4",
-    "xobjects>=0.5.15",
-    "xdeps>=0.10.16",
-    "xpart>=0.23.10",
-    "xtrack>=0.102.1",
+    "xobjects>=0.6.3",
+    "xdeps>=0.10.17",
+    "xpart>=0.23.12",
+    "xtrack>=0.104.2",
     "meson"
 ]
 
