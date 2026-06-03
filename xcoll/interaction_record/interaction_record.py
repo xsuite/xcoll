@@ -421,13 +421,13 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
                     name = f"el_{ii}"
                     ee.name = name
                     names.append(name)
-        else:
-            for nn, ee in zip(names, elements):
-                if hasattr(ee, 'name'):
-                    if ee.name != nn:
-                        raise ValueError(f"Element {nn} has name {ee.name}, but expected {nn}!")
-                else:
-                    ee.name = nn
+        # else:
+        #     for nn, ee in zip(names, elements):
+        #         if hasattr(ee, 'name'):
+        #             if ee.name != nn:
+        #                 raise ValueError(f"Element {nn} has name {ee.name}, but expected {nn}!")
+        #         else:
+        #             ee.name = nn
     else:
         if elements is not None:
             raise ValueError("Cannot provide both line and elements!")
