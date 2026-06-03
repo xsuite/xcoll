@@ -233,23 +233,27 @@ class FlukaCollimator(BaseCollimator):
     def _check_particle_id_limit(part):
         import warnings
         import xcoll as xc
+
         max_pid = max(part.particle_id)
 
         if max_pid > 50_000 and "relcol" in str(xc.fluka.engine.input_file):
 
             msg = (
                 f"max(particle_id) = {max_pid:,}\n"
-                f"the MPPBUN FLUKA variable has a hardcoded limit of 100k.\n")
-                f"Which is related to the limit of impacts treated by FLUKA.\n")
+                "The MPPBUN FLUKA variable has a hardcoded limit of 100k.\n"
+                "This is related to the limit of impacts treated by FLUKA.\n"
+            )
 
             if max_pid >= 100_000:
-                raise ValueError("[FATAL] " + msg + " Aborting to prevent FLUKA crash.")
+                raise ValueError(
+                    "[FATAL] " + msg + "Aborting to prevent FLUKA crash."
+                )
 
-            warnings.warn("\n"
-                "[WARNING] " + msg.format(limit=50_000) +  " Proceed with caution!",
+            warnings.warn(
+                "\n[WARNING] " + msg + "Proceed with caution!",
                 UserWarning,
-                stacklevel=2)
-
+                stacklevel=2,
+            )
 
     def _drift(self, particles, length=None):
         if length is None:
