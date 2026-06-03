@@ -216,7 +216,6 @@ class FlukaCollimator(BaseCollimator):
         # of the particle that is trying to be recorded
         # line 169: /eos/project-f/flukafiles/fluka-coupling/fluka_coupling/fluka/mgdraw.f
 
-        import pdb; pdb.set_trace()
         self._check_particle_id_limit(part)
 
         if track_pre(self, part):
