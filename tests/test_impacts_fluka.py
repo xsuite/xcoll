@@ -66,8 +66,6 @@ def test_impacts(jaw, angle, tilt):
 
     impacts.stop(names=[coll.name], elements=[coll])
 
-    import pdb; pdb.set_trace()
-
     df = pd.read_csv(file_path, sep=r"\s+", comment='*')
 
     # FLUKA ids start in 1. Changed to 0
