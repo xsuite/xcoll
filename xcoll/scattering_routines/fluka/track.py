@@ -84,7 +84,7 @@ def track_core(coll, part):
     m0         = part.mass0
     q0         = part.q0
     p0c        = part.p0c[0]
-    E0         = part.energy0[0]
+    # E0         = part.energy0[0]
     beta0      = part.beta0[0]
     gamma0     = part.gamma0[0]
     mass       = part.mass[send_to_fluka]
@@ -181,6 +181,7 @@ def track_core(coll, part):
     E_diff = np.zeros(len(part.x))
     mask_alive = new_pid <= max_id
     mask_new = new_pid > max_id
+    mask_hit = np.full_like(E_diff, False, dtype=bool)
 
 
     # Update existing particles  (these missed the collimator or only underwent elastic interactions)
