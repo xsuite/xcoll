@@ -61,13 +61,13 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
     cg->cos_z  = EverestCrystalData_get__cos_z(el);
     cg->sin_y  = EverestCrystalData_get__sin_y(el);
     cg->cos_y  = EverestCrystalData_get__cos_y(el);
-    // Segments
+    // Segments (filled by value into cg->segments; no allocation)
     if (cg->side == 1){
-        cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U, \
+        create_crystal(part0, cg->segments, cg->bending_radius, cg->width, cg->length, cg->jaw_U, \
                                         cg->sin_y, cg->cos_y);
     } else if (cg->side == -1){
         // jaw_U is the inner corner (shifted if right-sided crystal)
-        cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U - cg->width, \
+        create_crystal(part0, cg->segments, cg->bending_radius, cg->width, cg->length, cg->jaw_U - cg->width, \
                                         cg->sin_y, cg->cos_y);
     }
     // // Jaw frame is always left-sided
@@ -121,7 +121,8 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
 
 /*gpufun*/
 void EverestCrystal_free(CrystalGeometry restrict cg){
-    destroy_crystal(cg->segments);
+    // Segments are stored by value inside cg, so there is nothing to free for them;
+    // only the CrystalGeometry struct itself was allocated (T6 will remove that too).
     free(cg);
 }
 

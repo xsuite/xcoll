@@ -9,7 +9,6 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
 
@@ -22,15 +21,13 @@
 double get_s_of_first_crossing(double part_x, double part_tan, Segment* segments, \
                                int8_t n_segments){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    double s[XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS];
     find_crossing(&n_hit, s, part_x, part_tan, segments, n_segments);
     if (n_hit==0){
         // No crossing
-        free(s);
         return S_MAX;
     }
     double result = s[0];
-    free(s);
     return result;
 }
 
@@ -38,17 +35,15 @@ double get_s_of_first_crossing(double part_x, double part_tan, Segment* segments
 double get_s_of_crossing_after_s(double part_x, double part_tan, Segment* segments, \
                                  int8_t n_segments, double current_s){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    double s[XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS];
     find_crossing(&n_hit, s, part_x, part_tan, segments, n_segments);
     for (int8_t i=0; i<n_hit; i++){
         if (s[i] >= current_s){
             double result = s[i];
-            free(s);
             return result;
         }
     }
     // No crossing
-    free(s);
     return S_MAX;
 }
 
@@ -57,16 +52,14 @@ double get_s_of_first_crossing_with_vlimit(double part_x, double part_tan_x, \
                                 double part_y, double part_tan_y, Segment* segments, \
                                 int8_t n_segments, double y_min, double y_max){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    double s[XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS];
     find_crossing_with_vlimit(&n_hit, s, part_x, part_tan_x, part_y, part_tan_y, \
                               segments, n_segments, y_min, y_max);
     if (n_hit==0){
         // No crossing
-        free(s);
         return S_MAX;
     }
     double result = s[0];
-    free(s);
     return result;
 }
 
@@ -75,18 +68,16 @@ double get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
                                 double part_y, double part_tan_y, Segment* segments, \
                                 int8_t n_segments, double y_min, double y_max, double current_s){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    double s[XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS];
     find_crossing_with_vlimit(&n_hit, s, part_x, part_tan_x, part_y, part_tan_y, \
                               segments, n_segments, y_min, y_max);
     for (int8_t i=0; i<n_hit; i++){
         if (s[i] >= current_s){
             double result = s[i];
-            free(s);
             return result;
         }
     }
     // No crossing
-    free(s);
     return S_MAX;
 }
 

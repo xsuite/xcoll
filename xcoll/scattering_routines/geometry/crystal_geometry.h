@@ -34,8 +34,8 @@ typedef struct CrystalGeometry_ {
     double s_P;    // Miscut centre
     double x_P;
     double t_VImax;
-    // Segments
-    Segment* segments;
+    // Segments (stored by value, no allocation; crystal always uses 4)
+    Segment segments[XC_MAX_SEGMENTS];
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;

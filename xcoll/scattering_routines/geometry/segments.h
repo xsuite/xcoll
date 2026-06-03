@@ -21,17 +21,49 @@
 
 #define XC_MAX_CROSS_PER_SEGMENT 2  // Update if new segment type allows more crossings
 
+// Maximum number of segments stored by value in a single object's segment array.
+// The crystal always uses 4 segments; update if a by-value object needs more.
+#define XC_MAX_SEGMENTS 4
 
-// Function that calculates the crossing with a given segment
-typedef void (*CrossingFunc)(int8_t*, double*, double, double, void*);
+
+// Segment type tag, used for switch-based crossing dispatch.
+// Device function pointers are unsupported on CUDA, so instead of a function-pointer
+// vtable we store an int8_t tag as the first member of every segment struct and
+// dispatch on it via a switch in find_crossing (only 3 subtypes -> cheap switch).
+#define XC_SEGMENT_LINE     ((int8_t) 0)
+#define XC_SEGMENT_HALFOPEN ((int8_t) 1)
+#define XC_SEGMENT_CIRCULAR ((int8_t) 2)
 
 
-// Parent type for all segments
-// ----------------------------
-typedef struct Segment_{
-    CrossingFunc crossing;
+// Segment value struct
+// --------------------
+// All three segment subtypes (line, half-open line, circular arc) share a single
+// fixed-layout tagged-union struct so segments can be stored BY VALUE in a fixed-size
+// array (no malloc/free, no device function pointers). The `type` tag selects which
+// fields are meaningful; the field names of the three subtypes are disjoint, so we
+// flatten them into one struct (a tagged union without per-member casts). A Segment is
+// stored by value, so functions that scan an array of segments take a `Segment*`
+// (pointer to the first element) exactly as before, but the array slots are values.
+typedef struct Segment_ {
+    int8_t type;
+    // Line segment: two points (s1, x1), (s2, x2).
+    double point1_s;
+    double point1_x;
+    double point2_s;
+    double point2_x;
+    // Half-open line segment: a point, a side (+-inf direction) and the perpendicular angle.
+    double point_s;
+    double point_x;
+    int8_t side;
+    double point_tan;
+    // Circular arc segment: radius R, centre (Rs, Rx) and the two bounding angles.
+    double R;
+    double centre_s;
+    double centre_x;
+    double point1_angle;
+    double point2_angle;
 } Segment_;
-typedef Segment_* Segment;
+typedef Segment_ Segment;
 
 
 // Line segment
@@ -41,19 +73,10 @@ typedef Segment_* Segment;
 // points in the trajectory equation; if the results have opposite sign, the two points lie on
 // different sides of the trajectory and hence the segment is crossed.
 
-typedef struct LineSegment_ {
-    CrossingFunc crossing;
-    double point1_s;
-    double point1_x;
-    double point2_s;
-    double point2_x;
-} LineSegment_;
-typedef LineSegment_* LineSegment;
-
 /*gpufun*/
 void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
     // Get segment data
-    LineSegment seg = (LineSegment) self;
+    Segment* seg = (Segment*) self;
     double s_p1 = seg->point1_s;
     double s_p2 = seg->point2_s;
     double x_p1 = seg->point1_x;
@@ -80,13 +103,13 @@ void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x
 }
 
 /*gpufun*/
-LineSegment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x){
-    LineSegment seg = (LineSegment) malloc(sizeof(LineSegment_));
-    seg->crossing = &get_s_of_crossing_with_line_segment;
-    seg->point1_s = point1_s;
-    seg->point2_s = point2_s;
-    seg->point1_x = point1_x;
-    seg->point2_x = point2_x;
+Segment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x){
+    Segment seg;
+    seg.type = XC_SEGMENT_LINE;
+    seg.point1_s = point1_s;
+    seg.point2_s = point2_s;
+    seg.point1_x = point1_x;
+    seg.point2_x = point2_x;
     return seg;
 }
 
@@ -97,24 +120,13 @@ LineSegment create_line_segment(double point1_s, double point1_x, double point2_
 // This function works as above, but considers a half-open segment. For this reason,
 // the function needs to know whether this is a positive or negative jaw (representing
 // to which infinite it points), and the overall tilt of the jaw.
-typedef struct HalfOpenLineSegment_ {
-    CrossingFunc crossing;
-    double point_s;
-    double point_x;
-    int8_t side;
-    // Important: this is the perpendicular angle (hence we will use -1/point_tan)
-    // This is done because the case "point_tan == 0" cannot take place in our setup,
-    // but "point_tan == inf" can (when the jaws have no tilt).
-    double point_tan;
-} HalfOpenLineSegment_;
-typedef HalfOpenLineSegment_* HalfOpenLineSegment;
 
 // A half-open segment implies one of its points lies at +-inf.
 // In practice we just add a polygon point at the wall overflow (at 1km for the x-coordinate).
 /*gpufun*/
 void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
     // Get segment data
-    HalfOpenLineSegment seg = (HalfOpenLineSegment) self;
+    Segment* seg = (Segment*) self;
     double s_p1 = seg->point_s;
     double x_p1 = seg->point_x;
     double x_p2 = 1.e3*seg->side;
@@ -146,13 +158,13 @@ void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, doub
 }
 
 /*gpufun*/
-HalfOpenLineSegment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side){
-    HalfOpenLineSegment seg = (HalfOpenLineSegment) malloc(sizeof(HalfOpenLineSegment_));
-    seg->crossing = &get_s_of_crossing_with_halfopen_line_segment;
-    seg->point_s = point_s;
-    seg->point_x = point_x;
-    seg->side = side;
-    seg->point_tan = point_tan;
+Segment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side){
+    Segment seg;
+    seg.type = XC_SEGMENT_HALFOPEN;
+    seg.point_s = point_s;
+    seg.point_x = point_x;
+    seg.side = side;
+    seg.point_tan = point_tan;
     return seg;
 }
 
@@ -163,20 +175,11 @@ HalfOpenLineSegment create_halfopen_line_segment(double point_s, double point_x,
 // This function finds the crossing points between a line defined by a point (s=0, x) and a tangent,
 // and a circular arc segment defined by a radius R, a centre (Rs, Rx), and angles t1 and t2.
 // The results are stored in an array s, and n_hit keeps track of the number of hits.
-typedef struct CircularSegment_ {
-    CrossingFunc crossing;
-    double R;
-    double centre_s;
-    double centre_x;
-    double point1_angle;
-    double point2_angle;
-} CircularSegment_;
-typedef CircularSegment_* CircularSegment;
 
 /*gpufun*/
 void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
     // Get segment data
-    CircularSegment seg = (CircularSegment) self;
+    Segment* seg = (Segment*) self;
     double R   = seg->R;
     double R_s = seg->centre_s;
     double R_x = seg->centre_x;
@@ -214,14 +217,14 @@ void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double pa
 }
 
 /*gpufun*/
-CircularSegment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle){
-    CircularSegment seg = (CircularSegment) malloc(sizeof(CircularSegment_));
-    seg->crossing = &get_s_of_crossing_with_circular_segment;
-    seg->R = R;
-    seg->centre_s = centre_s;
-    seg->centre_x = centre_x;
-    seg->point1_angle = point1_angle;
-    seg->point2_angle = point2_angle;
+Segment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle){
+    Segment seg;
+    seg.type = XC_SEGMENT_CIRCULAR;
+    seg.R = R;
+    seg.centre_s = centre_s;
+    seg.centre_x = centre_x;
+    seg.point1_angle = point1_angle;
+    seg.point2_angle = point2_angle;
     return seg;
 }
 
