@@ -119,7 +119,7 @@ class InteractionRecord(xt.BeamElement):
             record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
         return record
 
-    def stop(self, *, elements=False, names=False):
+    def stop(self, *, elements=None, names=None):
         self.assert_class_init()
         elements, names = _get_xcoll_elements(self.line, elements, names)
         if self.line is not None and self.line.tracker is not None:
