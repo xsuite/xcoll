@@ -74,16 +74,15 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
 
 
 /*gpufun*/
-double* channel_transport(EverestData restrict everest, MaterialData restrict material,
-                          LocalParticle* part, double pc, double L_chan, double t_I, double t_P) {
+void channel_transport(EverestData restrict everest, MaterialData restrict material,
+                       LocalParticle* part, double pc, double L_chan, double t_I, double t_P,
+                       double* out_drift_length, double* out_pc) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
     //             This equates to an opening angle t_P wrt. to the point P (center of miscut if at start of crystal)
     //             The chord angle xp at the start of channelling (I) is t_P/2 + t_I
     //             The angle xp at the end of channelling (F) is t_P + t_I
     //             In practice: we drift from start to end, but overwrite the angle afterwards
     // TODO: why does channelling only have 50% energy loss?
-
-    double* result = (double*)malloc(2 * sizeof(double));
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
@@ -122,9 +121,8 @@ double* channel_transport(EverestData restrict everest, MaterialData restrict ma
     // Finally log particle at end of channelling
     if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
-    result[0] = drift_length;
-    result[1] = pc;
-    return result;
+    *out_drift_length = drift_length;
+    *out_pc = pc;
 }
 
 
@@ -204,17 +202,13 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
     // ------------------------------------------------------------------------
     if (L_chan <= fmin(L_dechan, L_nucl)){
         // Channel full length
-        double* result_chan = channel_transport(everest, material, part, pc, L_chan, t_I, t_P);
-        // double channeled_length = result_chan[0];
-        pc = result_chan[1];
-        free(result_chan);
+        double channeled_length;
+        channel_transport(everest, material, part, pc, L_chan, t_I, t_P, &channeled_length, &pc);
 
     } else if (L_dechan < L_nucl) {
         // Channel up to L_dechan, then amorphous
-        double* result_chan = channel_transport(everest, material, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan);
-        double channeled_length = result_chan[0];
-        pc = result_chan[1];
-        free(result_chan);
+        double channeled_length;
+        channel_transport(everest, material, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan, &channeled_length, &pc);
         // TODO: particle might have died due to ionisation loss
 
         if (everest->coll->record_scatterings){
@@ -226,10 +220,8 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
 
     } else {
         // Channel up to L_nucl, then scatter, then amorphous
-        double* result_chan = channel_transport(everest, material, part, pc, L_nucl, t_I, t_P*L_nucl/L_chan);
-        double channeled_length = result_chan[0];
-        pc = result_chan[1];
-        free(result_chan);
+        double channeled_length;
+        channel_transport(everest, material, part, pc, L_nucl, t_I, t_P*L_nucl/L_chan, &channeled_length, &pc);
         // TODO: particle might have died due to ionisation loss
         // Rescale nuclear interaction parameters
         everest->rescale_scattering = avrrho;
