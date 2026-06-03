@@ -64,7 +64,7 @@ class EverestBlock(BaseBlock):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material)
+        material = _resolve_material(material, _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -125,7 +125,7 @@ class EverestCollimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material)
+        material = _resolve_material(material, _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -193,7 +193,8 @@ class EverestCrystal(BaseCrystal):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material, everest_crystal=True)
+        material = _resolve_material(material, everest_crystal=True,
+                                     _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)

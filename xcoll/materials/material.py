@@ -15,7 +15,48 @@ from .parameters import (_approximate_radiation_length, _default_excitation_ener
 from ..compare import deep_equal
 
 
+# The default context in which freshly-built Material xobjects live. It is
+# ContextCpu so that all materials share one host buffer (a convenience the
+# Xtrack tests rely on; see the note where `_context` is consumed below).
+# It is configurable (get/set helpers below) so that, when a Material has to be
+# attached to a GPU element/line, it can be rebuilt in that element's context:
+# otherwise MaterialData would stay pinned to host memory and the GPU kernel
+# would read garbage at track time.
 _materials_context = xo.ContextCpu()
+
+
+def get_materials_context():
+    """Return the default context in which new Material xobjects are built."""
+    return _materials_context
+
+
+def set_materials_context(context):
+    """Set the default context for new Material xobjects (default ContextCpu).
+
+    Existing Material instances are not moved; only materials built afterwards
+    (without an explicit ``_context``) land in `context`.
+    """
+    global _materials_context
+    _materials_context = context
+
+
+def _material_in_context(material, context):
+    """Return `material` resident in `context`.
+
+    If the material's xobject is already in `context`, it is returned
+    unchanged. Otherwise a context-local *copy* is returned (the original is
+    left untouched, so the shared host materials database is never disturbed
+    and frozen database materials are never mutated). Used to land a Material in
+    a GPU element's context before the element's ``set_material`` kernel runs.
+    """
+    if material is None or context is None:
+        return material
+    if material._xobject._buffer.context == context:
+        return material
+    # `HybridClass.copy` rebuilds the xobject in the target context while
+    # carrying over the python-side state (names, frozen flag, ...), and leaves
+    # the original (e.g. a frozen, shared database material) untouched.
+    return material.copy(_context=context)
 
 
 # CLASS INHERITANCE DOES NOT WORK WITH DYNAMIC XOFIELDS
@@ -1210,10 +1251,11 @@ _DEFAULT_MATERIAL = Material(Z=1, A=1, density=1)
 _DEFAULT_MATERIAL.invalidate()
 
 
-def _resolve_material(material, allow_none=None, ref=None, everest_crystal=False):
+def _resolve_material(material, allow_none=None, ref=None, everest_crystal=False,
+                      _context=None):
     if material is None:
         if allow_none is None:
-            return _DEFAULT_MATERIAL
+            return _material_in_context(_DEFAULT_MATERIAL, _context)
         elif allow_none:
             return None
         raise ValueError('Material cannot be None!')
@@ -1234,4 +1276,7 @@ def _resolve_material(material, allow_none=None, ref=None, everest_crystal=False
               "Everest support. If you want to use the full Carbon material "
               "with scattering (the old K2 material), please use "
               "'CarbonFibreCarbon' instead.")
-    return material
+    # When the consuming element lives on a non-default (e.g. GPU) context, the
+    # MaterialData must live there too, otherwise the device kernel reads host
+    # memory. Land a context-local copy (no-op if already in `_context`).
+    return _material_in_context(material, _context)

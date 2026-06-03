@@ -93,7 +93,10 @@ for vlimit in ['', '_with_vlimit']:
         src_geomtest.append(f"/*gpufun*/")
         src_geomtest.append(f"double test_crystal{after_s}{vlimit}({vars}){{")
         src_geomtest.append(f"    Segment segments[XC_MAX_SEGMENTS];  // by value, no allocation")
-        src_geomtest.append(f"    create_crystal(segments, R, width, length, jaw_U, tilt_sin, tilt_cos);")
+        # The refactored create_crystal takes a leading LocalParticle* part0 (used
+        # only by kill_all_particles on the unsupported straight-crystal R==0 path,
+        # which these tests never exercise -> NULL is safe for all test inputs).
+        src_geomtest.append(f"    create_crystal(NULL, segments, R, width, length, jaw_U, tilt_sin, tilt_cos);")
         src_geomtest.append(f"    {_create_c_crossing_func(4, after_s, vlimit)}")
         src_geomtest.append(f"    return s;")
         src_geomtest.append(f"}}")

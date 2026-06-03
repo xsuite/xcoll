@@ -32,6 +32,7 @@ int8_t EverestCrystalData_get_mark_scattered_particles(EverestCrystalData el){
 }
 
 
+/*gpukern*/
 void EverestCrystal_set_material(EverestCrystalData el){
     MaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
