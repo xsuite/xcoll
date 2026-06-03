@@ -12,7 +12,7 @@
 
 
 /*gpufun*/
-void calculate_scattering(EverestData restrict everest, MaterialData restrict material,double pc) {
+void calculate_scattering(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,double pc) {
     // Material properties
     double const atoms = MaterialData_get__atoms_per_volume(material);
     double const bnref = MaterialData_get__nuclear_elastic_slope(material);
@@ -88,7 +88,7 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
 
 
 /*gpufun*/
-double calculate_dechannelling_length(EverestData restrict everest, MaterialData restrict material, double pc) {
+double calculate_dechannelling_length(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, double pc) {
 
     // Material properties
     double exenergy = MaterialData_get__excitation_energy(material);

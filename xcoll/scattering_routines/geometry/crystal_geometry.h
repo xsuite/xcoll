@@ -48,7 +48,7 @@ typedef CrystalGeometry_* CrystalGeometry;
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 /*gpufun*/
-int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry restrict cg){
+int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     double part_x, part_tan_x, part_y, part_tan_y;
     double s = 1.e21;
 
@@ -90,7 +90,7 @@ int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry restrict cg){
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
-int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry restrict cg){
+int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     double part_x, part_tan_x, part_y, part_tan_y;
     double s = 1.e21;
 
@@ -161,7 +161,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
 
 // Return to start position after having logged the impact.
 /*gpufun*/
-void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
+void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     if (is_hit != 0){
         if (cg->side == -1){
             // Mirror back
@@ -189,7 +189,7 @@ void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry rest
 
 
 /*gpufun*/
-void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
+void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     if (is_hit != 0){
         if (LocalParticle_get_state(part) > 0){
             if (cg->record_exits){

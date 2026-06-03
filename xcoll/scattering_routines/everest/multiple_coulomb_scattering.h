@@ -108,7 +108,7 @@ void scamcs(LocalParticle* part, double x0, double xp0, double s,
 
 
 /*gpufun*/
-void mcs(EverestData restrict everest, MaterialData restrict material,
+void mcs(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
          LocalParticle* part, double length, double pc, int edge_check){
 
     double const radl = MaterialData_get__radiation_length(material);

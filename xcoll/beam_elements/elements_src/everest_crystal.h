@@ -135,8 +135,8 @@ void EverestCrystal_init(EverestCrystalData el, LocalParticle* part0, EverestCol
 
 
 /*gpufun*/
-void EverestCrystal_init_data(LocalParticle* part, MaterialData restrict material,
-        EverestCollData restrict coll, CrystalGeometry restrict cg, EverestData everest){
+void EverestCrystal_init_data(LocalParticle* part, MaterialData /*restrict*/ material,
+        EverestCollData /*restrict*/ coll, CrystalGeometry /*restrict*/ cg, EverestData everest){
     everest->coll = coll;
     everest->rescale_scattering = 1;
     // Preinitialise scattering parameters

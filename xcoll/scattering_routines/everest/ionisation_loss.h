@@ -13,7 +13,7 @@
 
 
 /*gpufun*/
-void calculate_ionisation_properties(EverestData restrict everest, MaterialData restrict material, double pc) {
+void calculate_ionisation_properties(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, double pc) {
     double exenergy = MaterialData_get__excitation_energy(material);
     if (exenergy < 0){
         // Unsupported material for ionisation loss
@@ -72,7 +72,7 @@ void calculate_ionisation_properties(EverestData restrict everest, MaterialData 
 
 
 /*gpufun*/
-double calcionloss(EverestData restrict everest, MaterialData restrict material, LocalParticle* part,
+double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part,
                    double ionisation_length, double pc, double scale_factor) {
     if (MaterialData_get__excitation_energy(material) < 0){
         // Unsupported material for ionisation loss

@@ -13,7 +13,7 @@
 
 
 /*gpufun*/
-double nuclear_interaction(EverestData restrict everest, MaterialData restrict material,
+double nuclear_interaction(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
                            LocalParticle* part, double pc) {
     if (MaterialData_get__cross_section(material, 0) < 0){
         // Unsupported material for nuclear interaction

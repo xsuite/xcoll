@@ -12,7 +12,7 @@
 
 
 /*gpufun*/
-double jaw(EverestData restrict everest, MaterialData restrict material, LocalParticle* part,
+double jaw(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part,
            double pc, double length, int edge_check) {
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed

@@ -13,7 +13,7 @@
 
 
 /*gpufun*/
-void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t transition) {
+void volume_reflection(EverestData /*restrict*/ everest, LocalParticle* part, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
@@ -47,7 +47,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
 // Amorphous transport is just Multiple Coulomb scattering
 /*gpufun*/
-double amorphous_transport(EverestData restrict everest, MaterialData restrict material,
+double amorphous_transport(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
                            LocalParticle* part, double pc, double length, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
@@ -88,10 +88,10 @@ double amorphous_transport(EverestData restrict everest, MaterialData restrict m
 }
 
 
-double Channel(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
-double Amorphous(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
+double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length);
+double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length, int8_t allow_VI);
 
-double volume_interaction(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
+double volume_interaction(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length, int8_t transition){
 #ifdef XCOLL_REFINE_ENERGY
     calculate_VI_parameters(everest, part, pc);
 #endif
@@ -121,8 +121,8 @@ double volume_interaction(EverestData restrict everest, MaterialData restrict ma
 }
 
 // /*gpufun*/
-double Amorphous(EverestData restrict everest, MaterialData restrict material,
-           LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
+double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+           LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length, int8_t allow_VI) {
 
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed

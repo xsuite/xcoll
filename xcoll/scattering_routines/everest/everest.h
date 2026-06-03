@@ -18,7 +18,7 @@
 
 typedef struct EverestCollData_ {
     // Collimator properties
-    RandomRutherfordData restrict rng;
+    RandomRutherfordData /*restrict*/ rng;
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;

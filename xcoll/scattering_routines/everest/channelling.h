@@ -21,8 +21,8 @@
 
 
 /*gpufun*/
-double channelling_average_density(EverestData restrict everest, MaterialData restrict material,
-                                   CrystalGeometry restrict cg, LocalParticle* part, double pc) {
+double channelling_average_density(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+                                   CrystalGeometry /*restrict*/ cg, LocalParticle* part, double pc) {
 
     // Material properties
     double const atoms = MaterialData_get__atoms_per_volume((MaterialData)material);
@@ -74,7 +74,7 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
 
 
 /*gpufun*/
-void channel_transport(EverestData restrict everest, MaterialData restrict material,
+void channel_transport(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
                        LocalParticle* part, double pc, double L_chan, double t_I, double t_P,
                        double* out_drift_length, double* out_pc) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
@@ -126,8 +126,8 @@ void channel_transport(EverestData restrict everest, MaterialData restrict mater
 }
 
 
-double do_crystal(EverestData restrict everest, MaterialData restrict material,
-                  LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
+double do_crystal(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+                  LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length) {
     calculate_initial_angle(everest, part, cg);
     calculate_opening_angle(everest, part, cg);
 #ifdef XCOLL_REFINE_ENERGY
@@ -160,8 +160,8 @@ double do_crystal(EverestData restrict everest, MaterialData restrict material,
     return pc;
 }
 
-double Channel(EverestData restrict everest, MaterialData restrict material,
-               LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
+double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+               LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length) {
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
         return pc;
