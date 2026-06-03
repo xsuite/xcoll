@@ -11,7 +11,7 @@ from xcoll.materials import Material, db as mdb
 from xcoll.compare import deep_equal
 
 
-# TODO: make test_crystal_material_creation and test_adapt(), and expand test_db
+# TODO: make test_crystal_material_creation and expand test_db
 
 
 @pytest.mark.xcother
@@ -668,11 +668,34 @@ def test_different_fractions():
 
 @pytest.mark.xcother
 def test_crystal_material_creation():
+    # TODO
     pass
 
 @pytest.mark.xcother
 def test_adapt():
-    pass
+    mat = Material(A=12.01, Z=6, density=2.265, name='AdaptMAT')
+    adapted = mat.adapt(density=1.85, radiation_length=0.25,
+                        excitation_energy=78.0, state='solid')
+
+    assert adapted is not mat
+    assert isinstance(adapted, Material)
+    assert adapted.name is None
+    assert mat.name == 'AdaptMAT'
+    assert np.isclose(mat.density, 2.265)
+    assert np.isclose(adapted.A, mat.A)
+    assert np.isclose(adapted.Z, mat.Z)
+    assert np.isclose(adapted.density, 1.85)
+    assert adapted.state == 'solid'
+    assert np.isclose(adapted.radiation_length, 0.25)
+    assert np.isclose(adapted.excitation_energy, 78.0)
+
+    returned = adapted.adapt(inplace=True, density=2.0, hcut=0.03)
+    assert returned is adapted
+    assert np.isclose(adapted.density, 2.0)
+    assert np.isclose(adapted.hcut, 0.03)
+
+    with pytest.raises(ValueError, match="Cannot adapt A inplace"):
+        adapted.adapt(inplace=True, A=13.0)
 
 @pytest.mark.xcother
 def test_db():
