@@ -12,9 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from .beam_elements import (block_classes, collimator_classes, crystal_classes,
-                            FlukaCollimator, FlukaCrystal,
-                            Geant4Collimator, Geant4Crystal)
+from .beam_elements import (block_classes, collimator_classes, crystal_classes)
 from .compare import deep_equal
 from .json import json_load, json_dump
 from .general import __version__
@@ -405,8 +403,8 @@ class LossMap:
         Add particles to the loss map. Aperture losses are interpolated and the
         collimator summary is updated.
         """
+        tt = line.get_table()
         # # Check that collimators have been tracked
-        # tt = line.get_table()
         # tt_geant4 = tt.rows.match(element_type='Geant4Collimator|Geant4Crystal')
         # geant4_coll = [line.get(nn) for nn in tt_geant4.name]
         # if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
@@ -422,7 +420,10 @@ class LossMap:
             self.interpolation = interpolation
         elif self.interpolation is None:
             self.interpolation = 0.1 # Default
-        elements = line.get_elements_of_type(block_classes)[0]
+        elements = []
+        for cc in block_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            elements += [line.get(nn) for nn in ttcc.name]
         prim = all([ee.mark_scattered_particles for ee in elements])
         if not prim and any([ee.mark_scattered_particles for ee in elements]):
             raise ValueError("Inconsistent presence of primary hit identification in the line.")

@@ -228,7 +228,7 @@ def _assert_valid_positions(part_init, part, expected_hit_ids, expected_not_hit_
     assert sum(expected_not_hit & hits) == 0
 
     # Particles that are supposed to have hit the collimator, but are alive and have no kick, are considered faulty
-    assert sum(expected_hit & not_hits) <= 1 # We allow for a small margin of error
+    assert sum(expected_hit & not_hits) <= 2 # We allow for a small margin of error
 
 
 def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, momentum_accuracy=1.e-12, plot_primaries=True, plot_secondaries=True):

@@ -429,7 +429,6 @@ def _assert_hit(part, part_init, E0, coll, tol=1e-12):
         Evirtual = part.energy[mask_virtual].sum()
         if np.any(mask_virtual):
             assert Evirtual > 0
-            raise ValueError("FOUND VIRTUAL")
         Emassless = part.energy[mask_massless].sum()
         if np.any(mask_massless):
             assert Emassless > 0
