@@ -126,7 +126,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                         LocalParticle_set_state(part, XC_LOST_ON_MATERIAL);
                     }
                     if (record_scatterings) {
-                        InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame
+                        InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED, is_hit);  // In coll jaw reference frame
                     }
                 }
 

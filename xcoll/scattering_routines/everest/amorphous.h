@@ -67,7 +67,7 @@ double amorphous_transport(EverestData restrict everest, MaterialData restrict m
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR, everest->shape_id);
     } else {
         // Normal MCS
-        if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
+        if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING, everest->shape_id);
     }
     kxmcs = dya*RandomNormal_generate(part);
     kymcs = dya*RandomNormal_generate(part);
