@@ -136,3 +136,49 @@ and GPU — the two curves overlay across the channeling acceptance. Right: the
 GPU − CPU residual (RNG-stream noise), flat at zero here.
 
 ![Channeling efficiency CPU vs GPU](everest_crystal_cpu_vs_gpu_angle_efficiency.png)
+
+### Recursion-stress agreement (worst case)
+
+The deepest realistic Amorphous ↔ Channelling ↔ volume-interaction recursion —
+a 10×-longer crystal (20 mm) tracked by a grazing near-pencil beam — also agrees
+between the two backends, per coordinate: CPU and GPU keep 19 796 / 20 000
+survivors with a max KS of `5.1e-05`. This is the configuration that stresses
+the per-thread CUDA stack hardest, so it doubles as the validation that the
+stack-limit fix (above) holds under the worst case.
+
+![Recursion-stress CPU vs GPU](everest_crystal_cpu_vs_gpu_stress.png)
+
+## Performance
+
+PR2 is the first time `EverestCrystal` can run on the GPU at all, so the
+speed-up is newly measurable. `examples/everest_crystal_gpu_benchmark.py` times
+one turn through the canonical `Drift + EverestCrystal + Drift` line on
+`ContextCpu` (single core) and `ContextCupy`, warming up the kernels first and
+synchronizing the device around the timed region (so the one-off compile and
+async launch latency are excluded).
+
+Measured on one NVIDIA RTX 2070 (CUDA 12.9) vs a single CPU core:
+
+| particles | CPU [ms] | GPU [ms] | speed-up | CPU [Mp/s] | GPU [Mp/s] |
+| --------- | -------- | -------- | -------- | ---------- | ---------- |
+| 1 000     | 0.73     | 1.23     | 0.6x     | 1.37       | 0.81       |
+| 10 000    | 6.26     | 2.12     | 3.0x     | 1.60       | 4.72       |
+| 50 000    | 31.0     | 6.06     | 5.1x     | 1.61       | 8.24       |
+| 100 000   | 61.9     | 11.0     | 5.6x     | 1.62       | 9.10       |
+| 200 000   | 124.1    | 21.4     | 5.8x     | 1.61       | 9.34       |
+| 500 000   | 309.4    | 52.1     | 5.9x     | 1.62       | 9.59       |
+
+* The GPU pays a fixed launch/transfer overhead, so for very small bunches
+  (≲ a few thousand particles) the CPU wins; **break-even is ~2–3 k particles**.
+* From ~50 k particles the speed-up plateaus around **5–6×**, with GPU
+  throughput saturating near **~9.6 M particles/s** versus ~1.6 M/s on one CPU
+  core.
+* The Everest crystal kernel is branchy and stochastic (channeling vs amorphous
+  paths, RNG rejection loops, sub-segment recursion), so threads diverge — the
+  plateau is below what a non-divergent element (e.g. a plain drift) reaches,
+  but a solid 5–6× for realistic bunch sizes.
+* The CPU baseline is a single core; `ContextCpu` with OpenMP, or a full
+  multi-core node, would narrow the ratio. Absolute numbers are
+  hardware-specific.
+
+![EverestCrystal CPU vs GPU speed-up and throughput](everest_crystal_gpu_benchmark.png)

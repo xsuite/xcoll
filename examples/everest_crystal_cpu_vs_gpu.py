@@ -20,6 +20,9 @@ It produces:
      with a +/-1 sigma counting-noise band.
   2. ``everest_crystal_cpu_vs_gpu_angle_efficiency.png`` -- the channeling
      efficiency vs incoming angle curve on CPU and GPU, plus the residual.
+  3. ``everest_crystal_cpu_vs_gpu_stress.png`` -- the T13 recursion-stress
+     worst case (10x-longer crystal + grazing pencil), CPU vs GPU per
+     coordinate: parity holds even at the deepest interaction recursion.
 
 CUDA stack-limit note
 ---------------------
@@ -191,6 +194,53 @@ def channeling_efficiency(context, angle):
 
 
 # ---------------------------------------------------------------------------
+# T13 recursion stress: a 10x-longer crystal + a grazing near-pencil beam --
+# the deepest realistic Amorphous/Channel/volume-interaction recursion and the
+# largest per-thread CUDA stack use. The point is that CPU/GPU parity holds even
+# in this worst case (with the stack limit raised).
+# ---------------------------------------------------------------------------
+STRESS_CRYSTAL_LENGTH = 10.0 * CRYSTAL_LENGTH
+STRESS_STACK_LIMIT_BYTES = 64 * 1024  # generous headroom over the ~2 KiB need
+
+
+def _build_stress_line(context):
+    crystal = xc.EverestCrystal(
+        length=STRESS_CRYSTAL_LENGTH, material=xc.materials.Silicon,
+        bending_angle=CRYSTAL_BENDING_ANGLE, width=CRYSTAL_WIDTH,
+        height=CRYSTAL_HEIGHT, side=CRYSTAL_SIDE, miscut=CRYSTAL_MISCUT,
+        lattice=CRYSTAL_LATTICE, jaw=CRYSTAL_JAW, _context=context)
+    line = xt.Line(
+        elements=[xt.Drift(length=DRIFT_LENGTH), crystal,
+                  xt.Drift(length=DRIFT_LENGTH)],
+        element_names=["d_upstream", "crystal", "d_downstream"])
+    line.particle_ref = xt.Particles(p0c=P0C_EV, mass0=xp.PROTON_MASS_EV)
+    line.build_tracker(_context=context)
+    rng = np.random.default_rng(NUMPY_SEED)
+    initial_x = rng.normal(loc=BEAM_X_MEAN, scale=1e-6, size=N_PART)
+    initial_px = rng.normal(loc=0.0, scale=2e-6, size=N_PART)  # grazing
+    initial_y = rng.normal(loc=0.0, scale=1e-4, size=N_PART)
+    initial_py = rng.normal(loc=0.0, scale=1e-6, size=N_PART)
+    particles = line.build_particles(x=initial_x, px=initial_px,
+                                     y=initial_y, py=initial_py)
+    host_seeds = PARTICLES_SEED + np.arange(N_PART, dtype=np.uint32)
+    particles._init_random_number_generator(seeds=host_seeds)
+    return line, particles
+
+
+def track_stress(context):
+    """Track the worst-case stress line one turn; return a coord dict."""
+    set_crystal_stack_limit(context, nbytes=STRESS_STACK_LIMIT_BYTES)
+    line, particles = _build_stress_line(context)
+    line.track(particles, num_turns=1)
+    out = {}
+    for field in COORDS + ("state",):
+        out[field] = np.asarray(
+            context.nparray_from_context_array(getattr(particles, field)))
+    out["state"] = out["state"].astype(np.int64)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # plotting
 # ---------------------------------------------------------------------------
 def plot_coord_panels(cpu, gpu, ks_stats, kl_stats, path):
@@ -277,6 +327,33 @@ def plot_angle_curve(angles, eff_cpu, eff_gpu, path):
     plt.close(fig)
 
 
+def plot_stress_panels(cpu, gpu, ks_stats, path):
+    """Per-coordinate CPU/GPU overlay for the T13 recursion-stress config."""
+    n = len(COORDS)
+    fig, axes = plt.subplots(1, n, figsize=(4.0 * n, 4.2))
+    for j, field in enumerate(COORDS):
+        ca = cpu[field][cpu["state"] > 0]
+        ga = gpu[field][gpu["state"] > 0]
+        lo = float(min(ca.min(), ga.min()))
+        hi = float(max(ca.max(), ga.max()))
+        edges = np.linspace(lo, hi, 70)
+        ax = axes[j]
+        ax.hist(ca, bins=edges, density=True, histtype="stepfilled",
+                alpha=0.35, color="C0", label="CPU")
+        ax.hist(ga, bins=edges, density=True, histtype="step", lw=1.6,
+                color="C3", label="GPU")
+        ax.set_title(f"{field}  KS={ks_stats[field]:.4f}", fontsize=10)
+        ax.set_xlabel(f"{field} [{COORD_UNITS[field]}]")
+        if j == 0:
+            ax.set_ylabel("density")
+            ax.legend(fontsize=8)
+    fig.suptitle("T13 recursion stress (10x crystal + grazing pencil) -- "
+                 "CPU vs GPU distributional agreement", fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+
 def main():
     cpu_ctx = xo.ContextCpu()
     gpu_ctx = xo.ContextCupy()
@@ -310,13 +387,29 @@ def main():
     angle_resid = float(np.max(np.abs(eff_gpu - eff_cpu)))
     print(f"  angle-curve max|delta| = {angle_resid:.4f}")
 
-    print("[3] saving plots ...")
+    print("[3] T13 recursion stress (10x crystal + grazing pencil) ...")
+    stress_cpu = track_stress(cpu_ctx)
+    stress_gpu = track_stress(gpu_ctx)
+    stress_ks = {}
+    for field in COORDS:
+        ca = stress_cpu[field][stress_cpu["state"] > 0]
+        ga = stress_gpu[field][stress_gpu["state"] > 0]
+        stress_ks[field] = float(ks_2samp(ca, ga).statistic)
+    n_alive_stress_cpu = int(np.sum(stress_cpu["state"] > 0))
+    n_alive_stress_gpu = int(np.sum(stress_gpu["state"] > 0))
+    print(f"  stress survivors CPU={n_alive_stress_cpu} GPU={n_alive_stress_gpu}"
+          f"  max KS={max(stress_ks.values()):.6f}")
+
+    print("[4] saving plots ...")
     coord_png = "everest_crystal_cpu_vs_gpu_coords.png"
     angle_png = "everest_crystal_cpu_vs_gpu_angle_efficiency.png"
+    stress_png = "everest_crystal_cpu_vs_gpu_stress.png"
     plot_coord_panels(cpu, gpu, ks_stats, kl_stats, coord_png)
     plot_angle_curve(angles, eff_cpu, eff_gpu, angle_png)
+    plot_stress_panels(stress_cpu, stress_gpu, stress_ks, stress_png)
     print(f"  wrote {coord_png}")
     print(f"  wrote {angle_png}")
+    print(f"  wrote {stress_png}")
 
     summary = {
         "ks_per_coord": ks_stats, "kl_per_coord": kl_stats,
@@ -325,13 +418,17 @@ def main():
         "channeling_fraction_gpu": frac_gpu["channeling_fraction_of_alive"],
         "channeling_fraction_delta": chan_delta,
         "angle_curve_max_abs_delta": angle_resid,
+        "stress_max_ks": max(stress_ks.values()),
+        "stress_n_alive_cpu": n_alive_stress_cpu,
+        "stress_n_alive_gpu": n_alive_stress_gpu,
         "stack_limit_bytes": int(eff_stack),
     }
     with open("everest_crystal_cpu_vs_gpu_summary.json", "w") as handle:
         json.dump(summary, handle, indent=2)
     print(f"max coord KS = {summary['max_coord_ks']:.6f}  "
           f"channeling |delta| = {chan_delta:.5f}  "
-          f"angle-curve max|delta| = {angle_resid:.4f}")
+          f"angle-curve max|delta| = {angle_resid:.4f}  "
+          f"stress max KS = {summary['stress_max_ks']:.6f}")
 
 
 if __name__ == "__main__":
