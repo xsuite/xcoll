@@ -21,6 +21,8 @@ It is deliberately NOT run as an import side-effect: the limit is only raised
 when an Everest element is actually placed on / tracked on a Cupy context.
 """
 
+import xobjects as xo
+
 # cudaLimitStackSize enum value (CUDA runtime). Same on all supported CUDA
 # versions; we use the literal so we do not depend on a cupy enum symbol name.
 _CUDA_LIMIT_STACK_SIZE = 0x00
@@ -32,20 +34,6 @@ _CUDA_LIMIT_STACK_SIZE = 0x00
 # over the measured worst case while staying far below the device's stack
 # reservation ceiling (a too-large request fails with cudaErrorMemoryAllocation).
 CRYSTAL_STACK_LIMIT_BYTES = 16 * 1024
-
-# Track the largest limit we have already requested in this process, so the
-# call is idempotent and so we never lower a limit another component raised.
-_requested_stack_limit = 0
-
-
-def _is_cupy_context(context):
-    """True iff `context` is an xobjects Cupy (GPU) context. No-op-safe."""
-    try:
-        import xobjects as xo
-    except Exception:  # pragma: no cover - xobjects is always present here
-        return False
-    cupy_context_cls = getattr(xo, "ContextCupy", None)
-    return cupy_context_cls is not None and isinstance(context, cupy_context_cls)
 
 
 def set_crystal_stack_limit(context, nbytes=CRYSTAL_STACK_LIMIT_BYTES):
@@ -66,9 +54,7 @@ def set_crystal_stack_limit(context, nbytes=CRYSTAL_STACK_LIMIT_BYTES):
         The effective ``cudaLimitStackSize`` after the call (bytes) on a Cupy
         context, or ``None`` on a CPU context / if cupy is unavailable.
     """
-    global _requested_stack_limit
-
-    if not _is_cupy_context(context):
+    if not isinstance(context, xo.ContextCupy):
         return None
 
     try:
@@ -76,13 +62,13 @@ def set_crystal_stack_limit(context, nbytes=CRYSTAL_STACK_LIMIT_BYTES):
     except Exception:  # pragma: no cover - cupy is present on a Cupy context
         return None
 
+    # The live device limit already encodes the process high-water mark (we
+    # never lower it), so it alone makes the call idempotent / never-lowering.
     current = cp.cuda.runtime.deviceGetLimit(_CUDA_LIMIT_STACK_SIZE)
-    target = max(nbytes, current, _requested_stack_limit)
+    target = max(nbytes, current)
 
-    # Only call the (device-wide) setter if we actually need to raise it; this
-    # keeps the guard idempotent and avoids resetting it on every element.
+    # Only call the (device-wide) setter when we actually need to raise it.
     if target > current:
         cp.cuda.runtime.deviceSetLimit(_CUDA_LIMIT_STACK_SIZE, target)
 
-    _requested_stack_limit = max(_requested_stack_limit, target)
     return cp.cuda.runtime.deviceGetLimit(_CUDA_LIMIT_STACK_SIZE)

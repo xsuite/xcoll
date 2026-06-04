@@ -18,26 +18,10 @@ from ..compare import deep_equal
 # The default context in which freshly-built Material xobjects live. It is
 # ContextCpu so that all materials share one host buffer (a convenience the
 # Xtrack tests rely on; see the note where `_context` is consumed below).
-# It is configurable (get/set helpers below) so that, when a Material has to be
-# attached to a GPU element/line, it can be rebuilt in that element's context:
-# otherwise MaterialData would stay pinned to host memory and the GPU kernel
-# would read garbage at track time.
+# When a Material has to be attached to a GPU element/line, `_material_in_context`
+# rebuilds it in that element's context; otherwise MaterialData would stay pinned
+# to host memory and the GPU kernel would read garbage at track time.
 _materials_context = xo.ContextCpu()
-
-
-def get_materials_context():
-    """Return the default context in which new Material xobjects are built."""
-    return _materials_context
-
-
-def set_materials_context(context):
-    """Set the default context for new Material xobjects (default ContextCpu).
-
-    Existing Material instances are not moved; only materials built afterwards
-    (without an explicit ``_context``) land in `context`.
-    """
-    global _materials_context
-    _materials_context = context
 
 
 def _material_in_context(material, context):
