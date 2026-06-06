@@ -7,6 +7,7 @@ import time
 import pytest
 import numpy as np
 from pathlib import Path
+from warnings import warn
 
 import xpart as xp
 import xtrack as xt
@@ -21,7 +22,7 @@ import xcoll.constants as xcc
                             [True,  False],
                             [True,  True]
                          ], ids=["default", "mark", "impacts", "impacts_mark"])
-def test_fluka_deep_check(log_impacts, mark_scattered_particles):
+def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xdist):
     num_part = 20000
     capacity = 2*num_part
     particle_ref = xt.Particles('proton', p0c=6.8e12)
@@ -49,7 +50,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles):
     if log_impacts:
         impacts = xc.InteractionRecord.start(elements=[coll1, coll2], record_impacts=True)
 
-    part_init, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec = _create_masked_particles(num_part, capacity)
+    part_init, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec = _create_masked_particles(num_part)
     part = part_init.copy()
     part_black = part_init.copy()
 
@@ -81,6 +82,10 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles):
     if log_impacts:
         df = impacts.to_pandas(frame='lattice')
 
+    print(f"Particle types generated: ")
+    for pdg_id, count in zip(*np.unique(part.pdg_id[(part.state > -99999) & (part.particle_id >= num_part)], return_counts=True)):
+        print(f"    PDG ID {pdg_id}: {count} particles")
+
     # =======================================
     # === CHECKS AFTER FIRST PASS (coll1) ===
     # =======================================
@@ -101,7 +106,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles):
         raise ValueError("No massless or neutral particles created. Choose a different seed.")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
-    _compare_particles(part_mid, 'temp_fluka_part_mid.json')
+    _compare_particles(part_mid, 'temp_fluka_part_mid.json', running_with_xdist)
 
     # Verify all state flags.
     # Do not use USE_IN_LOSSMAP_PRIM/SEC to check the states directly.
@@ -212,7 +217,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles):
     print(f"Children generated: {((part.state > -9999999) & (part.particle_id >= 20000)).sum()}")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
-    _compare_particles(part, 'temp_fluka_part.json')
+    _compare_particles(part, 'temp_fluka_part.json', running_with_xdist)
 
     # Verify that there are no leftover hit states
     assert not np.any(part_mid.state == xcc.HIT_ON_FLUKA)
@@ -314,7 +319,11 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles):
         assert np.allclose(part_black.delta[mask_end], df_end.delta_before.values[mask_df])
 
 
-def _compare_particles(part, file):
+def _compare_particles(part, file, running_with_xdist):
+    if running_with_xdist:
+        warn("Not comparing to previous result since running with xdist.")
+        return
+
     file = Path(file)
     if file.exists():
         dct = xc.json.json_load(file)
@@ -347,7 +356,8 @@ def _compare_particles(part, file):
     xc.json.json_dump(dct, file)
 
 
-def _create_masked_particles(num_part, capacity):
+def _create_masked_particles(num_part):
+    capacity = xc.fluka.engine.capacity
     step_size = num_part//16
     mask_miss = np.concat([np.full(2*step_size, True),  np.full(2*step_size, True),
                            np.full(2*step_size, False), np.full(2*step_size, False),
@@ -394,7 +404,7 @@ def _create_masked_particles(num_part, capacity):
             y=np.linspace(-1e-6, 1e-6, step_size*16),
             py=np.linspace(-1e-7, 1e-7, step_size*16),
             particle_ref=xc.fluka.engine.particle_ref,
-            _capacity=xc.fluka.engine.capacity)
+            _capacity=capacity)
         part_init.state[mask_sec] = xcc.SECONDARY_PARTICLE  # Mark secondary particles in initial distribution
         xc.json.json_dump(part_init.to_dict(), init_file)
 

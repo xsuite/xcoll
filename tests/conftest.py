@@ -8,6 +8,9 @@ import shutil
 from pathlib import Path
 from _common_api import check_skip
 
+@pytest.fixture(scope="session")
+def running_with_xdist(worker_id):
+    return worker_id != "master"
 
 def pytest_runtest_setup(item):
     # If any engine marker applies to this test item, run the skip check.
