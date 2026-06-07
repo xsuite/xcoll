@@ -73,6 +73,11 @@ def test_hierarchy(engine):
     print(f"Time per track: {(time.time()-t_start)/num_slices*1e3:.2f}ms for "
         + f"{len(part_init.x)} protons through {coll.length/1000:.2f}mm")
 
+    if engine == "fluka":
+        xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        xc.geant4.engine.stop(clean=True)
+
     mask_child = part.particle_id > parents.max()
     child_id   = part.particle_id[mask_child]
 
@@ -115,10 +120,6 @@ def test_hierarchy(engine):
         assert (distance <= 1.5*grid_sep).sum() / len(distance) > 0.98  # Allow only 2% of children to leave three grid cells
         assert (distance <= 2*grid_sep).sum() / len(distance) > 0.99  # Allow only 1% of children to leave four grid cells
 
-    if engine == "fluka":
-        xc.fluka.engine.stop(clean=True)
-    elif engine == "geant4":
-        xc.geant4.engine.stop(clean=True)
 
 # TODO
 # @pytest.mark.fluka

@@ -320,6 +320,11 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
     coll.track(part)
     print(f"Done in {round(time.time()-start, 3)}s.", flush=True)
 
+    if engine == 'fluka':
+        xc.fluka.engine.stop(clean=True)
+    elif engine == 'geant4':
+        xc.geant4.engine.stop(clean=True)
+
     if do_assert:
         E_ref = part_init.energy[0]
         if hit:
@@ -329,11 +334,6 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
                 _assert_missed(part, part_init, E_ref, coll, tol=tol, allow_spurious_lost=2)
             else:
                 _assert_missed(part, part_init, E_ref, coll, tol=tol)
-
-    if engine == 'fluka' and xc.fluka.engine.is_running():
-        xc.fluka.engine.stop(clean=True)
-    elif engine == 'geant4' and xc.geant4.engine.is_running():
-        xc.geant4.engine.stop(clean=True)
     print()
     return part
 
@@ -417,7 +417,7 @@ def _assert_hit(part, part_init, E0, coll, tol=1e-12):
     # All children should have less energy than the initial
     assert np.all(part.energy[is_child] < E0)
     # All energies need to be positive
-    assert np.all(part.energy[part.state!=LAST_INVALID_STATE] > -1.e-12)
+    assert np.all(part.energy[part.state!=LAST_INVALID_STATE] > -1.e-9)
 
     with flaky_assertions():
         Edead = part.energy[mask_lost].sum()

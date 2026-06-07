@@ -18,7 +18,7 @@ from xcoll.scattering_routines.fluka.fluka_input import get_collimators_from_inp
 def test_fluka_input_single(el_type, register_cleanup):
     print(f"\nTesting FLUKA input generation for single {el_type}... in {Path.cwd()}")
     if xc.fluka.engine.is_running():
-        xc.fluka.engine.stop()
+        xc.fluka.engine.stop(clean=True)
     if el_type == 'collimator':
         coll = xc.FlukaCollimator(length=0.456, angle=32, jaw=[0.01, -0.02], tilt=[10e-6, -8.7e-6], material='Yttrium')
     else:
@@ -132,7 +132,7 @@ def test_fluka_input_single(el_type, register_cleanup):
 def test_fluka_input_line(ignore_crystals, register_cleanup):
     print(f"\nTesting FLUKA input generation for line (ignore_crystals={ignore_crystals})... in {Path.cwd()}")
     if xc.fluka.engine.is_running():
-        xc.fluka.engine.stop()
+        xc.fluka.engine.stop(clean=True)
     beam = 1
     path = Path(__file__).parent
     env = xt.load(path / 'data' / f'sequence_lhc_run3_b{beam}.json')

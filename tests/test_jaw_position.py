@@ -85,14 +85,15 @@ def test_positions(engine, jaw, angle, tilt):
     t1 = time.time()
     coll.track(part)
     print(f"{engine.capitalize()} tracking time for {num_part} particles: {time.time()-t1:.2f} s")
-    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
-    with flaky_assertions():
-        _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
 
     if engine == "fluka":
         xc.fluka.engine.stop(clean=True)
     elif engine == "geant4":
         xc.geant4.engine.stop(clean=True)
+
+    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+    with flaky_assertions():
+        _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
 
 
 # # TODO

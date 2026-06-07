@@ -111,6 +111,11 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
     line.track(part, num_turns=num_turns, with_progress=1)
     line.xcoll.scattering.disable()
 
+    if engine == "fluka":
+        xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        xc.geant4.engine.stop(clean=True)
+
     if engine == "everest":
         coll_cls = ['EverestCollimator']
         cry_cls  = ['EverestCrystal']
@@ -128,11 +133,6 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
         ThisLM.plot(show=False, zoom=zoom, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()
         Path(f"test-{this_id}.jpg").unlink()
-
-    if engine == "fluka":
-        xc.fluka.engine.stop(clean=True)
-    elif engine == "geant4":
-        xc.geant4.engine.stop(clean=True)
 
 
 def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
