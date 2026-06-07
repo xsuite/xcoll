@@ -23,8 +23,8 @@ import xcoll.constants as xcc
                             [True,  True]
                          ], ids=["default", "mark", "impacts", "impacts_mark"])
 def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_xdist):
-    num_part = 50000
-    capacity = 2*num_part
+    num_part = 50000       # When this is changed, need to re-generate input distribution
+    capacity = 4*num_part  # When this is changed, need to re-generate input distribution
     particle_ref = xt.Particles('proton', p0c=6.8e12)
 
     # Prepare collimators, engine, and initial particles
@@ -42,9 +42,9 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     xc.geant4.engine.return_baryons = True   # To get some massless particles as well
     xc.geant4.engine.start(elements=[coll1, coll2], clean=True, verbose=False)
 
-    # Create black absorbers
-    black1 = xc.BlackAbsorber(length=0.6, angle=0,   jaw=0.001)
-    black2 = xc.BlackAbsorber(length=0.6, angle=123, jaw=0.0005)
+    # Create black absorbers after starting engine so length_front and length_back are known
+    black1 = xc.BlackAbsorber(length=0.6 + coll1.length_front + coll1.length_back, angle=0,   jaw=0.001)
+    black2 = xc.BlackAbsorber(length=0.6 + coll1.length_front + coll1.length_back, angle=123, jaw=0.0005)
 
     if log_impacts:
         impacts = xc.InteractionRecord.start(elements=[coll1, coll2], record_impacts=True)
@@ -63,12 +63,16 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     part.sort(interleave_lost_particles=True)
     part.at_element[part.state > 0] += 1
 
+    coll1._drift(part_black, -coll1.length_front)
     black1.track(part_black)
+    coll1._drift(part_black, -coll1.length_back)
     part_black_mid = part_black.copy()
     part_black_mid.sort(interleave_lost_particles=True)
 
+    coll2._drift(part_black, -coll2.length_front)
     part_black.at_element[part_black.state > 0] += 1
     black2.track(part_black)
+    coll2._drift(part_black, -coll2.length_back)
     part_black.sort(interleave_lost_particles=True)
     part_black.at_element[part_black.state > 0] += 1
 
@@ -88,7 +92,7 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     # Preliminary info
     print(f"Primary hit states: {np.unique(part_mid.state[~mask_sec])}")
     print(f"Secondary hit states: {np.unique(part_mid.state[mask_sec])}")
-    print(f"Children generated: {((part_mid.state > -9999999) & (part_mid.particle_id >= 20000)).sum()}")
+    print(f"Children generated: {((part_mid.state > -9999999) & (part_mid.particle_id >= num_part)).sum()}")
     if xcc.LOST_ON_MATERIAL not in part_mid.state:
         raise ValueError("No particles lost on material. Choose a different seed.")
     if xcc.LOST_ON_MATERIAL_SEC not in part_mid.state:
@@ -159,7 +163,7 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
 
     # Verify the final positions
     assert np.allclose(part_mid.s[mask_miss], coll1.length)
-    assert np.allclose(part_mid.s[np.isin(part_mid.state, kill_states)], coll1.length)
+    assert np.allclose(part_mid.s[np.isin(part_mid.state, kill_states)], coll1.length + coll1.length_back)
 
     # The energy of missed particles should not have changed
     energy0 = xc.geant4.engine.particle_ref.energy0[0]
@@ -204,7 +208,7 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     # Preliminary info
     print(f"Primary hit states: {np.unique(part.state[~mask_sec])}")
     print(f"Secondary hit states: {np.unique(part.state[mask_sec])}")
-    print(f"Children generated: {((part.state > -9999999) & (part.particle_id >= 20000)).sum()}")
+    print(f"Children generated: {((part.state > -9999999) & (part.particle_id >= num_part)).sum()}")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
     _compare_particles(part, 'temp_geant4_part.json', running_with_xdist)
@@ -263,8 +267,8 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
 
     # Verify the final positions
     assert np.allclose(part.s[mask_surv], coll1.length + coll2.length)
-    assert np.allclose(part.s[np.isin(part.state, kill_states) & (part.at_element == 0)], coll1.length)
-    assert np.allclose(part.s[np.isin(part.state, kill_states) & (part.at_element == 1)], coll1.length + coll2.length)
+    assert np.allclose(part.s[np.isin(part.state, kill_states) & (part.at_element == 0)], coll1.length + coll1.length_back)
+    assert np.allclose(part.s[np.isin(part.state, kill_states) & (part.at_element == 1)], coll1.length + coll2.length + coll2.length_back)
 
     # The energy of missed particles should not have changed
     assert np.allclose(part.energy[mask_miss & ~mask_hit_coll2], energy0)
@@ -347,6 +351,7 @@ def _compare_particles(part, file, running_with_xdist):
 
 
 def _create_masked_particles(num_part, capacity):
+    # When this is changed, need to re-generate input distribution
     step_size = num_part//10
     mask_miss = np.concat([np.full(step_size, True),    np.full(step_size, True),
                            np.full(4*step_size, False), np.full(4*step_size, False),

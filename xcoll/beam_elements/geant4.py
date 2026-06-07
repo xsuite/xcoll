@@ -10,13 +10,15 @@ import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
-from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core
+from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core, track_post
 from ..materials import _DEFAULT_MATERIAL, _resolve_material
 
 
 class Geant4Collimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
-        'geant4_id': xo.String
+        'geant4_id': xo.String,
+        'length_front': xo.Float64,   # Hard-coded to correct 250nm margin in BDSIM
+        'length_back':  xo.Float64
     }
 
     isthick = True
@@ -61,6 +63,8 @@ class Geant4Collimator(BaseCollimator):
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
                 self._equivalent_drift.model = 'exact'
+            self.length_front = 250e-9
+            self.length_back = -250e-9
 
     @property
     def angle(self):
@@ -95,6 +99,7 @@ class Geant4Collimator(BaseCollimator):
         if track_pre(self, part):
             super().track(part)
             track_core(self, part)
+            track_post(self, part)
         else:
             self._drift(part)
 

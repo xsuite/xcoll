@@ -23,8 +23,8 @@ import xcoll.constants as xcc
                             [True,  True]
                          ], ids=["default", "mark", "impacts", "impacts_mark"])
 def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xdist):
-    num_part = 20000
-    capacity = 2*num_part
+    num_part = 20000       # When this is changed, need to re-generate input distribution
+    capacity = 2*num_part  # When this is changed, need to re-generate input distribution
     particle_ref = xt.Particles('proton', p0c=6.8e12)
 
     # Prepare collimators, engine, and initial particles
@@ -93,7 +93,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     # Preliminary info
     print(f"Primary hit states: {np.unique(part_mid.state[~mask_sec])}")
     print(f"Secondary hit states: {np.unique(part_mid.state[mask_sec])}")
-    print(f"Children generated: {((part_mid.state > -9999999) & (part_mid.particle_id >= 20000)).sum()}")
+    print(f"Children generated: {((part_mid.state > -9999999) & (part_mid.particle_id >= num_part)).sum()}")
     if xcc.LOST_ON_MATERIAL not in part_mid.state:
         raise ValueError("No particles lost on material. Choose a different seed.")
     if xcc.LOST_ON_MATERIAL_SEC not in part_mid.state:
@@ -214,7 +214,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     # Preliminary info
     print(f"Primary hit states: {np.unique(part.state[~mask_sec])}")
     print(f"Secondary hit states: {np.unique(part.state[mask_sec])}")
-    print(f"Children generated: {((part.state > -9999999) & (part.particle_id >= 20000)).sum()}")
+    print(f"Children generated: {((part.state > -9999999) & (part.particle_id >= num_part)).sum()}")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
     _compare_particles(part, 'temp_fluka_part.json', running_with_xdist)
@@ -308,7 +308,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
         df_end = df_end.sort_values("id_before")
         # Only compare particles that missed the first collimator and hit the second one
         mask_end = (part_black.at_element == 1) & (part_black.state < 0)
-        mask_df = df_end.id_before.values < 5000
+        mask_df = np.isin(df_end.id_before.values, part_black.particle_id[mask_end])
         assert np.all(part_black.particle_id[mask_end] == df_end.id_before.values[mask_df])
         assert np.allclose(part_black.s[mask_end],     df_end.s_before.values[mask_df] + coll1.length)
         assert np.allclose(part_black.x[mask_end],     df_end.x_before.values[mask_df])
@@ -357,6 +357,7 @@ def _compare_particles(part, file, running_with_xdist):
 
 
 def _create_masked_particles(num_part):
+    # When this is changed, need to re-generate input distribution
     capacity = xc.fluka.engine.capacity
     step_size = num_part//16
     mask_miss = np.concat([np.full(2*step_size, True),  np.full(2*step_size, True),

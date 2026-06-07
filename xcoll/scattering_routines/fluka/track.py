@@ -11,7 +11,8 @@ import xtrack.particles.pdg as pdg
 from ...constants import (LOST_ON_MATERIAL, LOST_ON_MATERIAL_SEC,
                           MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY,
                           VIRTUAL_ENERGY_SEC, HIT_ON_FLUKA,
-                          HIT_ON_FLUKA_SEC, SECONDARY_PARTICLE)
+                          HIT_ON_FLUKA_SEC, SECONDARY_PARTICLE,
+                          LOST_WITHOUT_SPEC)
 
 
 def track_pre(coll, particles):
@@ -53,6 +54,9 @@ def track_pre(coll, particles):
 
 def track_post(coll, particles):
     coll._drift(particles, -coll.length_back)
+
+    # Ensure no leftover states
+    assert np.sum(particles.state==LOST_WITHOUT_SPEC) == 0
     alive_states = np.unique(particles.state[particles.state > 0])
     alive_states = alive_states[(alive_states > SECONDARY_PARTICLE) & (alive_states <= 399)]
     if any(alive_states):
