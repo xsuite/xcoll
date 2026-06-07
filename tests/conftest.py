@@ -22,7 +22,7 @@ def pytest_runtest_setup(item):
 
 
 def pytest_collection_modifyitems(config, items):
-    running_xdist = hasattr(config, "workerinput") or config.getoption("-n") not in (None, 0)
+    running_xdist = hasattr(config, "workerinput") or config.getoption("-n") not in (None, 0, 1)
     if not running_xdist:
         return
 
