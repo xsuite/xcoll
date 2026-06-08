@@ -45,10 +45,12 @@ class FlukaPrototype:
             FlukaPrototype._registry.append(self)
         return self
 
-    def __init__(self, fedb_series=None, fedb_tag=None, *, angle=0, side=None, width=None,
-                 height=None, length=None, material=None, info=None, extra_commands=None,
-                 is_crystal=False, bending_radius=None, _allow_generic=False, is_broken=False,
-                 _force_init=False, **kwargs):
+    def __init__(self, fedb_series=None, fedb_tag=None, container=None, *,
+                 angle=0, side=None, width=None, height=None, length=None,
+                 material=None, info=None, extra_commands=None,
+                 is_crystal=False, bending_radius=None,
+                 allow_prefiltering=None, _allow_generic=False,
+                 is_broken=False, _force_init=False, **kwargs):
         if getattr(self, "_initialized", False) and not _force_init:
             return
         self._idx = None
@@ -61,6 +63,7 @@ class FlukaPrototype:
         if self._is_null:
             self._fedb_series = None
             self._fedb_tag = None
+            self._container = None
             self._name = None
             self._side = None
             self._angle = None
@@ -74,15 +77,21 @@ class FlukaPrototype:
             self._extra_commands = None
             self._is_broken = None
             self._initialized = True
+            self._allow_prefiltering = False
             return
         if fedb_series == 'generic' and not _allow_generic:
             this_type = self.__class__.__name__[5:].lower()
-            raise ValueError("Cannot use 'generic' as fedb_series, unless creating a generic " \
-                          + f"{this_type}. Please use xcoll.fluka.create_generic_{this_type}() " \
-                          + f"instead.")
+            raise ValueError(f"Cannot use 'generic' as fedb_series, unless "
+                             f"creating a generic {this_type}. Please use "
+                             f"xcoll.fluka.create_generic_{this_type}() "
+                             f"instead.")
+        if allow_prefiltering is None:
+            allow_prefiltering = fedb_series == 'generic'
+        self._allow_prefiltering = allow_prefiltering
         self._fedb_series = fedb_series
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
+        self._container = container
         if side is not None:
             BaseCollimator.side.fset(self, side)  # This will overwrite the side in the FlukaCollimator
         else:
@@ -172,23 +181,35 @@ class FlukaPrototype:
             return {'__class__': self.__class__.__name__}
         if self.is_defunct():
             raise ValueError(f"Cannot serialize defunct {self._type} '{self.name}'!")
-        return {
+        data = {
             '__class__': self.__class__.__name__,
             'name': self.name,
             'fedb_series': self.fedb_series,
-            'fedb_tag': self.fedb_tag,
-            'side': self.side,
-            'angle': self.angle,
-            'length': self.length,
-            'width': self.width,
-            'height': self.height,
-            'material': self.material.to_dict() if hasattr(self.material, 'to_dict') else self.material,
-            'is_crystal': self.is_crystal,
-            'bending_radius': self.bending_radius,
-            'info': self.info,
-            'extra_commands': self.extra_commands,
-            'is_broken': self.is_broken,
+            'fedb_tag': self.fedb_tag
         }
+        if self.container is not None:
+            data['container'] = self.container
+        if self.side is not None:
+            data['side'] = self.side
+        data['angle'] = self.angle
+        if self.length is not None:
+            data['length'] = self.length
+        if self.width is not None:
+            data['width'] = self.width
+        if self.height is not None:
+            data['height'] = self.height
+        if self.material is not None:
+            data['material'] = self.material.to_dict() if hasattr(self.material, 'to_dict') else self.material
+        data['is_crystal'] = self.is_crystal
+        if self.bending_radius is not None:
+            data['bending_radius'] = self.bending_radius
+        if self.info is not None:
+            data['info'] = self.info
+        data['allow_prefiltering'] = self.allow_prefiltering
+        if self.extra_commands is not None:
+            data['extra_commands'] = self.extra_commands
+        data['is_broken'] = self.is_broken
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -237,6 +258,12 @@ class FlukaPrototype:
         if self._is_null:
             return None
         return self._fedb_tag
+
+    @property
+    def container(self):
+        if self._is_null:
+            return None
+        return self._container
 
     @property
     def body_file(self):
@@ -409,7 +436,7 @@ class FlukaPrototype:
 
     @property
     def bending_radius(self):
-        if self._is_null:
+        if self._is_null or not self.is_crystal:
             return None
         return self._bending_radius
 
@@ -418,6 +445,12 @@ class FlukaPrototype:
         if self._is_null:
             return None
         return self._info
+
+    @property
+    def allow_prefiltering(self):
+        if self._is_null:
+            return None
+        return self._allow_prefiltering
 
     @property
     def extra_commands(self):
@@ -453,6 +486,8 @@ class FlukaPrototype:
         prot  = f"{_type:9}     {self.name}\n"
         prot += f"FEDB_SERIES   {self.fedb_series}\n"
         prot += f"FEDB_TAG      {self.fedb_tag}\n"
+        if isinstance(self, FlukaPrototype):
+            prot += f"CONTAINER     {self.container}\n"
         prot += f"ROT-DEFI  "
         self._idx = idx  # Store the index for fluka_position property
         for value in self.fluka_position:

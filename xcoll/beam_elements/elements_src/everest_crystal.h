@@ -27,6 +27,11 @@ int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
     return (EverestCrystalData_get__record_interactions(el) >> 2) % 2;
 }
 
+/*gpufun*/
+int8_t EverestCrystalData_get_mark_scattered_particles(EverestCrystalData el){
+    return (EverestCrystalData_get__record_interactions(el) >> 3) % 2;
+}
+
 
 void EverestCrystal_set_material(EverestCrystalData el){
     MaterialData material = EverestCrystalData_getp__material(el);
@@ -214,6 +219,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 double const qq0     = LocalParticle_get_charge_ratio(part);
                 double const chi     = LocalParticle_get_chi(part);
                 double const pc_in   = (1 + delta)*p0c*qq0/chi;
+                double const e_in    = LocalParticle_get_energy(part);
                 double pc_out;
 
                 // Check if hit on jaws
@@ -224,6 +230,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
                     EverestData everest = EverestCrystal_init_data(part, material, coll, cg);
+                    everest->shape_id = is_hit;
                     pc_out = do_crystal(everest, material, part, cg, pc_in/1.e9, remaining_length)*1.e9;
                     free(everest);
                 }
@@ -235,7 +242,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_set_zeta(part, zeta_in);
 
                 // Hit and survived particles need correcting:
-                if (is_hit!=0 && LocalParticle_get_state(part)>0){
+                if (is_hit!=0 && LocalParticle_get_state(part) > 0){
                     double const rpp_old  = LocalParticle_get_rpp(part);
                     LocalParticle_update_delta(part, pc_out*chi/p0c/qq0 - 1);
                     // Keep angles constant (this is also correct for exact angles): px_new = px_old*(1 + δ_new)/(1 + δ_old)
@@ -256,6 +263,21 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, xp_in, yp_in, length/2) );
                     // then half the length with the new angles:
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, xp, yp, length/2) );
+
+                    // Store deposited energy in the crystal
+                    double e_out = LocalParticle_get_energy(part);
+                    if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
+                        /*gpuglmem*/ double *acc_loss = EverestCrystalData_getp__acc_ionisation_loss_sec(el);
+                        atomicAdd(acc_loss, e_in - e_out);
+                    } else {
+                        /*gpuglmem*/ double *acc_loss = EverestCrystalData_getp__acc_ionisation_loss(el);
+                        atomicAdd(acc_loss, e_in - e_out);
+                    }
+
+                    // Mark scattered particles as secondaries (if desired)
+                    if (EverestCrystalData_get_mark_scattered_particles(el)) {
+                        LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
+                    }
                 }
             }
         }

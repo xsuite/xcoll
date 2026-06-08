@@ -127,7 +127,7 @@ void mcs(EverestData restrict everest, MaterialData restrict material,
 
     // First log particle at start of multiple coulomb scattering
     int64_t i_slot = -1;
-    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
+    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING, everest->shape_id);
 
     double s;
     double theta = 13.6e-3/pc;

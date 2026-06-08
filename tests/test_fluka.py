@@ -51,23 +51,23 @@ def test_simple_track(num_part):
     # else:
     print(f"FLUKA tracking took {fluka_time}s")
 
+    # Stop the FLUKA server
+    xc.fluka.engine.stop(clean=True)
+
     # Drift tracking
     coll._equivalent_drift.length = coll.length
     coll._equivalent_drift.track(part_drift)
 
     mask_fluka = part_fluka.state > 0
     mask_drift = part_drift.state > 0
-    ks_stat, p_value = ks_2samp(part_fluka.x[mask_fluka], part_drift.x[mask_drift])
+    _, p_value = ks_2samp(part_fluka.x[mask_fluka], part_drift.x[mask_drift])
     assert p_value <= 0.05, f"Distributions are not significantly different (p = {p_value})"
     print(f"KS test passed with p = {p_value}")
     mask_fluka = part_fluka.state > 0
     mask_drift = part_drift.state > 0
-    ks_stat, p_value = ks_2samp(part_fluka.x[mask_fluka], part_drift.x[mask_drift])
+    _, p_value = ks_2samp(part_fluka.x[mask_fluka], part_drift.x[mask_drift])
     assert p_value <= 0.05, f"Distributions are not significantly different (p = {p_value})"
     print(f"KS test passed with p = {p_value}")
-
-    # Stop the FLUKA server
-    xc.fluka.engine.stop(clean=True)
 
 
 def test_fluka_format_float():

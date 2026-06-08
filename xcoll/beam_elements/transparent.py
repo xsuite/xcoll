@@ -11,9 +11,7 @@ from ..general import _pkg_root
 
 
 class TransparentCollimator(BaseCollimator):
-    _xofields = { **BaseCollimator._xofields,
-        '_tracking':        xo.Int8
-    }
+    _xofields = BaseCollimator._xofields
 
     isthick = True
     needs_rng = False
@@ -24,20 +22,18 @@ class TransparentCollimator(BaseCollimator):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseCollimator, XcollGeometry]
+
     _noexpr_fields         = BaseCollimator._noexpr_fields
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
-
-    _depends_on = [BaseCollimator, XcollGeometry]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','transparent_collimator.h')
     ]
 
     def __init__(self, **kwargs):
-        if '_xobject' not in kwargs:
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
             raise ValueError('TransparentCollimator is currently not supported on GPU.')
@@ -47,9 +43,7 @@ class TransparentCollimator(BaseCollimator):
 
 
 class TransparentCrystal(BaseCrystal):
-    _xofields = { **BaseCrystal._xofields,
-        '_tracking':        xo.Int8
-    }
+    _xofields = BaseCrystal._xofields
 
     isthick = True
     needs_rng = False
@@ -72,8 +66,6 @@ class TransparentCrystal(BaseCrystal):
     ]
 
     def __init__(self, **kwargs):
-        if '_xobject' not in kwargs:
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
             raise ValueError('TransparentCrystal is currently not supported on GPU.')
