@@ -245,7 +245,18 @@ class FlukaCollimator(BaseCollimator):
             raise RuntimeError("FLUKA engine is not running.")
         super().enable_scattering()
 
+
     def track(self, part):
+
+        # XXX
+        # Warning when FLUKA touches are requested.
+        # There is a variable in the FLUKA routine that limits the number of impacts
+        # that can be recorded. The variable (MPPBUN) limits to 100k the ids of the parents
+        # of the particle that is trying to be recorded
+        # line 169: /eos/project-f/flukafiles/fluka-coupling/fluka_coupling/fluka/mgdraw.f
+
+        self._check_particle_id_limit(part)
+
         if track_pre(self, part):
             if self.assembly.allow_prefiltering:
                 xt.BeamElement.track(self, part)
@@ -256,6 +267,32 @@ class FlukaCollimator(BaseCollimator):
             track_post(self, part)
         else:
             self._drift(part)
+
+    @staticmethod
+    def _check_particle_id_limit(part):
+        import warnings
+        import xcoll as xc
+
+        max_pid = max(part.particle_id)
+
+        if max_pid > 50_000 and "relcol" in str(xc.fluka.engine.input_file):
+
+            msg = (
+                f"max(particle_id) = {max_pid:,}\n"
+                "The MPPBUN FLUKA variable has a hardcoded limit of 100k.\n"
+                "This is related to the limit of impacts treated by FLUKA.\n"
+            )
+
+            if max_pid >= 100_000:
+                raise ValueError(
+                    "[FATAL] " + msg + "Aborting to prevent FLUKA crash."
+                )
+
+            warnings.warn(
+                "\n[WARNING] " + msg + "Proceed with caution!",
+                UserWarning,
+                stacklevel=2,
+            )
 
     def _drift(self, particles, length=None):
         if length is None:
