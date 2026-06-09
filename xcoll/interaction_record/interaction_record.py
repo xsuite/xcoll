@@ -208,18 +208,18 @@ class InteractionRecord(xt.BeamElement):
             # Move back to the collimator frame
 
             # Coordinate arrays
-            s_before  = df["s_before"].to_numpy(copy=False)
-            x_before  = df["x_before"].to_numpy(copy=False)
-            px_before = df["px_before"].to_numpy(copy=False)
-            y_before  = df["y_before"].to_numpy(copy=False)
-            py_before = df["py_before"].to_numpy(copy=False)
-            delta_before = df["delta_before"].to_numpy(copy=False)
-            s_after   = df["s_after"].to_numpy(copy=False)
-            x_after   = df["x_after"].to_numpy(copy=False)
-            px_after  = df["px_after"].to_numpy(copy=False)
-            y_after   = df["y_after"].to_numpy(copy=False)
-            py_after  = df["py_after"].to_numpy(copy=False)
-            delta_after  = df["delta_after"].to_numpy(copy=False)
+            s_before     = df["s_before"].to_numpy(copy=True)
+            x_before     = df["x_before"].to_numpy(copy=True)
+            px_before    = df["px_before"].to_numpy(copy=True)
+            y_before     = df["y_before"].to_numpy(copy=True)
+            py_before    = df["py_before"].to_numpy(copy=True)
+            delta_before = df["delta_before"].to_numpy(copy=False)  # No need to write to this array, so no need to copy
+            s_after      = df["s_after"].to_numpy(copy=True)
+            x_after      = df["x_after"].to_numpy(copy=True)
+            px_after     = df["px_after"].to_numpy(copy=True)
+            y_after      = df["y_after"].to_numpy(copy=True)
+            py_after     = df["py_after"].to_numpy(copy=True)
+            delta_after  = df["delta_after"].to_numpy(copy=False)   # No need to write to this array, so no need to copy
 
             # Collimator attribute arrays
             cat = df[coll_header].astype("category")
@@ -358,6 +358,18 @@ class InteractionRecord(xt.BeamElement):
             s_before[idx] = s_before[idx] - length_front[codes[idx]]
             idx = np.flatnonzero(s_after  != -1)
             s_after[idx]  = s_after[idx] - length_front[codes[idx]]
+
+        if frame != 'jaw':
+            df["s_before"]  = s_before
+            df["x_before"]  = x_before
+            df["px_before"] = px_before
+            df["y_before"]  = y_before
+            df["py_before"] = py_before
+            df["s_after"]   = s_after
+            df["x_after"]   = x_after
+            df["px_after"]  = px_after
+            df["y_after"]   = y_after
+            df["py_after"]  = py_after
 
         return df
 
