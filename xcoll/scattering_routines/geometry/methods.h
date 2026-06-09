@@ -41,7 +41,9 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
 // IMPORTANT:
 // The array and interval are assumed to be sorted!
 // Furthermore, the array should have one extra slot allocated at the end, in case it needs to be expanded..
-// This is always true for the arrays created by get_s, as we create them with 2*n_segments slots.
+// This is always true for the arrays created by get_s: they allocate
+// XC_MAX_CROSS_PER_SEGMENT*n_segments + 1 slots on CPU, and
+// XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS + 1 on GPU (where n_segments <= XC_MAX_SEGMENTS).
 /*gpufun*/
 void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
     if (arr[0] > interval[1]){
