@@ -12,6 +12,7 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "primary with jaw in CFC",
+    "allow_prefiltering": true,
     "extra_commands": null,
     "is_broken": false
 }

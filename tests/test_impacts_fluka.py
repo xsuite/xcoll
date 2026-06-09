@@ -63,7 +63,6 @@ def test_impacts(jaw, angle, tilt):
     file_path = os.path.join(fluka_path, "fluka_input001_toucMap.dat")
 
     xc.fluka.engine.stop(clean=False)
-
     impacts.stop(names=[coll.name], elements=[coll])
 
     df = pd.read_csv(file_path, sep=r"\s+", comment='*')
@@ -79,7 +78,6 @@ def test_impacts(jaw, angle, tilt):
     common = np.intersect1d(fluka_ids, xcoll_ids)
 
     assert len(in_fluka_not_in_xcoll) == 0
-
     # print(f"FLUKA values:           {fluka_ids}")
     # print(f"Xcoll: {xcoll_ids}")
     # print(f"Common:               {common}")
@@ -150,5 +148,4 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1
         px = 0; py = 0; pz = 1; px_new = 0; py_new = 0
     part_init = xp.build_particles(x=x_new, y=y_new, px=px_new, py=py_new, delta=delta,
                                    zeta=zeta, particle_ref=particle_ref, _capacity=_capacity)
-
     return part_init

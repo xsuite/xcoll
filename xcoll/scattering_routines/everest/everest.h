@@ -29,6 +29,7 @@ typedef EverestCollData_ *EverestCollData;
 typedef struct EverestData_ {
     EverestCollData coll;
     // Dynamic parameters
+    int64_t shape_id;
     double cprob[6];
     double xintl;
     double bn;

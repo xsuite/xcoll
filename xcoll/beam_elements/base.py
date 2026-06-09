@@ -17,6 +17,13 @@ OPEN_JAW = 3
 OPEN_GAP = 999
 
 
+# TODO:
+#      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
+#      but as if 'iscollective = False' for normal tracking as it is natively in C...
+#      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
+#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
+#      get_backtrack_element. We want it nicer..
+
 class InvalidXcoll(xt.BeamElement):
     _xofields = {
         'length': xo.Float64
@@ -48,9 +55,12 @@ class InvalidXcoll(xt.BeamElement):
 
 class BaseBlock(xt.BeamElement):
     _xofields = {
-        'length':                xo.Float64,
-        'active':                xo.Int8,
-        '_record_interactions':  xo.Int8
+        'length':                    xo.Float64,
+        'active':                    xo.Int8,
+        '_tracking':                 xo.Int8,
+        '_record_interactions':      xo.Int8,
+        '_acc_ionisation_loss':      xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        '_acc_ionisation_loss_sec':  xo.Float64
     }
 
     isthick = True
@@ -62,13 +72,19 @@ class BaseBlock(xt.BeamElement):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _noexpr_fields = {'name'}
-    _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
-
     _depends_on = [InvalidXcoll]
 
+    _noexpr_fields = {'name'}
+    _skip_in_to_dict  = ['_tracking', '_record_interactions',
+                         '_acc_ionisation_loss', '_acc_ionisation_loss_sec']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
+                         'record_scatterings', 'mark_scattered_particles']
     _internal_record_class = InteractionRecord
+    _allowed_fields_when_frozen = ['_tracking', '_record_interactions',
+                            '_acc_ionisation_loss', '_acc_ionisation_loss_sec',
+                            'record_scatterings', 'mark_scattered_particles',
+                            'record_impacts', 'record_exits', 'io_buffer',
+                            'record']
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
@@ -84,9 +100,13 @@ class BaseBlock(xt.BeamElement):
             to_assign['name'] = kwargs.pop('name', None)
             # Set active
             kwargs.setdefault('active', True)
+            kwargs.setdefault('_tracking', True)
+            kwargs.setdefault('_acc_ionisation_loss', 0.)
+            kwargs.setdefault('_acc_ionisation_loss_sec', 0.)
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
             to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
+            to_assign['mark_scattered_particles'] = kwargs.pop('mark_scattered_particles', False)
         super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
@@ -161,9 +181,23 @@ class BaseBlock(xt.BeamElement):
         elif not val and self.record_scatterings:
             self._record_interactions -= 4
 
+    @property
+    def mark_scattered_particles(self):
+        return bool((self._record_interactions >> 3) % 2)
+
+    @mark_scattered_particles.setter
+    def mark_scattered_particles(self, val):
+        # If True, we flag particles that have hit a collimator and survived
+        if not isinstance(val, bool):
+            raise ValueError("`mark_scattered_particles` must be a boolean value.")
+        if val and not self.mark_scattered_particles:
+            self._record_interactions += 8
+        elif not val and self.mark_scattered_particles:
+            self._record_interactions -= 8
+
     def _verify_consistency(self):
         assert isinstance(self.active, bool) or self.active in [0, 1]
-        assert self._record_interactions in list(range(8))
+        assert self._record_interactions in list(range(16))
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length,
@@ -205,15 +239,15 @@ class BaseCollimator(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseBlock]
+
     _noexpr_fields = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
                          *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
                          'side', 'align', 'emittance']
-
-    _depends_on = [BaseBlock]
-
     _internal_record_class = BaseBlock._internal_record_class
+    _allowed_fields_when_frozen = BaseBlock._allowed_fields_when_frozen
 
 
     # This is an abstract class and cannot be instantiated
@@ -1110,14 +1144,14 @@ class BaseCrystal(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseCollimator]
+
     _noexpr_fields    = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
                          'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
-
-    _depends_on = [BaseCollimator]
-
     _internal_record_class = BaseBlock._internal_record_class
+    _allowed_fields_when_frozen = BaseBlock._allowed_fields_when_frozen
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):

@@ -17,8 +17,8 @@ from ..materials import _DEFAULT_MATERIAL, _resolve_material
 class Geant4Collimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
         'geant4_id': xo.String,
-        '_tracking': xo.Int8,
-        '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        'length_front': xo.Float64,   # Hard-coded to correct 250nm margin in BDSIM
+        'length_back':  xo.Float64
     }
 
     isthick = True
@@ -36,11 +36,10 @@ class Geant4Collimator(BaseCollimator):
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
+    _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -54,8 +53,6 @@ class Geant4Collimator(BaseCollimator):
         with self.__class__._in_constructor(self):
             to_assign = {}
             if '_xobject' not in kwargs:
-                kwargs.setdefault('_tracking', True)
-                kwargs.setdefault('_acc_ionisation_loss', -1.)
                 kwargs.setdefault('geant4_id', ''.ljust(16))
                 to_assign['name'] = xc.geant4.engine._get_new_element_name()
                 to_assign['material'] = kwargs.pop('material', None)
@@ -66,6 +63,8 @@ class Geant4Collimator(BaseCollimator):
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
                 self._equivalent_drift.model = 'exact'
+            self.length_front = 250e-9
+            self.length_back = -250e-9
 
     @property
     def angle(self):
@@ -73,11 +72,10 @@ class Geant4Collimator(BaseCollimator):
 
     @angle.setter
     def angle(self, val):
-        if hasattr(val, '__iter__'):
+        if hasattr(val, '__iter__') and len(val) == 2 and val[0] != val[1]:
             raise ValueError('The Geant4 scattering engine does not '
                            + 'support unequal jaw rotation angles')
         BaseCollimator.angle.fset(self, val)
-
 
     @property
     def material(self):
@@ -90,7 +88,6 @@ class Geant4Collimator(BaseCollimator):
         if self.material != material:
             self._material = material
 
-
     def enable_scattering(self):
         import xcoll as xc
         xc.geant4.environment.assert_environment_ready()
@@ -100,7 +97,7 @@ class Geant4Collimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            # super().track(part)
+            super().track(part)
             track_core(self, part)
             track_post(self, part)
         else:
@@ -147,7 +144,6 @@ class Geant4Collimator(BaseCollimator):
 
 
 class Geant4CollimatorTip(Geant4Collimator):
-
     _xofields = Geant4Collimator._xofields | {
         'tip_thickness': xo.Float64
     }
@@ -158,16 +154,17 @@ class Geant4CollimatorTip(Geant4Collimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
-    ]
-
     _depends_on = [*Geant4Collimator._depends_on]
 
     _noexpr_fields         = {*Geant4Collimator._noexpr_fields, 'tip_material'}
-    _skip_in_to_dict       = [*Geant4Collimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _skip_in_to_dict       = Geant4Collimator._skip_in_to_dict
     _store_in_to_dict      = [*Geant4Collimator._store_in_to_dict, 'tip_material']
     _internal_record_class = Geant4Collimator._internal_record_class
+    _allowed_fields_when_frozen = Geant4Collimator._allowed_fields_when_frozen
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
+    ]
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():

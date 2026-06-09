@@ -9,21 +9,19 @@ from contextlib import contextmanager
 import xobjects as xo
 import xtrack as xt
 
-from .base import BaseCollimator, BaseCrystal
+from .base import BaseBlock, BaseCollimator, BaseCrystal
 from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
                                         FlukaPrototype, create_generic_assembly
 from ..materials import _resolve_material
-from ..constants import HIT_ON_FLUKA_COLL
+from ..constants import HIT_ON_FLUKA, HIT_ON_FLUKA_SEC, SECONDARY_PARTICLE
 
 
 class FlukaCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
         'fluka_id':              xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
         'length_front':          xo.Float64,
-        'length_back':           xo.Float64,
-        '_tracking':             xo.Int8,
-        '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        'length_back':           xo.Float64
     }
 
     isthick = True
@@ -40,11 +38,10 @@ class FlukaCollimator(BaseCollimator):
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCollimator._internal_record_class
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
+    _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -58,8 +55,6 @@ class FlukaCollimator(BaseCollimator):
         with self.__class__._in_constructor(self):
             to_assign = {}
             if '_xobject' not in kwargs:
-                kwargs.setdefault('_tracking', True)
-                kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
                 material = _resolve_material(kwargs.pop('material', None), ref='fluka', allow_none=True)
@@ -186,11 +181,19 @@ class FlukaCollimator(BaseCollimator):
                 raise ValueError(f"Unknown assembly/prototype '{val}'.")
         elif not isinstance(val, FlukaPrototype) and val is not None:
             raise ValueError(f'Invalid assembly/prototype {val}!')
-        if val.is_broken:
+        if val is not None and val.is_broken:
             print(f'Warning: assembly/prototype {val.name} is broken!')
-        if val.is_defunct():
+        if val is not None and val.is_defunct():
             raise ValueError(f'Cannot assign defunct assembly/prototype {val.name}!')
-        val.assert_exists()
+        if val is not None:
+            val.assert_exists()
+            if not val.allow_prefiltering:
+                if self.record_impacts or self.record_exits or self.record_scatterings:
+                    self.record_impacts = False
+                    self.record_exits = False
+                    self.record_scatterings = False
+                    print(f"Warning: assigned assembly/prototype {val.name} "
+                          f"does not allow prefiltering. Impact table deactivated.")
         self._assembly = val
         if self.assembly:
             if self.assembly.length is not None:
@@ -198,6 +201,42 @@ class FlukaCollimator(BaseCollimator):
                 self.length_back = self.assembly.length - self.length - self.length_front
             if self.assembly.side is not None:
                 self._get_side_from_input(self.assembly.side)
+
+    @property
+    def record_impacts(self):
+        return BaseBlock.record_impacts.fget(self)
+
+    @record_impacts.setter
+    def record_impacts(self, val):
+        if val and self.assembly and not self.assembly.allow_prefiltering:
+            print("Warning:Cannot record impacts when assigned assembly/"
+                  "prototype does not allow prefiltering!")
+        else:
+            return BaseBlock.record_impacts.fset(self, val)
+
+    @property
+    def record_exits(self):
+        return BaseBlock.record_exits.fget(self)
+
+    @record_exits.setter
+    def record_exits(self, val):
+        if val and self.assembly and not self.assembly.allow_prefiltering:
+            print("Warning:Cannot record exits when assigned assembly/"
+                  "prototype does not allow prefiltering!")
+        else:
+            return BaseBlock.record_exits.fset(self, val)
+
+    @property
+    def record_scatterings(self):
+        return BaseBlock.record_scatterings.fget(self)
+
+    @record_scatterings.setter
+    def record_scatterings(self, val):
+        if val and self.assembly and not self.assembly.allow_prefiltering:
+            print("Warning:Cannot record scatterings when assigned assembly/"
+                  "prototype does not allow prefiltering!")
+        else:
+            return BaseBlock.record_scatterings.fset(self, val)
 
     def enable_scattering(self):
         import xcoll as xc
@@ -219,13 +258,13 @@ class FlukaCollimator(BaseCollimator):
         self._check_particle_id_limit(part)
 
         if track_pre(self, part):
-            if self.assembly.name != "IPPIPE":# and False:
-                super().track(part)
+            if self.assembly.allow_prefiltering:
+                xt.BeamElement.track(self, part)
             else:
-                part.state[part.state == 1] = HIT_ON_FLUKA_COLL
+                part.state[part.state==1] = HIT_ON_FLUKA
+                part.state[part.state==SECONDARY_PARTICLE] = HIT_ON_FLUKA_SEC
             track_core(self, part)
-            if self.material != "vacuum":
-                track_post(self, part)
+            track_post(self, part)
         else:
             self._drift(part)
 
@@ -311,9 +350,7 @@ class FlukaCrystal(BaseCrystal):
     _xofields = { **BaseCrystal._xofields,
         'fluka_id':              xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
         'length_front':          xo.Float64,
-        'length_back':           xo.Float64,
-        '_tracking':             xo.Int8,
-        '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        'length_back':           xo.Float64
     }
 
     isthick = True
@@ -323,18 +360,17 @@ class FlukaCrystal(BaseCrystal):
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseCrystal, FlukaEngine]
+
     _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCrystal._internal_record_class
-
-    _depends_on = [BaseCrystal, FlukaEngine]
+    _allowed_fields_when_frozen = BaseCrystal._allowed_fields_when_frozen
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','fluka_crystal.h')
     ]
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -349,8 +385,6 @@ class FlukaCrystal(BaseCrystal):
             to_assign = {}
             generic = False
             if '_xobject' not in kwargs:
-                kwargs.setdefault('_tracking', True)
-                kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
                 if assembly:
@@ -515,6 +549,30 @@ class FlukaCrystal(BaseCrystal):
         if self.assembly and not self.assembly.is_crystal:
             raise ValueError('Assigned assembly is not a crystal assembly!')
 
+    @property
+    def record_impacts(self):
+        return FlukaCollimator.record_impacts.fget(self)
+
+    @record_impacts.setter
+    def record_impacts(self, val):
+        return FlukaCollimator.record_impacts.fset(self, val)
+
+    @property
+    def record_exits(self):
+        return FlukaCollimator.record_exits.fget(self)
+
+    @record_exits.setter
+    def record_exits(self, val):
+        return FlukaCollimator.record_exits.fset(self, val)
+
+    @property
+    def record_scatterings(self):
+        return FlukaCollimator.record_scatterings.fget(self)
+
+    @record_scatterings.setter
+    def record_scatterings(self, val):
+        return FlukaCollimator.record_scatterings.fset(self, val)
+
     def enable_scattering(self):
         import xcoll as xc
         xc.fluka.environment.assert_environment_ready()
@@ -523,23 +581,10 @@ class FlukaCrystal(BaseCrystal):
         super().enable_scattering()
 
     def track(self, part):
-        if track_pre(self, part):
-            # super().track(part)
-            part.state[part.state == 1] = HIT_ON_FLUKA_COLL
-            track_core(self, part)
-            track_post(self, part)
-        else:
-            self._drift(part)
+        return FlukaCollimator.track(self, part)
 
     def _drift(self, particles, length=None):
-        if length is None:
-            length = self.length
-        if length != self.length:
-            old_length = self._equivalent_drift.length
-            self._equivalent_drift.length = length
-        self._equivalent_drift.track(particles)
-        if length != self.length:
-            self._equivalent_drift.length = old_length
+        return FlukaCollimator._drift(self, particles, length)
 
     def __setattr__(self, name, value):
         import xcoll as xc

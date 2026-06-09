@@ -61,9 +61,9 @@ def test_reload_bdsim(test_context):
         coll.track(part[-1])
         print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
             + f"{num_part} protons through {coll.length:.2f}m")
-        assert (part[-1].state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
-        assert (part[-1].state == xc.headers.particle_states.LOST_ON_GEANT4_COLL).sum() > 0  # Some particles should have died in the collimator
-        assert (part[-1].state == 1).sum() > 0                                               # Some particles should have survived
+        assert (part[-1].state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0 # No particles should be lost without specification
+        assert (part[-1].state == xc.headers.particle_states.LOST_ON_MATERIAL).sum() > 0   # Some particles should have died in the collimator
+        assert (part[-1].state == 1).sum() > 0                                             # Some particles should have survived
 
         xc.geant4.engine.stop(clean=True)
         assert cwd == Path.cwd()

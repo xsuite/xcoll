@@ -21,6 +21,7 @@ def test_line_api_facade():
     assert line.xcoll._line is line
 
 
+@pytest.mark.xcother
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )

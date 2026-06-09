@@ -205,7 +205,12 @@ class FlukaEngine(BaseEngine):
         elif self._server_process.poll() is not None:
             self.stop()
             return False
-        processes = [proc for proc in self.environment.running_processes()
+        try:
+            rprocs = self.environment.running_processes()
+        except RuntimeError as e:
+            self.stop()
+            raise RuntimeError from e
+        processes = [proc for proc in rprocs
                      if 'rfluka' in proc and 'defunct' not in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
