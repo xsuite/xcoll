@@ -422,11 +422,15 @@ class BaseEngine(xo.HybridClass):
             self.stop()
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
-        assert self.environment.compiled
+        if not self.environment.compiled:
+            self.stop()
+            raise RuntimeError(f"{self.__class__.__name__} environment not compiled! "
+                                + f"Please compile the environment before tracking.")
+
         if not self.is_running():
             self.stop()
-            raise ValueError(f"{self.__class__.__name__} not yet running!\nPlease do this "
-                           + f"first, by calling xcoll.{self.__class__.__name__}.start().")
+            raise RuntimeError(f"{self.__class__.__name__} not yet running!\nPlease do this "
+                             + f"first, by calling xcoll.{self.__class__.__name__}.start().")
 
         self.assert_particle_ref()
         if abs(particles.mass0 - self.particle_ref.mass0) > 1e-3:

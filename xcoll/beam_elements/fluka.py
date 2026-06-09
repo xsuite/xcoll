@@ -245,6 +245,7 @@ class FlukaCollimator(BaseCollimator):
             raise RuntimeError("FLUKA engine is not running.")
         super().enable_scattering()
 
+
     def track(self, part):
         if track_pre(self, part):
             if self.assembly.allow_prefiltering:
