@@ -3,15 +3,15 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+import numpy as np
+import pandas as pd
+
 import xobjects as xo
 import xtrack as xt
 
 from .interaction_types import interactions_src, interaction_names, shortcuts
 from ..general import _pkg_root
 from ..headers.particle_states import particle_states_src
-
-import numpy as np
-import pandas as pd
 
 interaction_names = {kk: vv.replace('_', ' ').title().\
                             replace('Pn ','PN ').replace('Pp ','PP ').replace(' Mcs',' MCS').\
@@ -21,39 +21,40 @@ interaction_names = {kk: vv.replace('_', ' ').title().\
 
 class InteractionRecord(xt.BeamElement):
     _xofields = {
-        '_index':            xt.RecordIndex,
-        'at_turn':           xo.Int64[:],
-        'at_element':        xo.Int64[:],
-        'shape_id':          xo.Int64[:],
-        '_inter':            xo.Int64[:],
-        'id_before':         xo.Int64[:],
-        's_before':          xo.Float64[:],
-        'x_before':          xo.Float64[:],
-        'px_before':         xo.Float64[:],
-        'y_before':          xo.Float64[:],
-        'py_before':         xo.Float64[:],
-        'zeta_before':       xo.Float64[:],
-        'delta_before':      xo.Float64[:],
-        'energy_before':     xo.Float64[:],
-        'mass_before':       xo.Float64[:],
-        'charge_before':     xo.Int64[:],
-        'z_before':          xo.Int64[:],
-        'a_before':          xo.Int64[:],
-        'pdgid_before':      xo.Int64[:],
-        'id_after':          xo.Int64[:],
-        's_after':           xo.Float64[:],
-        'x_after':           xo.Float64[:],
-        'px_after':          xo.Float64[:],
-        'y_after':           xo.Float64[:],
-        'py_after':          xo.Float64[:],
-        'zeta_after':        xo.Float64[:],
-        'delta_after':       xo.Float64[:],
-        'energy_after':      xo.Float64[:],
-        'mass_after':        xo.Float64[:],
-        'charge_after':      xo.Int64[:],
-        'z_after':           xo.Int64[:],
-        'a_after':           xo.Int64[:],
-        'pdgid_after':       xo.Int64[:],
+        '_index':              xt.RecordIndex,
+        '_record_all_columns': xo.Int8,
+        'at_turn':             xo.Int64[:],
+        'at_element':          xo.Int64[:],
+        'shape_id':            xo.Int64[:],
+        '_inter':              xo.Int64[:],
+        'id_before':           xo.Int64[:],
+        's_before':            xo.Float64[:],
+        'x_before':            xo.Float64[:],
+        'px_before':           xo.Float64[:],
+        'y_before':            xo.Float64[:],
+        'py_before':           xo.Float64[:],
+        'zeta_before':         xo.Float64[:],
+        'delta_before':        xo.Float64[:],
+        'energy_before':       xo.Float64[:],
+        'mass_before':         xo.Float64[:],
+        'charge_before':       xo.Int64[:],
+        'z_before':            xo.Int64[:],
+        'a_before':            xo.Int64[:],
+        'pdgid_before':        xo.Int64[:],
+        'id_after':            xo.Int64[:],
+        's_after':             xo.Float64[:],
+        'x_after':             xo.Float64[:],
+        'px_after':            xo.Float64[:],
+        'y_after':             xo.Float64[:],
+        'py_after':            xo.Float64[:],
+        'zeta_after':          xo.Float64[:],
+        'delta_after':         xo.Float64[:],
+        'energy_after':        xo.Float64[:],
+        'mass_after':          xo.Float64[:],
+        'charge_after':        xo.Int64[:],
+        'z_after':             xo.Int64[:],
+        'a_after':             xo.Int64[:],
+        'pdgid_after':         xo.Int64[:],
     }
 
     allow_track = False
@@ -66,8 +67,55 @@ class InteractionRecord(xt.BeamElement):
 
 
     @classmethod
-    def start(cls, *, line=None, elements=None, names=None, record_impacts=None, record_exits=None,
-              record_scatterings=None, capacity=1e6, io_buffer=None):
+    def _make_record(cls, *, io_buffer, capacity, columns):
+        array_field_names = [ff.name for ff in cls._XoStruct._fields
+                             if hasattr(ff.ftype, 'to_nplike')]
+        obligatory_columns = {'at_turn', 'at_element', 'shape_id', '_inter'}
+
+        if columns is None:
+            selected_columns = set(array_field_names)
+
+        else:
+            if not hasattr(columns, '__iter__') or isinstance(columns, str):
+                columns = [columns]
+            selected_columns = set(columns)
+            selected_columns.discard('_index')
+            selected_columns.discard('_record_all_columns')
+
+        unknown_columns = selected_columns - set(array_field_names)
+        if unknown_columns:
+            raise ValueError(f"Unknown InteractionRecord columns: {sorted(unknown_columns)}")
+
+        selected_columns |= obligatory_columns
+        init_dict = {
+            field: capacity if field in selected_columns else 0
+            for field in array_field_names
+        }
+        record = cls(_buffer=io_buffer, **init_dict)
+        record._index.capacity = capacity
+        record._record_all_columns = int(selected_columns == set(array_field_names))
+        record._recorded_columns = tuple(
+            ['_index'] + [field for field in array_field_names if field in selected_columns])
+        return record
+
+    def _column_is_recorded(self, column):
+        if column == '_index':
+            return True
+        if hasattr(self, '_recorded_columns'):
+            return column in self._recorded_columns
+        return len(getattr(self, column)) > 0
+
+    def _check_columns_recorded(self, columns, frame):
+        missing = [col for col in columns if not self._column_is_recorded(col)]
+        if missing:
+            raise ValueError(
+                f"Cannot convert InteractionRecord to {frame} frame because "
+                f"columns {missing} were not recorded.")
+
+    @classmethod
+    def start(cls, *, line=None, elements=None, names=None, record_impacts=None,
+              record_exits=None, record_scatterings=None, capacity=1e6,
+              io_buffer=None, columns=None):
         elements, names = _get_xcoll_elements(line, elements, names)
         if len(elements) == 0:
             return
@@ -76,13 +124,11 @@ class InteractionRecord(xt.BeamElement):
         if getattr(line, 'tracker', None) is None \
         or getattr(line.tracker, 'io_buffer', None) is None:
             if io_buffer is None:
-                io_buffer = xt.new_io_buffer(capacity=capacity)
+                io_buffer = xt.new_io_buffer()
         elif io_buffer is not None:
             raise ValueError("Cannot provide io_buffer when tracker already built!")
         else:
             io_buffer = line.tracker.io_buffer
-        if capacity > io_buffer.capacity:
-            io_buffer.grow(capacity - io_buffer.capacity)
         if record_impacts is None and record_scatterings is None:
             record_impacts = True
             record_scatterings = True
@@ -101,8 +147,10 @@ class InteractionRecord(xt.BeamElement):
                 el.record_impacts = record_impacts
                 el.record_exits = record_exits
                 el.record_scatterings = record_scatterings
-        record = xt.start_internal_logging(io_buffer=io_buffer, capacity=capacity, \
-                                           elements=elements)
+        record = cls._make_record(io_buffer=io_buffer, capacity=capacity,
+                                  columns=columns)
+        xt.start_internal_logging(io_buffer=io_buffer, record=record,
+                                  elements=elements)
         record._line = line
         record._io_buffer = io_buffer
         record._recording_elements = {name: el for name, el in zip(names, elements)}
@@ -146,6 +194,10 @@ class InteractionRecord(xt.BeamElement):
 
     @property
     def capacity(self):
+        return self._index.capacity
+
+    @property
+    def io_buffer_capacity(self):
         if hasattr(self, '_io_buffer'):
             return self.io_buffer.capacity
 
@@ -185,16 +237,18 @@ class InteractionRecord(xt.BeamElement):
                              f"'collimator', or 'lattice'!")
         n_rows = self._index.num_recorded
         coll_header = 'collimator' if hasattr(self, '_coll_names') else 'collimator_id'
-        df = pd.DataFrame({
-                'turn':              self.at_turn[:n_rows],
-                coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
-                'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]],
-                **{
-                    f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
-                    for p in ['before', 'after']
-                    for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
-                }
-            })
+        data = {
+            'turn':              self.at_turn[:n_rows],
+            coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
+            'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]],
+        }
+        for p in ['before', 'after']:
+            for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta',
+                        'energy', 'mass', 'charge', 'z', 'a', 'pdgid']:
+                field = f'{val}_{p}'
+                if self._column_is_recorded(field):
+                    data[field] = getattr(self, field)[:n_rows]
+        df = pd.DataFrame(data)
 
         # Different reference frames:
         #   - lattice:       as it is in the lattice (pipe frame)
@@ -203,8 +257,17 @@ class InteractionRecord(xt.BeamElement):
         #   - jaw (default): as collimator, but also rotated to the tilt
         #                    angle, moved to the upstream jaw corner,
         #                    and mirrored for the right jaw
-        # TODO: when allowing column selection, reference frames can only work if the necessary coordinates are present
         if frame != 'jaw':
+            required_columns = [
+                f'{val}_{p}' for p in ['before', 'after']
+                for val in ['s', 'x', 'px', 'delta']
+            ]
+            if frame == 'lattice':
+                required_columns += [
+                    f'{val}_{p}' for p in ['before', 'after']
+                    for val in ['y', 'py']
+                ]
+            self._check_columns_recorded(required_columns, frame)
             # Move back to the collimator frame
 
             # Coordinate arrays
@@ -366,25 +429,28 @@ class InteractionRecord(xt.BeamElement):
 
     # TODO: does not work when multiple children
     def interactions_per_collimator(self, collimator=0, *, turn=None):
+        self._check_columns_recorded(['id_before'], 'interactions_per_collimator')
+        n_rows = self._index.num_recorded
         if isinstance(collimator, str):
             collimator = self._collimator_id(collimator)
-        mask = (self._inter > 0) & (self.at_element == collimator)
+        mask = (self._inter[:n_rows] > 0) & (self.at_element[:n_rows] == collimator)
         if turn is not None:
-            mask = mask & (self.at_turn == turn)
+            mask = mask & (self.at_turn[:n_rows] == turn)
             df = pd.DataFrame({
-                    'int':  [shortcuts[inter] for inter in self._inter[mask]],
-                    'pid':  self.id_before[mask]
+                    'int':  [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
+                    'pid':  self.id_before[:n_rows][mask]
                 })
             return df.groupby('pid', sort=False, group_keys=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
-                    'int':   [shortcuts[inter] for inter in self._inter[mask]],
-                    'turn':  self.at_turn[mask],
-                    'pid':   self.id_before[mask]
+                    'int':   [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
+                    'turn':  self.at_turn[:n_rows][mask],
+                    'pid':   self.id_before[:n_rows][mask]
                 })
             return df.groupby(['pid', 'turn'], sort=False, group_keys=False)['int'].apply(list)
 
     def first_touch_per_turn(self, frame=None):
+        self._check_columns_recorded(['id_before'], 'first_touch_per_turn')
         n_rows = self._index.num_recorded
         df = pd.DataFrame({'id_before': self.id_before[:n_rows],
                            'at_turn': self.at_turn[:n_rows],
@@ -453,4 +519,3 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
             raise ValueError(f"Element {nn} not an Xcoll element (expected one"
                              f" of {block_classes}, got {type(ee)})!")
     return elements, names
-

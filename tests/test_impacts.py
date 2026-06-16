@@ -100,9 +100,74 @@ def test_impacts_single_crystal(R, side, test_context):
 def test_impacts_to_pandas_default_frame():
     impacts, _, _ = _make_impacts_for_frame_tests()
 
+    assert impacts._record_all_columns == 1
     assert impacts.to_pandas().equals(impacts.to_pandas(frame='jaw'))
     with pytest.raises(ValueError, match="Invalid frame"):
         impacts.to_pandas(frame='wrong')
+
+
+def test_impacts_selected_columns_to_pandas():
+    impacts, _, data = _make_impacts_for_frame_tests(
+        columns=['id_before', 'x_before'])
+
+    assert impacts._recorded_columns == (
+        '_index', 'at_turn', 'at_element', 'shape_id', '_inter',
+        'id_before', 'x_before')
+    assert impacts._record_all_columns == 0
+    assert len(impacts.at_turn) == 2
+    assert len(impacts.shape_id) == 2
+    assert len(impacts.id_before) == 2
+    assert len(impacts.x_before) == 2
+    assert len(impacts.s_before) == 0
+    assert len(impacts.id_after) == 0
+
+    df = impacts.to_pandas()
+    assert list(df.columns) == [
+        'turn', 'collimator', 'interaction_type', 'id_before', 'x_before']
+    assert np.all(df.id_before.values == data['id_before'])
+    assert np.all(df.x_before.values == data['x_before'])
+
+    with pytest.raises(ValueError, match="columns .* were not recorded"):
+        impacts.to_pandas(frame='collimator')
+
+
+def test_impacts_selected_columns_tracking():
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+    part = xt.Particles(
+        p0c=4e11,
+        x=[1.1e-3, 1.2e-3, 1.3e-3],
+        px=[0, 0, 0],
+        y=[0, 0, 0],
+        py=[0, 0, 0],
+        delta=[0, 0, 0])
+
+    impacts = xc.InteractionRecord.start(
+        elements=[coll], columns=['id_before', 'x_before'],
+        record_impacts=True, record_exits=True, capacity=10)
+    coll.track(part)
+
+    n_rows = impacts._index.num_recorded
+    assert n_rows > 0
+    assert impacts.capacity == 10
+    assert impacts.io_buffer_capacity >= 10
+    assert len(impacts.id_before) == 10
+    assert len(impacts.x_before) == 10
+    assert len(impacts.id_after) == 0
+    assert len(impacts.s_before) == 0
+
+    df = impacts.to_pandas()
+    assert len(df) == n_rows
+    assert 'id_before' in df.columns
+    assert 'x_before' in df.columns
+    assert 'id_after' not in df.columns
+    assert 's_before' not in df.columns
+
+
+def test_impacts_selected_columns_unknown():
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+
+    with pytest.raises(ValueError, match="Unknown InteractionRecord columns"):
+        xc.InteractionRecord.start(elements=[coll], columns=['not_a_column'])
 
 
 def test_impacts_to_pandas_collimator_frame():
@@ -151,11 +216,12 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
 
 
-def _make_impacts_for_frame_tests():
+def _make_impacts_for_frame_tests(columns=None):
     coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
                                     angle=[30, -45], name='TCP')
     impacts = xc.InteractionRecord.start(elements=[coll], record_impacts=True,
-                                         record_exits=True, capacity=2)
+                                         record_exits=True, capacity=2,
+                                         columns=columns)
     data = {
         'at_turn':      np.array([0, 1]),
         'at_element':   np.array([0, 0]),
@@ -179,8 +245,9 @@ def _make_impacts_for_frame_tests():
     }
     impacts._index.num_recorded = len(data['shape_id'])
     for field, values in data.items():
-        for ii, val in enumerate(values):
-            getattr(impacts, field)[ii] = val
+        if impacts._column_is_recorded(field):
+            for ii, val in enumerate(values):
+                getattr(impacts, field)[ii] = val
     return impacts, coll, data
 
 
