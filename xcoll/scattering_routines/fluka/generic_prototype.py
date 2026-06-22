@@ -182,8 +182,34 @@ ROT-DEFI           300.0         0.0       180.0         0.0         0.0        
 
 
 def _body_file(fedb, fedb_tag, length, width, height, **kwargs):
+    bodies_start =f"""\
+TITLE
+Test element
+GLOBAL                                         1.0       1.0
+DEFAULTS                                                              NEW-DEFA
+BEAM
+BEAMPOS
+GEOBEGIN                                                              COMBNAME
+    0    0
+* Black body
+SPH blkbody    0.0 0.0 0.0 10000000.0
+* Void sphere
+SPH void       0.0 0.0 0.0 100000.0
+* Bodies from the include file
+* START_CUT_BODIES
+"""
+    bodies_end =f"""\
+* END_CUT_BODIES
+END
+* Black hole
+BLKBODY      5 +blkbody -void
+* Void around
+VOID         5 +void -TCP_BODY
+"""
     template_body = f"""\
+*
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
+*
 """
     body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
                             template_body)

@@ -305,6 +305,22 @@ class FlukaPrototype:
         fedb = xc.fluka.environment.fedb
         path.copy_to(fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat",
                      method='mount')
+    @property
+    def prot_file(self):
+        import xcoll as xc
+        fedb = xc.fluka.environment.fedb
+        file = fedb / "prototypes" / f"{self.fedb_series}_{self.fedb_tag}.inp"
+        return file.resolve()
+
+    @prot_file.setter
+    def prot_file(self, path):
+        import xcoll as xc
+        path = FsPath(path)
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist!")
+        fedb = xc.fluka.environment.fedb
+        path.copy_to(fedb / "prototypes" / f"{self.fedb_series}_{self.fedb_tag}.inp",
+                     method='mount')
 
     @property
     def region_file(self):
@@ -343,6 +359,7 @@ class FlukaPrototype:
             (fedb / 'regions').mkdir(parents=True)
             (fedb / 'materials').mkdir(parents=True)
             (fedb / 'stepsizes').mkdir(parents=True)
+            (fedb / 'prototypes').mkdir(parents=True)
         if self.is_generic():
             for f in self.files:
                 if f is None or not f.exists():
@@ -357,6 +374,9 @@ class FlukaPrototype:
         reg_link = fedb / 'regions' / f'{self.body_file.stem}.regions'
         if not reg_link.exists() and self.region_file is not None:
             reg_link.symlink_to(self.region_file)
+        prot_link = fedb / 'prototypes' / f'{self.body_file.stem}.inp'
+        if not prot_link.exists() and self.prot_file is not None:
+            prot_link.symlink_to(self.prot_file)
 
     @property
     def files(self):
@@ -752,6 +772,14 @@ class FlukaAssembly(FlukaPrototype):
 
     @region_file.setter
     def region_file(self, path):
+        pass
+
+    @property
+    def prot_file(self):
+        pass
+
+    @prot_file.setter
+    def prot_file(self, path):
         pass
 
     def populate_into_temp_fedb(self, fedb):
