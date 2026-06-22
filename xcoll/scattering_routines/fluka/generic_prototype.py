@@ -181,6 +181,33 @@ ROT-DEFI           300.0         0.0       180.0         0.0         0.0        
                        template_assembly)
 
 
+def _inp_prot_file(fedb, fedb_tag, length, material, width, height, **kwargs):
+
+    body_file, tank_file = _body_file(fedb, fedb_tag, length, width, height)
+    body_region_file, tank_region_file = _region_file(fedb, fedb_tag)
+    body_mat_file, tank_mat_file = _material_file(fedb, fedb_tag, material)
+
+    inp_body_file = body_file + body_region_file + body_mat_file
+    inp_tank_file = tank_file + tank_region_file + tank_mat_file
+
+    end_template = f"""\
+RANDOMIZ         1.0
+START
+STOP
+"""
+
+    body_file = inp_body_file + end_template
+
+    tank_file = inp_tank_file + end_template
+
+    body_file = _write_file(fedb, "prototypes", f"generic_{fedb_tag}_B.inp",
+                                body_file)
+    tank_file = _write_file(fedb, "prototypes", f"generic_{fedb_tag}_T.inp",
+                                tank_file)
+    # XXX end needed to have a complete fluka inp (needed for flair)
+
+    return body_file, tank_file
+
 def _body_file(fedb, fedb_tag, length, width, height, **kwargs):
     bodies_start =f"""\
 TITLE
@@ -211,8 +238,8 @@ VOID         5 +void -TCP_BODY
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 *
 """
-    body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
-                            template_body)
+    # body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
+    #                        template_body)
 
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
@@ -222,43 +249,72 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
 *RPP {fedb_tag}_T  -28 28 -28 28 -{length*100/2 + 1e-12} {length*100/2 + 1e-12}
 *RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 1e-12} {length*100/2 + 1e-12}
 """
-    tank_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_T.bodies",
-                            template_tank)
+    # tank_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_T.bodies",
+    #                        template_tank)
+    body_file = bodies_start + template_body + bodies_end
+    tank_file = bodies_start + template_tank + bodies_end
     return body_file, tank_file
 
 
 def _region_file(fedb, fedb_tag, **kwargs):
+    region_start = f"""\
+END
+* Black hole
+BLKBODY      5 +blkbody -void
+* Void around
+VOID         5 +void -TCP_BODY
+* Region from the include file
+* START_CUT_REGIONS
+"""
+    region_end = f"""\
+* END_CUT_REGIONS
+"""
     template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B
 """
-    body_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_B.regions",
-                            template_body_reg)
+    # body_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_B.regions",
+    #                         template_body_reg)
 
     template_tank_reg = f"""\
 {fedb_tag}_T     5 +{fedb_tag}_T -{fedb_tag}_I
 {fedb_tag}_I     5 +{fedb_tag}_I
 """
-    tank_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_T.regions",
-                            template_tank_reg)
+    # tank_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_T.regions",
+    #                         template_tank_reg)
+    body_file = region_start + template_body_reg + region_end
+    tank_file = region_start + template_tank_reg + region_end
+
     return body_file, tank_file
 
 
 def _material_file(fedb, fedb_tag, material, **kwargs):
     mat = material.fluka_name
+    mat_start = f"""\
+ASSIGNMA    BLCKHOLE   BLKBODY
+ASSIGNMA      VACUUM      VOID
+#include ../materials/materials.inp
+* START_CUT_MATERIALS
+"""
+    mat_end = f"""\
+* END_CUT_MATERIALS
+"""
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
 """
-    body_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_B.assignmat",
-                            template_body_mat)
+    # body_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_B.assignmat",
+    #                         template_body_mat)
 
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
 ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 """
-    tank_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_T.assignmat",
-                            template_tank_mat)
+    # tank_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_T.assignmat",
+    #                         template_tank_mat)
+
+    body_file = mat_start + template_body_mat + mat_end
+    tank_file = mat_start + template_tank_mat + mat_end
     return body_file, tank_file
 
 def _crystal_body_file(fedb, fedb_tag, length, bending_radius, width, height, **kwargs):

@@ -112,6 +112,7 @@ class FlukaPrototype:
         self._info = info
         self._extra_commands = extra_commands
         self._is_broken = is_broken
+        self._generic_inp_file = None
         self._generic_body_file = None
         self._generic_region_file = None
         self._generic_material_file = None
@@ -325,6 +326,10 @@ class FlukaPrototype:
     @property
     def prot_file(self):
         import xcoll as xc
+        if self._is_null:
+            return None
+        if self.is_generic():
+            return self._generic_inp_file
         fedb = xc.fluka.environment.fedb
         file = fedb / "prototypes" / f"{self.fedb_series}_{self.fedb_tag}.inp"
         return file.resolve()
@@ -380,24 +385,26 @@ class FlukaPrototype:
         if self.is_generic():
             for f in self.files:
                 if f is None or not f.exists():
-                    raise ValueError(f"Generic prototype '{self.name}' is missing files!")
+                    pass
+                    # raise ValueError(f"Generic prototype '{self.name}' is missing files!")
             return  # Generic prototypes are generated automatically
-        link = fedb / 'bodies' / self.body_file.name
-        if not link.exists():
-            link.symlink_to(self.body_file)
-        mat_link = fedb / 'materials' / f'{self.body_file.stem}.assignmat'
-        if not mat_link.exists() and self.material_file is not None:
-            mat_link.symlink_to(self.material_file)
-        reg_link = fedb / 'regions' / f'{self.body_file.stem}.regions'
-        if not reg_link.exists() and self.region_file is not None:
-            reg_link.symlink_to(self.region_file)
+        # link = fedb / 'bodies' / self.body_file.name
+        # if not link.exists():
+        #     link.symlink_to(self.body_file)
+        # mat_link = fedb / 'materials' / f'{self.body_file.stem}.assignmat'
+        # if not mat_link.exists() and self.material_file is not None:
+        #     mat_link.symlink_to(self.material_file)
+        # reg_link = fedb / 'regions' / f'{self.body_file.stem}.regions'
+        # if not reg_link.exists() and self.region_file is not None:
+        #     reg_link.symlink_to(self.region_file)
         prot_link = fedb / 'prototypes' / f'{self.body_file.stem}.inp'
         if not prot_link.exists() and self.prot_file is not None:
             prot_link.symlink_to(self.prot_file)
 
     @property
     def files(self):
-        return [self.body_file, self.material_file, self.region_file]
+        # return [self.body_file, self.material_file, self.region_file, self.prot_file]
+        return [self.prot_file]
 
     def exists(self):
         if self.is_generic():
@@ -802,8 +809,7 @@ class FlukaAssembly(FlukaPrototype):
         pass
 
     @prot_file.setter
-    def prot_file(self, path):
-        pass
+    def prot_file(self, path): pass
 
     def populate_into_temp_fedb(self, fedb):
         fedb = FsPath(fedb).resolve()
@@ -811,28 +817,37 @@ class FlukaAssembly(FlukaPrototype):
             raise ValueError(f"FEDB path {fedb} does not exist!")
         if self.is_generic():
             from xcoll.scattering_routines.fluka.generic_prototype import (
-                _assembly_file, _body_file, _crystal_body_file, _region_file,
-                _crystal_region_file, _material_file, _crystal_material_file
+                _assembly_file, _inp_prot_file, _crystal_body_file,
+                _crystal_region_file, _crystal_material_file
             )
             if self.is_crystal:
                 body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
                     self.length, self.bending_radius, self.width, self.height)
                 body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
                 body_mat_file, tank_mat_file = _crystal_material_file(fedb, self.fedb_tag, self.material)
+
+                body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
+                    self.length, self.bending_radius, self.width, self.height)
+                body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
             else:
-                body_file, tank_file = _body_file(fedb, self.fedb_tag, self.length,
-                                                  self.width, self.height)
-                body_region_file, tank_region_file = _region_file(fedb, self.fedb_tag)
-                body_mat_file, tank_mat_file = _material_file(fedb, self.fedb_tag, self.material)
+                inp_body_file, inp_tank_file = _inp_prot_file(fedb, self.fedb_tag, self.length,
+                                                   self.material, self.width, self.height)
+
+                # body_file, tank_file = _body_file(fedb, self.fedb_tag, self.length,
+                #                                   self.width, self.height)
+                # body_region_file, tank_region_file = _region_file(fedb, self.fedb_tag)
+                # body_mat_file, tank_mat_file = _material_file(fedb, self.fedb_tag, self.material)
             for pro in self.prototypes:
                 if pro.name.endswith('_B'):
-                    pro._generic_body_file = body_file
-                    pro._generic_region_file = body_region_file
-                    pro._generic_material_file = body_mat_file
+                    pro._generic_inp_file = inp_body_file
+                    # pro._generic_body_file = body_file
+                    # pro._generic_region_file = body_region_file
+                    # pro._generic_material_file = body_mat_file
                 elif pro.name.endswith('_T'):
-                    pro._generic_body_file = tank_file
-                    pro._generic_region_file = tank_region_file
-                    pro._generic_material_file = tank_mat_file
+                    pro._generic_inp_file = inp_tank_file
+                    # pro._generic_body_file = tank_file
+                    # pro._generic_region_file = tank_region_file
+                    # pro._generic_material_file = tank_mat_file
                 else:
                     raise ValueError(f"Generic assembly prototype '{pro.name}' has invalid name! "
                                    + "Expected to end with '_B' or '_T'.")
