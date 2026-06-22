@@ -113,6 +113,7 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
                 default:
                     return 0.0; // Invalid key
             }
+            break;
         case 2: // Kaon plus
             n_points = MaterialData_get__n_points_kplus(material);
             log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_kplus(material);
@@ -128,6 +129,7 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
                 i = n_points - 2;
             }
             knot_i = MaterialData_get__cs_knots_kplus(material, i);
+            
             switch (key) {
                 case 0:
                     ai = MaterialData_get__cs_tot_kplus_a(material, i);
@@ -162,7 +164,7 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
                 default:
                     return 0.0; // Invalid key
             }
-             break;
+            break;
         case 3: // Pion minus
             n_points = MaterialData_get__n_points_pimin(material);
             log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min_pimin(material);

@@ -26,7 +26,6 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
     everest->ecmsq = 2*XC_PROTON_MASS*1.0e-3*pc;
     double ecmsq = everest->ecmsq;
     everest->xln15s = log(0.15*ecmsq);
-
     // Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
     double pptot = 0.041084 - 0.0023302*log(ecmsq) + 0.00031514*pow(log(ecmsq), 2.);
 
@@ -63,13 +62,12 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
     // Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
     csect[2] = csect[0] - csect[1] - csect[3] - csect[4];
     csect[5] = csref[5];
-
     // Now add Coulomb
     csect[0] += csect[5];
 
     // Interaction length in meter
     everest->xintl = 1./(atoms*csect[0]*1e-28);
-
+    // everest->xintl = 1./(atoms*2.762166909*1e-28);
     // Filling CProb with cumulated normalised Cross-sections
     int i;
     everest->cprob[0] = 0;
@@ -83,8 +81,6 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
         }
     }
     everest->cprob[5] = 1;
-    printf("\n\nCross sections cla= %f, %f, %f, %f, %f, %f, %f\n", csect[0]*1e3, csect[1]*1e3, csect[2]*1e3, csect[3]*1e3, csect[4]*1e3, csect[5]*1e3, csect[5]); // --- IGNORE ---
-    printf("Nuclear slope = %f, bpp slope = %f\n", everest->bn, everest->bpp); // --- IGNORE ---
 }
 
 

@@ -22,52 +22,46 @@
 //         return -1; // unknown particle
 //     }
 // }
+
 /*gpufun*/
 double sample_rutherford(double theta_min, LocalParticle* part) {
     double random_uniform = RandomUniform_generate(part);  // r in [0, 1]
-
-    double a = 1.0 / pow(sin(theta_min / 2.0), 2);
-    // b = 1/sin²(π/2) = 1/1 = 1
-    
-    double sin2_half_theta = 1.0 / (a - random_uniform * (a - 1.0));
-    return 2.0 * asin(sqrt(sin2_half_theta));
+    double r1 = 1/(1-cos(theta_min)) - (1 + cos(theta_min)) / (1 - cos(theta_min)) * random_uniform/2; // Inverse CDF sampling
+    return acos(1 - 1/r1);
 }
 
 /*gpufun*/
 double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
-                                                  MaterialData restrict material, double pc){
+                                                  MaterialData restrict material, double pc, double theta_cut) {
                                                 //   LocalTrajectory traj, MaterialData restrict material, double pc) {
 
     double interaction_length_tot;
     double cs_coulomb;
     double nuclear_slope;
     double cross_section_tot;
-    double sqrt_t_p;
+    double sqrt_t_p = 0;
+    double tan_theta = 0; 
     int64_t i_slot = -1;
 
     double N           = MaterialData_get__atoms_per_volume(material);
     double Z           = sqrt(MaterialData_get__Z2_eff(material));
     double X0          = MaterialData_get__radiation_length(material);
-    // double particle_id = get_particle_id(LocalParticle_get_pdg_id(part));
+    double M           = MaterialData_get__molar_mass(material)* 0.931494103; // Mm * u -> GeV
+
+    // double particle_id = get_particle_id(LocalParticle_get_pdg_id(part)); This is not working ? 
     double particle_id = 0;
     everest->ecmsq     = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
-    // double theta_rms = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
-    double theta_rms   = 1e-3;
     // double theta_rms = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
- 
+
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t scatter               = everest->coll->record_scatterings;
+    nuclear_slope = MaterialData_get__nuclear_slope(material);
 
-    if (particle_id == 3 || particle_id == 4){
-        nuclear_slope = MaterialData_get__nuclear_slope_pion(material);
-    } else {
-        nuclear_slope = MaterialData_get__nuclear_slope(material);
-    }
-    double KE = (LocalParticle_get_energy0(part) - LocalParticle_get_mass0(part))/1e9; // [GeV]
-    get_coulomb_cross_section(Z, pc, N, theta_rms, nuclear_slope, KE, &cs_coulomb); // [mb]
-    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0, particle_id) + cs_coulomb; // [mb]
+    double KE = sqrt((M*M + 1) * (1e-3*XC_PROTON_MASS)*(1e-3*XC_PROTON_MASS) + 2*M*1e-3*XC_PROTON_MASS*pc) - (M+1)*(1e-3*XC_PROTON_MASS); // [GeV]
+    get_coulomb_cross_section(Z, length, theta_cut, KE, &cs_coulomb); // [mb]
+    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0, particle_id);// + cs_coulomb; // [mb]
     interaction_length_tot = RandomExponential_generate(part) *(1.)/(N*cross_section_tot*1.0e-31); // [m]
     //double mcs_path_length = FindRoot_get_path_length(finder);
 
@@ -77,15 +71,19 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         // pc = calcionloss(everest, material, part, length, pc, 1);
         // return pc;
     // } else {
+
+
+
     double interaction_lengths[4];
-    get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, sqrt_s, pc, particle_id);
+    get_interaction_length(material, interaction_lengths, N, sqrt_s, particle_id);
     // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
     int chosen                    = 1;
     double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]);
     double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
     double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
     double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
-    double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
+    // double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-31));
+
     if ((min_length - elastic_length) > 1e-12) {         // Elastic
         min_length = elastic_length;
         chosen = 2;
@@ -102,13 +100,9 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         min_length = coulomb_length;
         chosen = 5;
     }
-
-    printf("coulomb cs = %e mb, coulomb length = %e m\n", cs_coulomb, coulomb_length); // --- IGNORE ---
     calculate_ionisation_properties(everest, material, pc);
     pc = calcionloss(everest, material, part, min_length, pc, 1); // should be along mcs traj, how
-
-    double tan_theta;   
-
+  
     if (chosen == 1){
         // Production: particle is absorbed
         if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
@@ -142,31 +136,33 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
             pc = 1.e-9; 
             sqrt_t_p = 0;
-            tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+            tan_theta = 0.;
         } else {
             double bsd;
             double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq));
             if (xm2 < 2.) {
-                bsd = 2* pp_new;//everest->bpp;
+                bsd = 2*pp_new;
             } else if (xm2 >= 2. && xm2 <= 5.) {
                 bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
             } else {
                 bsd = (7*pp_new)/12.0;
-            } // THIS IS THE REASON FOR THE TAILS say ok here
+            }
             sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
             tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
         }
 
     } else if (chosen == 5){
-        // Coulomb
-        printf("Chosen interaction: %d\n", chosen); // --- IGNORE --
+    //     // Coulomb
         if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
-        tan_theta = tan(sample_rutherford(theta_rms, part)); // Sample angle from Rutherford distribution
+        tan_theta = tan(sample_rutherford(theta_cut, part)); // Sample angle from Rutherford distribution
+        double sample = sample_rutherford(theta_cut, part);
+
+
     } else {
         printf("Error in nuclear interaction choice.\n");
         return pc; // No interaction, return original momentum
     }
-    // double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+
     double alpha = 2*M_PI*RandomUniform_generate(part);
     double tan_theta_x = tan_theta*cos(alpha);
     double tan_theta_y = tan_theta*sin(alpha);
@@ -179,7 +175,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     #endif
 
     if (scatter) InteractionRecordData_log_child(record, i_slot, part);
-// }
+
     return pc;
 }
 #endif /* XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H */

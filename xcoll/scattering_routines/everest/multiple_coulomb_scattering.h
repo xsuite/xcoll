@@ -78,9 +78,8 @@ double soln3(double a, double b, double dh, double smax) {
 
 
 /*gpufun*/
-double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
+double* scamcs(LocalParticle* part, double x0, double xp0, double s, double pc, double theta_cut) {
     double* result = (double*)malloc(2 * sizeof(double));
-
     // Generate two Gaussian random numbers z1 and z2
     double r2 = 0;
     double v1 = 0;
@@ -96,9 +95,23 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double a   = sqrt((-2*log(r2))/r2);
     double z1  = v1*a;
     double z2  = v2*a;
-
+    double theta = 13.6e-3/pc;
     // MCS scaling by length in units of radiation length
     double ss  = sqrt(s) * (1 + 0.038*log(s));
+    // while (fabs((ss*z2)*theta) >theta_cut) {
+    //     while (1) {
+    //         v1 = 2*RandomUniform_generate(part) - 1;
+    //         v2 = 2*RandomUniform_generate(part) - 1;
+    //         r2 = pow(v1,2) + pow(v2,2);
+    //         if(r2 < 1) {
+    //             break;
+    //         }
+    //     }
+    //     a   = sqrt((-2*log(r2))/r2);
+    //     z1  = v1*a;
+    //     z2  = v2*a;
+    //     printf("Large angle in MCS, resampling: xp0 = %f:", (xp0+ss*z2)*theta);
+    // }
 
     result[0] = x0  + s*(xp0 + 0.5*ss*(z2 + z1*0.577350269));
     result[1] = xp0 + ss*z2;
@@ -133,6 +146,13 @@ void mcs(EverestData restrict everest, MaterialData restrict material,
     double rlen0 = length/radl;
     double rlen  = rlen0;
 
+    double M     = MaterialData_get__molar_mass(material) * 0.931494103;
+    double N     = MaterialData_get__atoms_per_volume(material);
+    double Z     = sqrt(MaterialData_get__Z2_eff(material));
+    double KE    = sqrt((M*M + 1) * (1e-3*XC_PROTON_MASS)*(1e-3*XC_PROTON_MASS)
+                   + 2*M*1e-3*XC_PROTON_MASS*pc) - (M+1)*(1e-3*XC_PROTON_MASS); // [GeV]
+    double theta_cut;
+    theta_cut_from_step(&theta_cut, rlen, radl, pc);
     double x  = LocalParticle_get_x(part);
     double z  = LocalParticle_get_y(part);
 #ifdef XCOLL_USE_EXACT
@@ -164,7 +184,7 @@ void mcs(EverestData restrict everest, MaterialData restrict material,
                 s = h;
             }
             // TODO: should cap s whenever we are out (the two if cases below), because now the scamcs is applied over an s that might be (slightly) too long
-            double* res = scamcs(part, x, xp, s);
+            double* res = scamcs(part, x, xp, s, pc, theta_cut);
             x  = res[0];
             xp = res[1];
             free(res);
@@ -182,14 +202,14 @@ void mcs(EverestData restrict everest, MaterialData restrict material,
         }
 
     } else {
-        double* res = scamcs(part, x, xp, rlen0);
+        double* res = scamcs(part, x, xp, rlen0, pc, theta_cut);
         x  = res[0];
         xp = res[1];
         free(res);
         s = rlen0;
     }
 
-    double* res = scamcs(part, z, zp, s);
+    double* res = scamcs(part, z, zp, s, pc, theta_cut);
     z  = res[0];
     zp = res[1];
     free(res);

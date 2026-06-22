@@ -31,20 +31,17 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
     while (aran > everest->cprob[ichoix]) {
         ichoix += 1;
     }
-
     // Do the interaction
     // Scattered angle is cos theta = 1 + t / (2p^2) for elastic scattering
     //    from Mandelstam t = (p1-p3)^2) = 2m^2 - 2E1E3 + 2p1.p3
     //    if elastic, p1 = p3, and hence t = 2m^2 - 2(m^2 + p^2) + 2p^2 cos(theta)
     int64_t i_slot = -1;
-    // printf("ichoix: %d\n", ichoix); // --- IGNORE ---
     if (ichoix==1) {
-        // printf("ichoix: %d\n", ichoix); // --- IGNORE ---
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
 
     } else {
-        double sqrt_t_p;
+        double sqrt_t_p=0;
         if (ichoix==2) {
             // p-n elastic
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);

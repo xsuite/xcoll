@@ -55,18 +55,18 @@ class Material(xo.HybridClass):
         '_Z2_eff':                  xo.Float64,     # Effective Z for Rutherford scattering
         '_atoms_per_volume':        xo.Float64,     # [atoms/m^3]
         '_num_nucleons_eff':        xo.Float64,     # Effective number of nucleons for nuclear interactions
-
+        '_molar_mass':              xo.Float64,     # [g/mol]
         # Cross sections
-        '_cs_knots_pp':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_cs_knots_pp':             xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
         '_n_points_pp':             xo.Float64,                      # Number of points in the GG arrays
-        '_cs_sqrt_s_pp':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
-        '_cs_log_sqrt_s_min_pp': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
-        '_cs_log_step_pp':       xo.Float64,                    # Step size for the spline
-        '_cs_knots_kmin':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
-        '_n_points_kmin':          xo.Float64,                      # Number of points in the GG arrays
-        '_cs_sqrt_s_kmin':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
-        '_cs_log_sqrt_s_min_kmin': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
-        '_cs_log_step_kmin':       xo.Float64,                    # Step size for the spline
+        '_cs_sqrt_s_pp':            xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_pp':    xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_pp':          xo.Float64,                    # Step size for the spline
+        '_cs_knots_kmin':           xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points_kmin':           xo.Float64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s_kmin':          xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min_kmin':  xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step_kmin':        xo.Float64,                    # Step size for the spline
         '_cs_knots_kplus':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
         '_n_points_kplus':          xo.Float64,                      # Number of points in the GG arrays
         '_cs_sqrt_s_kplus':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
@@ -84,37 +84,7 @@ class Material(xo.HybridClass):
         '_cs_log_step_piplus':       xo.Float64,                    # Step size for the spline
 
         '_nuclear_slope':      xo.Float64,                    # Nuclear slope parameter
-        '_nuclear_slope_pion': xo.Float64,                    # Nuclear slope parameter for pions
-        # # GG raw values (for diagnostics)
-        # '_cs_tot_pp_GG':        xo.Float64[N_CS_POINTS],
-        # '_cs_el_pp_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_prod_pp_GG':       xo.Float64[N_CS_POINTS],
-        # '_cs_sd_pp_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_el_nucleon_pp_GG':    xo.Float64[N_CS_POINTS],
 
-        # '_cs_tot_kmin_GG':        xo.Float64[N_CS_POINTS],
-        # '_cs_el_kmin_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_prod_kmin_GG':       xo.Float64[N_CS_POINTS],
-        # '_cs_sd_kmin_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_el_nucleon_kmin_GG':    xo.Float64[N_CS_POINTS],
-
-        # '_cs_tot_kplus_GG':        xo.Float64[N_CS_POINTS],
-        # '_cs_el_kplus_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_prod_kplus_GG':       xo.Float64[N_CS_POINTS],
-        # '_cs_sd_kplus_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_el_nucleon_kplus_GG':    xo.Float64[N_CS_POINTS],
-
-        # '_cs_tot_pimin_GG':        xo.Float64[N_CS_POINTS],
-        # '_cs_el_pimin_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_prod_pimin_GG':       xo.Float64[N_CS_POINTS],
-        # '_cs_sd_pimin_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_el_nucleon_pimin_GG':    xo.Float64[N_CS_POINTS],
-
-        # '_cs_tot_piplus_GG':        xo.Float64[N_CS_POINTS],
-        # '_cs_el_piplus_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_prod_piplus_GG':       xo.Float64[N_CS_POINTS],
-        # '_cs_sd_piplus_GG':         xo.Float64[N_CS_POINTS],
-        # '_cs_el_nucleon_piplus_GG':    xo.Float64[N_CS_POINTS],
         # Spline coefficients — shape (N_CS_POINTS - 1,) per coefficient
         '_cs_tot_pp_a':      xo.Float64[N_CS_POINTS-1],
         '_cs_tot_pp_b':      xo.Float64[N_CS_POINTS-1],
@@ -220,14 +190,15 @@ class Material(xo.HybridClass):
         '_cs_el_nucleon_piplus_b':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_piplus_c':  xo.Float64[N_CS_POINTS-1],
         '_cs_el_nucleon_piplus_d':  xo.Float64[N_CS_POINTS-1],
+
         # Auto-calculated fields but can be provided for more precision
         '_radiation_length':        xo.Float64,     # [m]
         '_excitation_energy':       xo.Float64,     # [eV]
+
         # Optional fields (needed for full Everest support)
         '_nuclear_radius':          xo.Float64,     # emr
         '_nuclear_elastic_slope':   xo.Float64,     # [g/cm^2]    ~ 14.1 A^0.65
-                # slope from https://journals.aps.org/prd/pdf/10.1103/PhysRevD.21.3010
-        '_cross_section':           xo.Float64[6],  # [barn]     ~ these combine linear in atomic fractions
+        '_cross_section':           xo.Float64[6],  # [barn]      ~ these combine linear in atomic fractions
                 # Index 0:Total, 1:absorption, 2:nuclear elastic, 3:pp or pn elastic
                 #       4:Single Diffractive pp or pn, 5:Coulomb for t above mcs
         '_hcut':                    xo.Float64,     # Cut in Rutherford distribution
@@ -283,7 +254,7 @@ class Material(xo.HybridClass):
 
         # Create xobject with all invalid values (-1)
         xokwargs = kwargs.pop('_xokwargs', {})
-        for kk in ('_ZA_mean', '_Z2_eff', '_nuclear_slope', '_nuclear_slope_pion', '_radiation_length', '_excitation_energy',
+        for kk in ('_molar_mass', '_ZA_mean', '_Z2_eff', '_nuclear_slope', '_radiation_length', '_excitation_energy',
                    '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
                    '_nuclear_elastic_slope', '_hcut', '_crystal_plane_distance',
                    '_crystal_potential', '_eta', '_nuclear_collision_length',
@@ -295,15 +266,15 @@ class Material(xo.HybridClass):
             xokwargs[kk] = kwargs.pop(kk, -1.)
 
         for kk in (
-                #    '_cs_tot_pp_GG', '_cs_el_pp_GG', '_cs_prod_pp_GG', '_cs_sd_pp_GG', '_cs_el_nucleon_pp_GG', 
-                #    '_cs_tot_kmin_GG', '_cs_el_kmin_GG', '_cs_prod_kmin_GG', '_cs_sd_kmin_GG', '_cs_el_nucleon_kmin_GG',
-                #    '_cs_tot_kplus_GG', '_cs_el_kplus_GG', '_cs_prod_kplus_GG', '_cs_sd_kplus_GG', '_cs_el_nucleon_kplus_GG',
-                #    '_cs_tot_pimin_GG', '_cs_el_pimin_GG', '_cs_prod_pimin_GG', '_cs_sd_pimin_GG', '_cs_el_nucleon_pimin_GG',
-                #    '_cs_tot_piplus_GG', '_cs_el_piplus_GG', '_cs_prod_piplus_GG', '_cs_sd_piplus_GG', '_cs_el_nucleon_piplus_GG',
+        #         #    '_cs_tot_pp_GG', '_cs_el_pp_GG', '_cs_prod_pp_GG', '_cs_sd_pp_GG', '_cs_el_nucleon_pp_GG', 
+        #         #    '_cs_tot_kmin_GG', '_cs_el_kmin_GG', '_cs_prod_kmin_GG', '_cs_sd_kmin_GG', '_cs_el_nucleon_kmin_GG',
+        #         #    '_cs_tot_kplus_GG', '_cs_el_kplus_GG', '_cs_prod_kplus_GG', '_cs_sd_kplus_GG', '_cs_el_nucleon_kplus_GG',
+        #         #    '_cs_tot_pimin_GG', '_cs_el_pimin_GG', '_cs_prod_pimin_GG', '_cs_sd_pimin_GG', '_cs_el_nucleon_pimin_GG',
+        #         #    '_cs_tot_piplus_GG', '_cs_el_piplus_GG', '_cs_prod_piplus_GG', '_cs_sd_piplus_GG', '_cs_el_nucleon_piplus_GG',
         
-                   '_cs_tot_pp', '_cs_el_pp','_cs_inel_pp', '_cs_tot_pn', '_cs_tot_kmin_p', '_cs_el_kmin_p', '_cs_inel_kmin_p', 
-                   '_cs_tot_kplus_p', '_cs_el_kplus_p', '_cs_inel_kplus_p','_cs_tot_pimin_p', '_cs_el_pimin_p', '_cs_inel_pimin_p',
-                   '_cs_tot_piplus_p', '_cs_el_piplus_p', '_cs_inel_piplus_p', 
+        #            '_cs_tot_pp', '_cs_el_pp','_cs_inel_pp', '_cs_tot_pn', '_cs_tot_kmin_p', '_cs_el_kmin_p', '_cs_inel_kmin_p', 
+        #            '_cs_tot_kplus_p', '_cs_el_kplus_p', '_cs_inel_kplus_p','_cs_tot_pimin_p', '_cs_el_pimin_p', '_cs_inel_pimin_p',
+        #            '_cs_tot_piplus_p', '_cs_el_piplus_p', '_cs_inel_piplus_p', 
     
                    '_cs_sqrt_s_pp', '_cs_sqrt_s_kmin', '_cs_sqrt_s_kplus', '_cs_sqrt_s_pimin', '_cs_sqrt_s_piplus',
                    '_cs_knots_pp', '_cs_knots_kmin', '_cs_knots_kplus', '_cs_knots_pimin', '_cs_knots_piplus'):
@@ -618,14 +589,12 @@ class Material(xo.HybridClass):
     def _compute_glauber_cs(self, A_sig_tot, A_sig_inel, piR2):
         cs_tot   = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
         cs_inel  = piR2 * np.log(1.0 + A_sig_tot / piR2)
-        cs_el    = np.maximum(1e-15, cs_tot - cs_inel)
-
-        cs_prod  = piR2 * np.log(1.0 + A_sig_inel / piR2)
-
         alpha    = A_sig_tot / (2 * piR2 + A_sig_tot)
         cs_sd    = piR2 * (alpha - np.log(1.0 + alpha))
-
+        cs_prod  = piR2 * np.log(1.0 + A_sig_inel / piR2)
         cs_el_nucleon = np.maximum(1e-15, cs_inel - cs_prod)
+
+        cs_el    = np.maximum(1e-15, cs_tot - cs_inel)
 
         return cs_tot, cs_prod, cs_el, cs_el_nucleon, cs_sd
 
@@ -770,30 +739,35 @@ class Material(xo.HybridClass):
             self._cs_knots_kmin          = log_sqrt_s
             self._n_points_kmin          = n_points
             spline_kmin = CubicSpline(log_sqrt_s, gg["cs_tot_kmin_GG"])
+            self._cs_tot_kmin = gg["cs_tot_kmin_GG"]
             self._cs_tot_kmin_a = spline_kmin.c[0]
             self._cs_tot_kmin_b = spline_kmin.c[1]
             self._cs_tot_kmin_c = spline_kmin.c[2]
             self._cs_tot_kmin_d = spline_kmin.c[3]
             del spline_kmin
             spline_el_kmin = CubicSpline(log_sqrt_s, gg["cs_el_kmin_GG"])
+            self._cs_el_kmin = gg["cs_el_kmin_GG"]
             self._cs_el_kmin_a = spline_el_kmin.c[0]
             self._cs_el_kmin_b = spline_el_kmin.c[1]
             self._cs_el_kmin_c = spline_el_kmin.c[2]
             self._cs_el_kmin_d = spline_el_kmin.c[3]
             del spline_el_kmin
             spline_prod_kmin = CubicSpline(log_sqrt_s, gg["cs_prod_kmin_GG"])
+            self._cs_prod_kmin = gg["cs_prod_kmin_GG"]
             self._cs_prod_kmin_a = spline_prod_kmin.c[0]
             self._cs_prod_kmin_b = spline_prod_kmin.c[1]
             self._cs_prod_kmin_c = spline_prod_kmin.c[2]
             self._cs_prod_kmin_d = spline_prod_kmin.c[3]
             del spline_prod_kmin
             spline_el_nucleon_kmin = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_kmin_GG"])
+            self._cs_el_nucleon_kmin = gg["cs_el_nucleon_kmin_GG"]
             self._cs_el_nucleon_kmin_a = spline_el_nucleon_kmin.c[0]
             self._cs_el_nucleon_kmin_b = spline_el_nucleon_kmin.c[1]
             self._cs_el_nucleon_kmin_c = spline_el_nucleon_kmin.c[2]
             self._cs_el_nucleon_kmin_d = spline_el_nucleon_kmin.c[3]
             del spline_el_nucleon_kmin
             spline_sd_kmin = CubicSpline(log_sqrt_s, gg["cs_sd_kmin_GG"])
+            self._cs_sd_kmin = gg["cs_sd_kmin_GG"]
             self._cs_sd_kmin_a = spline_sd_kmin.c[0]
             self._cs_sd_kmin_b = spline_sd_kmin.c[1]
             self._cs_sd_kmin_c = spline_sd_kmin.c[2]
@@ -806,30 +780,35 @@ class Material(xo.HybridClass):
             self._cs_knots_kplus          = log_sqrt_s
             self._n_points_kplus          = n_points
             spline_kplus = CubicSpline(log_sqrt_s, gg["cs_tot_kplus_GG"])
+            self._cs_tot_kplus = gg["cs_tot_kplus_GG"]
             self._cs_tot_kplus_a = spline_kplus.c[0]
             self._cs_tot_kplus_b = spline_kplus.c[1]
             self._cs_tot_kplus_c = spline_kplus.c[2]
             self._cs_tot_kplus_d = spline_kplus.c[3]
             del spline_kplus
             spline_el_kplus = CubicSpline(log_sqrt_s, gg["cs_el_kplus_GG"])
+            self._cs_el_kplus = gg["cs_el_kplus_GG"]
             self._cs_el_kplus_a = spline_el_kplus.c[0]
             self._cs_el_kplus_b = spline_el_kplus.c[1]
             self._cs_el_kplus_c = spline_el_kplus.c[2]
             self._cs_el_kplus_d = spline_el_kplus.c[3]
             del spline_el_kplus
             spline_prod_kplus = CubicSpline(log_sqrt_s, gg["cs_prod_kplus_GG"])
+            self._cs_prod_kplus = gg["cs_prod_kplus_GG"]
             self._cs_prod_kplus_a = spline_prod_kplus.c[0]
             self._cs_prod_kplus_b = spline_prod_kplus.c[1]
             self._cs_prod_kplus_c = spline_prod_kplus.c[2]
             self._cs_prod_kplus_d = spline_prod_kplus.c[3]
             del spline_prod_kplus
             spline_el_nucleon_kplus = CubicSpline(log_sqrt_s, gg["cs_el_nucleon_kplus_GG"])
+            self._cs_el_nucleon_kplus = gg["cs_el_nucleon_kplus_GG"]
             self._cs_el_nucleon_kplus_a = spline_el_nucleon_kplus.c[0]
             self._cs_el_nucleon_kplus_b = spline_el_nucleon_kplus.c[1]
             self._cs_el_nucleon_kplus_c = spline_el_nucleon_kplus.c[2]
             self._cs_el_nucleon_kplus_d = spline_el_nucleon_kplus.c[3]
             del spline_el_nucleon_kplus
             spline_sd_kplus = CubicSpline(log_sqrt_s, gg["cs_sd_kplus_GG"])
+            self._cs_sd_kplus = gg["cs_sd_kplus_GG"]
             self._cs_sd_kplus_a = spline_sd_kplus.c[0]
             self._cs_sd_kplus_b = spline_sd_kplus.c[1]
             self._cs_sd_kplus_c = spline_sd_kplus.c[2]
@@ -918,17 +897,14 @@ class Material(xo.HybridClass):
         if self._components is None:
             if self.A <= 62:
                 self._nuclear_slope      = 14.5 * self.A**(2./3.)
-                self._nuclear_slope_pion = 14.5 * self.A**(2./3.)
             else:
                 self._nuclear_slope      = 60.0 * self.A**(1./3.)
-                self._nuclear_slope_pion = 60.0 * self.A**(1./3.)
         else:
             nuclear_slope_14 = sum(self.molar_fractions[i] * comp.A**(2./3.)
                                    for i, comp in enumerate(self.components) if comp.A <= 62) * 14.5
             nuclear_slope_60 = sum(self.molar_fractions[i] * comp.A**(1./3.)
                                    for i, comp in enumerate(self.components) if comp.A > 62) * 60.0
             self._nuclear_slope      = nuclear_slope_14 + nuclear_slope_60
-            self._nuclear_slope_pion = nuclear_slope_14 + nuclear_slope_60
         for beam in SPECIES:
             smin = sqrt_s_min or grid_min[beam]
             smax = sqrt_s_max or grid_max[beam]
@@ -1278,9 +1254,12 @@ class Material(xo.HybridClass):
     @property
     def molar_mass(self):
         if self.n_atoms is not None:
-            return sum([nn * el.A for el, nn
+            self._molar_mass = sum([nn * el.molar_mass for el, nn
+                                in zip(self.components, self.n_atoms)])
+            return sum([nn * el.molar_mass for el, nn
                                 in zip(self.components, self.n_atoms)])
         else:
+            self._molar_mass = self.A
             return self.A
 
     @property
