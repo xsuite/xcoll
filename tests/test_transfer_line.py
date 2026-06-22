@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import numpy as np
 import time
+import pytest
+import numpy as np
 start_time = time.time()
 
 import xpart as xp
@@ -18,6 +19,7 @@ from xcoll.compare import deep_equal
 num_part = int(1e6)
 
 
+@pytest.mark.xcother
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -25,10 +27,10 @@ def test_transfer_line(test_context):
     # Create the line
     line = _create_transfer_line()
     air = _add_air_regions(line)
-    assert line["Air 1"].material == air
-    assert line["Air 2"].material == air
-    assert deep_equal(line["Air 1"].material.to_dict(), air.to_dict())
-    assert deep_equal(line["Air 2"].material.to_dict(), air.to_dict())
+    assert line["Air1"].material == air
+    assert line["Air2"].material == air
+    assert deep_equal(line["Air1"].material.to_dict(), air.to_dict())
+    assert deep_equal(line["Air2"].material.to_dict(), air.to_dict())
     _add_monitors(line)
     line.build_tracker(_context=test_context)
     line.xcoll.scattering.disable()  # Scattering need to be disabled to be able to twiss
@@ -72,17 +74,17 @@ def _create_transfer_line():
 
 def _add_air_regions(line):
     air = xc.materials.Air
-    line.insert("Air 1", xc.EverestBlock(length=10, material=air), anchor='start', at=20, s_tol=1e-6)
-    line.insert("Air 2", xc.EverestBlock(length=10, material=air), anchor='start', at=50, s_tol=1e-6)
+    line.insert("Air1", xc.EverestBlock(length=10, material=air), anchor='start', at=20, s_tol=1e-6)
+    line.insert("Air2", xc.EverestBlock(length=10, material=air), anchor='start', at=50, s_tol=1e-6)
     return air
 
 
 def _add_monitors(line):
     xc.EmittanceMonitor.install(line, name="monitor start", at=0, longitudinal=False)
-    xc.EmittanceMonitor.install(line, name="monitor air 1 start", at=20, longitudinal=False)
-    xc.EmittanceMonitor.install(line, name="monitor air 1 end", at=30, longitudinal=False)
-    xc.EmittanceMonitor.install(line, name="monitor air 2 start", at=50, longitudinal=False)
-    xc.EmittanceMonitor.install(line, name="monitor air 2 end", at=60, longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 1 start", at="Air1@start", longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 1 end", at="Air1@end", longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 2 start", at="Air2@start", longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 2 end", at="Air2@end", longitudinal=False)
     xc.EmittanceMonitor.install(line, name="monitor end", at=100, longitudinal=False)
 
 def _generate_matched_particles(line):

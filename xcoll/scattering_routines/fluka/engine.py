@@ -205,7 +205,12 @@ class FlukaEngine(BaseEngine):
         elif self._server_process.poll() is not None:
             self.stop()
             return False
-        processes = [proc for proc in self.environment.running_processes()
+        try:
+            rprocs = self.environment.running_processes()
+        except RuntimeError as e:
+            self.stop()
+            raise RuntimeError from e
+        processes = [proc for proc in rprocs
                      if 'rfluka' in proc and 'defunct' not in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
@@ -471,13 +476,28 @@ class FlukaEngine(BaseEngine):
 
     def _create_touches(self, touches=None):
         # Create touches file (relcol.dat)
-        # First line is the number of collimators, second line is the IDs (no newline at end)
         if touches is True:
             touches = list(self._element_dict.keys())
-        # Check if touches is a list of collimator names
-        if touches is not None and hasattr(touches, '__iter__') \
-        and not isinstance(touches, str):
+
+        if touches is None or touches is False:
+            return
+
+        elif not hasattr(touches, '__iter__') or isinstance(touches, str):
+            self.stop()
+            raise NotImplementedError("Only True/False or a list of collimator names "
+                                    + "is allowed for `touches` for now.")
+        else:
+            # Check max particle ID limit to prevent FLUKA crash
+            # line 169: /eos/project-f/flukafiles/fluka-coupling/fluka_coupling/fluka/mgdraw.f
+            if self.capacity >= 100_000:
+                self.stop()
+                raise ValueError(f"max(particle_id) = {self.capacity:,}\n"
+                    "The MPPBUN FLUKA variable has a hardcoded limit of 100k.\n"
+                    "This is related to the limit of impacts treated by FLUKA.\n"
+                    "Aborting to prevent FLUKA crash.")
+
             relcol = (self.cwd / 'relcol.dat').resolve()
+            # First line is the number of collimators, second line is the IDs (no newline at end)
             with relcol.open('w') as fid:
                 fid.write(f'{len(touches)}\n')
                 for touch in touches:
@@ -488,8 +508,3 @@ class FlukaEngine(BaseEngine):
                     else:
                         fid.write(f'{self._element_dict[touch].fluka_id} ')
             self._input_file.append(relcol)
-        # Check if touches is not wrongly set
-        elif touches is not None and not touches is False:
-            self.stop()
-            raise NotImplementedError("Only True/False or a list of collimator names "
-                                    + "is allowed for `touches` for now.")

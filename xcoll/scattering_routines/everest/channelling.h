@@ -91,7 +91,7 @@ double* channel_transport(EverestData restrict everest, MaterialData restrict ma
 
     // First log particle at start of channelling
     int64_t i_slot = -1;
-    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELLING);
+    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELLING, everest->shape_id);
 
     // Do channelling.
     // The distance from I to F is the chord length of the angle t_P: d = 2 r sin(t_P/2)
@@ -215,11 +215,12 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
         double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
+        // TODO: particle might have died due to ionisation loss
 
         if (everest->coll->record_scatterings){
             InteractionRecordData record = everest->coll->record;
             RecordIndex record_index     = everest->coll->record_index;
-            InteractionRecordData_log(record, record_index, part, XC_DECHANNELLING);
+            InteractionRecordData_log(record, record_index, part, XC_DECHANNELLING, everest->shape_id);
         }
         pc = Amorphous(everest, material, part, cg, pc, length - channeled_length, 1);
 
@@ -229,15 +230,14 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
         double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
+        // TODO: particle might have died due to ionisation loss
         // Rescale nuclear interaction parameters
         everest->rescale_scattering = avrrho;
 #ifndef XCOLL_REFINE_ENERGY
         calculate_scattering(everest, (MaterialData) material, pc);
 #endif
         pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
-        if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
-        } else {
+        if (LocalParticle_get_state(part) > 0){
             // We call the main Amorphous function for the leftover
             everest->rescale_scattering = 1;
 #ifndef XCOLL_REFINE_ENERGY

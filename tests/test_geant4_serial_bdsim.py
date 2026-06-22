@@ -12,34 +12,17 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-
-# Do NOT mark these as Geant4 tests, as they have to be ran in serial
-
-
 path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
 @pytest.mark.serial
+@pytest.mark.geant4
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
-def test_serial_bdsim(pytestconfig):
+def test_serial_bdsim():
     # Skip if Geant4Engine has already been started
     if xc.geant4.engine._already_started:
         pytest.skip("Cannot run serial BDSIM test - Geant4Engine has ran before.")
-
-    # Verify that this test is not run in parallel
-    n = None
-    try:
-        n = pytestconfig.getoption("numprocesses")  # xdist option
-    except Exception:
-        pass
-    try:
-        n = int(n)
-    except Exception:
-        if n:  # e.g. 'auto'
-            n = 999999
-    if n and n > 1:
-        pytest.skip("Cannot run serial BDSIM test in parallel.")
 
     num_part = 1000
     _capacity = num_part*4
@@ -75,8 +58,8 @@ def test_serial_bdsim(pytestconfig):
     coll.track(part)
     print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
         + f"{num_part} protons through {coll.length:.2f}m")
-    assert (part.state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
-    assert (part.state == xc.headers.particle_states.LOST_ON_GEANT4_COLL).sum() > 0  # Some particles should have died in the collimator
+    assert (part.state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0  # No particles should be lost without specification
+    assert (part.state == xc.headers.particle_states.LOST_ON_MATERIAL).sum() > 0    # Some particles should have died in the collimator
     assert (part.state == 1).sum() > 0
 
     xc.geant4.engine.stop(clean=True)

@@ -8,9 +8,9 @@ import numpy as np
 from pathlib import Path
 
 import xtrack as xt
-import xpart as xp
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
+import xcoll.constants as xcc
 
 
 num_part = 10000
@@ -18,6 +18,7 @@ num_turns = 3
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -49,6 +50,7 @@ def test_impacts_from_line(beam, plane, test_context):
     _assert_impacts(impacts, lengths=line.xcoll.collimators.length)
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -60,7 +62,7 @@ def test_impacts_single_collimator(test_context):
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
     impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
     coll.track(part)
@@ -69,6 +71,7 @@ def test_impacts_single_collimator(test_context):
     _assert_impacts(impacts, lengths=coll.length)
 
 
+@pytest.mark.everest
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -85,13 +88,43 @@ def test_impacts_single_crystal(R, side, test_context):
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
     impacts = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
     _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'])
+
+
+def test_impacts_to_pandas_default_frame():
+    impacts, _, _ = _make_impacts_for_frame_tests()
+
+    assert impacts.to_pandas().equals(impacts.to_pandas(frame='jaw'))
+    with pytest.raises(ValueError, match="Invalid frame"):
+        impacts.to_pandas(frame='wrong')
+
+
+def test_impacts_to_pandas_collimator_frame():
+    impacts, coll, data = _make_impacts_for_frame_tests()
+    df = impacts.to_pandas(frame='collimator')
+    expected = _expected_frame(data, coll, frame='collimator')
+
+    assert np.all(df.interaction_type.values == ['Enter Jaw L', 'Enter Jaw R'])
+    assert np.all(df.collimator.values == 'TCP')
+    for coord in ['s', 'x', 'px', 'y', 'py']:
+        assert np.allclose(df[f'{coord}_before'], expected[f'{coord}_before'])
+        assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
+
+
+def test_impacts_to_pandas_lattice_frame():
+    impacts, coll, data = _make_impacts_for_frame_tests()
+    df = impacts.to_pandas(frame='lattice')
+    expected = _expected_frame(data, coll, frame='lattice')
+
+    for coord in ['s', 'x', 'px', 'y', 'py']:
+        assert np.allclose(df[f'{coord}_before'], expected[f'{coord}_before'])
+        assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
 def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], lengths=None):
@@ -116,3 +149,102 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
             lengths = {coll: lengths for coll in np.unique(df.collimator[mask])}
         assert np.all(np.isclose(df.s_before[mask], [lengths[coll] for coll in df.collimator[mask]], atol=1e-12) |
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+
+
+def _make_impacts_for_frame_tests():
+    coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
+                                    angle=[30, -45], name='TCP')
+    impacts = xc.InteractionRecord.start(elements=[coll], record_impacts=True,
+                                         record_exits=True, capacity=2)
+    data = {
+        'at_turn':      np.array([0, 1]),
+        'at_element':   np.array([0, 0]),
+        'shape_id':     np.array([1, -1]),
+        '_inter':       np.array([xcc.ENTER_JAW_L,
+                                  xcc.ENTER_JAW_R]),
+        'id_before':    np.array([10, 11]),
+        's_before':     np.array([0.30, 0.45]),
+        'x_before':     np.array([0.04, 0.06]),
+        'px_before':    np.array([0.010, 0.020]),
+        'y_before':     np.array([0.07, -0.08]),
+        'py_before':    np.array([0.005, -0.006]),
+        'delta_before': np.array([0.10, -0.20]),
+        'id_after':     np.array([-1, 11]),
+        's_after':      np.array([-1., 1.20]),
+        'x_after':      np.array([-1., 0.10]),
+        'px_after':     np.array([-1., -0.015]),
+        'y_after':      np.array([-1., 0.11]),
+        'py_after':     np.array([-1., 0.012]),
+        'delta_after':  np.array([-1., 0.25]),
+    }
+    impacts._index.num_recorded = len(data['shape_id'])
+    for field, values in data.items():
+        for ii, val in enumerate(values):
+            getattr(impacts, field)[ii] = val
+    return impacts, coll, data
+
+
+def _expected_frame(data, coll, frame):
+    expected = {}
+    for at in ['before', 'after']:
+        s, x, px, y, py = _expected_collimator_frame(data, coll, at)
+        if frame == 'lattice':
+            x, px, y, py = _expected_lattice_frame(data, coll, x, px, y, py)
+        expected[f's_{at}']  = s
+        expected[f'x_{at}']  = x
+        expected[f'px_{at}'] = px
+        expected[f'y_{at}']  = y
+        expected[f'py_{at}'] = py
+    return expected
+
+
+def _expected_collimator_frame(data, coll, at):
+    s     = data[f's_{at}'].copy()
+    x     = data[f'x_{at}'].copy()
+    px    = data[f'px_{at}'].copy()
+    y     = data[f'y_{at}'].copy()
+    py    = data[f'py_{at}'].copy()
+    delta = data[f'delta_{at}']
+
+    for ii, shape_id in enumerate(data['shape_id']):
+        if shape_id >= 0:
+            sin_y, cos_y, tilt, jaw = coll._sin_yL, coll._cos_yL, coll.tilt_L, coll.jaw_LU
+        else:
+            sin_y, cos_y, tilt, jaw = coll._sin_yR, coll._cos_yR, coll.tilt_R, coll.jaw_RU
+            if x[ii] != -1:
+                x[ii] = -x[ii]
+            if px[ii] != -1:
+                px[ii] = -px[ii]
+        if s[ii] != -1 and x[ii] != -1:
+            old_s = s[ii]
+            old_x = x[ii]
+            s[ii] = old_s*cos_y - old_x*sin_y - coll.length/2*(1 - cos_y)
+            x[ii] = old_s*sin_y + old_x*cos_y
+        if x[ii] != -1:
+            x[ii] += jaw
+        if px[ii] != -1:
+            px[ii] += tilt*(1 + delta[ii])
+    return s, x, px, y, py
+
+
+def _expected_lattice_frame(data, coll, x, px, y, py):
+    x  = x.copy()
+    px = px.copy()
+    y  = y.copy()
+    py = py.copy()
+    for ii, shape_id in enumerate(data['shape_id']):
+        if shape_id >= 0:
+            sin_z, cos_z = coll._sin_zL, coll._cos_zL
+        else:
+            sin_z, cos_z = coll._sin_zR, coll._cos_zR
+        if x[ii] != -1 and y[ii] != -1:
+            old_x = x[ii]
+            old_y = y[ii]
+            x[ii] = old_x*cos_z - old_y*sin_z
+            y[ii] = old_x*sin_z + old_y*cos_z
+        if px[ii] != -1 and py[ii] != -1:
+            old_px = px[ii]
+            old_py = py[ii]
+            px[ii] = old_px*cos_z - old_py*sin_z
+            py[ii] = old_px*sin_z + old_py*cos_z
+    return x, px, y, py

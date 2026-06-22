@@ -151,7 +151,11 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
 
                 } else {
                     // Mark for FLUKA processing.
-                    LocalParticle_set_state(part, XC_HIT_ON_FLUKA_COLL);
+                    if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
+                        LocalParticle_set_state(part, XC_HIT_ON_FLUKA_SEC);
+                    } else {
+                        LocalParticle_set_state(part, XC_HIT_ON_FLUKA);
+                    }
                     // Return to start position
 #ifdef XCOLL_USE_EXACT
                     Drift_single_particle_exact(part, -length_front);

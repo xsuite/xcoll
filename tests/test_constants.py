@@ -17,6 +17,7 @@ with pytest.warns(UserWarning):
   import test_constants_pkg.other_type as tto
 
 
+@pytest.mark.xaux
 def test_registries():
     base_pkg_name = 'test_constants_pkg'
     assert _XO_CONST_GLOBAL_NAME_REG[f'{base_pkg_name}.type1'] == {
@@ -57,6 +58,7 @@ def test_registries():
     assert _XO_CONST_GLOBAL_COUNT_REG['XFREOO_OTHER_TYPE_H_guard'] == 0
 
 
+@pytest.mark.xaux
 def test_class():
     assert isinstance(tt._T1, type) and issubclass(tt._T1, Constants)
     assert isinstance(tt._T2, type) and issubclass(tt._T2, Constants)
@@ -81,6 +83,7 @@ def test_class():
     assert tt._TO._reverse_ == "unique"
 
 
+@pytest.mark.xaux
 def test_class_constants():
     assert hasattr(tt._T1, 'ENABLED') and isinstance(tt._T1.ENABLED, ConstantSpec)
     assert hasattr(tt._T1, 'BIG') and isinstance(tt._T1.BIG, ConstantSpec)
@@ -154,6 +157,7 @@ def test_class_constants():
     assert tt._TO.VAS2.info == 'Vas 2' and tt._TO.VAS2.c_name == 'XFREOO_VAS2'
 
 
+@pytest.mark.xaux
 def test_module_constants():
     assert hasattr(tt1, 'ENABLED') and isinstance(tt1.ENABLED, bool)
     assert hasattr(tt1, 'BIG') and isinstance(tt1.BIG, _IntMixin)
@@ -204,6 +208,7 @@ def test_module_constants():
     assert tto.VAS2 == -3
 
 
+@pytest.mark.xaux
 def test_package_constants():
     # Not imported into package namespace
     assert not hasattr(tt, 'ENABLED')
@@ -231,6 +236,7 @@ def test_package_constants():
     assert not hasattr(tt, 'VAS2')
 
 
+@pytest.mark.xaux
 def test_class_constant_lists():
     assert tt._T1._map == {'ENABLED': 1, 'BIG': 18446744073709551615, 'MASS': 0.938}
     assert tt._T2._map == {'VAR1': 2, 'VAR2': -3, 'VAR3': 9}
@@ -242,6 +248,7 @@ def test_class_constant_lists():
     assert tt._TO._map == {'VAS1': 2, 'VAS2': -3}
 
 
+@pytest.mark.xaux
 def test_module_constant_lists():
     assert not hasattr(tt1, '_map')
     assert not hasattr(tt4, '_map')
@@ -256,6 +263,7 @@ def test_module_constant_lists():
     assert dict(tto.other_types) == {'VAS1': 2, 'VAS2': -3}
 
 
+@pytest.mark.xaux
 def test_package_constant_lists():
     assert not hasattr(tt, '_map')
     assert dict(tt.types) == {'ENABLED': 1, 'BIG': 18446744073709551615, 'MASS': 0.938}
@@ -268,6 +276,7 @@ def test_package_constant_lists():
     assert dict(tto.other_types) == {'VAS1': 2, 'VAS2': -3}
 
 
+@pytest.mark.xaux
 def test_class_groups():
     assert hasattr(tt._T1, 'COOL') and isinstance(tt._T1.COOL, GroupSpec)
     assert hasattr(tt._T2, 'GR1') and isinstance(tt._T2.GR1, GroupSpec)
@@ -295,6 +304,7 @@ def test_class_groups():
                                                             'UNIQUE_TYPE_UNNAMED_1', 'YAY_NO_META_2', 'BIG')
 
 
+@pytest.mark.xaux
 def test_module_groups():
     assert hasattr(tt1, 'COOL') and isinstance(tt1.COOL, _TupleMixin)
     assert hasattr(tt1, 'GR1') and isinstance(tt1.GR1, _TupleMixin)
@@ -321,6 +331,7 @@ def test_module_groups():
                                                       'UNIQUE_TYPE_UNNAMED_1', 'YAY_NO_META_2', 'BIG')
 
 
+@pytest.mark.xaux
 def test_package_groups():
     # Not imported into package namespace
     assert not hasattr(tt, 'COOL')
@@ -331,6 +342,7 @@ def test_package_groups():
     assert not hasattr(tt, 'GROO')
 
 
+@pytest.mark.xaux
 def test_class_group_lists():
     assert tt._T1._groups == {'COOL': (0.938, 18446744073709551615)}
     assert tt._T2._groups == {'GR1': (-3, 0.938, 2, 18446744073709551615)}
@@ -342,6 +354,7 @@ def test_class_group_lists():
     assert not hasattr(tt._T5, '_groups')
 
 
+@pytest.mark.xaux
 def test_module_group_lists():
     assert not hasattr(tt1, '_groups')
     assert not hasattr(tt4, '_groups')
@@ -354,6 +367,7 @@ def test_module_group_lists():
                                            'GROO': (-3, 0.734, 0.938, 1, 1.23, 2, 2, 9.81, 23.0, 23.0, 18446744073709551615)}
 
 
+@pytest.mark.xaux
 def test_package_group_lists():
     assert not hasattr(tt, '_groups')
     assert dict(tt.type_groups) == {'COOL': (0.938, 18446744073709551615)}
@@ -364,6 +378,7 @@ def test_package_group_lists():
                                           'GROO': (-3, 0.734, 0.938, 1, 1.23, 2, 2, 9.81, 23.0, 23.0, 18446744073709551615)}
 
 
+@pytest.mark.xaux
 def test_class_constant_meta():
     assert tt._T1._meta == {'ENABLED': {'value': 1, 'c_name': 'OLA_ENABLED', 'info': 'Important info'},
                             'BIG': {'value': 18446744073709551615, 'c_name': 'XF_BIG', 'info': 'Big int'},
@@ -390,6 +405,7 @@ def test_class_constant_meta():
                             'VAS2': {'value': -3, 'c_name': 'XFREOO_VAS2', 'info': 'Vas 2'}}
 
 
+@pytest.mark.xaux
 def test_module_constant_meta():
     assert not hasattr(tt1, '_meta')
     assert not hasattr(tt4, '_meta')
@@ -419,6 +435,7 @@ def test_module_constant_meta():
                                           'VAS2': {'value': -3, 'c_name': 'XFREOO_VAS2', 'info': 'Vas 2'}}
 
 
+@pytest.mark.xaux
 def test_package_constant_meta():
     assert not hasattr(tt, '_meta')
     assert dict(tt.types_meta) == {'ENABLED': {'value': 1, 'c_name': 'OLA_ENABLED', 'info': 'Important info'},
@@ -446,6 +463,7 @@ def test_package_constant_meta():
                                     'VAS2': {'value': -3, 'c_name': 'XFREOO_VAS2', 'info': 'Vas 2'}}
 
 
+@pytest.mark.xaux
 def test_class_constant_names():
     assert tt._T2._names == {2: 'VAR1', -3: 'VAR2', 9: 'VAR3'}
     assert tt._T3._names  == {4: ('VAR4', 'VAR6'), -5: ('VAR5',)}
@@ -457,6 +475,7 @@ def test_class_constant_names():
     assert not hasattr(tt._T1, '_names')
 
 
+@pytest.mark.xaux
 def test_module_constant_names():
     assert not hasattr(tt1, '_names')
     assert not hasattr(tt4, '_names')
@@ -470,6 +489,7 @@ def test_module_constant_names():
     assert dict(tto.other_type_names)  == {2: 'VAS1', -3: 'VAS2'}
 
 
+@pytest.mark.xaux
 def test_package_constant_names():
     assert not hasattr(tt, '_names')
     assert dict(tt.unique_type_names) == {2: 'VAR1', -3: 'VAR2', 9: 'VAR3', 0.734: 'THING_SOME_VAL',
@@ -480,6 +500,7 @@ def test_package_constant_names():
     assert dict(tt.other_type_names)  == {2: 'VAS1', -3: 'VAS2'}
 
 
+@pytest.mark.xaux
 def test_class_constant_sources():
     assert tt._T1._src == """#ifndef XF_TYPE_H_I0
 #define XF_TYPE_H_I0
@@ -534,6 +555,7 @@ def test_class_constant_sources():
 """
 
 
+@pytest.mark.xaux
 def test_module_constant_sources():
     assert tt1.types_src == """#ifndef XF_TYPE_H_I0
 #define XF_TYPE_H_I0
@@ -590,6 +612,7 @@ def test_module_constant_sources():
 """
 
 
+@pytest.mark.xaux
 def test_package_constant_sources():
     assert tt.types_src == """#ifndef XF_TYPE_H_I0
 #define XF_TYPE_H_I0
@@ -647,6 +670,7 @@ def test_package_constant_sources():
 """
 
 
+@pytest.mark.xaux
 def test_consistency_and_name_clash():
     with pytest.raises(TypeError, match="FailThingType1 must inherit from Constants directly; "
                        "no further subclassing allowed."):

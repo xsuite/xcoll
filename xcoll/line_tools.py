@@ -8,7 +8,6 @@ from warnings import warn
 from numbers import Number
 
 import xtrack as xt
-from xtrack import line
 
 from .beam_elements import (element_classes, collimator_classes, block_classes,
                             crystal_classes)
@@ -21,6 +20,13 @@ def _iterable(obj):
 class XcollLineAPI:
     def __init__(self, line):
         self._line = line
+        self._scattering = XcollScatteringAPI(line=line)
+        self._collimators = XcollCollimatorAPI(line=line)
+        # Backwards compatibility
+        if not hasattr(self.line, '_scattering') or self.line._scattering is None:
+            self.line._scattering = self._scattering
+        if not hasattr(self.line, '_collimators') or self.line._collimators is None:
+            self.line._collimators = self._collimators
 
     @property
     def line(self):
@@ -36,10 +42,7 @@ class XcollLineAPI:
         scattering : object
             Xcoll scattering API bound to this line.
         """
-        if not hasattr(self.line, '_scattering') or self.line._scattering is None:
-            self.line._scattering = XcollScatteringAPI(line=self.line)
-
-        return self.line._scattering
+        return self._scattering
 
     @property
     def collimators(self):
@@ -51,10 +54,7 @@ class XcollLineAPI:
         collimators : object
             Xcoll collimator API bound to this line.
         """
-        if not hasattr(self.line, '_collimators') or self.line._collimators is None:
-            self.line._collimators = XcollCollimatorAPI(line=self.line)
-
-        return self.line._collimators
+        return self._collimators
 
 
 class XcollLineAccessor:
@@ -193,6 +193,13 @@ class XcollScatteringAPI(XcollLineAccessor):
             for el in self:
                 if hasattr(el, 'disable_scattering'):
                     el.disable_scattering()
+
+    def identify_primary_losses(self):
+        if len(self) == 0:
+            print("No xcoll elements found in line.")
+        else:
+            for el in self:
+                el.mark_scattered_particles = True
 
 
 class XcollCollimatorAPI(XcollLineAccessor):

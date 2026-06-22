@@ -14,6 +14,7 @@ import xcoll as xc
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
 def test_gaps(beam):
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')

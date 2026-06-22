@@ -22,8 +22,9 @@ interaction_names = {kk: vv.replace('_', ' ').title().\
 class InteractionRecord(xt.BeamElement):
     _xofields = {
         '_index':            xt.RecordIndex,
-        'at_element':        xo.Int64[:],
         'at_turn':           xo.Int64[:],
+        'at_element':        xo.Int64[:],
+        'shape_id':          xo.Int64[:],
         '_inter':            xo.Int64[:],
         'id_before':         xo.Int64[:],
         's_before':          xo.Float64[:],
@@ -66,9 +67,9 @@ class InteractionRecord(xt.BeamElement):
 
     @classmethod
     def start(cls, *, line=None, elements=None, names=None, record_impacts=None, record_exits=None,
-              record_scatterings=None, capacity=1e6, io_buffer=None, coll_ids=None):
+              record_scatterings=None, capacity=1e6, io_buffer=None):
         elements, names = _get_xcoll_elements(line, elements, names)
-        if len(names) == 0:
+        if len(elements) == 0:
             return
         capacity = int(capacity)
 
@@ -104,30 +105,26 @@ class InteractionRecord(xt.BeamElement):
                                            elements=elements)
         record._line = line
         record._io_buffer = io_buffer
-        recording_elements = names if len(names) > 0 else elements
-        record._recording_elements = recording_elements
-        if coll_ids is None:
-            if line is None:
-                if len(names) > 0:
-                    record._coll_ids = {name: idx for idx, name in enumerate(names)}
-            else:
-                record._coll_ids = {name: line.element_names.index(name) for name in names}
+        record._recording_elements = {name: el for name, el in zip(names, elements)}
+        if line is None:
+            record._coll_ids = {name: idx for idx, name in enumerate(names)}
         else:
-            assert len(coll_ids) == len(names)
-            record._coll_ids = {name: idx for name, idx in zip(names, coll_ids)}
-        if hasattr(record, '_coll_ids'):
-            record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
+            record._coll_ids = {name: line.element_names.index(name) for name in names}
+        record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
         return record
 
     def stop(self, *, elements=None, names=None):
         self.assert_class_init()
+        if names is not None:
+            if elements is not None:
+                raise ValueError("Cannot provide both elements and names!")
         elements, names = _get_xcoll_elements(self.line, elements, names)
         if self.line is not None and self.line.tracker is not None:
             self.line.tracker._check_invalidated()
         xt.stop_internal_logging(elements=elements)
         # Removed the stopped collimators from list of logged elements
-        stopping_elements = names if len(names) > 0 else elements
-        self._recording_elements = list(set(self._recording_elements) - set(stopping_elements))
+        stopping_elements = elements
+        self._recording_elements = {name: el for name, el in self._recording_elements.items() if el not in stopping_elements}
 
 
     def assert_class_init(self):
@@ -152,41 +149,10 @@ class InteractionRecord(xt.BeamElement):
         if hasattr(self, '_io_buffer'):
             return self.io_buffer.capacity
 
-    # @capacity.setter
-    # def capacity(self, val):
-    #     if hasattr(self, '_io_buffer'):
-    #         capacity = int(capacity)
-    #         if capacity < self.capacity:
-    #             raise NotImplementedError("Shrinking of capacity not yet implemented!")
-    #         elif capacity == self.capacity:
-    #             return
-    #         else:
-    #             self.io_buffer.grow(capacity - self.capacity)
-    #             # TODO: increase capacity of iobuffer AND of fields in record table
-
     @property
     def recording_elements(self):
         if hasattr(self, '_recording_elements'):
             return self._recording_elements
-
-    @recording_elements.setter
-    def recording_elements(self, val):
-        self.assert_class_init()
-        if val is None:
-            val = []
-        record_start = _get_xcoll_elements(self.line, val)
-        self.stop(set(self.recording_elements) - set(record_start))
-        elements = [self.line[name] for name in record_start]
-        for el in elements:  # TODO: this should be smarter
-            if not el.record_impacts and not el.record_scatterings:
-                el.record_impacts = True
-                el.record_scatterings = True
-        xt.start_internal_logging(io_buffer=self.io_buffer, capacity=self.capacity, \
-                                  record=self, elements=elements)
-        self._recording_elements = record_start
-        # Updating coll IDs: careful to correctly overwrite existing values
-        self._coll_ids.update({name: self.line.element_names.index(name) for name in record_start})
-        self._coll_names = {vv: kk for kk, vv in self._coll_ids.items()}
 
     @property
     def interaction_type(self):
@@ -214,8 +180,9 @@ class InteractionRecord(xt.BeamElement):
         if frame is None:
             frame = 'jaw'
         frame = frame.lower()
-        if frame not in ['jaw', 'collimator', 'lab']:
-            raise ValueError(f"Invalid frame {frame}. Must be 'jaw', 'collimator', or 'lab'!")
+        if frame not in ['jaw', 'collimator', 'lattice']:
+            raise ValueError(f"Invalid frame {frame}. Must be 'jaw', "
+                             f"'collimator', or 'lattice'!")
         n_rows = self._index.num_recorded
         coll_header = 'collimator' if hasattr(self, '_coll_names') else 'collimator_id'
         df = pd.DataFrame({
@@ -228,6 +195,182 @@ class InteractionRecord(xt.BeamElement):
                     for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }
             })
+
+        # Different reference frames:
+        #   - lattice:       as it is in the lattice (pipe frame)
+        #   - collimator:    rotated to the (potentially jaw-dependent)
+        #                    collimator angle
+        #   - jaw (default): as collimator, but also rotated to the tilt
+        #                    angle, moved to the upstream jaw corner,
+        #                    and mirrored for the right jaw
+        # TODO: when allowing column selection, reference frames can only work if the necessary coordinates are present
+        if frame != 'jaw':
+            # Move back to the collimator frame
+
+            # Coordinate arrays
+            s_before     = df["s_before"].to_numpy(copy=True)
+            x_before     = df["x_before"].to_numpy(copy=True)
+            px_before    = df["px_before"].to_numpy(copy=True)
+            y_before     = df["y_before"].to_numpy(copy=True)
+            py_before    = df["py_before"].to_numpy(copy=True)
+            delta_before = df["delta_before"].to_numpy(copy=False)  # No need to write to this array, so no need to copy
+            s_after      = df["s_after"].to_numpy(copy=True)
+            x_after      = df["x_after"].to_numpy(copy=True)
+            px_after     = df["px_after"].to_numpy(copy=True)
+            y_after      = df["y_after"].to_numpy(copy=True)
+            py_after     = df["py_after"].to_numpy(copy=True)
+            delta_after  = df["delta_after"].to_numpy(copy=False)   # No need to write to this array, so no need to copy
+
+            # Collimator attribute arrays
+            cat = df[coll_header].astype("category")
+            codes = cat.cat.codes.to_numpy(copy=False)
+            names = cat.cat.categories
+            sh  = self.shape_id[:n_rows]
+            els = self.recording_elements
+            sin_zL = np.array([els[name]._sin_zL for name in names])
+            cos_zL = np.array([els[name]._cos_zL for name in names])
+            sin_zR = np.array([els[name]._sin_zR for name in names])
+            cos_zR = np.array([els[name]._cos_zR for name in names])
+            sin_yL = np.array([els[name]._sin_yL for name in names])
+            cos_yL = np.array([els[name]._cos_yL for name in names])
+            tilt_L = np.array([els[name].tilt_L for name in names])
+            sin_yR = np.array([els[name]._sin_yR for name in names])
+            cos_yR = np.array([els[name]._cos_yR for name in names])
+            tilt_R = np.array([els[name].tilt_R for name in names])
+            length = np.array([els[name].length for name in names])
+            jaw_L  = np.array([els[name].jaw_LU for name in names])
+            jaw_R  = np.array([els[name].jaw_RU for name in names])
+            length_front = np.array([els[name].length_front
+                                     if hasattr(els[name], 'length_front') else 0
+                                     for name in names])
+
+            # Mirror back if on a right jaw (negative shape_id)
+            idx = np.flatnonzero((x_before != -1) & (sh < 0))
+            x_before[idx] = -x_before[idx]
+            idx = np.flatnonzero((px_before != -1) & (sh < 0))
+            px_before[idx] = -px_before[idx]    # Also valid for exact angle
+            idx = np.flatnonzero((x_after != -1) & (sh < 0))
+            x_after[idx] = -x_after[idx]
+            idx = np.flatnonzero((px_after != -1) & (sh < 0))
+            px_after[idx] = -px_after[idx]
+
+            # Rotate back from the tilted frame
+            idx = np.flatnonzero((s_before != -1) & (x_before != -1) & (sh >= 0))
+            new_s = s_before[idx]*cos_yL[codes[idx]] - x_before[idx]*sin_yL[codes[idx]]
+            new_x = s_before[idx]*sin_yL[codes[idx]] + x_before[idx]*cos_yL[codes[idx]]
+            s_before[idx] = new_s
+            x_before[idx] = new_x
+            idx = np.flatnonzero((px_before != -1) & (sh >= 0))
+            px_before[idx] = px_before[idx] + tilt_L[codes[idx]]*(1 + delta_before[idx])
+            # xp = px/sqrt((1+delta)**2 - px*px - py*py)
+            # px = xp*(1+delta)/sqrt(1 + xp*xp + yp*yp)
+            idx = np.flatnonzero((s_before != -1) & (x_before != -1) & (sh < 0))
+            new_s = s_before[idx]*cos_yR[codes[idx]] - x_before[idx]*sin_yR[codes[idx]]
+            new_x = s_before[idx]*sin_yR[codes[idx]] + x_before[idx]*cos_yR[codes[idx]]
+            s_before[idx] = new_s
+            x_before[idx] = new_x
+            idx = np.flatnonzero((px_before != -1) & (sh < 0))
+            px_before[idx] = px_before[idx] + tilt_R[codes[idx]]*(1 + delta_before[idx])
+            # xp = px/sqrt((1+delta)**2 - px*px - py*py)
+            # px = xp*(1+delta)/sqrt(1 + xp*xp + yp*yp)
+            idx = np.flatnonzero((s_after != -1) & (x_after != -1) & (sh >= 0))
+            new_s = s_after[idx]*cos_yL[codes[idx]] - x_after[idx]*sin_yL[codes[idx]]
+            new_x = s_after[idx]*sin_yL[codes[idx]] + x_after[idx]*cos_yL[codes[idx]]
+            s_after[idx] = new_s
+            x_after[idx] = new_x
+            idx = np.flatnonzero((px_after != -1) & (sh >= 0))
+            px_after[idx] = px_after[idx] + tilt_L[codes[idx]]*(1 + delta_after[idx])
+            # xp = px/sqrt((1+delta)**2 - px*px - py*py)
+            # px = xp*(1+delta)/sqrt(1 + xp*xp + yp*yp)
+            idx = np.flatnonzero((s_after != -1) & (x_after != -1) & (sh < 0))
+            new_s = s_after[idx]*cos_yR[codes[idx]] - x_after[idx]*sin_yR[codes[idx]]
+            new_x = s_after[idx]*sin_yR[codes[idx]] + x_after[idx]*cos_yR[codes[idx]]
+            s_after[idx] = new_s
+            x_after[idx] = new_x
+            idx = np.flatnonzero((px_after != -1) & (sh < 0))
+            px_after[idx] = px_after[idx] + tilt_R[codes[idx]]*(1 + delta_after[idx])
+            # xp = px/sqrt((1+delta)**2 - px*px - py*py)
+            # px = xp*(1+delta)/sqrt(1 + xp*xp + yp*yp)
+
+            # Move back from the jaw corner
+            idx = np.flatnonzero((x_before != -1) & (sh >= 0))
+            x_before[idx] += jaw_L[codes[idx]]
+            idx = np.flatnonzero((s_before != -1) & (sh >= 0))
+            s_before[idx] -= length[codes[idx]]/2*(1 - cos_yL[codes[idx]])
+            idx = np.flatnonzero((x_before != -1) & (sh < 0))
+            x_before[idx] += jaw_R[codes[idx]]
+            idx = np.flatnonzero((s_before != -1) & (sh < 0))
+            s_before[idx] -= length[codes[idx]]/2*(1 - cos_yR[codes[idx]])
+            idx = np.flatnonzero((x_after != -1) & (sh >= 0))
+            x_after[idx] += jaw_L[codes[idx]]
+            idx = np.flatnonzero((s_after != -1) & (sh >= 0))
+            s_after[idx] -= length[codes[idx]]/2*(1 - cos_yL[codes[idx]])
+            idx = np.flatnonzero((x_after != -1) & (sh < 0))
+            x_after[idx] += jaw_R[codes[idx]]
+            idx = np.flatnonzero((s_after != -1) & (sh < 0))
+            s_after[idx] -= length[codes[idx]]/2*(1 - cos_yR[codes[idx]])
+
+        if frame == 'lattice':
+            # Rotate back from the collimator frame
+            idx = np.flatnonzero((x_before != -1) & (y_before != -1) & (sh >= 0))
+            new_x = x_before[idx]*cos_zL[codes[idx]] - y_before[idx]*sin_zL[codes[idx]]
+            new_y = x_before[idx]*sin_zL[codes[idx]] + y_before[idx]*cos_zL[codes[idx]]
+            x_before[idx] = new_x
+            y_before[idx] = new_y
+            idx = np.flatnonzero((px_before != -1) & (py_before != -1) & (sh >= 0))
+            new_px = px_before[idx]*cos_zL[codes[idx]] - py_before[idx]*sin_zL[codes[idx]]
+            new_py = px_before[idx]*sin_zL[codes[idx]] + py_before[idx]*cos_zL[codes[idx]]
+            px_before[idx] = new_px
+            py_before[idx] = new_py
+            idx = np.flatnonzero((x_before != -1) & (y_before != -1) & (sh < 0))
+            new_x = x_before[idx]*cos_zR[codes[idx]] - y_before[idx]*sin_zR[codes[idx]]
+            new_y = x_before[idx]*sin_zR[codes[idx]] + y_before[idx]*cos_zR[codes[idx]]
+            x_before[idx] = new_x
+            y_before[idx] = new_y
+            idx = np.flatnonzero((px_before != -1) & (py_before != -1) & (sh < 0))
+            new_px = px_before[idx]*cos_zR[codes[idx]] - py_before[idx]*sin_zR[codes[idx]]
+            new_py = px_before[idx]*sin_zR[codes[idx]] + py_before[idx]*cos_zR[codes[idx]]
+            px_before[idx] = new_px
+            py_before[idx] = new_py
+            idx = np.flatnonzero((x_after != -1) & (y_after != -1) & (sh >= 0))
+            new_x = x_after[idx]*cos_zL[codes[idx]] - y_after[idx]*sin_zL[codes[idx]]
+            new_y = x_after[idx]*sin_zL[codes[idx]] + y_after[idx]*cos_zL[codes[idx]]
+            x_after[idx] = new_x
+            y_after[idx] = new_y
+            idx = np.flatnonzero((px_after != -1) & (py_after != -1) & (sh >= 0))
+            new_px = px_after[idx]*cos_zL[codes[idx]] - py_after[idx]*sin_zL[codes[idx]]
+            new_py = px_after[idx]*sin_zL[codes[idx]] + py_after[idx]*cos_zL[codes[idx]]
+            px_after[idx] = new_px
+            py_after[idx] = new_py
+            idx = np.flatnonzero((x_after != -1) & (y_after != -1) & (sh < 0))
+            new_x = x_after[idx]*cos_zR[codes[idx]] - y_after[idx]*sin_zR[codes[idx]]
+            new_y = x_after[idx]*sin_zR[codes[idx]] + y_after[idx]*cos_zR[codes[idx]]
+            x_after[idx] = new_x
+            y_after[idx] = new_y
+            idx = np.flatnonzero((px_after != -1) & (py_after != -1) & (sh < 0))
+            new_px = px_after[idx]*cos_zR[codes[idx]] - py_after[idx]*sin_zR[codes[idx]]
+            new_py = px_after[idx]*sin_zR[codes[idx]] + py_after[idx]*cos_zR[codes[idx]]
+            px_after[idx] = new_px
+            py_after[idx] = new_py
+
+            # Correct for length_front as in FlukaCollimator
+            idx = np.flatnonzero(s_before != -1)
+            s_before[idx] = s_before[idx] - length_front[codes[idx]]
+            idx = np.flatnonzero(s_after  != -1)
+            s_after[idx]  = s_after[idx] - length_front[codes[idx]]
+
+        if frame != 'jaw':
+            df["s_before"]  = s_before
+            df["x_before"]  = x_before
+            df["px_before"] = px_before
+            df["y_before"]  = y_before
+            df["py_before"] = py_before
+            df["s_after"]   = s_after
+            df["x_after"]   = x_after
+            df["px_after"]  = px_after
+            df["y_after"]   = y_after
+            df["py_after"]  = py_after
+
         return df
 
     # TODO: list of impacted collimators
@@ -281,8 +424,24 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
     if line is None:
         if elements is None:
             raise ValueError("No line nor elements provided!")
+        if names is None:
+            names = []
+            for ii, ee in enumerate(elements):
+                if hasattr(ee, 'name'):
+                    names.append(ee.name)
+                else:
+                    name = f"el_{ii}"
+                    ee.name = name
+                    names.append(name)
+        # else:
+        #     for nn, ee in zip(names, elements):
+        #         if hasattr(ee, 'name'):
+        #             if ee.name != nn:
+        #                 raise ValueError(f"Element {nn} has name {ee.name}, but expected {nn}!")
+        #         else:
+        #             ee.name = nn
     else:
-        if elements is not None and elements is not False:
+        if elements is not None:
             raise ValueError("Cannot provide both line and elements!")
         if names is None or names is True:
             tt = line.get_table()
@@ -297,13 +456,13 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
             names = []
             elements = []
         else:
-            assert elements is not False
             for name in names:
                 if name not in line.element_names:
                     raise ValueError(f"Element {name} not found in line!")
             elements = [line.get(nn) for nn in names]
-    for idx, element in enumerate(elements):
-        if not isinstance(element, block_classes):
-            name = name[idx] if names is not None else element.__class__.__name__
-            raise ValueError(f"Element {name} not an Xcoll element!")
+    for nn, ee in zip(names, elements):
+        if not isinstance(ee, block_classes):
+            raise ValueError(f"Element {nn} not an Xcoll element (expected one"
+                             f" of {block_classes}, got {type(ee)})!")
     return elements, names
+
