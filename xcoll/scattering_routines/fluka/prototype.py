@@ -820,18 +820,21 @@ class FlukaAssembly(FlukaPrototype):
                 _assembly_file, _inp_prot_file, _crystal_body_file,
                 _crystal_region_file, _crystal_material_file
             )
-            if self.is_crystal:
-                body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
-                    self.length, self.bending_radius, self.width, self.height)
-                body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
-                body_mat_file, tank_mat_file = _crystal_material_file(fedb, self.fedb_tag, self.material)
+            # if self.is_crystal:
+            #     body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
+            #         self.length, self.bending_radius, self.width, self.height)
+            #     body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
+            #     body_mat_file, tank_mat_file = _crystal_material_file(fedb, self.fedb_tag, self.material)
 
-                body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
-                    self.length, self.bending_radius, self.width, self.height)
-                body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
-            else:
-                inp_body_file, inp_tank_file = _inp_prot_file(fedb, self.fedb_tag, self.length,
-                                                   self.material, self.width, self.height)
+            #     body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
+            #         self.length, self.bending_radius, self.width, self.height)
+            #     body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
+            # else:
+            import pdb; pdb.set_trace()
+            inp_body_file, inp_tank_file = _inp_prot_file(fedb, self.fedb_tag, self.length,
+                                                   self.material, self.width, self.height,
+                                                   is_crystal = self.is_crystal,
+                                                   bending_radius = self.bending_radius)
 
                 # body_file, tank_file = _body_file(fedb, self.fedb_tag, self.length,
                 #                                   self.width, self.height)
