@@ -272,9 +272,6 @@ def _body_file(fedb, fedb_tag, length, width, height, **kwargs):
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 *
 """
-    # body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
-    #                        template_body)
-
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
 RPP {fedb_tag}_T  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
@@ -283,8 +280,6 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
 *RPP {fedb_tag}_T  -28 28 -28 28 -{length*100/2 + 1e-12} {length*100/2 + 1e-12}
 *RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 1e-12} {length*100/2 + 1e-12}
 """
-    # tank_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_T.bodies",
-    #                        template_tank)
     body_file = kwargs["bodies_start"] + template_body + kwargs["bodies_end"]
     tank_file = kwargs["bodies_start"] + template_tank + kwargs["bodies_end"]
 
@@ -295,15 +290,10 @@ def _region_file(fedb, fedb_tag, **kwargs):
     template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B
 """
-    # body_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_B.regions",
-    #                         template_body_reg)
-
     template_tank_reg = f"""\
 {fedb_tag}_T     5 +{fedb_tag}_T -{fedb_tag}_I
 {fedb_tag}_I     5 +{fedb_tag}_I
 """
-    # tank_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_T.regions",
-    #                         template_tank_reg)
     body_file = kwargs["region_start"] + template_body_reg + kwargs["region_end"]
     tank_file = kwargs["region_start"] + template_tank_reg + kwargs["region_end"]
 
@@ -317,17 +307,11 @@ def _material_file(fedb, fedb_tag, material, **kwargs):
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
 """
-    # body_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_B.assignmat",
-    #                         template_body_mat)
-
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
 ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 """
-    # tank_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_T.assignmat",
-    #                         template_tank_mat)
-
     body_file = kwargs["mat_start"] + template_body_mat + kwargs["mat_end"]
     tank_file = kwargs["mat_start"] + template_tank_mat + kwargs["mat_end"]
 
@@ -342,15 +326,10 @@ YCC {fedb_tag}Z2  0.0 {bending_radius*100} {bending_radius*100-width*100}
 PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_radius)} {bending_radius*100} 0.0 0.0
 XYP {fedb_tag}P2  0.0
 """
-    # body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
-    #                         template_body)
     template_tank = f"""\
 RPP {fedb_tag}_T  -28 28 -28 28 -{length*(100+20)/2 + 5} {length*(100+20)/2 + 5}
 RPP {fedb_tag}_I  -28 28 -28 28 -{length*(100+20)/2 + 5} {length*(100+20)/2 + 5}
 """
-    # tank_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_T.bodies",
-    #                         template_tank)
-
     body_file = kwargs["bodies_start"] + template_body + kwargs["bodies_end"]
     tank_file = kwargs["bodies_start"] + template_tank + kwargs["bodies_end"]
 
@@ -365,14 +344,10 @@ def _crystal_region_file(fedb, fedb_tag, **kwargs):
                    | +{fedb_tag}_B -{fedb_tag}P1
                    | +{fedb_tag}_B +{fedb_tag}P2 -{fedb_tag}Z2
 """
-    # body_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_B.regions",
-    #                         template_body_reg)
     template_tank_reg = f"""\
 {fedb_tag}_T     5 | +{fedb_tag}_T -{fedb_tag}_I
 {fedb_tag}_I     5 | +{fedb_tag}_I
 """
-    # tank_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_T.regions",
-    #                         template_body_tank)
 
     body_file = kwargs["region_start"] + template_body_reg + kwargs["region_end"]
     tank_file = kwargs["region_start"] + template_tank_reg + kwargs["region_end"]
@@ -387,16 +362,12 @@ def _crystal_material_file(fedb, fedb_tag, material, **kwargs):
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
 ASSIGNMA      VACUUM  {fedb_tag:>6}B2
 """
-    # body_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_B.assignmat",
-    #                         template_body_mat)
     
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
 ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 """
-    # tank_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_T.assignmat",
-    #                         template_tank_mat)
 
     body_file = kwargs["mat_start"] + template_body_mat + kwargs["mat_end"]
     tank_file = kwargs["mat_start"] + template_tank_mat + kwargs["mat_end"]

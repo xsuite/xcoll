@@ -84,7 +84,7 @@ class FlukaPrototype:
                              f"creating a generic {this_type}. Please use "
                              f"xcoll.fluka.create_generic_{this_type}() "
                              f"instead.")
-        if allow_prefiltering is None:
+        if allow_prefiltering is None and not is_crystal:
             allow_prefiltering = fedb_series == 'generic'
         self._allow_prefiltering = allow_prefiltering
         self._fedb_series = fedb_series
@@ -817,40 +817,19 @@ class FlukaAssembly(FlukaPrototype):
             raise ValueError(f"FEDB path {fedb} does not exist!")
         if self.is_generic():
             from xcoll.scattering_routines.fluka.generic_prototype import (
-                _assembly_file, _inp_prot_file, _crystal_body_file,
-                _crystal_region_file, _crystal_material_file
+                _assembly_file, _inp_prot_file
             )
-            # if self.is_crystal:
-            #     body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
-            #         self.length, self.bending_radius, self.width, self.height)
-            #     body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
-            #     body_mat_file, tank_mat_file = _crystal_material_file(fedb, self.fedb_tag, self.material)
 
-            #     body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
-            #         self.length, self.bending_radius, self.width, self.height)
-            #     body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
-            # else:
-            import pdb; pdb.set_trace()
             inp_body_file, inp_tank_file = _inp_prot_file(fedb, self.fedb_tag, self.length,
                                                    self.material, self.width, self.height,
                                                    is_crystal = self.is_crystal,
                                                    bending_radius = self.bending_radius)
 
-                # body_file, tank_file = _body_file(fedb, self.fedb_tag, self.length,
-                #                                   self.width, self.height)
-                # body_region_file, tank_region_file = _region_file(fedb, self.fedb_tag)
-                # body_mat_file, tank_mat_file = _material_file(fedb, self.fedb_tag, self.material)
             for pro in self.prototypes:
                 if pro.name.endswith('_B'):
                     pro._generic_inp_file = inp_body_file
-                    # pro._generic_body_file = body_file
-                    # pro._generic_region_file = body_region_file
-                    # pro._generic_material_file = body_mat_file
                 elif pro.name.endswith('_T'):
                     pro._generic_inp_file = inp_tank_file
-                    # pro._generic_body_file = tank_file
-                    # pro._generic_region_file = tank_region_file
-                    # pro._generic_material_file = tank_mat_file
                 else:
                     raise ValueError(f"Generic assembly prototype '{pro.name}' has invalid name! "
                                    + "Expected to end with '_B' or '_T'.")
