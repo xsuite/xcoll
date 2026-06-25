@@ -5,7 +5,9 @@ from pathlib import Path
 # Set the paths to FLUKA executables
 xc.fluka.environment.fluka       = '/eos/project/f/flukafiles/fluka-coupling/fluka4-5.0/bin/rfluka'
 xc.fluka.environment.flukaserver = '/eos/project/f/flukafiles/fluka-coupling/fluka_coupling/fluka/flukaserver'
-xc.fluka.environment.linebuilder = '/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite'
+# xc.fluka.environment.linebuilder = '/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite'
+# XXX UPDATE LATEST VERSION!
+xc.fluka.environment.linebuilder = '/eos/home-a/adonadon/fellow/soft/line-builder-xsuite-ads_new/linebuilder'
 xc.fluka.environment.flair       = '/eos/project/f/flukafiles/fluka-coupling/flair-3.4/flair'
 
 print(xc.fluka.environment)
@@ -16,4 +18,6 @@ print()
 xc.fluka.environment.compile(flukaio_path='/eos/project-c/collimation-team/software/flukaio', verbose=True)
 
 # Import a FLUKA FEDB
-xc.fluka.environment.import_fedb(fedb_path='/eos/project/c/collimation-team/software/fedb_coupling', verbose=True, overwrite=False)
+# XXX UPDATE LATEST VERSION!
+# xc.fluka.environment.import_fedb(fedb_path='/eos/project/c/collimation-team/software/fedb_coupling', verbose=True, overwrite=False)
+# xc.fluka.environment.import_fedb(fedb_path='/eos/home-a/adonadon/fellow/soft/fedb_coupling', verbose=True, overwrite=False)

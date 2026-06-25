@@ -46,6 +46,7 @@ class FlukaPrototype:
 
     def __init__(self, fedb_series=None, fedb_tag=None, container=None, *,
                  angle=0, side=None, width=None, height=None, length=None,
+                 tip_l=None, tip_mat=None,
                  material=None, info=None, extra_commands=None,
                  is_crystal=False, bending_radius=None,
                  allow_prefiltering=None, _allow_generic=False,
@@ -72,6 +73,8 @@ class FlukaPrototype:
             self._material = None
             self._is_crystal = None
             self._bending_radius = None
+            self.tip_l = None
+            self.tip_mat = None
             self._info = None
             self._extra_commands = None
             self._is_broken = None
@@ -109,6 +112,8 @@ class FlukaPrototype:
         self._material = material
         self._is_crystal = is_crystal
         self._bending_radius = bending_radius
+        self._tip_l = tip_l
+        self._tip_mat = tip_mat
         self._info = info
         self._extra_commands = extra_commands
         self._is_broken = is_broken
@@ -467,6 +472,18 @@ class FlukaPrototype:
         return self._bending_radius
 
     @property
+    def tip_l(self):
+        if self._is_null:
+            return None
+        return self._tip_l
+
+    @property
+    def tip_mat(self):
+        if self._is_null:
+            return None
+        return self._tip_mat
+
+    @property
     def info(self):
         if self._is_null:
             return None
@@ -823,7 +840,9 @@ class FlukaAssembly(FlukaPrototype):
             inp_body_file, inp_tank_file = _inp_prot_file(fedb, self.fedb_tag, self.length,
                                                    self.material, self.width, self.height,
                                                    is_crystal = self.is_crystal,
-                                                   bending_radius = self.bending_radius)
+                                                   bending_radius = self.bending_radius,
+                                                   tip_l = self.tip_l,
+                                                   tip_mat = self.tip_mat)
 
             for pro in self.prototypes:
                 if pro.name.endswith('_B'):
