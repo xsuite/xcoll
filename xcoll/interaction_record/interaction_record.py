@@ -27,7 +27,7 @@ class InteractionRecord(xt.BeamElement):
         'at_element':          xo.Int64[:],
         'shape_id':            xo.Int64[:],
         '_inter':              xo.Int64[:],
-        'id_before':           xo.Int64[:],
+        'particle_id_before':  xo.Int64[:],
         's_before':            xo.Float64[:],
         'x_before':            xo.Float64[:],
         'px_before':           xo.Float64[:],
@@ -37,11 +37,8 @@ class InteractionRecord(xt.BeamElement):
         'delta_before':        xo.Float64[:],
         'energy_before':       xo.Float64[:],
         'mass_before':         xo.Float64[:],
-        'charge_before':       xo.Int64[:],
-        'z_before':            xo.Int64[:],
-        'a_before':            xo.Int64[:],
         'pdgid_before':        xo.Int64[:],
-        'id_after':            xo.Int64[:],
+        'particle_id_after':   xo.Int64[:],
         's_after':             xo.Float64[:],
         'x_after':             xo.Float64[:],
         'px_after':            xo.Float64[:],
@@ -51,9 +48,6 @@ class InteractionRecord(xt.BeamElement):
         'delta_after':         xo.Float64[:],
         'energy_after':        xo.Float64[:],
         'mass_after':          xo.Float64[:],
-        'charge_after':        xo.Int64[:],
-        'z_after':             xo.Int64[:],
-        'a_after':             xo.Int64[:],
         'pdgid_after':         xo.Int64[:],
     }
 
@@ -243,8 +237,8 @@ class InteractionRecord(xt.BeamElement):
             'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]],
         }
         for p in ['before', 'after']:
-            for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta',
-                        'energy', 'mass', 'charge', 'z', 'a', 'pdgid']:
+            for val in ['particle_id', 's', 'x', 'px', 'y', 'py', 'zeta',
+                        'delta', 'energy', 'mass', 'pdgid']:
                 field = f'{val}_{p}'
                 if self._column_is_recorded(field):
                     data[field] = getattr(self, field)[:n_rows]
@@ -429,7 +423,7 @@ class InteractionRecord(xt.BeamElement):
 
     # TODO: does not work when multiple children
     def interactions_per_collimator(self, collimator=0, *, turn=None):
-        self._check_columns_recorded(['id_before'], 'interactions_per_collimator')
+        self._check_columns_recorded(['particle_id_before'], 'interactions_per_collimator')
         n_rows = self._index.num_recorded
         if isinstance(collimator, str):
             collimator = self._collimator_id(collimator)
@@ -438,32 +432,32 @@ class InteractionRecord(xt.BeamElement):
             mask = mask & (self.at_turn[:n_rows] == turn)
             df = pd.DataFrame({
                     'int':  [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
-                    'pid':  self.id_before[:n_rows][mask]
+                    'pid':  self.particle_id_before[:n_rows][mask]
                 })
             return df.groupby('pid', sort=False, group_keys=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
                     'int':   [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
                     'turn':  self.at_turn[:n_rows][mask],
-                    'pid':   self.id_before[:n_rows][mask]
+                    'pid':   self.particle_id_before[:n_rows][mask]
                 })
             return df.groupby(['pid', 'turn'], sort=False, group_keys=False)['int'].apply(list)
 
     def first_touch_per_turn(self, frame=None):
-        self._check_columns_recorded(['id_before'], 'first_touch_per_turn')
+        self._check_columns_recorded(['particle_id_before'], 'first_touch_per_turn')
         n_rows = self._index.num_recorded
-        df = pd.DataFrame({'id_before': self.id_before[:n_rows],
+        df = pd.DataFrame({'particle_id_before': self.particle_id_before[:n_rows],
                            'at_turn': self.at_turn[:n_rows],
                            'at_element': self.at_element[:n_rows]})
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
         idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(
-                        ['at_turn', 'id_before'], sort=False, group_keys=False)]
+                        ['at_turn', 'particle_id_before'], sort=False, group_keys=False)]
         df_first = self.to_pandas(frame=frame).loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
         to_drop = ['interaction_type',
                    *[col for col in df_first.columns if col.endswith('_after')]]
         to_rename = {col: col.replace('_before', '') for col in df_first.columns if col.endswith('before')}
-        to_rename['id_before'] = 'pid'
+        to_rename['particle_id_before'] = 'pid'
         return df_first.drop(columns=to_drop).rename(columns=to_rename)
 
 

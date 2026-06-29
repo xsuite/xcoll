@@ -18,8 +18,8 @@
         InteractionRecordData_set_##field(record, slot, value); \
     }
 
-#define XC_IR_LOG_PARENT_OPTIONAL(SET, record, slot, parent, energy, mass_ratio, charge_ratio) \
-    SET(record, id_before, slot, LocalParticle_get_particle_id(parent)); \
+#define XC_IR_LOG_PARENT_OPTIONAL(SET, record, slot, parent, energy, mass_ratio, pdgid) \
+    SET(record, particle_id_before, slot, LocalParticle_get_particle_id(parent)); \
     SET(record, s_before, slot, LocalParticle_get_s(parent)); \
     SET(record, x_before, slot, LocalParticle_get_x(parent)); \
     SET(record, px_before, slot, LocalParticle_get_px(parent)); \
@@ -29,11 +29,8 @@
     SET(record, delta_before, slot, LocalParticle_get_delta(parent)); \
     SET(record, energy_before, slot, energy); \
     SET(record, mass_before, slot, mass_ratio*LocalParticle_get_mass0(parent)); \
-    SET(record, charge_before, slot, charge_ratio*LocalParticle_get_q0(parent)); \
-    SET(record, z_before, slot, -1); \
-    SET(record, a_before, slot, -1); \
-    SET(record, pdgid_before, slot, -1); \
-    SET(record, id_after, slot, -1); \
+    SET(record, pdgid_before, slot, pdgid); \
+    SET(record, particle_id_after, slot, -1); \
     SET(record, s_after, slot, -1); \
     SET(record, x_after, slot, -1); \
     SET(record, px_after, slot, -1); \
@@ -43,13 +40,10 @@
     SET(record, delta_after, slot, -1); \
     SET(record, energy_after, slot, -1); \
     SET(record, mass_after, slot, -1); \
-    SET(record, charge_after, slot, -1); \
-    SET(record, z_after, slot, -1); \
-    SET(record, a_after, slot, -1); \
     SET(record, pdgid_after, slot, -1)
 
-#define XC_IR_LOG_CHILD_OPTIONAL(SET, record, slot, child, energy, mass_ratio, charge_ratio) \
-    SET(record, id_after, slot, LocalParticle_get_particle_id(child)); \
+#define XC_IR_LOG_CHILD_OPTIONAL(SET, record, slot, child, energy, mass_ratio, pdgid) \
+    SET(record, particle_id_after, slot, LocalParticle_get_particle_id(child)); \
     SET(record, s_after, slot, LocalParticle_get_s(child)); \
     SET(record, x_after, slot, LocalParticle_get_x(child)); \
     SET(record, px_after, slot, LocalParticle_get_px(child)); \
@@ -59,10 +53,7 @@
     SET(record, delta_after, slot, LocalParticle_get_delta(child)); \
     SET(record, energy_after, slot, energy); \
     SET(record, mass_after, slot, mass_ratio*LocalParticle_get_mass0(child)); \
-    SET(record, charge_after, slot, charge_ratio*LocalParticle_get_q0(child)); \
-    SET(record, z_after, slot, -1); \
-    SET(record, a_after, slot, -1); \
-    SET(record, pdgid_after, slot, -1)
+    SET(record, pdgid_after, slot, pdgid)
 
 
 // TODO: do we need to pass RecordIndex?
@@ -87,14 +78,15 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
 
             double charge_ratio = LocalParticle_get_charge_ratio(parent);
             double mass_ratio = charge_ratio / LocalParticle_get_chi(parent);
+            int64_t pdgid = LocalParticle_get_pdg_id(parent);
             double energy = ( LocalParticle_get_ptau(parent) + 1 / LocalParticle_get_beta0(parent)
                              ) * mass_ratio * LocalParticle_get_p0c(parent);
             if (InteractionRecordData_get__record_all_columns(record)) {
                 XC_IR_LOG_PARENT_OPTIONAL(XC_IR_SET_UNGUARDED, record, i_slot,
-                                          parent, energy, mass_ratio, charge_ratio);
+                                          parent, energy, mass_ratio, pdgid);
             } else {
                 XC_IR_LOG_PARENT_OPTIONAL(XC_IR_SET_GUARDED, record, i_slot,
-                                          parent, energy, mass_ratio, charge_ratio);
+                                          parent, energy, mass_ratio, pdgid);
             }
         }
     }
@@ -109,12 +101,13 @@ void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slo
         double mass_ratio = charge_ratio / LocalParticle_get_chi(child);
         double energy = ( LocalParticle_get_ptau(child) + 1 / LocalParticle_get_beta0(child)
                          ) * mass_ratio * LocalParticle_get_p0c(child);
+        int64_t pdgid = LocalParticle_get_pdg_id(child);
         if (InteractionRecordData_get__record_all_columns(record)) {
             XC_IR_LOG_CHILD_OPTIONAL(XC_IR_SET_UNGUARDED, record, i_slot,
-                                     child, energy, mass_ratio, charge_ratio);
+                                     child, energy, mass_ratio, pdgid);
         } else {
             XC_IR_LOG_CHILD_OPTIONAL(XC_IR_SET_GUARDED, record, i_slot,
-                                     child, energy, mass_ratio, charge_ratio);
+                                     child, energy, mass_ratio, pdgid);
         }
 //     printf("Slot %i: length %f\n", i_slot, ds);
     }
