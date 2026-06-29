@@ -1,0 +1,48 @@
+TITLE
+Test element
+GLOBAL                                         1.0       1.0
+DEFAULTS                                                              NEW-DEFA
+BEAM
+BEAMPOS
+GEOBEGIN                                                              COMBNAME
+    0    0          
+* Black body
+SPH blkbody    0.0 0.0 0.0 10000000.0
+* Void sphere
+SPH void       0.0 0.0 0.0 100000.0
+* Bodies from the include file
+* START_CUT_BODIES
+RPP TCPCHB1    0.0 0.3 -4.0 4.0 0.0 0.6
+RCC TCPCHB11   8048.2 -2.5 0. 0.0 5. 0. 8048.2
+RCC TCPCHB12   8048.2 -3.0 0. 0.0 6. 0. 8048.0
+PLA TCPCHB13   1.0 0.0 20120.49998344364 8048.2 0. 0.
+* END_CUT_BODIES
+END
+* Black hole
+BLKBODY      5 +blkbody -void
+* Void around
+VOID         5 +void -TCP_BODY
+* Region from the include file
+* START_CUT_REGIONS
+TCPCHB1R    5 | +TCPCHB1 +TCPCHB11 -TCPCHB12 +TCPCHB13
+TCPCHB1B    5 | +TCPCHB1 +TCPCHB12
+              | +TCPCHB1 -TCPCHB13
+              | +TCPCHB1 -TCPCHB11
+END
+GEOEND
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+ASSIGNMA    BLCKHOLE   BLKBODY
+ASSIGNMA      VACUUM      VOID
+#include ../materials/materials.inp
+* START_CUT_MATERIALS
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
+ASSIGNMA    SILICON   TCPCHB1R
+ASSIGNMA     VACUUM   TCPCHB1B
+* 
+* END_CUT_MATERIALS
+*
+* START_CUT_STEPSIZES
+* END_CUT_STEPSIZES
+RANDOMIZ         1.0
+START
+STOP
