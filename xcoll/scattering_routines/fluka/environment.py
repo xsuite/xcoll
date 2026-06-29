@@ -193,6 +193,9 @@ class FlukaEnvironment(BaseEnvironment):
         # Get stepsizes (currently not used)
         for file in fedb_path.glob(f'stepsizes/*'):
             file.copy_to(self.fedb / 'stepsizes' / file.name, method='mount')
+        # Get prototypes
+        for file in fedb_path.glob(f'prototypes/*'):
+            file.copy_to(self.fedb / 'prototypes' / file.name, method='mount')
         # Link the new files into the registry
         self._init_fedb()
 
@@ -226,6 +229,7 @@ class FlukaEnvironment(BaseEnvironment):
         (fedb / 'regions').mkdir(parents=True)
         (fedb / 'materials').mkdir(parents=True)
         (fedb / 'stepsizes').mkdir(parents=True)
+        (fedb / 'prototypes').mkdir(parents=True)
         (fedb / 'tools').symlink_to(self.fedb / 'tools')
         (self.fedb / 'structure.py').copy_to(fedb / 'structure.py')
         (self.fedb / 'materials' / 'materials.inp').copy_to(fedb / 'materials' / 'materials.inp')
@@ -286,7 +290,7 @@ class FlukaEnvironment(BaseEnvironment):
     def _init_fedb(self, overwrite=False):
         from xcoll import FlukaPrototype
         self.fedb.mkdir(parents=True, exist_ok=True)
-        for directory in ['assemblies', 'bodies', 'regions', 'materials', 'stepsizes', 'metadata']:
+        for directory in ['assemblies', 'bodies', 'regions', 'materials', 'stepsizes', 'metadata', 'prototypes']:
             (self.fedb / directory).mkdir(parents=True, exist_ok=True)
             for f in (_FEDB_TEMPLATE / directory).glob('*.*'):
                 new_file = self.fedb / directory / f.name
