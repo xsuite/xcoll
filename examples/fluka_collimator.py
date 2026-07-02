@@ -71,7 +71,7 @@ cutoff = 0.0001
 _, ax = plt.subplots(2, 2, figsize=(12, 9))
 mask = part1.state > 0
 parents = part1.parent_particle_id[mask]
-output = part1.kin_xprime[mask] - part_init.kin_xprime[parents]
+output = part1.kin_xp[mask] - part_init.kin_xp[parents]
 new_mask = (output > -cutoff) & (output < cutoff)   # For visibility
 ax[0, 0].hist2d(part_init.x[parents][new_mask], output[new_mask], 200)
 ax[0, 0].axhline(coll1.jaw_L, color='black', ls='--')
@@ -82,7 +82,7 @@ ax[0, 0].set_title('FLUKA')
 
 mask2 = part2.state > 0
 parents2 = part2.parent_particle_id[mask2]
-output2 = part2.kin_xprime[mask2] - part_init.kin_xprime[parents2]
+output2 = part2.kin_xp[mask2] - part_init.kin_xp[parents2]
 new_mask2 = (output2 > -cutoff) & (output2 < cutoff)
 ax[0, 1].hist2d(part_init.x[parents2][new_mask2], output2[new_mask2], 200)
 ax[0, 1].axhline(coll2.jaw_L, color='black', ls='--')
