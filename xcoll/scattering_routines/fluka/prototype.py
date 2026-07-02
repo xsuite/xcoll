@@ -10,14 +10,13 @@ import numpy as np
 import xobjects as xo
 
 try:
-    from xaux import FsPath, ranID  # TODO: once xaux is in Xsuite keep only this
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath, ranID
+    from ...xaux import FsPath
 
 from .environment import format_fluka_float
 from ...beam_elements.base import BaseCollimator
 from ...materials import Material
-from ...compare import deep_equal
 
 
 class FlukaPrototype:
@@ -486,7 +485,7 @@ class FlukaPrototype:
         prot  = f"{_type:9}     {self.name}\n"
         prot += f"FEDB_SERIES   {self.fedb_series}\n"
         prot += f"FEDB_TAG      {self.fedb_tag}\n"
-        if isinstance(self, FlukaPrototype):
+        if isinstance(self, FlukaPrototype) and self.container is not None:
             prot += f"CONTAINER     {self.container}\n"
         prot += f"ROT-DEFI  "
         self._idx = idx  # Store the index for fluka_position property
