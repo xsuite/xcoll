@@ -3,24 +3,27 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from ..beam_elements import *
+import xcoll as xc
 
 
 DEFAULT_XCOLL_ELEMENTS = [
-    BlackAbsorber,
-    BlackCrystal,
-    TransparentCollimator,
-    TransparentCrystal,
-    EverestBlock,
-    EverestCollimator,
-    EverestCrystal,
-    # FlukaCollimator,
-    # FlukaCrystal,
-    # Geant4Collimator,
-    # Geant4Crystal,
-    BlowUp,
-    # ParticleStatsMonitor,
-    EmittanceMonitor
+    xc.BlackAbsorber,
+    xc.BlackCrystal,
+    xc.TransparentCollimator,
+    xc.TransparentCrystal,
+    xc.EverestBlock,
+    xc.EverestCollimator,
+    xc.EverestCrystal,
+    xc.BlowUp,
+    # xc.ParticleStatsMonitor,
+    xc.EmittanceMonitor,
 ]
+
+XCOLL_NON_TRACKING_ELEMENTS = []
+
+if xc.fluka.environment.ready:
+    XCOLL_NON_TRACKING_ELEMENTS += [xc.FlukaCollimator, xc.FlukaCrystal]
+if xc.geant4.environment.ready:
+    XCOLL_NON_TRACKING_ELEMENTS += [xc.Geant4Collimator, xc.Geant4CollimatorTip]
 
 EXTRA_XCOLL_ELEMENTS = []
