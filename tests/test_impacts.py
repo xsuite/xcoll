@@ -35,7 +35,7 @@ def test_impacts_from_line(beam, plane, test_context):
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    impacts = xc.InteractionRecord.start(line=line, record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True)
     line.build_tracker(_context=test_context)
 
     line.xcoll.collimators.assign_optics()
@@ -64,7 +64,7 @@ def test_impacts_single_collimator(test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
@@ -90,7 +90,7 @@ def test_impacts_single_crystal(R, side, test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
@@ -141,7 +141,7 @@ def test_impacts_selected_columns_tracking():
         py=[0, 0, 0],
         delta=[0, 0, 0])
 
-    impacts = xc.InteractionRecord.start(
+    impacts = xc.InteractionRecord(
         elements=[coll], columns=['particle_id_before', 'x_before'],
         record_impacts=True, record_exits=True, capacity=10)
     coll.track(part)
@@ -167,7 +167,7 @@ def test_impacts_selected_columns_unknown():
     coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
 
     with pytest.raises(ValueError, match="Unknown InteractionRecord columns"):
-        xc.InteractionRecord.start(elements=[coll], columns=['not_a_column'])
+        xc.InteractionRecord(elements=[coll], columns=['not_a_column'])
 
 
 def test_impacts_to_pandas_collimator_frame():
@@ -219,7 +219,7 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
 def _make_impacts_for_frame_tests(columns=None):
     coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
                                     angle=[30, -45], name='TCP')
-    impacts = xc.InteractionRecord.start(elements=[coll], record_impacts=True,
+    impacts = xc.InteractionRecord(elements=[coll], record_impacts=True,
                                          record_exits=True, capacity=2,
                                          columns=columns)
     data = {
