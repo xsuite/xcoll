@@ -41,6 +41,7 @@ download = "https://pypi.python.org/pypi/xcoll"
 
 [project.entry-points.xobjects]
 include = "xcoll"
+build_info = "xcoll._xobjects:get_build_info"
 
 [tool.poetry]
 exclude = ["xcoll/lib", "xcoll/config"]
