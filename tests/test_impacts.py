@@ -108,23 +108,23 @@ def test_impacts_to_pandas_default_frame():
 
 def test_impacts_selected_columns_to_pandas():
     impacts, _, data = _make_impacts_for_frame_tests(
-        columns=['id_before', 'x_before'])
+        columns=['particle_id_before', 'x_before'])
 
     assert impacts._recorded_columns == (
         '_index', 'at_turn', 'at_element', 'shape_id', '_inter',
-        'id_before', 'x_before')
+        'particle_id_before', 'x_before')
     assert impacts._record_all_columns == 0
     assert len(impacts.at_turn) == 2
     assert len(impacts.shape_id) == 2
-    assert len(impacts.id_before) == 2
+    assert len(impacts.particle_id_before) == 2
     assert len(impacts.x_before) == 2
     assert len(impacts.s_before) == 0
-    assert len(impacts.id_after) == 0
+    assert len(impacts.particle_id_after) == 0
 
     df = impacts.to_pandas()
     assert list(df.columns) == [
-        'turn', 'collimator', 'interaction_type', 'id_before', 'x_before']
-    assert np.all(df.id_before.values == data['id_before'])
+        'turn', 'collimator', 'interaction_type', 'particle_id_before', 'x_before']
+    assert np.all(df.particle_id_before.values == data['particle_id_before'])
     assert np.all(df.x_before.values == data['x_before'])
 
     with pytest.raises(ValueError, match="columns .* were not recorded"):
@@ -142,7 +142,7 @@ def test_impacts_selected_columns_tracking():
         delta=[0, 0, 0])
 
     impacts = xc.InteractionRecord.start(
-        elements=[coll], columns=['id_before', 'x_before'],
+        elements=[coll], columns=['particle_id_before', 'x_before'],
         record_impacts=True, record_exits=True, capacity=10)
     coll.track(part)
 
@@ -150,16 +150,16 @@ def test_impacts_selected_columns_tracking():
     assert n_rows > 0
     assert impacts.capacity == 10
     assert impacts.io_buffer_capacity >= 10
-    assert len(impacts.id_before) == 10
+    assert len(impacts.particle_id_before) == 10
     assert len(impacts.x_before) == 10
-    assert len(impacts.id_after) == 0
+    assert len(impacts.particle_id_after) == 0
     assert len(impacts.s_before) == 0
 
     df = impacts.to_pandas()
     assert len(df) == n_rows
-    assert 'id_before' in df.columns
+    assert 'particle_id_before' in df.columns
     assert 'x_before' in df.columns
-    assert 'id_after' not in df.columns
+    assert 'particle_id_after' not in df.columns
     assert 's_before' not in df.columns
 
 
@@ -228,14 +228,14 @@ def _make_impacts_for_frame_tests(columns=None):
         'shape_id':     np.array([1, -1]),
         '_inter':       np.array([xcc.ENTER_JAW_L,
                                   xcc.ENTER_JAW_R]),
-        'id_before':    np.array([10, 11]),
+        'particle_id_before':    np.array([10, 11]),
         's_before':     np.array([0.30, 0.45]),
         'x_before':     np.array([0.04, 0.06]),
         'px_before':    np.array([0.010, 0.020]),
         'y_before':     np.array([0.07, -0.08]),
         'py_before':    np.array([0.005, -0.006]),
         'delta_before': np.array([0.10, -0.20]),
-        'id_after':     np.array([-1, 11]),
+        'particle_id_after':     np.array([-1, 11]),
         's_after':      np.array([-1., 1.20]),
         'x_after':      np.array([-1., 0.10]),
         'px_after':     np.array([-1., -0.015]),
