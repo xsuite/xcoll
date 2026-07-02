@@ -23,7 +23,7 @@ df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 # Start interaction record
-impacts = xc.InteractionRecord.start(line=line)
+impacts = xc.InteractionRecord(line=line)
 
 # Build tracker, assign optics and generate particles 
 line.build_tracker()
@@ -56,7 +56,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-impacts_coll = xc.InteractionRecord.start(elements=[coll], names='TPCH')
+impacts_coll = xc.InteractionRecord(elements=[coll], names='TPCH')
 
 coll.track(part)
 part.sort(interleave_lost_particles=True)
@@ -77,7 +77,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-impacts_crystal = xc.InteractionRecord.start(elements=[coll_cry], names='TPCH')
+impacts_crystal = xc.InteractionRecord(elements=[coll_cry], names='TPCH')
 coll_cry.track(part)
 part.sort(interleave_lost_particles=True)
 

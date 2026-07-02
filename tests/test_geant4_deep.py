@@ -47,7 +47,7 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     black2 = xc.BlackAbsorber(length=0.6 + coll1.length_front + coll1.length_back, angle=123, jaw=0.0005)
 
     if log_impacts:
-        impacts = xc.InteractionRecord.start(elements=[coll1, coll2], record_impacts=True)
+        impacts = xc.InteractionRecord(elements=[coll1, coll2], record_impacts=True)
 
     part_init, mask_miss, mask_hit, mask_sec = _create_masked_particles(num_part, capacity)
     part = part_init.copy()
@@ -189,10 +189,10 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     # Check the impacts
     if log_impacts:
         df_mid = df[df.collimator == coll1.name]
-        assert not np.any([pid in df_mid.id_before.values for pid in part_mid.particle_id[mask_miss]])
-        assert np.all([pid in df_mid.id_before.values for pid in part_mid.particle_id[mask_hit]])
-        df_mid = df_mid.sort_values("id_before")
-        assert np.all(part_black_mid.particle_id[mask_hit] == df_mid.id_before.values)
+        assert not np.any([pid in df_mid.particle_id_before.values for pid in part_mid.particle_id[mask_miss]])
+        assert np.all([pid in df_mid.particle_id_before.values for pid in part_mid.particle_id[mask_hit]])
+        df_mid = df_mid.sort_values("particle_id_before")
+        assert np.all(part_black_mid.particle_id[mask_hit] == df_mid.particle_id_before.values)
         assert np.allclose(part_black_mid.s[mask_hit],     df_mid.s_before.values)
         assert np.allclose(part_black_mid.x[mask_hit],     df_mid.x_before.values)
         assert np.allclose(part_black_mid.px[mask_hit],    df_mid.px_before.values)
@@ -299,11 +299,11 @@ def test_geant4_deep_check(log_impacts, mark_scattered_particles, running_with_x
     # Check the impacts
     if log_impacts:
         df_end = df[df.collimator == coll2.name]
-        df_end = df_end.sort_values("id_before")
+        df_end = df_end.sort_values("particle_id_before")
         # Only compare particles that missed the first collimator and hit the second one
         mask_end = (part_black.at_element == 1) & (part_black.state < 0)
-        mask_df = np.isin(df_end.id_before.values, part_black.particle_id[mask_end])
-        assert np.all(part_black.particle_id[mask_end] == df_end.id_before.values[mask_df])
+        mask_df = np.isin(df_end.particle_id_before.values, part_black.particle_id[mask_end])
+        assert np.all(part_black.particle_id[mask_end] == df_end.particle_id_before.values[mask_df])
         assert np.allclose(part_black.s[mask_end],     df_end.s_before.values[mask_df] + coll1.length)
         assert np.allclose(part_black.x[mask_end],     df_end.x_before.values[mask_df])
         assert np.allclose(part_black.px[mask_end],    df_end.px_before.values[mask_df])

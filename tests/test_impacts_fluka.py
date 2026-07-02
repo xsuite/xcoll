@@ -39,7 +39,7 @@ import xcoll as xc
 #     if xc.fluka.engine.is_running():
 #         xc.fluka.engine.stop(clean=True)
 #     coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt,  assembly=assembly)
-#     impacts = xc.InteractionRecord.start(names=[coll.name], elements=[coll])
+#     impacts = xc.InteractionRecord(names=[coll.name], elements=[coll])
 
 #     xc.fluka.engine.particle_ref = particle_ref
 #     xc.fluka.engine.start(elements=coll, capacity=capacity, verbose=True, touches=True)

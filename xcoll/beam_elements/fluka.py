@@ -30,6 +30,7 @@ class FlukaCollimator(BaseCollimator):
     behaves_like_drift = True
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCollimator, FlukaEngine]
 
@@ -323,6 +324,7 @@ class FlukaCrystal(BaseCrystal):
     behaves_like_drift = True
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCrystal, FlukaEngine]
 
