@@ -3,14 +3,13 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-from ..general import _pkg_root
+from .general import _pkg_root
 
 
-# Declare paths and libraries to xobjecst for prebuilding kernels
+# Declare paths and libraries to xobjects
 def get_build_info():
-    root = _pkg_root.parent
     return {
-        "include": [root.as_posix()],
-        "lib": [(root / "xcoll" / "lib").as_posix()],
+        "include_dirs": [_pkg_root.parent],
         "libraries": ["FlukaIO"],
+        "library_dirs": [_pkg_root / "lib"],
     }
