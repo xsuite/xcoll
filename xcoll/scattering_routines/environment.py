@@ -7,19 +7,51 @@ import os
 import sys
 import json
 import tempfile
+import getpass
 from subprocess import run, PIPE
 # from platformdirs import user_config_dir, user_data_dir
 
 from ..general import _pkg_root
+from pathlib import Path
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
     from ..xaux import FsPath
 
+def _is_writable_directory(path: str | Path) -> bool:
+    directory = Path(path).expanduser()
+
+    if not directory.is_dir():
+        return False
+
+    try:
+        with tempfile.TemporaryFile(dir=directory):
+            pass
+        return True
+    except OSError:
+        return False
+
+def _select_directory_for_config_and_data(preferred: str | Path) -> Path:
+    candidates = [
+        Path(preferred).expanduser(),
+        Path.home(),
+        Path(tempfile.gettempdir()),
+    ]
+    # Prefer persistent directory, if nothing available, use /tmp
+    for directory in candidates:
+        if _is_writable_directory(directory):
+            if directory == Path(tempfile.gettempdir()):
+                return directory.joinpath(getpass.getuser())
+            else:
+                return directory
+
+    raise RuntimeError("No writable directory was found.")
+
+_config_and_data_root = _select_directory_for_config_and_data(_pkg_root).joinpath(".xcoll")
 
 class BaseEnvironment:
-    _config_dir = FsPath(_pkg_root / 'config').resolve()
-    _data_dir   = FsPath(_pkg_root / 'lib').resolve()
+    _config_dir = FsPath(_config_and_data_root / 'config').resolve()
+    _data_dir   = FsPath(_config_and_data_root / 'lib').resolve()
     # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
     # _data_dir   = FsPath(user_data_dir('xcoll')).resolve()
     _paths = {} # The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
