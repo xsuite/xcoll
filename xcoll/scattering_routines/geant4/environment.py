@@ -4,11 +4,10 @@
 # ######################################### #
 
 import os
-import sys
 import requests
 from subprocess import run
 
-from ..environment import BaseEnvironment
+from ...package_env import BaseEnvironment
 from ...general import _pkg_root
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
@@ -135,12 +134,12 @@ class Geant4Environment(BaseEnvironment):
         if len(so) > 1:
             raise RuntimeError(f"Compiled into multiple g4interface shared libraries!")
         if len(so) == 0:
-            raise RuntimeError(f"Failed Xcoll-BDSIM compilation! No shared library found in "
-                             + f"{self.data_dir.as_posix()}!")
+            raise RuntimeError(f"Failed Xcoll-BDSIM compilation! No shared "
+                               f"library found in {dest / 'build'}!")
         so = FsPath(so[0])
-        so.move_to(self.data_dir / so.name)
+        so.move_to(self.lib_dir / so.name)
         if verbose:
-            print(f"Created Xcoll-BDSIM shared library in {self.data_dir / so.name}.")
+            print(f"Created Xcoll-BDSIM shared library in {self.lib_dir / so.name}.")
         # Clean up the temporary directory
         self.temp_dir = None
         os.chdir(cwd)

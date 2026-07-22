@@ -7,53 +7,85 @@ import os
 import sys
 import json
 import tempfile
-import getpass
 from subprocess import run, PIPE
-# from platformdirs import user_config_dir, user_data_dir
+# try:
+#     from platformdirs import user_config_path, user_data_path
+# except (ImportError, ModuleNotFoundError):
+#     user_config_path = None
+#     user_data_path = None
 
-from ..general import _pkg_root
-from pathlib import Path
+from .general import _pkg_root
+
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
-    from ..xaux import FsPath
+    from .xaux import FsPath
 
-def _is_writable_directory(path: str | Path) -> bool:
-    directory = Path(path).expanduser()
 
-    if not directory.is_dir():
-        return False
+# Xcoll paths can be set via environment variables:
+#   XCOLL_PATH: parent directory for all Xcoll paths (config, data, lib)
+#   XCOLL_CONFIG_PATH: directory for configuration files
+#   XCOLL_DATA_PATH: directory for data files
+#   XCOLL_LIB_PATH: directory for library files
+#
+# Otherwise the paths are set in the home folder (~/.xcoll/), the package
+# folder (xcoll/xcoll/), or, if those are not writable, in a temporary
+# folder (/tmp/xcoll/).
 
+
+def _is_writable_directory(path: FsPath) -> bool:
+    newly_generated = False
+    if path.exists():
+        if not path.is_dir():
+            return False
+    else:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            newly_generated = True
+        except OSError:
+            return False
     try:
-        with tempfile.TemporaryFile(dir=directory):
+        with tempfile.TemporaryFile(dir=path):
             pass
-        return True
     except OSError:
+        if newly_generated:
+            try:
+                path.rmdir()
+            except OSError:
+                pass
         return False
+    return True
 
-def _select_directory_for_config_and_data(preferred: str | Path) -> Path:
-    candidates = [
-        Path(preferred).expanduser(),
-        Path.home(),
-        Path(tempfile.gettempdir()),
+def _select_directory(name) -> FsPath:
+    candidates = []
+    env_var_name = f'XCOLL_{name.upper()}_PATH'
+    env_var = os.environ.get(env_var_name)
+    if env_var is not None:
+        candidates.append(FsPath(env_var).expanduser().resolve())
+    env_var_parent = os.environ.get('XCOLL_PATH')
+    if env_var_parent is not None:
+        candidates.append(
+            (FsPath(env_var_parent) / name).expanduser().resolve()
+        )
+    candidates += [
+        FsPath.home() / '.xcoll' / name,
+        _pkg_root / name,
+        FsPath(tempfile.gettempdir()) / 'xcoll' / name,
     ]
-    # Prefer persistent directory, if nothing available, use /tmp
-    for directory in candidates:
-        if _is_writable_directory(directory):
-            if directory == Path(tempfile.gettempdir()):
-                return directory.joinpath(getpass.getuser())
-            else:
-                return directory
-
+    for path in candidates:
+        if _is_writable_directory(path):
+            return path
     raise RuntimeError("No writable directory was found.")
 
-_config_and_data_root = _select_directory_for_config_and_data(_pkg_root).joinpath(".xcoll")
+_config_dir = _select_directory('config')
+_data_dir = _select_directory('data')
+_lib_dir = _select_directory('lib')
+
 
 class BaseEnvironment:
-    _config_dir = FsPath(_config_and_data_root / 'config').resolve()
-    _data_dir   = FsPath(_config_and_data_root / 'lib').resolve()
-    # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
-    # _data_dir   = FsPath(user_data_dir('xcoll')).resolve()
+    _config_dir = _config_dir
+    _data_dir = _data_dir
+    _lib_dir = _lib_dir
     _paths = {} # The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
     _optional_paths = {}
     _read_only_paths = {}
@@ -69,8 +101,9 @@ class BaseEnvironment:
             setattr(self, f'_{path}', None)
         self._config_dir.mkdir(parents=True, exist_ok=True)
         self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._lib_dir.mkdir(parents=True, exist_ok=True)
         self._config_file = self._config_dir / f'{self.__class__.__name__[:-11].lower()}.config.json'
-        sys.path.append(self._data_dir.as_posix())
+        sys.path.append(self._lib_dir.as_posix())
         self.load()
         self._in_constructor = False
 
@@ -86,6 +119,7 @@ class BaseEnvironment:
         res = ["XcollEnvironment"]
         res.append(f"    Configuration file:  {self._config_file.as_posix()}")
         res.append(f"    Configuration dir:   {self._config_dir.as_posix()}")
+        res.append(f"    Library dir:         {self._lib_dir.as_posix()}")
         res.append(f"    Data dir:            {self._data_dir.as_posix()}")
         if self._temp_dir:
             res.append(f"    Temporary dir:       {self._temp_dir.name}")
@@ -134,6 +168,11 @@ class BaseEnvironment:
     def data_dir(self):
         """The directory where the data files are stored."""
         return self._data_dir
+
+    @property
+    def lib_dir(self):
+        """The directory where the library files are stored."""
+        return self._lib_dir
 
     @property
     def initialised(self):
