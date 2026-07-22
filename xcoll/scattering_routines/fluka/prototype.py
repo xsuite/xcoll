@@ -167,7 +167,7 @@ class FlukaPrototype:
                     file.unlink()
                 except FileNotFoundError:
                     pass
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
         if meta.exists() or meta.is_symlink():
             try:
@@ -271,7 +271,7 @@ class FlukaPrototype:
             return None
         if self.is_generic():
             return self._generic_body_file
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         file = fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         return file.resolve()
 
@@ -288,7 +288,7 @@ class FlukaPrototype:
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         target = fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         if path != target:
             path.copy_to(target, method='mount')
@@ -302,7 +302,7 @@ class FlukaPrototype:
             return None
         if self.is_generic():
             return self._generic_material_file
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         file = fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
         return file.resolve()
 
@@ -319,7 +319,7 @@ class FlukaPrototype:
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         path.copy_to(fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat",
                      method='mount')
 
@@ -330,7 +330,7 @@ class FlukaPrototype:
             return None
         if self.is_generic():
             return self._generic_region_file
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         file = fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions"
         return file.resolve()
 
@@ -347,7 +347,7 @@ class FlukaPrototype:
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         path.copy_to(fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions",
                      method='mount')
 
@@ -674,7 +674,7 @@ class FlukaPrototype:
     def view(self, show=True, keep_files=False):
         import xcoll as xc
         if self.exists():
-            xc.fluka.environment.test_assembly(self.fedb_series, self.fedb_tag, show=show,
+            xc.fluka.interface.test_assembly(self.fedb_series, self.fedb_tag, show=show,
                                                keep_files=keep_files)
 
 
@@ -711,7 +711,7 @@ class FlukaAssembly(FlukaPrototype):
                 self.assembly_file.unlink()
             except FileNotFoundError:
                 pass
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
         if meta.exists() or meta.is_symlink():
             meta.unlink()
@@ -723,7 +723,7 @@ class FlukaAssembly(FlukaPrototype):
             return None
         if self.is_generic():
             return self._generic_assembly_file
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         file = fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         return file.resolve()
 
@@ -740,7 +740,7 @@ class FlukaAssembly(FlukaPrototype):
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        fedb = xc.fluka.environment.fedb
+        fedb = xc.fluka.interface.fedb
         target = fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         if path != target:
             path.copy_to(target, method='mount')

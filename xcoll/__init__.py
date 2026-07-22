@@ -23,6 +23,10 @@ from .environment_tools import XcollEnvironmentAPI
 
 from .constants import particle_states, particle_state_names, interactions, interaction_names
 
+# Initialise the Xcoll environment
+from .package_env import BaseInterface
+interface = BaseInterface()
+
 # Initialise FLUKA environment
 from .scattering_routines.fluka.wrapper import FlukaWrapper as _FlukaWrapper
 fluka = _FlukaWrapper()

@@ -10,9 +10,9 @@ import xcoll as xc
 def get_build_info():
     libraries = set()
     library_dirs = set()
-    if xc.fluka.environment.ready:
+    if xc.fluka.interface.ready:
         libraries.add("FlukaIO")
-        library_dirs.add(xc.fluka.environment.lib_dir)
+        library_dirs.add(xc.fluka.interface.lib_dir)
     return {
         "include_dirs": [xc._pkg_root.parent],
         "libraries": list(libraries),

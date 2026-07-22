@@ -48,7 +48,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
             if assm.material is not None:
                 if assm.material.fluka_name is None or assm.material.fluka_name.startswith('XCOLL'):
                     assm.material._generate_fluka_code()
-        fedb = xc.fluka.environment.create_temp_fedb(assemblies)
+        fedb = xc.fluka.interface.create_temp_fedb(assemblies)
         _create_prototypes_file(element_dict, prototypes_file)
         _, kwargs = get_include_files(particle_ref, verbose=verbose, **kwargs)
     except Exception as e:
@@ -198,8 +198,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
 def _fluka_builder(collimator_dict, fedb):
     import xcoll as xc
     # Save system state
-    xc.fluka.environment.set_fedb_environment(fedb)
-    file_path = xc.fluka.environment.linebuilder / "src" / "FLUKA_builder.py"
+    xc.fluka.interface.set_fedb_environment(fedb)
+    file_path = xc.fluka.interface.linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
             import FLUKA_builder as fb
@@ -223,7 +223,7 @@ def _fluka_builder(collimator_dict, fedb):
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
-    xc.fluka.environment.restore_environment()
+    xc.fluka.interface.restore_environment()
 
     return input_file, coll_dict
 

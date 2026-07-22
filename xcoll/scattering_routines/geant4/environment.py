@@ -7,7 +7,7 @@ import os
 import requests
 from subprocess import run
 
-from ...package_env import BaseEnvironment
+from ...package_env import BaseInterface
 from ...general import _pkg_root
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
@@ -15,7 +15,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 
-class Geant4Environment(BaseEnvironment):
+class Geant4Interface(BaseInterface):
     _read_only_paths = {'bdsim': 0, 'geant4': 0}
 
     def __init__(self):

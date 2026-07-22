@@ -13,7 +13,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from ...package_env import BaseEnvironment
+from ...package_env import BaseInterface
 from ...general import _pkg_root
 
 
@@ -21,7 +21,7 @@ _FORTRAN_SRC   = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_s
 _FEDB_TEMPLATE = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
-class FlukaEnvironment(BaseEnvironment):
+class FlukaInterface(BaseInterface):
     # The paths to be set. The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
     _paths = {'fluka': 2, 'flukaserver': 1, 'linebuilder': 0}
     _optional_paths = {'flair': 1}
@@ -34,7 +34,7 @@ class FlukaEnvironment(BaseEnvironment):
 
     @property
     def fedb(self):
-        return self._data_dir / 'fedb'
+        return self.data_dir / 'fedb'
 
     @property
     def compiled(self):

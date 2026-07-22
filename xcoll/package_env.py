@@ -82,7 +82,7 @@ _data_dir = _select_directory('data')
 _lib_dir = _select_directory('lib')
 
 
-class BaseEnvironment:
+class BaseInterface:
     _config_dir = _config_dir
     _data_dir = _data_dir
     _lib_dir = _lib_dir
@@ -116,14 +116,14 @@ class BaseEnvironment:
         return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() to see the paths)>"
 
     def __str__(self):
-        res = ["XcollEnvironment"]
+        res = ["BaseInterface"]
         res.append(f"    Configuration file:  {self._config_file.as_posix()}")
         res.append(f"    Configuration dir:   {self._config_dir.as_posix()}")
         res.append(f"    Library dir:         {self._lib_dir.as_posix()}")
         res.append(f"    Data dir:            {self._data_dir.as_posix()}")
         if self._temp_dir:
             res.append(f"    Temporary dir:       {self._temp_dir.name}")
-        if self.__class__ is not BaseEnvironment:
+        if self.__class__ is not BaseInterface:
             res.append("")
             res.append(f"{self.__class__.__name__}")
             for path in self._paths.keys():
@@ -156,7 +156,7 @@ class BaseEnvironment:
 
     @property
     def config_file(self):
-        """The environment configuration file."""
+        """The interface configuration file."""
         return self._config_file
 
     @property
@@ -218,7 +218,7 @@ class BaseEnvironment:
         self.temp_dir = None
 
     def show(self):
-        """Print the environment paths."""
+        """Print the interface paths."""
         print(self)
 
     def save(self):
@@ -350,7 +350,7 @@ class BaseEnvironment:
     def assert_environment_ready(self):
         if not self.initialised:
             raise RuntimeError(f"{self.__class__.__name__} not initialised! "
-                            f"Please set all paths in the environment before "
+                            f"Please set all paths in the interface before "
                             f"starting the engine.")
         if not self.compiled:
             raise RuntimeError(f"{self.__class__.__name__} not compiled! "
