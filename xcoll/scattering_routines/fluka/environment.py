@@ -13,7 +13,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from ..environment import BaseEnvironment
+from ...package_env import BaseInterface
 from ...general import _pkg_root
 
 
@@ -21,7 +21,7 @@ _FORTRAN_SRC   = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_s
 _FEDB_TEMPLATE = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
-class FlukaEnvironment(BaseEnvironment):
+class FlukaInterface(BaseInterface):
     # The paths to be set. The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
     _paths = {'fluka': 2, 'flukaserver': 1, 'linebuilder': 0}
     _optional_paths = {'flair': 1}
@@ -34,7 +34,7 @@ class FlukaEnvironment(BaseEnvironment):
 
     @property
     def fedb(self):
-        return self._data_dir / 'fedb'
+        return self.data_dir / 'fedb'
 
     @property
     def compiled(self):
@@ -127,16 +127,16 @@ class FlukaEnvironment(BaseEnvironment):
                                f"Error given is:\n{stderr}")
         os.chdir(cwd)
         # Collect the compiled shared library
-        so = list((self.temp_dir / 'FORTRAN_src' / 'build').glob('pyflukaf.*so'))
+        so = list((dest / 'build').glob('pyflukaf.*so'))
         if len(so) > 1:
             raise RuntimeError(f"Compiled into multiple pyflukaf shared libraries!")
         if len(so) == 0:
-            raise RuntimeError(f"Failed pyFLUKA compilation! No shared library found in "
-                             + f"{self.data_dir.as_posix()}!")
+            raise RuntimeError(f"Failed pyFLUKA compilation! No shared library"
+                               f" found in {dest / 'build'}!")
         so = so[0]
-        so.move_to(self.data_dir / so.name)
+        so.move_to(self.lib_dir / so.name)
         if verbose:
-            print(f"Created pyFLUKA shared library in {so}.")
+            print(f"Created pyFLUKA shared library in {self.lib_dir / so.name}.")
         # Clean up the temporary directory
         self.temp_dir = None
         self.restore_environment()
