@@ -3,13 +3,18 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-from .general import _pkg_root
+import xcoll as xc
 
 
 # Declare paths and libraries to xobjects
 def get_build_info():
+    libraries = set()
+    library_dirs = set()
+    if xc.fluka.environment.ready:
+        libraries.add("FlukaIO")
+        library_dirs.add(xc.fluka.environment.lib_dir)
     return {
-        "include_dirs": [_pkg_root.parent],
-        "libraries": ["FlukaIO"],
-        "library_dirs": [_pkg_root / "lib"],
+        "include_dirs": [xc._pkg_root.parent],
+        "libraries": list(libraries),
+        "library_dirs": list(library_dirs),
     }
