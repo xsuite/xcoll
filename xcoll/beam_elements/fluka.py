@@ -241,7 +241,7 @@ class FlukaCollimator(BaseCollimator):
 
     def enable_scattering(self):
         import xcoll as xc
-        xc.fluka.environment.assert_environment_ready()
+        xc.fluka.interface.assert_environment_ready()
         if not xc.fluka.engine.is_running():
             raise RuntimeError("FLUKA engine is not running.")
         super().enable_scattering()
@@ -541,7 +541,7 @@ class FlukaCrystal(BaseCrystal):
 
     def enable_scattering(self):
         import xcoll as xc
-        xc.fluka.environment.assert_environment_ready()
+        xc.fluka.interface.assert_environment_ready()
         if not xc.fluka.engine.is_running():
             raise RuntimeError("FLUKA engine is not running.")
         super().enable_scattering()
