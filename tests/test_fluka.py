@@ -12,7 +12,7 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-from xcoll.scattering_routines.fluka.interface import format_fluka_float
+from xcoll.scattering_routines.fluka.environment import format_fluka_float
 
 
 @pytest.mark.fluka
