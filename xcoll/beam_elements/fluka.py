@@ -40,7 +40,7 @@ class FlukaCollimator(BaseCollimator):
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side', 'tip_l', 'tip_mat']
     _internal_record_class = BaseCollimator._internal_record_class
     _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
@@ -62,6 +62,8 @@ class FlukaCollimator(BaseCollimator):
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
+                tip_l = kwargs.pop('tip_l', None)
+                tip_mat = _resolve_material(kwargs.pop('tip_mat', None), ref='fluka', allow_none=True)
                 if assembly is not None:
                     # Use the provided assembly, check consistency later
                     generic = False
@@ -82,7 +84,7 @@ class FlukaCollimator(BaseCollimator):
                 side = self._get_side_from_input(side)
                 self.assembly = create_generic_assembly(material=material,
                                     side=side, length=self.length, width=width,
-                                    height=height)
+                                    height=height, tip_l=tip_l, tip_mat=tip_mat)
             else:
                 # Check consistency
                 if self.assembly.material is not None and material is not None \

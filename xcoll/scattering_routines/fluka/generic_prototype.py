@@ -37,7 +37,7 @@ from ...compare import deep_equal
 _generic_required_fields = ['material', 'length']
 _generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2}
 _generic_crystal_required_fields = ['material', 'length', 'bending_radius']
-_generic_crystal_optional_fields = {'side': 'left', 'width': 0.02, 'height': 0.05}
+_generic_crystal_optional_fields = {'side': 'left', 'width': 0.02, 'height': 0.05, 'tip_l': None, 'tip_mat': None}
 
 
 def create_generic_assembly(**kwargs):
@@ -235,14 +235,15 @@ STOP
 """
 
     if kwargs["is_crystal"]:
-        body, tank = _crystal_body(fedb, fedb_tag, length,
-                                kwargs['bending_radius'], width, height)
-        body_region, tank_region = _crystal_region(fedb, fedb_tag)
-        body_mat, tank_mat = _crystal_material(fedb, fedb_tag, material)
+        body, tank = _crystal_body(fedb_tag, length, kwargs['bending_radius'],
+                                   width, height)
+        body_region, tank_region = _crystal_region(fedb_tag)
+        body_mat, tank_mat = _crystal_material(fedb_tag, material)
     else:
-        body, tank = _body(fedb, fedb_tag, length, width, height)
-        body_region, tank_region = _region(fedb, fedb_tag)
-        body_mat, tank_mat = _material(fedb, fedb_tag, material)
+        body, tank = _body(fedb_tag, length, width, height, kwargs.get('tip_l'))
+        body_region, tank_region = _region(fedb_tag, kwargs.get('tip_l'))
+        body_mat, tank_mat = _material(fedb_tag, material,
+                                       kwargs.get('tip_mat'))
 
     inp_body  = bodies_start + body + bodies_end
     inp_body += region_start + body_region + region_end
@@ -262,11 +263,15 @@ STOP
     return body_file, tank_file
 
 
-def _body(fedb, fedb_tag, length, width, height, **kwargs):
+def _body(fedb_tag, length, width, height, tip_l=None):
     template_body = f"""\
 *
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 *
+"""
+    if tip_l:
+        template_body += f"""\
+YZP   tip      {tip_l*100}
 """
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
@@ -280,8 +285,14 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
     return template_body, template_tank
 
 
-def _region(fedb, fedb_tag, **kwargs):
-    template_body_reg = f"""\
+def _region(fedb_tag, tip_l=None):
+    if tip_l:
+        template_body_reg = f"""\
+{fedb_tag}_B     5 +{fedb_tag}_B -tip
+{fedb_tag}_C     5 +{fedb_tag}_B +tip
+"""
+    else:
+        template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B
 """
     template_tank_reg = f"""\
@@ -292,13 +303,16 @@ def _region(fedb, fedb_tag, **kwargs):
     return template_body_reg, template_tank_reg
 
 
-def _material(fedb, fedb_tag, material, **kwargs):
-    mat = material.fluka_name
-
+def _material(fedb, fedb_tag, material, tip_mat=None):
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
+ASSIGNMA    {material.fluka_name:>8}  {fedb_tag:>6}_B
 """
+    if tip_mat:
+        template_body_mat += f"""\
+ASSIGNMA    {tip_mat.fluka_name:>8}  {fedb_tag:>6}_C
+"""
+
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
@@ -308,7 +322,7 @@ ASSIGNMA      VACUUM  {fedb_tag:>6}_I
     return template_body_mat, template_tank_mat
 
 
-def _crystal_body(fedb, fedb_tag, length, bending_radius, width, height, **kwargs):
+def _crystal_body(fedb_tag, length, bending_radius, width, height):
     template_body = f"""\
 RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} -{length*(100+20)} {length*(100+20)}
 YCC {fedb_tag}Z1  0.0 {bending_radius*100} {bending_radius*100}
@@ -324,7 +338,7 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*(100+20)/2 + 5} {length*(100+20)/2 + 5}
     return template_body, template_tank
 
 
-def _crystal_region(fedb, fedb_tag, **kwargs):
+def _crystal_region(fedb_tag):
     template_body_reg = f"""\
 {fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1 - {fedb_tag}P2
 {fedb_tag}B2     5 | +{fedb_tag}_B +{fedb_tag}Z2
@@ -340,14 +354,14 @@ def _crystal_region(fedb, fedb_tag, **kwargs):
     return template_body_reg, template_tank_reg
 
 
-def _crystal_material(fedb, fedb_tag, material, **kwargs):
+def _crystal_material(fedb_tag, material):
     mat = material.fluka_name
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
 ASSIGNMA      VACUUM  {fedb_tag:>6}B2
 """
-    
+
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
