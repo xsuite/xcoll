@@ -65,7 +65,7 @@ print(f"Survived in FLUKA with tip: {len(part1.state[part1.state>0])}/{num_part}
 print(f"Survived in FLUKA without tip: {len(part2.state[part2.state>0])}/{num_part}")
 
 # Stop the FLUKA server
-xc.fluka.engine.stop(clean=False)
+xc.fluka.engine.stop(clean=True)
 
 
 # Plot distribution
