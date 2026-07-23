@@ -242,7 +242,8 @@ STOP
         body_region, tank_region = _crystal_region(fedb_tag)
         body_mat, tank_mat = _crystal_material(fedb_tag, material)
     else:
-        body, tank = _body(fedb_tag, length, width, height, kwargs.get('tip_length'))
+        body, tank = _body(fedb_tag, length, width, height,
+                           kwargs.get('tip_length'))
         body_region, tank_region = _region(fedb_tag, kwargs.get('tip_length'))
         body_mat, tank_mat = _material(fedb_tag, material,
                                        kwargs.get('tip_material'))
@@ -305,7 +306,7 @@ def _region(fedb_tag, tip_length=None):
     return template_body_reg, template_tank_reg
 
 
-def _material(fedb, fedb_tag, material, tip_material=None):
+def _material(fedb_tag, material, tip_material=None):
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {material.fluka_name:>8}  {fedb_tag:>6}_B
