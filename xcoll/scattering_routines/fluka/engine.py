@@ -345,6 +345,11 @@ class FlukaEngine(BaseEngine):
                     input_file = [input_file]
                 files_to_delete += list(cwd.glob(f'ran{input_file[0].stem}*'))
                 files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
+            # Remove fluka output files in case not auto-deleted
+            files_to_delete += [
+                    p for p in FsPath(cwd).glob("fluka_*")
+                    if p.name.removeprefix("fluka_").isdigit()
+            ]
 
             # Do not delete the extra files generated with the input file (they are deleted with clean_input_files)
             _input_files = self._get_input_files_to_clean(input_file, cwd, clean_all=False)

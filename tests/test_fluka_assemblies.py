@@ -51,14 +51,8 @@ def test_new_prototype():
     assert xc.FlukaPrototype._registry == prototypes_before
     assert new_pro.name == 'proto'
     assert str(new_pro) == "FlukaPrototype 'proto': tag proto in test series"
-    assert new_pro.body_file is not None
-    assert new_pro.material_file is not None
-    assert new_pro.region_file is not None
-    assert not hasattr(new_pro, 'assembly_file')
-    assert new_pro.files == [new_pro.body_file, new_pro.material_file, new_pro.region_file]
-    assert new_pro.body_file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'bodies' / 'test_proto.bodies').as_posix()
-    assert new_pro.material_file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'materials' / 'test_proto.assignmat').as_posix()
-    assert new_pro.region_file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'regions' / 'test_proto.regions').as_posix()
+    assert new_pro.file is not None
+    assert new_pro.file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'prototypes' / 'test_proto.inp').as_posix()
     assert not new_pro.exists()
 
     assert new_pro.to_dict() == {'__class__': 'FlukaPrototype',
@@ -81,26 +75,14 @@ def test_prototype_with_files():
     new_pro2 = xc.FlukaPrototype(fedb_series='test', fedb_tag='proto2')
     with open("pro_body.txt", "w") as f:
         f.write("RPP PRO_BODY   0.0 9.0 -4.42 4.42 -60. 60.\n")
-    with open("pro_region.txt", "w") as f:
         f.write("PRO_Jawl    25 | +PRO_BODY\n")
-    with open("pro_material.txt", "w") as f:
         f.write("ASSIGNMA    AC150GPH  PRO_Jawl\n")
-    new_pro1.body_file = "pro_body.txt"
-    new_pro1.region_file = "pro_region.txt"
-    new_pro1.material_file = "pro_material.txt"
-    new_pro2.body_file = "pro_body.txt"
-    new_pro2.region_file = "pro_region.txt"
-    new_pro2.material_file = "pro_material.txt"
+    new_pro1.file = "pro_body.txt"
+    new_pro2.file = "pro_body.txt"
     Path("pro_body.txt").unlink()
-    Path("pro_region.txt").unlink()
-    Path("pro_material.txt").unlink()
-    assert new_pro1.body_file.exists()
-    assert new_pro1.region_file.exists()
-    assert new_pro1.material_file.exists()
+    assert new_pro1.file.exists()
     assert new_pro1.exists()
-    assert new_pro2.body_file.exists()
-    assert new_pro2.region_file.exists()
-    assert new_pro2.material_file.exists()
+    assert new_pro2.file.exists()
     assert new_pro2.exists()
     assert str(new_pro1) == "FlukaPrototype 'proto1': tag proto1 in test series"
     assert str(new_pro2) == "FlukaPrototype 'proto2': tag proto2 in test series"
@@ -135,13 +117,9 @@ def test_prototype_with_files():
     assert coll1.assembly is new_pro2
     assert coll2.assembly is None
     assert coll3.assembly is new_pro2
-    assert not new_pro1.body_file.exists()
-    assert not new_pro1.region_file.exists()
-    assert not new_pro1.material_file.exists()
+    assert not new_pro1.file.exists()
     assert not new_pro1.exists()
-    assert new_pro2.body_file.exists()
-    assert new_pro2.region_file.exists()
-    assert new_pro2.material_file.exists()
+    assert new_pro2.file.exists()
     assert new_pro2.exists()
     assert new_pro1 not in xc.FlukaPrototype._registry
     assert new_pro2 in xc.FlukaPrototype._registry
@@ -152,13 +130,9 @@ def test_prototype_with_files():
     assert coll1.assembly is None
     assert coll2.assembly is None
     assert coll3.assembly is None
-    assert not new_pro1.body_file.exists()
-    assert not new_pro1.region_file.exists()
-    assert not new_pro1.material_file.exists()
+    assert not new_pro1.file.exists()
     assert not new_pro1.exists()
-    assert not new_pro2.body_file.exists()
-    assert not new_pro2.region_file.exists()
-    assert not new_pro2.material_file.exists()
+    assert not new_pro2.file.exists()
     assert not new_pro2.exists()
     assert new_pro1 not in xc.FlukaPrototype._registry
     assert new_pro2 not in xc.FlukaPrototype._registry
@@ -185,13 +159,10 @@ def test_new_assembly():
     assert xc.FlukaPrototype._registry == assemblies_before
     assert new_assm.name == 'assm'
     assert str(new_assm) == "FlukaAssembly 'assm': tag assm in test series"
-    assert new_assm.body_file is None
-    assert new_assm.material_file is None
-    assert new_assm.region_file is None
-    assert hasattr(new_assm, 'assembly_file')
-    assert new_assm.assembly_file is not None
+    assert hasattr(new_assm, 'file')
+    assert new_assm.file is not None
     assert new_assm.files is None
-    assert new_assm.assembly_file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'assemblies' / 'test_assm.lbp').as_posix()
+    assert new_assm.file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'assemblies' / 'test_assm.lbp').as_posix()
     assert not new_assm.exists()
     assert new_assm.to_dict() == {'__class__': 'FlukaAssembly',
                                  'name': 'assm',
@@ -214,32 +185,20 @@ def test_assembly_with_files():
     new_pro_jaw = xc.FlukaPrototype(fedb_series='test', fedb_tag='PROTO_B')
     with open("pro_body.txt", "w") as f:
         f.write("RPP PROTO_B   0.0 9.0 -4.42 4.42 -60. 60.\n")
-    with open("pro_region.txt", "w") as f:
         f.write("PROTO_B    5 +PROTO_B\n")
-    with open("pro_material.txt", "w") as f:
         f.write("ASSIGNMA    AC150GPH  PROTO_B\n")
-    new_pro_jaw.body_file = "pro_body.txt"
-    new_pro_jaw.region_file = "pro_region.txt"
-    new_pro_jaw.material_file = "pro_material.txt"
+    new_pro_jaw.file = "pro_body.txt"
     Path("pro_body.txt").unlink()
-    Path("pro_region.txt").unlink()
-    Path("pro_material.txt").unlink()
     new_pro_tank = xc.FlukaPrototype(fedb_series='test', fedb_tag='PROTO_T')
     with open("pro_body.txt", "w") as f:
         f.write("RPP PROTO_T  -28 28 -28 28 -65 65\n")
         f.write("RPP PROTO_I  -28 28 -28 28 -65 65\n")
-    with open("pro_region.txt", "w") as f:
         f.write("PROTO_T     5 +PROTO_T -PROTO_I\n")
         f.write("PROTO_I     5 +PROTO_I\n")
-    with open("pro_material.txt", "w") as f:
         f.write("ASSIGNMA    VACUUM  PROTO_T\n")
         f.write("ASSIGNMA    VACUUM  PROTO_I\n")
-    new_pro_tank.body_file = "pro_body.txt"
-    new_pro_tank.region_file = "pro_region.txt"
-    new_pro_tank.material_file = "pro_material.txt"
+    new_pro_tank.file = "pro_body.txt"
     Path("pro_body.txt").unlink()
-    Path("pro_region.txt").unlink()
-    Path("pro_material.txt").unlink()
 
     # Create assemblies
     new_assm1 = xc.FlukaAssembly(fedb_series='test', fedb_tag='ASSM1')
@@ -265,7 +224,7 @@ def test_assembly_with_files():
         f.write("ROT-DEFI             0.0         0.0         0.0         0.0         0.0         0.0 CONTAINO\n")
         f.write("ROT-DEFI             0.0         0.0         0.0         0.0         0.0         0.0 JAW_POS\n")
         f.write("ROT-DEFI           300.0         0.0       180.0         0.0         0.0         0.0 JAW_NEG\n")
-    new_assm1.assembly_file = "assembly.txt"
+    new_assm1.file = "assembly.txt"
     Path("assembly.txt").unlink()
     new_assm2 = xc.FlukaAssembly(fedb_series='test', fedb_tag='ASSM2')
     with open("assembly.txt", "w") as f:
@@ -290,22 +249,20 @@ def test_assembly_with_files():
         f.write("ROT-DEFI             0.0         0.0         0.0         0.0         0.0         0.0 CONTAINO\n")
         f.write("ROT-DEFI             0.0         0.0         0.0         0.0         0.0         0.0 JAW_POS\n")
         f.write("ROT-DEFI           300.0         0.0       180.0         0.0         0.0         0.0 JAW_NEG\n")
-    new_assm2.assembly_file = "assembly.txt"
+    new_assm2.file = "assembly.txt"
     Path("assembly.txt").unlink()
 
-    assert new_assm1.assembly_file.exists()
-    assert new_assm2.assembly_file.exists()
+    assert new_assm1.file.exists()
+    assert new_assm2.file.exists()
     assert new_assm1.exists()
     assert new_assm2.exists()
     assert new_assm1.prototypes == [new_pro_tank, new_pro_jaw]
     assert new_assm2.prototypes == [new_pro_tank, new_pro_jaw]
-    files  = set([ff.as_posix() for ff in new_pro_jaw.files])
-    files |= set([ff.as_posix() for ff in new_pro_tank.files])
-    files |= set([new_assm1.assembly_file.as_posix()])
+    files  = {new_pro_jaw.file, new_pro_tank.file}
+    files |= set([new_assm1.file.as_posix()])
     assert set([ff.as_posix() for ff in new_assm1.files]) == files
-    files  = set([ff.as_posix() for ff in new_pro_jaw.files])
-    files |= set([ff.as_posix() for ff in new_pro_tank.files])
-    files |= set([new_assm2.assembly_file.as_posix()])
+    files  = {new_pro_jaw.file, new_pro_tank.file}
+    files |= set([new_assm2.file.as_posix()])
     assert set([ff.as_posix() for ff in new_assm2.files]) == files
     assert new_assm1.check_file_valid()
     assert new_assm2.check_file_valid()
@@ -342,19 +299,15 @@ def test_assembly_with_files():
     assert coll1.assembly is new_assm2
     assert coll2.assembly is None
     assert coll3.assembly is new_assm2
-    assert not new_assm1.assembly_file.exists()
+    assert not new_assm1.file.exists()
     assert new_assm1.files is None
     assert not new_assm1.exists()
-    assert new_assm2.assembly_file.exists()
+    assert new_assm2.file.exists()
     assert all(ff.exists() for ff in new_assm2.files)
     assert new_assm2.exists()
-    assert new_pro_jaw.body_file.exists()
-    assert new_pro_jaw.region_file.exists()
-    assert new_pro_jaw.material_file.exists()
+    assert new_pro_jaw.file.exists()
     assert new_pro_jaw.exists()
-    assert new_pro_tank.body_file.exists()
-    assert new_pro_tank.region_file.exists()
-    assert new_pro_tank.material_file.exists()
+    assert new_pro_tank.file.exists()
     assert new_pro_tank.exists()
     assert new_pro_jaw in xc.FlukaPrototype._registry
     assert new_pro_tank in xc.FlukaPrototype._registry
@@ -367,19 +320,15 @@ def test_assembly_with_files():
     assert coll1.assembly is None
     assert coll2.assembly is None
     assert coll3.assembly is None
-    assert not new_assm1.assembly_file.exists()
+    assert not new_assm1.file.exists()
     assert new_assm1.files is None
     assert not new_assm1.exists()
-    assert not new_assm2.assembly_file.exists()
+    assert not new_assm2.file.exists()
     assert new_assm2.files is None
     assert not new_assm2.exists()
-    assert not new_pro_jaw.body_file.exists()
-    assert not new_pro_jaw.region_file.exists()
-    assert not new_pro_jaw.material_file.exists()
+    assert not new_pro_jaw.file.exists()
     assert not new_pro_jaw.exists()
-    assert not new_pro_tank.body_file.exists()
-    assert not new_pro_tank.region_file.exists()
-    assert not new_pro_tank.material_file.exists()
+    assert not new_pro_tank.file.exists()
     assert not new_pro_tank.exists()
     assert new_pro_jaw not in xc.FlukaPrototype._registry
     assert new_pro_tank not in xc.FlukaPrototype._registry

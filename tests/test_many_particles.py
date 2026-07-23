@@ -320,10 +320,8 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
     coll.track(part)
     print(f"Done in {round(time.time()-start, 3)}s.", flush=True)
 
-    if engine == 'fluka':
-        xc.fluka.engine.stop(clean=True)
-    elif engine == 'geant4':
-        xc.geant4.engine.stop(clean=True)
+    if engine == 'fluka':    xc.fluka.engine.stop(clean=True)
+    elif engine == 'geant4': xc.geant4.engine.stop(clean=True)
 
     if do_assert:
         E_ref = part_init.energy[0]
@@ -436,7 +434,7 @@ def _assert_hit(part, part_init, E0, coll, tol=1e-12):
         if alive_after > 0:
             assert np.any(mask_alive)
             assert Eout > 0
-        print(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout)
+        print(f"Energy before: {E0*alive_before}. Energy after: {Edead + Eacc + Evirtual + Emassless + Eout}")
         assert np.isclose(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout, atol=100*tol, rtol=tol)
 
 
