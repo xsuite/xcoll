@@ -9,7 +9,6 @@ import os
 import base64
 import shutil
 import inspect
-import functools
 import numpy as np
 from pathlib import PosixPath, Path
 
