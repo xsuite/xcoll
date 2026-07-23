@@ -35,9 +35,11 @@ from ...compare import deep_equal
 
 
 _generic_required_fields = ['material', 'length']
-_generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2}
+_generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2,
+                            'tip_length': None, 'tip_material': None}
 _generic_crystal_required_fields = ['material', 'length', 'bending_radius']
-_generic_crystal_optional_fields = {'side': 'left', 'width': 0.02, 'height': 0.05, 'tip_l': None, 'tip_mat': None}
+_generic_crystal_optional_fields = {'side': 'left', 'width': 0.02,
+                                    'height': 0.05}
 
 
 def create_generic_assembly(**kwargs):
@@ -240,10 +242,10 @@ STOP
         body_region, tank_region = _crystal_region(fedb_tag)
         body_mat, tank_mat = _crystal_material(fedb_tag, material)
     else:
-        body, tank = _body(fedb_tag, length, width, height, kwargs.get('tip_l'))
-        body_region, tank_region = _region(fedb_tag, kwargs.get('tip_l'))
+        body, tank = _body(fedb_tag, length, width, height, kwargs.get('tip_length'))
+        body_region, tank_region = _region(fedb_tag, kwargs.get('tip_length'))
         body_mat, tank_mat = _material(fedb_tag, material,
-                                       kwargs.get('tip_mat'))
+                                       kwargs.get('tip_material'))
 
     inp_body  = bodies_start + body + bodies_end
     inp_body += region_start + body_region + region_end
@@ -263,15 +265,15 @@ STOP
     return body_file, tank_file
 
 
-def _body(fedb_tag, length, width, height, tip_l=None):
+def _body(fedb_tag, length, width, height, tip_length=None):
     template_body = f"""\
 *
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 *
 """
-    if tip_l:
+    if tip_length:
         template_body += f"""\
-YZP   tip      {tip_l*100}
+YZP   tip      {tip_length*100}
 """
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
@@ -285,8 +287,8 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
     return template_body, template_tank
 
 
-def _region(fedb_tag, tip_l=None):
-    if tip_l:
+def _region(fedb_tag, tip_length=None):
+    if tip_length:
         template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B -tip
 {fedb_tag}_C     5 +{fedb_tag}_B +tip
@@ -303,14 +305,14 @@ def _region(fedb_tag, tip_l=None):
     return template_body_reg, template_tank_reg
 
 
-def _material(fedb, fedb_tag, material, tip_mat=None):
+def _material(fedb, fedb_tag, material, tip_material=None):
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {material.fluka_name:>8}  {fedb_tag:>6}_B
 """
-    if tip_mat:
+    if tip_material:
         template_body_mat += f"""\
-ASSIGNMA    {tip_mat.fluka_name:>8}  {fedb_tag:>6}_C
+ASSIGNMA    {tip_material.fluka_name:>8}  {fedb_tag:>6}_C
 """
 
     template_tank_mat = f"""\
