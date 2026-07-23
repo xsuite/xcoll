@@ -51,7 +51,7 @@ class BaseEngine(xo.HybridClass):
         self._masses = None
         self._verbose = False
         self._input_file = None
-        self._environment = None
+        self._interface = None
         self._element_dict = {}
         self._warning_given = False
         self._element_index = 0
@@ -68,7 +68,7 @@ class BaseEngine(xo.HybridClass):
 
     def _warn(self, error=None):
         if not self._warning_given:
-            print(f"Warning: Failed to import {self.__class__.__name__} environment "
+            print(f"Warning: Failed to import {self.__class__.__name__} interface "
                 + f"(did you compile?).\n{self.name.capitalize()} elements can be installed "
                 + f"but are not trackable.", flush=True)
             self._warning_given = True
@@ -87,12 +87,12 @@ class BaseEngine(xo.HybridClass):
     # ==================
 
     @property
-    def environment(self):
-        if self._environment is None:
-            raise RuntimeError(f"{self.__class__.__name__} environment not set up! "
+    def interface(self):
+        if self._interface is None:
+            raise RuntimeError(f"{self.__class__.__name__} interface not set up! "
                              + f"Do not manually create an instance of the engine, but use "
                              + f"xcoll.{self.__class__.__name__}.engine instead.")
-        return self._environment
+        return self._interface
 
     @property
     def name(self):
@@ -264,11 +264,11 @@ class BaseEngine(xo.HybridClass):
         return self._physics_settings.show()
 
     def start(self, *, clean=True, input_file=None, **kwargs):
-        if not self.environment:
+        if not self.interface:
             self.stop()
-            raise RuntimeError(f"{self.name.capitalize()} environment not set up! "
+            raise RuntimeError(f"{self.name.capitalize()} interface not set up! "
                              + f"Do not manually create an instance of the engine.")
-        self.environment.assert_environment_ready()
+        self.interface.assert_environment_ready()
         if self.is_running():
             self._print("Engine already running.")
             return
@@ -333,7 +333,7 @@ class BaseEngine(xo.HybridClass):
         self._starting_or_stopping = False
         self._warning_given = False
         self._tracking_initialised = False
-        self._environment.restore_environment()
+        self.interface.restore_environment()
 
     def is_running(self):
         if hasattr(self, '_starting_or_stopping') and self._starting_or_stopping:
@@ -422,10 +422,10 @@ class BaseEngine(xo.HybridClass):
             self.stop()
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
-        if not self.environment.compiled:
+        if not self.interface.compiled:
             self.stop()
-            raise RuntimeError(f"{self.__class__.__name__} environment not compiled! "
-                                + f"Please compile the environment before tracking.")
+            raise RuntimeError(f"{self.__class__.__name__} interface not compiled! "
+                                + f"Please compile the interface before tracking.")
 
         if not self.is_running():
             self.stop()

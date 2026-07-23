@@ -1,6 +1,6 @@
 [project]
 name = "xcoll"
-version = "0.11.1"
+version = "0.12.0rc0"
 description = "Xsuite collimation package"
 authors = [
     {name="Frederik F. Van der Veken", email="frederik@cern.ch"},
@@ -22,10 +22,10 @@ dependencies = [
     "ruamel-yaml>=0.17.31",
     "numpy>=1.0",
     "pandas>=1.4",
-    "xobjects>=0.6.3",
-    "xdeps>=0.10.17",
-    "xpart>=0.23.12",
-    "xtrack>=0.105.0",
+    "xobjects>=0.6.6",
+    "xdeps>=0.10.19",
+    "xpart>=0.23.16",
+    "xtrack>=0.108.0",
     "meson"
 ]
 
@@ -41,6 +41,7 @@ download = "https://pypi.python.org/pypi/xcoll"
 
 [project.entry-points.xobjects]
 include = "xcoll"
+build_info = "xcoll._xobjects:get_build_info"
 
 [tool.poetry]
 exclude = ["xcoll/lib", "xcoll/config"]

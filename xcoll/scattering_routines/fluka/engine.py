@@ -138,7 +138,7 @@ class FlukaEngine(BaseEngine):
     def view(self):
         if self.input_file is None:
             return
-        self.environment.run_flair(self.input_file[0])
+        self.interface.run_flair(self.input_file[0])
 
 
     # =================================
@@ -162,8 +162,8 @@ class FlukaEngine(BaseEngine):
 
     def _pre_start(self, **kwargs):
         import xcoll as xc
-        xc.fluka.environment.assert_gfortran_installed()
-        xc.fluka.environment.set_fluka_environment()
+        xc.fluka.interface.assert_gfortran_installed()
+        xc.fluka.interface.set_fluka_environment()
         return kwargs
 
 
@@ -206,7 +206,7 @@ class FlukaEngine(BaseEngine):
             self.stop()
             return False
         try:
-            rprocs = self.environment.running_processes()
+            rprocs = self.interface.running_processes()
         except RuntimeError as e:
             self.stop()
             raise RuntimeError from e
@@ -345,6 +345,11 @@ class FlukaEngine(BaseEngine):
                     input_file = [input_file]
                 files_to_delete += list(cwd.glob(f'ran{input_file[0].stem}*'))
                 files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
+            # Remove fluka output files in case not auto-deleted
+            files_to_delete += [
+                    p for p in FsPath(cwd).glob("fluka_*")
+                    if p.name.removeprefix("fluka_").isdigit()
+            ]
 
             # Do not delete the extra files generated with the input file (they are deleted with clean_input_files)
             _input_files = self._get_input_files_to_clean(input_file, cwd, clean_all=False)
@@ -414,9 +419,9 @@ class FlukaEngine(BaseEngine):
         log = self.cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
-        cmds = [xc.fluka.environment.fluka.as_posix(),
+        cmds = [xc.fluka.interface.fluka.as_posix(),
                 self.input_file[0].as_posix(), '-e',
-                xc.fluka.environment.flukaserver.as_posix(), '-M', "1"]
+                xc.fluka.interface.flukaserver.as_posix(), '-M', "1"]
         self._print(f"Running `{' '.join(cmds)}` in folder {self._cwd}...")
         self._server_process = Popen(cmds, cwd=self.cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid

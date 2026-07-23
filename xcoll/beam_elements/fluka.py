@@ -30,6 +30,7 @@ class FlukaCollimator(BaseCollimator):
     behaves_like_drift = True
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCollimator, FlukaEngine]
 
@@ -242,7 +243,7 @@ class FlukaCollimator(BaseCollimator):
 
     def enable_scattering(self):
         import xcoll as xc
-        xc.fluka.environment.assert_environment_ready()
+        xc.fluka.interface.assert_environment_ready()
         if not xc.fluka.engine.is_running():
             raise RuntimeError("FLUKA engine is not running.")
         super().enable_scattering()
@@ -325,6 +326,7 @@ class FlukaCrystal(BaseCrystal):
     behaves_like_drift = True
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCrystal, FlukaEngine]
 
@@ -541,7 +543,7 @@ class FlukaCrystal(BaseCrystal):
 
     def enable_scattering(self):
         import xcoll as xc
-        xc.fluka.environment.assert_environment_ready()
+        xc.fluka.interface.assert_environment_ready()
         if not xc.fluka.engine.is_running():
             raise RuntimeError("FLUKA engine is not running.")
         super().enable_scattering()

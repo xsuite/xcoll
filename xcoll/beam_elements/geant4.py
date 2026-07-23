@@ -28,6 +28,7 @@ class Geant4Collimator(BaseCollimator):
     allow_rot_and_shift = False
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCollimator, Geant4Engine]
 
@@ -90,7 +91,7 @@ class Geant4Collimator(BaseCollimator):
 
     def enable_scattering(self):
         import xcoll as xc
-        xc.geant4.environment.assert_environment_ready()
+        xc.geant4.interface.assert_environment_ready()
         if not xc.geant4.engine.is_running():
             raise RuntimeError("Geant4 engine is not running.")
         super().enable_scattering()
@@ -153,6 +154,7 @@ class Geant4CollimatorTip(Geant4Collimator):
     iscollective = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [*Geant4Collimator._depends_on]
 
@@ -197,6 +199,9 @@ class Geant4CollimatorTip(Geant4Collimator):
 
 
 class Geant4Crystal(BaseCrystal):
+
+    allow_no_prebuilt_kernel = True
+
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.geant4.engine.is_running():

@@ -13,7 +13,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from ..environment import BaseEnvironment
+from ...package_env import BaseInterface
 from ...general import _pkg_root
 
 
@@ -21,7 +21,7 @@ _FORTRAN_SRC   = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_s
 _FEDB_TEMPLATE = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
-class FlukaEnvironment(BaseEnvironment):
+class FlukaInterface(BaseInterface):
     # The paths to be set. The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
     _paths = {'fluka': 2, 'flukaserver': 1, 'linebuilder': 0}
     _optional_paths = {'flair': 1}
@@ -34,14 +34,14 @@ class FlukaEnvironment(BaseEnvironment):
 
     @property
     def fedb(self):
-        return self._data_dir / 'fedb'
+        return self.data_dir / 'fedb'
 
     @property
     def compiled(self):
         try:
             from pyflukaf import track_fluka
             return True
-        except (ModuleNotFoundError, ImportError) as error:
+        except (ModuleNotFoundError, ImportError):
             return False
 
     def compile(self, flukaio_lib=None, flukaio_path=None, verbose=False):
@@ -127,16 +127,16 @@ class FlukaEnvironment(BaseEnvironment):
                                f"Error given is:\n{stderr}")
         os.chdir(cwd)
         # Collect the compiled shared library
-        so = list((self.temp_dir / 'FORTRAN_src' / 'build').glob('pyflukaf.*so'))
+        so = list((dest / 'build').glob('pyflukaf.*so'))
         if len(so) > 1:
             raise RuntimeError(f"Compiled into multiple pyflukaf shared libraries!")
         if len(so) == 0:
-            raise RuntimeError(f"Failed pyFLUKA compilation! No shared library found in "
-                             + f"{self.data_dir.as_posix()}!")
+            raise RuntimeError(f"Failed pyFLUKA compilation! No shared library"
+                               f" found in {dest / 'build'}!")
         so = so[0]
-        so.move_to(self.data_dir / so.name)
+        so.move_to(self.lib_dir / so.name)
         if verbose:
-            print(f"Created pyFLUKA shared library in {so}.")
+            print(f"Created pyFLUKA shared library in {self.lib_dir / so.name}.")
         # Clean up the temporary directory
         self.temp_dir = None
         self.restore_environment()
@@ -167,10 +167,10 @@ class FlukaEnvironment(BaseEnvironment):
                 fedb_series = part[0]
                 fedb_tag = '_'.join(part[1:])
                 pro = xc.FlukaAssembly(fedb_series, fedb_tag)
-            pro.assembly_file = file
+            pro.file = file
         # Get prototypes
-        for file in fedb_path.glob(f'bodies/*.bodies'):
-            if (self.fedb / 'bodies' / file.name).exists() and not overwrite:
+        for file in fedb_path.glob(f'prototypes/*.inp'):
+            if (self.fedb / 'prototypes' / file.name).exists() and not overwrite:
                 if verbose:
                     print(f"Warning: Prototype {file.name} already exists in Xcoll. "
                          + "Use overwrite=True to overwrite it.")
@@ -187,15 +187,13 @@ class FlukaEnvironment(BaseEnvironment):
                 fedb_series = part[0]
                 fedb_tag = '_'.join(part[1:])
                 pro = xc.FlukaPrototype(fedb_series, fedb_tag)
-            pro.body_file = file
-            pro.material_file = fedb_path / 'materials' / f'{file.stem}.assignmat'
-            pro.region_file = fedb_path / 'regions' / f'{file.stem}.regions'
+            pro.file = file
+        # Get materials
+        file = 'materials/materials.inp'   # TODO: need to grow file content
+        (fedb_path / file).copy_to(self.fedb / file, method='mount')
         # Get stepsizes (currently not used)
         for file in fedb_path.glob(f'stepsizes/*'):
             file.copy_to(self.fedb / 'stepsizes' / file.name, method='mount')
-        # Get prototypes
-        for file in fedb_path.glob(f'prototypes/*'):
-            file.copy_to(self.fedb / 'prototypes' / file.name, method='mount')
         # Link the new files into the registry
         self._init_fedb()
 
@@ -211,27 +209,27 @@ class FlukaEnvironment(BaseEnvironment):
         self.store_environment()
         if fedb is None:
             fedb = self.fedb
-        self.brute_force_path(fedb)
+        if not fedb is False:
+            self.brute_force_path(fedb)
         self.brute_force_path('linebuilder')
-        os.environ['FEDB_PATH'] = fedb.as_posix()
+        if not fedb is False:
+            os.environ['FEDB_PATH'] = fedb.as_posix()
         os.environ['LB_PATH'] = self.linebuilder.as_posix()
         # Brute-force the system paths
         sys.path.insert(0, (self.linebuilder / "src").as_posix())
         sys.path.insert(0, (self.linebuilder / "lib").as_posix())
-        sys.path.insert(0, fedb.as_posix())
+        sys.path.insert(0, (self.linebuilder / "tools").as_posix())
+        if not fedb is False:
+            sys.path.insert(0, fedb.as_posix())
 
 
     def create_temp_fedb(self, assemblies):
         fedb = FsPath('temp_fedb').resolve()
         fedb.mkdir(parents=True)
         (fedb / 'assemblies').mkdir(parents=True)
-        (fedb / 'bodies').mkdir(parents=True)
-        (fedb / 'regions').mkdir(parents=True)
+        (fedb / 'prototypes').mkdir(parents=True)
         (fedb / 'materials').mkdir(parents=True)
         (fedb / 'stepsizes').mkdir(parents=True)
-        (fedb / 'prototypes').mkdir(parents=True)
-        (fedb / 'tools').symlink_to(self.fedb / 'tools')
-        (self.fedb / 'structure.py').copy_to(fedb / 'structure.py')
         (self.fedb / 'materials' / 'materials.inp').copy_to(fedb / 'materials' / 'materials.inp')
         for assm in assemblies:
             assm.populate_into_temp_fedb(fedb)
@@ -255,34 +253,6 @@ class FlukaEnvironment(BaseEnvironment):
                              + f"Error given is:\n{stderr}")
 
 
-    def test_assembly(self, fedb_series, fedb_tag, *, show=True, keep_files=False):
-        if show:
-            try:
-                self.set_flair_environment()
-            except FileNotFoundError:
-                print("Flair not found. Cannot view assembly.")
-                return
-        else:
-            keep_files=True
-        self.set_fedb_environment()
-        cmd = run(['python', self.fedb / 'tools' / 'test_assembly.py', fedb_series,
-                   fedb_tag], stdout=PIPE, stderr=PIPE)
-        self.restore_environment()
-        if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip()
-            raise RuntimeError(f"Failed to run flair!\nError given is:\n{stderr}")
-        file = FsPath.cwd() / f"{fedb_series}_{fedb_tag}.inp"
-        if not file.exists():
-            raise FileNotFoundError(f"Temporary input file {file} not generated!")
-        logfile = file.with_suffix('.log')
-        if not logfile.exists():
-            raise FileNotFoundError(f"Temporary log file {logfile} not generated!")
-        self.run_flair(file)
-        if not keep_files:
-            file.unlink()
-            logfile.unlink()
-
-
     # =======================
     # === Private Methods ===
     # =======================
@@ -290,7 +260,7 @@ class FlukaEnvironment(BaseEnvironment):
     def _init_fedb(self, overwrite=False):
         from xcoll import FlukaPrototype
         self.fedb.mkdir(parents=True, exist_ok=True)
-        for directory in ['assemblies', 'bodies', 'regions', 'materials', 'stepsizes', 'metadata', 'prototypes']:
+        for directory in ['assemblies', 'materials', 'stepsizes', 'metadata', 'prototypes']:
             (self.fedb / directory).mkdir(parents=True, exist_ok=True)
             for f in (_FEDB_TEMPLATE / directory).glob('*.*'):
                 new_file = self.fedb / directory / f.name
@@ -298,19 +268,28 @@ class FlukaEnvironment(BaseEnvironment):
                     new_file.unlink()
                 if not new_file.exists():
                     f.copy_to(new_file, method='mount')
-        tools = self.fedb / 'tools'
-        if tools.exists() and overwrite:
-            tools.rmtree()
-        if not tools.exists():
-            (_FEDB_TEMPLATE / 'tools').copy_to(tools.parent, method='mount')
-        structure = self.fedb / 'structure.py'
-        if structure.exists() and overwrite:
-            structure.unlink()
-        if not structure.exists():
-            (_FEDB_TEMPLATE / 'structure.py').copy_to(structure, method='mount')
         prototypes = (self.fedb / 'metadata').glob('*_*.json')
         for file in prototypes:
             FlukaPrototype.from_json(file)
+
+    def _resolve_linebuilder_path(self, linebuilder):
+        linebuilder = FsPath(linebuilder)
+        # Check nesting of folders
+        file_path = linebuilder / "linebuilder"
+        if not file_path.exists():
+            file_path = linebuilder
+
+        for path in ["src", "lib", "tools", "src/FLUKA_builder.py",
+                     "tools/expand.py"]:
+            if not (file_path / path).exists():
+                raise EnvironmentError(f"{path} not found at: "
+                                       f"{file_path.as_posix()}")
+        return file_path
+
+    def __setattr__(self, key, value):
+        if key == 'linebuilder':
+            value = self._resolve_linebuilder_path(value)
+        super().__setattr__(key, value)
 
 
 def format_fluka_float(value):

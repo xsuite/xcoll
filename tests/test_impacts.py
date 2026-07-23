@@ -35,7 +35,7 @@ def test_impacts_from_line(beam, plane, test_context):
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    impacts = xc.InteractionRecord.start(line=line, record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True)
     line.build_tracker(_context=test_context)
 
     line.xcoll.collimators.assign_optics()
@@ -64,7 +64,7 @@ def test_impacts_single_collimator(test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
@@ -90,7 +90,7 @@ def test_impacts_single_crystal(R, side, test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
@@ -100,9 +100,74 @@ def test_impacts_single_crystal(R, side, test_context):
 def test_impacts_to_pandas_default_frame():
     impacts, _, _ = _make_impacts_for_frame_tests()
 
+    assert impacts._record_all_columns == 1
     assert impacts.to_pandas().equals(impacts.to_pandas(frame='jaw'))
     with pytest.raises(ValueError, match="Invalid frame"):
         impacts.to_pandas(frame='wrong')
+
+
+def test_impacts_selected_columns_to_pandas():
+    impacts, _, data = _make_impacts_for_frame_tests(
+        columns=['particle_id_before', 'x_before'])
+
+    assert impacts._recorded_columns == (
+        '_index', 'at_turn', 'at_element', 'shape_id', '_inter',
+        'particle_id_before', 'x_before')
+    assert impacts._record_all_columns == 0
+    assert len(impacts.at_turn) == 2
+    assert len(impacts.shape_id) == 2
+    assert len(impacts.particle_id_before) == 2
+    assert len(impacts.x_before) == 2
+    assert len(impacts.s_before) == 0
+    assert len(impacts.particle_id_after) == 0
+
+    df = impacts.to_pandas()
+    assert list(df.columns) == [
+        'turn', 'collimator', 'interaction_type', 'particle_id_before', 'x_before']
+    assert np.all(df.particle_id_before.values == data['particle_id_before'])
+    assert np.all(df.x_before.values == data['x_before'])
+
+    with pytest.raises(ValueError, match="columns .* were not recorded"):
+        impacts.to_pandas(frame='collimator')
+
+
+def test_impacts_selected_columns_tracking():
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+    part = xt.Particles(
+        p0c=4e11,
+        x=[1.1e-3, 1.2e-3, 1.3e-3],
+        px=[0, 0, 0],
+        y=[0, 0, 0],
+        py=[0, 0, 0],
+        delta=[0, 0, 0])
+
+    impacts = xc.InteractionRecord(
+        elements=[coll], columns=['particle_id_before', 'x_before'],
+        record_impacts=True, record_exits=True, capacity=10)
+    coll.track(part)
+
+    n_rows = impacts._index.num_recorded
+    assert n_rows > 0
+    assert impacts.capacity == 10
+    assert impacts.io_buffer_capacity >= 10
+    assert len(impacts.particle_id_before) == 10
+    assert len(impacts.x_before) == 10
+    assert len(impacts.particle_id_after) == 0
+    assert len(impacts.s_before) == 0
+
+    df = impacts.to_pandas()
+    assert len(df) == n_rows
+    assert 'particle_id_before' in df.columns
+    assert 'x_before' in df.columns
+    assert 'particle_id_after' not in df.columns
+    assert 's_before' not in df.columns
+
+
+def test_impacts_selected_columns_unknown():
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+
+    with pytest.raises(ValueError, match="Unknown InteractionRecord columns"):
+        xc.InteractionRecord(elements=[coll], columns=['not_a_column'])
 
 
 def test_impacts_to_pandas_collimator_frame():
@@ -151,25 +216,26 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
 
 
-def _make_impacts_for_frame_tests():
+def _make_impacts_for_frame_tests(columns=None):
     coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
                                     angle=[30, -45], name='TCP')
-    impacts = xc.InteractionRecord.start(elements=[coll], record_impacts=True,
-                                         record_exits=True, capacity=2)
+    impacts = xc.InteractionRecord(elements=[coll], record_impacts=True,
+                                         record_exits=True, capacity=2,
+                                         columns=columns)
     data = {
         'at_turn':      np.array([0, 1]),
         'at_element':   np.array([0, 0]),
         'shape_id':     np.array([1, -1]),
         '_inter':       np.array([xcc.ENTER_JAW_L,
                                   xcc.ENTER_JAW_R]),
-        'id_before':    np.array([10, 11]),
+        'particle_id_before':    np.array([10, 11]),
         's_before':     np.array([0.30, 0.45]),
         'x_before':     np.array([0.04, 0.06]),
         'px_before':    np.array([0.010, 0.020]),
         'y_before':     np.array([0.07, -0.08]),
         'py_before':    np.array([0.005, -0.006]),
         'delta_before': np.array([0.10, -0.20]),
-        'id_after':     np.array([-1, 11]),
+        'particle_id_after':     np.array([-1, 11]),
         's_after':      np.array([-1., 1.20]),
         'x_after':      np.array([-1., 0.10]),
         'px_after':     np.array([-1., -0.015]),
@@ -179,8 +245,9 @@ def _make_impacts_for_frame_tests():
     }
     impacts._index.num_recorded = len(data['shape_id'])
     for field, values in data.items():
-        for ii, val in enumerate(values):
-            getattr(impacts, field)[ii] = val
+        if impacts._column_is_recorded(field):
+            for ii, val in enumerate(values):
+                getattr(impacts, field)[ii] = val
     return impacts, coll, data
 
 
