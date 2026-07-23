@@ -102,7 +102,7 @@ class BaseInterface:
         self._config_dir.mkdir(parents=True, exist_ok=True)
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._lib_dir.mkdir(parents=True, exist_ok=True)
-        self._config_file = self._config_dir / f'{self.__class__.__name__[:-11].lower()}.config.json'
+        self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
         sys.path.append(self._lib_dir.as_posix())
         self.load()
         self._in_constructor = False
