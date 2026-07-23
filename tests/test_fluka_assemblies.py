@@ -12,7 +12,7 @@ import xcoll as xc
 @pytest.mark.serial
 @pytest.mark.fluka
 def test_registry_initialisation():
-    xc.fluka.environment # Force initialization
+    xc.fluka.interface # Force initialization
     assert xc.FlukaPrototype._registry is xc.FlukaAssembly._registry
     assert len(xc.FlukaPrototype._registry) >= 7 # Has at least Maria crystals and Donadon test assembly
     assert len([pro for pro in xc.FlukaPrototype._registry if isinstance(pro, xc.FlukaAssembly)]) >= 1
@@ -22,7 +22,7 @@ def test_registry_initialisation():
 @pytest.mark.serial
 @pytest.mark.fluka
 def test_new_null():
-    xc.fluka.environment # Force initialization
+    xc.fluka.interface # Force initialization
     new_pro = xc.FlukaPrototype()
     assert new_pro._is_null
     assert new_pro not in xc.FlukaPrototype._registry
@@ -34,7 +34,7 @@ def test_new_null():
 @pytest.mark.serial
 @pytest.mark.fluka
 def test_new_prototype():
-    xc.fluka.environment # Force initialization
+    xc.fluka.interface # Force initialization
     prototypes_before = xc.FlukaPrototype._registry.copy()
     with pytest.raises(ValueError, match="Both 'fedb_series' and 'fedb_tag' must be provided."):
         new_pro = xc.FlukaPrototype(fedb_series='test')
@@ -169,7 +169,7 @@ def test_prototype_with_files():
 @pytest.mark.serial
 @pytest.mark.fluka
 def test_new_assembly():
-    xc.fluka.environment # Force initialization
+    xc.fluka.interface # Force initialization
     assemblies_before = xc.FlukaAssembly._registry.copy()
     with pytest.raises(ValueError, match="Both 'fedb_series' and 'fedb_tag' must be provided."):
         new_assm = xc.FlukaAssembly(fedb_series='test')
@@ -209,7 +209,7 @@ def test_new_assembly():
 @pytest.mark.serial
 @pytest.mark.fluka
 def test_assembly_with_files():
-    xc.fluka.environment # Force initialization
+    xc.fluka.interface # Force initialization
     # Create prototypes needed for the assembly
     new_pro_jaw = xc.FlukaPrototype(fedb_series='test', fedb_tag='PROTO_B')
     with open("pro_body.txt", "w") as f:

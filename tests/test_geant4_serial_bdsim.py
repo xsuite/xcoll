@@ -18,7 +18,7 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 @pytest.mark.serial
 @pytest.mark.geant4
-@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.interface.ready, reason="BDSIM+Geant4 installation not found")
 def test_serial_bdsim():
     # Skip if Geant4Engine has already been started
     if xc.geant4.engine._already_started:
