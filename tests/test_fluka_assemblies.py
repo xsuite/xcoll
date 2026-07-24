@@ -52,7 +52,7 @@ def test_new_prototype():
     assert new_pro.name == 'proto'
     assert str(new_pro) == "FlukaPrototype 'proto': tag proto in test series"
     assert new_pro.file is not None
-    assert new_pro.file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'prototypes' / 'test_proto.inp').as_posix()
+    assert new_pro.file.as_posix() == (xc.interface.data_dir / 'fedb' / 'prototypes' / 'test_proto.inp').as_posix()
     assert not new_pro.exists()
 
     assert new_pro.to_dict() == {'__class__': 'FlukaPrototype',
@@ -162,7 +162,7 @@ def test_new_assembly():
     assert hasattr(new_assm, 'file')
     assert new_assm.file is not None
     assert new_assm.files is None
-    assert new_assm.file.as_posix() == (xc._pkg_root / 'lib' / 'fedb' / 'assemblies' / 'test_assm.lbp').as_posix()
+    assert new_assm.file.as_posix() == (xc.interface.data_dir / 'fedb' / 'assemblies' / 'test_assm.lbp').as_posix()
     assert not new_assm.exists()
     assert new_assm.to_dict() == {'__class__': 'FlukaAssembly',
                                  'name': 'assm',

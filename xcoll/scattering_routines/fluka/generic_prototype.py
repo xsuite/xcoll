@@ -36,7 +36,7 @@ from ...compare import deep_equal
 
 _generic_required_fields = ['material', 'length']
 _generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2,
-                            'tip_length': None, 'tip_material': None}
+                            'tip_thickness': None, 'tip_material': None}
 _generic_crystal_required_fields = ['material', 'length', 'bending_radius']
 _generic_crystal_optional_fields = {'side': 'left', 'width': 0.02,
                                     'height': 0.05}
@@ -50,15 +50,25 @@ def create_generic_assembly(**kwargs):
             continue
         if prototype.fedb_series == 'generic':
             found = True
-            for field in _generic_required_fields + list(_generic_optional_fields.keys()):
+            for field in _generic_required_fields:
                 if not(deep_equal(kwargs[field], getattr(prototype, field))):
                     found = False
                     break
-            if kwargs['is_crystal']:
-                for field in _generic_crystal_required_fields + list(_generic_crystal_optional_fields.keys()):
+            for field in _generic_optional_fields.keys():
+                if field in kwargs:
                     if not(deep_equal(kwargs[field], getattr(prototype, field))):
                         found = False
                         break
+            if kwargs['is_crystal']:
+                for field in _generic_crystal_required_fields:
+                    if not(deep_equal(kwargs[field], getattr(prototype, field))):
+                        found = False
+                        break
+                for field in _generic_crystal_optional_fields.keys():
+                    if field in kwargs:
+                        if not(deep_equal(kwargs[field], getattr(prototype, field))):
+                            found = False
+                            break
             if found and prototype.exists():
                 return prototype
     # Get an ID
@@ -243,8 +253,8 @@ STOP
         body_mat, tank_mat = _crystal_material(fedb_tag, material)
     else:
         body, tank = _body(fedb_tag, length, width, height,
-                           kwargs.get('tip_length'))
-        body_region, tank_region = _region(fedb_tag, kwargs.get('tip_length'))
+                           kwargs.get('tip_thickness'))
+        body_region, tank_region = _region(fedb_tag, kwargs.get('tip_thickness'))
         body_mat, tank_mat = _material(fedb_tag, material,
                                        kwargs.get('tip_material'))
 
@@ -266,15 +276,15 @@ STOP
     return body_file, tank_file
 
 
-def _body(fedb_tag, length, width, height, tip_length=None):
+def _body(fedb_tag, length, width, height, tip_thickness=None):
     template_body = f"""\
 *
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 *
 """
-    if tip_length:
+    if tip_thickness:
         template_body += f"""\
-YZP   tip      {tip_length*100}
+YZP   tip      {tip_thickness*100}
 """
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
@@ -288,8 +298,8 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
     return template_body, template_tank
 
 
-def _region(fedb_tag, tip_length=None):
-    if tip_length:
+def _region(fedb_tag, tip_thickness=None):
+    if tip_thickness:
         template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B -tip
 {fedb_tag}_C     5 +{fedb_tag}_B +tip
@@ -311,6 +321,7 @@ def _material(fedb_tag, material, tip_material=None):
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {material.fluka_name:>8}  {fedb_tag:>6}_B
 """
+    # import ipdb; ipdb.set_trace()
     if tip_material:
         template_body_mat += f"""\
 ASSIGNMA    {tip_material.fluka_name:>8}  {fedb_tag:>6}_C

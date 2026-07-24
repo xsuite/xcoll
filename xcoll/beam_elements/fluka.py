@@ -43,7 +43,7 @@ class FlukaCollimator(BaseCollimator):
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material',
                               'assembly', 'height', 'width', 'side',
-                              'tip_length', 'tip_material']
+                              'tip_thickness', 'tip_material']
     _internal_record_class = BaseCollimator._internal_record_class
     _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
@@ -67,7 +67,7 @@ class FlukaCollimator(BaseCollimator):
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
-                tip_length = kwargs.pop('tip_length', None)
+                tip_thickness = kwargs.pop('tip_thickness', None)
                 tip_material = _resolve_material(
                                         kwargs.pop('tip_material', None),
                                         ref='fluka', allow_none=True)
@@ -90,7 +90,7 @@ class FlukaCollimator(BaseCollimator):
                 side = self._get_side_from_input(side)
                 self.assembly = create_generic_assembly(material=material,
                                     side=side, length=self.length, width=width,
-                                    height=height, tip_length=tip_length,
+                                    height=height, tip_thickness=tip_thickness,
                                     tip_material=tip_material)
             else:
                 # Check consistency
@@ -173,18 +173,18 @@ class FlukaCollimator(BaseCollimator):
                             height=self.height)
 
     @property
-    def tip_length(self):
+    def tip_thickness(self):
         if self.assembly is not None:
-            return self.assembly.tip_length
+            return self.assembly.tip_thickness
 
-    @tip_length.setter
-    def tip_length(self, tip_length):
+    @tip_thickness.setter
+    def tip_thickness(self, tip_thickness):
         if not self._being_constructed():
             if self.assembly.fedb_series != 'generic':
-                raise ValueError('Cannot change tip_length of non-generic assembly!')
+                raise ValueError('Cannot change tip_thickness of non-generic assembly!')
             self.assembly = create_generic_assembly(material=self.material,
                             side=self.side, length=self.length, width=self.width,
-                            height=self.height, tip_length=tip_length,
+                            height=self.height, tip_thickness=tip_thickness,
                             tip_material=self.tip_material)
 
     @property
@@ -201,7 +201,7 @@ class FlukaCollimator(BaseCollimator):
             if self.tip_material != tip_material:
                 self.assembly = create_generic_assembly(material=self.material,
                                 side=self.side, length=self.length, width=self.width,
-                                height=self.height, tip_length=self.tip_length,
+                                height=self.height, tip_thickness=self.tip_thickness,
                                 tip_material=tip_material)
 
     @property
@@ -369,9 +369,11 @@ class FlukaCrystal(BaseCrystal):
 
     _depends_on = [BaseCrystal, FlukaEngine]
 
-    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'assembly'}
+    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material',
+                              'assembly'}
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
-    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
+    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material',
+                              'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCrystal._internal_record_class
     _allowed_fields_when_frozen = BaseCrystal._allowed_fields_when_frozen
 

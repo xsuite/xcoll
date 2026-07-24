@@ -20,7 +20,7 @@ if xc.fluka.engine.is_running():
 
 # Create a FLUKA tip collimator
 coll1 = xc.FlukaCollimator(length=0.6, material=xc.materials.MolybdenumGraphite,
-                           jaw=0.001, tip_length=0.01, tip_material="CFC")
+                           jaw=0.001, tip_thickness=0.01, tip_material="CFC")
 
 # The same collimator in FLUKA without tip
 coll2 = xc.FlukaCollimator(length=0.6, material=xc.materials.MolybdenumGraphite,
