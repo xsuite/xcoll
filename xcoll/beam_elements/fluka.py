@@ -38,9 +38,12 @@ class FlukaCollimator(BaseCollimator):
         _pkg_root.joinpath('beam_elements','elements_src','fluka_collimator.h')
     ]
 
-    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
+    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material',
+                              'assembly'}
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material',
+                              'assembly', 'height', 'width', 'side',
+                              'tip_thickness', 'tip_material']
     _internal_record_class = BaseCollimator._internal_record_class
     _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
@@ -55,16 +58,21 @@ class FlukaCollimator(BaseCollimator):
             raise ValueError('Cannot create FlukaCollimator while engine is running.')
         with self.__class__._in_constructor(self):
             to_assign = {}
+            generic = False
             if '_xobject' not in kwargs:
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
-                material = _resolve_material(kwargs.pop('material', None), ref='fluka', allow_none=True)
+                material = _resolve_material(kwargs.pop('material', None),
+                                             ref='fluka', allow_none=True)
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
+                tip_thickness = kwargs.pop('tip_thickness', None)
+                tip_material = _resolve_material(
+                                        kwargs.pop('tip_material', None),
+                                        ref='fluka', allow_none=True)
                 if assembly is not None:
                     # Use the provided assembly, check consistency later
-                    generic = False
                     to_assign['assembly'] = assembly
                 else:
                     # Create a generic assembly
@@ -82,7 +90,8 @@ class FlukaCollimator(BaseCollimator):
                 side = self._get_side_from_input(side)
                 self.assembly = create_generic_assembly(material=material,
                                     side=side, length=self.length, width=width,
-                                    height=height)
+                                    height=height, tip_thickness=tip_thickness,
+                                    tip_material=tip_material)
             else:
                 # Check consistency
                 if self.assembly.material is not None and material is not None \
@@ -162,6 +171,38 @@ class FlukaCollimator(BaseCollimator):
             self.assembly = create_generic_assembly(material=self.material,
                             side=side, length=self.length, width=self.width,
                             height=self.height)
+
+    @property
+    def tip_thickness(self):
+        if self.assembly is not None:
+            return self.assembly.tip_thickness
+
+    @tip_thickness.setter
+    def tip_thickness(self, tip_thickness):
+        if not self._being_constructed():
+            if self.assembly.fedb_series != 'generic':
+                raise ValueError('Cannot change tip_thickness of non-generic assembly!')
+            self.assembly = create_generic_assembly(material=self.material,
+                            side=self.side, length=self.length, width=self.width,
+                            height=self.height, tip_thickness=tip_thickness,
+                            tip_material=self.tip_material)
+
+    @property
+    def tip_material(self):
+        if self.assembly is not None:
+            return self.assembly.tip_material
+
+    @tip_material.setter
+    def tip_material(self, tip_material):
+        if not self._being_constructed():
+            if self.assembly.fedb_series != 'generic':
+                raise ValueError('Cannot change tip_material of non-generic assembly!')
+            tip_material = _resolve_material(tip_material, ref='fluka', allow_none=False)
+            if self.tip_material != tip_material:
+                self.assembly = create_generic_assembly(material=self.material,
+                                side=self.side, length=self.length, width=self.width,
+                                height=self.height, tip_thickness=self.tip_thickness,
+                                tip_material=tip_material)
 
     @property
     def assembly(self):
@@ -328,9 +369,11 @@ class FlukaCrystal(BaseCrystal):
 
     _depends_on = [BaseCrystal, FlukaEngine]
 
-    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'assembly'}
+    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material',
+                              'assembly'}
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
-    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
+    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material',
+                              'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCrystal._internal_record_class
     _allowed_fields_when_frozen = BaseCrystal._allowed_fields_when_frozen
 
