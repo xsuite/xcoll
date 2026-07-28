@@ -8,7 +8,6 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
 
@@ -29,8 +28,7 @@ int8_t FlukaCrystalData_get_record_scatterings(FlukaCrystalData el){
 
 
 /*gpufun*/
-CrystalGeometry FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* part0){
-    CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
+void FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* part0, CrystalGeometry cg){
     cg->length = FlukaCrystalData_get_length(el);
     cg->side   = FlukaCrystalData_get__side(el);
     cg->bending_radius = FlukaCrystalData_get__bending_radius(el);
@@ -49,9 +47,9 @@ CrystalGeometry FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* p
         jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
     } else {
         kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
-        return cg;
+        return;
     }
-    cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
+    create_crystal(part0, cg->segments, cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
     // Impact table
     cg->record = FlukaCrystalData_getp_internal_record(el, part0);
     cg->record_index = NULL;
@@ -67,13 +65,6 @@ CrystalGeometry FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* p
     cg->s_P = 0;
     cg->x_P = 0;
     cg->t_VImax = 0;
-    return cg;
-}
-
-/*gpufun*/
-void FlukaCrystal_free(CrystalGeometry restrict cg){
-    destroy_crystal(cg->segments);
-    free(cg);
 }
 
 
@@ -82,10 +73,11 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
     int8_t active = FlukaCrystalData_get_active(el);
     active       *= FlukaCrystalData_get__tracking(el);
 
-    // Get geometry
-    CrystalGeometry cg;
+    // Initialise collimator data (stack storage, filled via pointer; no malloc)
+    CrystalGeometry_ cg_;
+    CrystalGeometry cg = &cg_;
     if (active){
-        cg = FlukaCrystal_init_geometry(el, part0);
+        FlukaCrystal_init_geometry(el, part0, cg);
         if (cg->width==0 || cg->height==0 || cg->bending_radius==0){
             kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
         }
@@ -167,9 +159,6 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
             }
         }
     //end_per_particle_block
-    if (active){
-        FlukaCrystal_free(cg);
-    }
 }
 
 #endif /* XCOLL_FLUKA_CRY_H */
