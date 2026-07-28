@@ -8,7 +8,6 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
 
@@ -33,6 +32,7 @@ int8_t EverestCrystalData_get_mark_scattered_particles(EverestCrystalData el){
 }
 
 
+/*gpukern*/
 void EverestCrystal_set_material(EverestCrystalData el){
     MaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
@@ -41,13 +41,12 @@ void EverestCrystal_set_material(EverestCrystalData el){
 
 
 /*gpufun*/
-CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticle* part0){
-    CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
+void EverestCrystal_init_geometry(EverestCrystalData el, LocalParticle* part0, CrystalGeometry cg){
     cg->length = EverestCrystalData_get_length(el);
     cg->side   = EverestCrystalData_get__side(el);
     if (cg->side == 0){
         kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
-        return cg;
+        return;
     }
     double R   = EverestCrystalData_get__bending_radius(el);
     double t_R = EverestCrystalData_get__bending_angle(el);
@@ -61,13 +60,13 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
     cg->cos_z  = EverestCrystalData_get__cos_z(el);
     cg->sin_y  = EverestCrystalData_get__sin_y(el);
     cg->cos_y  = EverestCrystalData_get__cos_y(el);
-    // Segments
+    // Segments (filled by value into cg->segments; no allocation)
     if (cg->side == 1){
-        cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U, \
+        create_crystal(part0, cg->segments, cg->bending_radius, cg->width, cg->length, cg->jaw_U, \
                                         cg->sin_y, cg->cos_y);
     } else if (cg->side == -1){
         // jaw_U is the inner corner (shifted if right-sided crystal)
-        cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U - cg->width, \
+        create_crystal(part0, cg->segments, cg->bending_radius, cg->width, cg->length, cg->jaw_U - cg->width, \
                                         cg->sin_y, cg->cos_y);
     }
     // // Jaw frame is always left-sided
@@ -116,21 +115,13 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         cg->record_impacts = EverestCrystalData_get_record_impacts(el);
         cg->record_exits = EverestCrystalData_get_record_exits(el);
     }
-    return cg;
-}
-
-/*gpufun*/
-void EverestCrystal_free(CrystalGeometry restrict cg){
-    destroy_crystal(cg->segments);
-    free(cg);
 }
 
 
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
 /*gpufun*/
-EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0){
-    EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
+void EverestCrystal_init(EverestCrystalData el, LocalParticle* part0, EverestCollData coll){
     // Random generator
     coll->rng = EverestCrystalData_getp_rutherford_rng(el);
     // Impact table
@@ -141,14 +132,12 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
         coll->record_scatterings = EverestCrystalData_get_record_scatterings(el);
     }
     coll->orient = EverestCrystalData_get__orient(el);
-    return coll;
 }
 
 
 /*gpufun*/
-EverestData EverestCrystal_init_data(LocalParticle* part, MaterialData restrict material,
-        EverestCollData restrict coll, CrystalGeometry restrict cg){
-    EverestData everest = (EverestData) malloc(sizeof(EverestData_));
+void EverestCrystal_init_data(LocalParticle* part, MaterialData /*restrict*/ material,
+        EverestCollData /*restrict*/ coll, CrystalGeometry /*restrict*/ cg, EverestData everest){
     everest->coll = coll;
     everest->rescale_scattering = 1;
     // Preinitialise scattering parameters
@@ -157,7 +146,6 @@ EverestData EverestCrystal_init_data(LocalParticle* part, MaterialData restrict 
     calculate_ionisation_properties(everest, (MaterialData) material, energy);
     calculate_critical_angle(everest, material, part, cg, energy);
     calculate_VI_parameters(everest, part, energy);
-    return everest;
 }
 
 
@@ -167,14 +155,16 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     active       *= EverestCrystalData_get__tracking(el);
     double length = EverestCrystalData_get_length(el);
 
-    // Initialise collimator data
-    EverestCollData coll;
-    CrystalGeometry cg;
+    // Initialise collimator data (stack storage, filled via pointer; no malloc)
+    EverestCollData_   coll_storage;
+    CrystalGeometry_   cg_storage;
+    EverestCollData coll = &coll_storage;
+    CrystalGeometry cg   = &cg_storage;
     MaterialData material;
     if (active){
         // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
-        coll = EverestCrystal_init(el, part0);
-        cg   = EverestCrystal_init_geometry(el, part0);
+        EverestCrystal_init(el, part0, coll);
+        EverestCrystal_init_geometry(el, part0, cg);
         material = EverestCrystalData_getp__material(el);
 
         // For info
@@ -228,11 +218,12 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 if (is_hit != 0) {
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
-                    // Scatter
-                    EverestData everest = EverestCrystal_init_data(part, material, coll, cg);
+                    // Scatter (stack storage, filled via pointer; no malloc)
+                    EverestData_ everest_storage;
+                    EverestData everest = &everest_storage;
+                    EverestCrystal_init_data(part, material, coll, cg, everest);
                     everest->shape_id = is_hit;
                     pc_out = do_crystal(everest, material, part, cg, pc_in/1.e9, remaining_length)*1.e9;
-                    free(everest);
                 }
 
                 // Transform back to the lab frame
@@ -282,10 +273,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             }
         }
     //end_per_particle_block
-    if (active){
-        EverestCrystal_free(cg);
-        free(coll);
-    }
+    // cg/coll/everest are stack-local (filled via pointer); nothing to free.
 }
 
 

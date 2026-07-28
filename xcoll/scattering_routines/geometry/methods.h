@@ -8,9 +8,7 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdlib.h>
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
 #define S_MAX 1.e21
@@ -19,8 +17,22 @@
 /*gpufun*/
 void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
                        Segment* segments, int8_t n_segments){
+    // Dispatch on the segment type tag (no device function pointers): each
+    // subtype's crossing function reads its fields back through the void* self.
+    // Segments are stored by value, so we take the address of each array slot.
     for (int8_t i=0; i<n_segments;i++) {
-        segments[i]->crossing(n_hit, s, part_x, part_tan, segments[i]);
+        Segment* seg = &segments[i];
+        switch (seg->type){
+            case XC_SEGMENT_LINE:
+                get_s_of_crossing_with_line_segment(n_hit, s, part_x, part_tan, seg);
+                break;
+            case XC_SEGMENT_HALFOPEN:
+                get_s_of_crossing_with_halfopen_line_segment(n_hit, s, part_x, part_tan, seg);
+                break;
+            case XC_SEGMENT_CIRCULAR:
+                get_s_of_crossing_with_circular_segment(n_hit, s, part_x, part_tan, seg);
+                break;
+        }
     }
     sort_array_of_double(s, (int64_t) *n_hit);
 }
@@ -29,7 +41,9 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
 // IMPORTANT:
 // The array and interval are assumed to be sorted!
 // Furthermore, the array should have one extra slot allocated at the end, in case it needs to be expanded..
-// This is always true for the arrays created by get_s, as we create them with 2*n_segments slots.
+// This is always true for the arrays created by get_s: they allocate
+// XC_MAX_CROSS_PER_SEGMENT*n_segments + 1 slots on CPU, and
+// XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS + 1 on GPU (where n_segments <= XC_MAX_SEGMENTS).
 /*gpufun*/
 void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
     if (arr[0] > interval[1]){
@@ -101,12 +115,11 @@ void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double p
     } else {
         find_crossing(n_hit, s, part_x, part_tan_x, segments, n_segments);
         // restrict_s is the region [s0, s1] where the particle is inside the vertical limits
-        double* restrict_s = (double*) malloc(2*sizeof(double));
+        double restrict_s[2];
         restrict_s[0] = (y_min - part_y)/part_tan_y;
         restrict_s[1] = (y_max - part_y)/part_tan_y;
         SWAP(restrict_s, 0, 1);   // To make sure these are sorted
         calculate_overlap_array_interval(s, n_hit, restrict_s);
-        free(restrict_s);
     }
 }
 

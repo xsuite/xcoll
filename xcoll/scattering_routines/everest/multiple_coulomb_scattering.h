@@ -9,7 +9,6 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
 
@@ -82,9 +81,8 @@ double soln3(double a, double b, double dh, double smax) {
 
 
 /*gpufun*/
-double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
-    double* result = (double*)malloc(2 * sizeof(double));
-
+void scamcs(LocalParticle* part, double x0, double xp0, double s,
+            double* out_x, double* out_xp) {
     // Generate two Gaussian random numbers z1 and z2
     double r2 = 0;
     double v1 = 0;
@@ -104,14 +102,13 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     // MCS scaling by length in units of radiation length
     double ss  = sqrt(s) * (1 + 0.038*log(s));
 
-    result[0] = x0  + s*(xp0 + 0.5*ss*(z2 + z1*0.577350269));
-    result[1] = xp0 + ss*z2;
-    return result;
+    *out_x  = x0  + s*(xp0 + 0.5*ss*(z2 + z1*0.577350269));
+    *out_xp = xp0 + ss*z2;
 }
 
 
 /*gpufun*/
-void mcs(EverestData restrict everest, MaterialData restrict material,
+void mcs(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
          LocalParticle* part, double length, double pc, int edge_check){
 
     double const radl = MaterialData_get__radiation_length(material);
@@ -168,10 +165,10 @@ void mcs(EverestData restrict everest, MaterialData restrict material,
                 s = h;
             }
             // TODO: should cap s whenever we are out (the two if cases below), because now the scamcs is applied over an s that might be (slightly) too long
-            double* res = scamcs(part, x, xp, s);
-            x  = res[0];
-            xp = res[1];
-            free(res);
+            double res_x, res_xp;
+            scamcs(part, x, xp, s, &res_x, &res_xp);
+            x  = res_x;
+            xp = res_xp;
             if (x < 0) {
                 // extrapolation back to where x = 0
                 s = rlen0 - rlen + (s - x/xp);
@@ -186,17 +183,17 @@ void mcs(EverestData restrict everest, MaterialData restrict material,
         }
 
     } else {
-        double* res = scamcs(part, x, xp, rlen0);
-        x  = res[0];
-        xp = res[1];
-        free(res);
+        double res_x, res_xp;
+        scamcs(part, x, xp, rlen0, &res_x, &res_xp);
+        x  = res_x;
+        xp = res_xp;
         s = rlen0;
     }
 
-    double* res = scamcs(part, z, zp, s);
-    z  = res[0];
-    zp = res[1];
-    free(res);
+    double res_z, res_zp;
+    scamcs(part, z, zp, s, &res_z, &res_zp);
+    z  = res_z;
+    zp = res_zp;
 
     LocalParticle_set_x(part, x*theta*radl);
     LocalParticle_set_y(part, z*theta*radl);

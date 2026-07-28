@@ -7,7 +7,7 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
-from ..scattering_routines.everest import EverestEngine
+from ..scattering_routines.everest import EverestEngine, set_crystal_stack_limit
 from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
 
@@ -64,7 +64,7 @@ class EverestBlock(BaseBlock):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material)
+        material = _resolve_material(material, _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -125,7 +125,7 @@ class EverestCollimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material)
+        material = _resolve_material(material, _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -184,6 +184,13 @@ class EverestCrystal(BaseCrystal):
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
+        # The Everest crystal C kernels build large per-track structs on the
+        # CUDA stack (geometry + collimation data + scattering state) and
+        # recurse through the Amorphous/Channel/volume sub-segments, exceeding
+        # the 1024-byte CUDA default. Raise the per-thread device stack now if
+        # this element lives on a Cupy (GPU) context. No-op on CPU contexts, so
+        # CPU numerics are untouched; idempotent and never lowers the limit.
+        set_crystal_stack_limit(self._context)
 
 
     @property
@@ -193,7 +200,8 @@ class EverestCrystal(BaseCrystal):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material, everest_crystal=True)
+        material = _resolve_material(material, everest_crystal=True,
+                                     _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)

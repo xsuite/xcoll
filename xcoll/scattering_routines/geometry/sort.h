@@ -13,26 +13,45 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 
+// NVRTC rejects GNU statement-expression macros (the `({ ... })` form), so
+// MAX/MIN/SWAP are written as plain expression / do-while macros that compile
+// on both the CPU and the CUDA device path. Numerics are unchanged: MAX/MIN
+// use the same `>`/`<` comparisons as before, and SWAP reads both array slots
+// into temporaries (of the array element type) before writing, so it still
+// places the smaller value in slot x and the larger in slot y. All call sites
+// pass side-effect-free operands (array element reads / locals), so the
+// unavoidable double-evaluation in the ternary macros is harmless.
+//
+// The element-type keyword differs by context: NVRTC compiles as C++ (use
+// `decltype`); the CPU path is C (use the GNU `__typeof__`). NVRTC rejects
+// `__typeof__`, hence the guard. `decltype((d)[x])` on the subscript lvalue
+// yields a reference type, so the GPU branch strips it back to the value type
+// with `decltype((d)[x] + 0)` (the `+ 0` makes a prvalue; for the only element
+// types used here, double and int64_t, it leaves the type unchanged).
+#ifdef XO_CONTEXT_CPU
+#define XCOLL_GEOM_TYPEOF(expr) __typeof__(expr)
+#else
+#define XCOLL_GEOM_TYPEOF(expr) decltype((expr) + 0)
+#endif
+
 #ifdef MAX
 #undef MAX
 #pragma message ("Xcoll geometry: Compiler macro MAX redefined")
 #endif
-#define MAX(x, y) ({const __typeof__ (x) _x = (x); \
-                    const __typeof__ (y) _y = (y); \
-                    _x > _y ? _x : _y; })
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 #ifdef MIN
 #undef MIN
 #pragma message ("Xcoll geometry: Compiler macro MIN redefined")
 #endif
-#define MIN(x, y) ({const __typeof__ (x) _x = (x); \
-                    const __typeof__ (y) _y = (y); \
-                    _x < _y ? _x : _y; })
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 #ifdef SWAP
 #error "Xcoll geometry: Compiler macro SWAP already defined!"
 #endif
-#define SWAP(d,x,y) ({const __typeof__(*d) _x = MIN(d[x], d[y]); \
-                      const __typeof__(*d) _y = MAX(d[x], d[y]); \
-                      d[x] = _x; d[y] = _y; })
+#define SWAP(d, x, y) do { \
+        const XCOLL_GEOM_TYPEOF((d)[x]) _swap_lo = MIN((d)[x], (d)[y]); \
+        const XCOLL_GEOM_TYPEOF((d)[x]) _swap_hi = MAX((d)[x], (d)[y]); \
+        (d)[x] = _swap_lo; (d)[y] = _swap_hi; \
+    } while (0)
 
 
 // Fast methods
@@ -116,8 +135,29 @@ static inline void sort_array_of_8_int64(int64_t* d){
 // Generic methods
 // ---------------
 
+// The comparator + qsort default branch below are host-only (qsort and
+// function-pointer comparators are unsupported on the CUDA device path).
+// The crystal geometry path sorts <=8 crossings, so it always takes a
+// hard-coded sort_array_of_N sorting-network branch above and never reaches
+// the default branch; the GPU fallback here is a bounded in-place insertion
+// sort, which yields an identical ascending order to qsort.
+#ifdef XO_CONTEXT_CPU
 int cmpfunc_double(const void * a, const void * b) {
    return ( *(double*)a - *(double*)b );
+}
+#endif  // XO_CONTEXT_CPU
+
+/*gpufun*/
+void insertion_sort_double(double* arr, int64_t length){
+    for (int64_t i = 1; i < length; i++){
+        double key = arr[i];
+        int64_t j = i - 1;
+        while (j >= 0 && arr[j] > key){
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+    }
 }
 
 static inline void sort_array_of_double(double* arr, int64_t length){
@@ -144,12 +184,31 @@ static inline void sort_array_of_double(double* arr, int64_t length){
             sort_array_of_8_double(arr);
             break;
         default:
+#ifdef XO_CONTEXT_CPU
             qsort(arr, length, sizeof(double), cmpfunc_double);
+#else
+            insertion_sort_double(arr, length);
+#endif  // XO_CONTEXT_CPU
     }
 }
 
+#ifdef XO_CONTEXT_CPU
 int cmpfunc_int64(const void * a, const void * b) {
    return ( *(int64_t*)a - *(int64_t*)b );
+}
+#endif  // XO_CONTEXT_CPU
+
+/*gpufun*/
+void insertion_sort_int64(int64_t* arr, int64_t length){
+    for (int64_t i = 1; i < length; i++){
+        int64_t key = arr[i];
+        int64_t j = i - 1;
+        while (j >= 0 && arr[j] > key){
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;
+    }
 }
 
 static inline void sort_array_of_int64(int64_t* arr, int64_t length){
@@ -176,7 +235,11 @@ static inline void sort_array_of_int64(int64_t* arr, int64_t length){
             sort_array_of_8_int64(arr);
             break;
         default:
+#ifdef XO_CONTEXT_CPU
             qsort(arr, length, sizeof(int64_t), cmpfunc_int64);
+#else
+            insertion_sort_int64(arr, length);
+#endif  // XO_CONTEXT_CPU
     }
 }
 

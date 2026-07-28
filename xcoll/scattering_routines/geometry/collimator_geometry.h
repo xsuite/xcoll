@@ -46,7 +46,7 @@ typedef CollimatorGeometry_* CollimatorGeometry;
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 /*gpufun*/
-int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry restrict cg){
+int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
     double part_x, part_tan;
     int8_t is_hit = 0;
     double s_L = 1.e21;
@@ -93,7 +93,7 @@ int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry restrict cg){
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
-int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry restrict cg){
+int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
     double part_x, part_tan;
     int8_t is_hit = 0;
     double s_L = 1.e21;
@@ -215,7 +215,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 
 // Return to start position after having logged the impact.
 /*gpufun*/
-void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
+void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
     if (is_hit == 1){
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_yL));
@@ -257,7 +257,7 @@ void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry rest
 
 
 /*gpufun*/
-void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
+void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
     if (is_hit != 0 && LocalParticle_get_state(part) > 0){
         if (cg->record_exits){
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW, is_hit);

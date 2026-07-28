@@ -12,7 +12,7 @@
 
 
 /*gpufun*/
-void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg){
+void calculate_initial_angle(EverestData /*restrict*/ everest, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     double R = cg->bending_radius;
     double s = LocalParticle_get_s(part);
     double x = LocalParticle_get_x(part);
@@ -25,7 +25,7 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, 
 
 
 /*gpufun*/
-void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg){
+void calculate_opening_angle(EverestData /*restrict*/ everest, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     double t    = cg->bending_angle;
     double xd   = cg->width;
     double R    = cg->bending_radius;
@@ -77,7 +77,7 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, 
 
 
 /*gpufun*/
-double _critical_angle0(MaterialData restrict material, double pc){
+double _critical_angle0(MaterialData /*restrict*/ material, double pc){
     // Define typical angles/probabilities for orientation 110
     double eum = MaterialData_get__crystal_potential(material);
     double eta = MaterialData_get__eta(material);
@@ -85,7 +85,7 @@ double _critical_angle0(MaterialData restrict material, double pc){
 }
 
 /*gpufun*/
-double _critical_radius(MaterialData restrict material, double pc){
+double _critical_radius(MaterialData /*restrict*/ material, double pc){
     // Define typical angles/probabilities for orientation 110
     double eum = MaterialData_get__crystal_potential(material);
     double ai  = MaterialData_get__crystal_plane_distance(material);
@@ -94,7 +94,7 @@ double _critical_radius(MaterialData restrict material, double pc){
 }
 
 /*gpufun*/
-double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_over_R){
+double _critical_angle(EverestCollData /*restrict*/ coll, double t_c0, double Rc_over_R){
     double t_c = 0;
     if (Rc_over_R <= 1.) {
         // Otherwise no channelling possible
@@ -107,8 +107,8 @@ double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_ove
 }
 
 /*gpufun*/
-void calculate_critical_angle(EverestData restrict everest, MaterialData restrict material,
-                              LocalParticle* part, CrystalGeometry restrict cg, double pc){
+void calculate_critical_angle(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+                              LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc){
     // Define typical angles/probabilities for orientation 110
     everest->t_c0  = _critical_angle0(material, pc);
     double Rcrit = _critical_radius(material, pc);
@@ -118,7 +118,7 @@ void calculate_critical_angle(EverestData restrict everest, MaterialData restric
 
 
 /*gpufun*/
-void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, double pc){
+void calculate_VI_parameters(EverestData /*restrict*/ everest, LocalParticle* part, double pc){
     double ratio = everest->Rc_over_R;
     double t_c0  = everest->t_c0;
 
