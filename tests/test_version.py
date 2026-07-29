@@ -9,4 +9,4 @@ from xcoll import __version__
 
 @pytest.mark.xcother
 def test_version():
-    assert __version__ == '0.12.1'
+    assert __version__ == '0.12.2rc0'
