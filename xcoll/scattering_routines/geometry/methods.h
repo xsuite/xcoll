@@ -11,6 +11,10 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
+#include "xcoll/headers/helpers.h"
+#include "xcoll/headers/sort.h"
+
+
 #define S_MAX 1.e21
 
 
@@ -34,7 +38,7 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
                 break;
         }
     }
-    sort_array_of_double(s, (int64_t) *n_hit);
+    XC_SORT_ASC(s, (int64_t) *n_hit);
 }
 
 
@@ -118,7 +122,7 @@ void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double p
         double restrict_s[2];
         restrict_s[0] = (y_min - part_y)/part_tan_y;
         restrict_s[1] = (y_max - part_y)/part_tan_y;
-        SWAP(restrict_s, 0, 1);   // To make sure these are sorted
+        XC_ASORT(restrict_s, 0, 1); // To make sure these are sorted
         calculate_overlap_array_interval(s, n_hit, restrict_s);
     }
 }

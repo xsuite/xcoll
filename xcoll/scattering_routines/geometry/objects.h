@@ -13,6 +13,9 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include "xobjects/headers/common.h"
+#include "xcoll/headers/helpers.h"
+
 
 // Assumption for all objects: the particle at -inf is outside the object (otherwise some comparisons might give wrong results)
 // Segments are stored BY VALUE in a fixed-size array (Segment segments[N]); the create_*
@@ -133,8 +136,8 @@ void create_crystal(LocalParticle* part0, Segment* segments, double R, double wi
     double D_x = R_x - cos_a*tilt_cos*R + sin_a*tilt_sin*fabs(R);
     double A_t = atan2(A_x - R_x, A_s - R_s);
     double D_t = atan2(D_x - R_x, D_s - R_s);
-    double t1 = MIN(A_t, D_t);
-    double t2 = MAX(A_t, D_t);
+    double t1 = XC_MIN(A_t, D_t);
+    double t2 = XC_MAX(A_t, D_t);
 
     // Fill segments (by value, into the caller-provided array)
     segments[0] = create_line_segment(A_s, A_x, B_s, B_x);
