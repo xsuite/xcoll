@@ -7,7 +7,7 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
-from ..scattering_routines.everest import EverestEngine, set_crystal_stack_limit
+from ..scattering_routines.everest import set_crystal_stack_limit
 from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
 
@@ -32,7 +32,7 @@ class EverestBlock(BaseBlock):
     _store_in_to_dict      = [*BaseBlock._store_in_to_dict, 'material']
     _internal_record_class = BaseBlock._internal_record_class
 
-    _depends_on = [BaseBlock, EverestEngine]
+    _depends_on = [BaseBlock]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_block.h')
@@ -94,7 +94,7 @@ class EverestCollimator(BaseCollimator):
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
-    _depends_on = [BaseCollimator, EverestEngine]
+    _depends_on = [BaseCollimator]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_collimator.h')
@@ -159,7 +159,7 @@ class EverestCrystal(BaseCrystal):
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'lattice', 'material']
     _internal_record_class = BaseCrystal._internal_record_class
 
-    _depends_on = [BaseCrystal, EverestEngine]
+    _depends_on = [BaseCrystal]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_crystal.h')
@@ -237,5 +237,3 @@ class EverestCrystal(BaseCrystal):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
                             _buffer=_buffer, _offset=_offset)
-
-

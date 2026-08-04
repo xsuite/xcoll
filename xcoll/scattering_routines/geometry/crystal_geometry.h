@@ -9,7 +9,17 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xtrack/beam_elements/elements_src/track_drift.h"
+#include "xtrack/beam_elements/elements_src/track_srotation.h"
+#include "xtrack/beam_elements/elements_src/track_xyshift.h"
+#include "xcoll/scattering_routines/geometry/segments.h"
+#include "xcoll/scattering_routines/geometry/rotation.h"
+#include "xcoll/scattering_routines/geometry/methods.h"
+#include "xcoll/scattering_routines/geometry/get_s.h"
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
 
 
 typedef struct CrystalGeometry_ {
@@ -34,8 +44,7 @@ typedef struct CrystalGeometry_ {
     double s_P;    // Miscut centre
     double x_P;
     double t_VImax;
-    // Segments (stored by value, no allocation; crystal always uses 4)
-    Segment segments[XC_MAX_SEGMENTS];
+    Segment segments[4];
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;
@@ -47,16 +56,10 @@ typedef CrystalGeometry_* CrystalGeometry;
 
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
-/*gpufun*/
-int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry /*restrict*/ cg){
+GPUFUN
+int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry RESTRICT cg) {
     double part_x, part_tan_x, part_y, part_tan_y;
     double s = 1.e21;
-
-    // Crystal should be single-sided
-    if (cg->side == 0){
-        LocalParticle_kill_particle(part, XC_ERR_NOT_IMPLEMENTED);
-        return 0;
-    }
 
     SRotation_single_particle(part, cg->sin_z, cg->cos_z);
     part_x = LocalParticle_get_x(part);
@@ -76,7 +79,7 @@ int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry /*restrict*/ cg){
     // Rotate back to lab frame
     SRotation_single_particle(part, -cg->sin_z, cg->cos_z);
 
-    if (s < S_MAX){
+    if (s < XC_S_MAX) {
         return cg->side;
 
     } else {
@@ -89,15 +92,10 @@ int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry /*restrict*/ cg){
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
-/*gpufun*/
-int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry /*restrict*/ cg){
+GPUFUN
+int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry RESTRICT cg) {
     double part_x, part_tan_x, part_y, part_tan_y;
-    double s = 1.e21;
-
-    // Crystal should be single-sided
-    if (cg->side == 0){
-        LocalParticle_kill_particle(part, XC_ERR_NOT_IMPLEMENTED);
-    }
+    double s = XC_S_MAX;
 
     SRotation_single_particle(part, cg->sin_z, cg->cos_z);
     part_x = LocalParticle_get_x(part);
@@ -114,7 +112,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry /*re
 #endif
     s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
 
-    if (s < S_MAX){
+    if (s < XC_S_MAX) {
         // Hit: Drift to the impact position, and move to jaw frame if relevant
 #ifdef XCOLL_USE_EXACT
         Drift_single_particle_exact(part, s);
@@ -126,8 +124,8 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry /*re
         // Rotate the reference frame to tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), asin(cg->sin_y));
         LocalParticle_set_s(part, new_s);
-        if (cg->side == 1){
-            if (cg->record_impacts){
+        if (cg->side == 1) {
+            if (cg->record_impacts) {
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L, 1);
             }
 
@@ -139,7 +137,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry /*re
 #else
             LocalParticle_scale_xp(part, -1);
 #endif
-            if (cg->record_impacts){
+            if (cg->record_impacts) {
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R, -1);
             }
         }
@@ -160,10 +158,10 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry /*re
 
 
 // Return to start position after having logged the impact.
-/*gpufun*/
-void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
-    if (is_hit != 0){
-        if (cg->side == -1){
+GPUFUN
+void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry RESTRICT cg) {
+    if (is_hit != 0) {
+        if (cg->side == -1) {
             // Mirror back
             LocalParticle_scale_x(part, -1);
 #ifdef XCOLL_USE_EXACT
@@ -188,15 +186,15 @@ void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry /*re
 }
 
 
-/*gpufun*/
-void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
-    if (is_hit != 0){
-        if (LocalParticle_get_state(part) > 0){
-            if (cg->record_exits){
+GPUFUN
+void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry RESTRICT cg) {
+    if (is_hit != 0) {
+        if (LocalParticle_get_state(part) > 0) {
+            if (cg->record_exits) {
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW, is_hit);
             }
         }
-        if (cg->side == -1){
+        if (cg->side == -1) {
             // Mirror back
             LocalParticle_scale_x(part, -1);
 #ifdef XCOLL_USE_EXACT
@@ -211,7 +209,7 @@ void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeome
         // Shift the reference frame back from jaw corner U
         XYShift_single_particle(part, -cg->jaw_U, 0);
         // If particle survived, drift to end of element
-        if (LocalParticle_get_state(part) > 0){
+        if (LocalParticle_get_state(part) > 0) {
 #ifdef XCOLL_USE_EXACT
             Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
 #else

@@ -37,7 +37,7 @@ class BlowUp(InvalidXcoll):
     _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
     _store_in_to_dict = ['amplitude', 'plane', 'calibration']
 
-    _depends_on = [InvalidXcoll, xt.RandomUniform]
+    _depends_on = [InvalidXcoll]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','blowup.h')

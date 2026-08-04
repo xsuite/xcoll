@@ -9,8 +9,23 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/uniform.h"
+// #include "xtrack/random/random_src/uniform_accurate.h"
+#include "xtrack/random/random_src/exponential.h"
+#include "xtrack/random/random_src/normal.h"
+#include "xcoll/scattering_routines/geometry/crystal_geometry.h"
+#include "xcoll/scattering_routines/everest/constants.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+#include "xcoll/scattering_routines/everest/properties.h"
+// #include "xcoll/scattering_routines/everest/multiple_coulomb_scattering.h"
+#include "xcoll/scattering_routines/everest/nuclear_interaction.h"
+#include "xcoll/scattering_routines/everest/ionisation_loss.h"
+#include "xcoll/scattering_routines/everest/crystal_parameters.h"
+#include "xcoll/scattering_routines/everest/amorphous.h"
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
 
 
 // Convention:
@@ -20,12 +35,12 @@
 //       r: radius from position to bending centre (including t_I):  L = t*r
 
 
-/*gpufun*/
-double channelling_average_density(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
-                                   CrystalGeometry /*restrict*/ cg, LocalParticle* part, double pc) {
+GPUFUN
+double channelling_average_density(EverestData RESTRICT everest, MaterialData RESTRICT material,
+                                   CrystalGeometry RESTRICT cg, LocalParticle* part, double pc) {
 
     // Material properties
-    double const atoms = MaterialData_get__atoms_per_volume((MaterialData)material);
+    double const atoms = MaterialData_get__atoms_per_volume(material);
     double const eum  = MaterialData_get__crystal_potential(material);
 
     double bend_r = cg->bending_radius;
@@ -40,7 +55,7 @@ double channelling_average_density(EverestData /*restrict*/ everest, MaterialDat
     double pv   = pow(pc, 2.)/sqrt(pow(pc, 2.) + pow(XC_PROTON_MASS*1.0e-3, 2.))*1.0e9; //Calculate pv=P/E   TODO: this is beta?
     double Ueff = eum*4.*pow(x_i/XC_PLANE_DISTANCE, 2.) + pv*x_i/bend_r; //Calculate effective potential
     double Et   = pv*pow(xp, 2.)/2. + Ueff;       //Calculate transverse energy
-    double Ec   = eum*pow(1. - ratio, 2.);         //Calculate critical energy in bent crystals
+    double Ec   = eum*pow(1. - ratio, 2.);        //Calculate critical energy in bent crystals
 
     //To avoid negative Et
     double xminU = -pow(XC_PLANE_DISTANCE, 2.)*pc*1.0e9/(8.*eum*bend_r);
@@ -73,8 +88,8 @@ double channelling_average_density(EverestData /*restrict*/ everest, MaterialDat
 }
 
 
-/*gpufun*/
-void channel_transport(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+GPUFUN
+void channel_transport(EverestData RESTRICT everest, MaterialData RESTRICT material,
                        LocalParticle* part, double pc, double L_chan, double t_I, double t_P,
                        double* out_drift_length, double* out_pc) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
@@ -103,16 +118,16 @@ void channel_transport(EverestData /*restrict*/ everest, MaterialData /*restrict
     // In reality,the particle oscillates horizontally between the planes while channelling.
     // This effect is mimicked by giving a random angle spread at the exit
     double sigma_ran = 0.5*everest->t_c;
-    double ran = RandomNormal_generate(part);
+    double ran = RandomNormal_generate(part); // TODO: do we need 64bit randoms?
     while (fabs(ran) > 2.0) {
         // Ensure that the kick is within [-tc, +tc]
-        ran = RandomNormal_generate(part);
+        ran = RandomNormal_generate(part); // TODO: do we need 64bit randoms?
     }
     double ran_angle = ran*sigma_ran;
     LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channelling
 
     // Apply energy loss along trajectory
-    pc = calcionloss(everest, (MaterialData) material, part, L_chan, pc, 0.5);
+    pc = calcionloss(everest, material, part, L_chan, pc, 0.5);
     // TODO: LocalParticle_add_to_energy(part, - energy_loss*1.e9, change_angle);
     // if change_angle = 0  => LocalParticle_scale_px(part, old_rpp / new_rpp) such that xp remains the same
     // It is done in K2, so we should do it. Though, it seems that with the current implementation in xtrack
@@ -126,8 +141,8 @@ void channel_transport(EverestData /*restrict*/ everest, MaterialData /*restrict
 }
 
 
-double do_crystal(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
-                  LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length) {
+double do_crystal(EverestData RESTRICT everest, MaterialData RESTRICT material,
+                  LocalParticle* part, CrystalGeometry RESTRICT cg, double pc, double length) {
     calculate_initial_angle(everest, part, cg);
     calculate_opening_angle(everest, part, cg);
 #ifdef XCOLL_REFINE_ENERGY
@@ -142,7 +157,7 @@ double do_crystal(EverestData /*restrict*/ everest, MaterialData /*restrict*/ ma
         double alpha = fabs(xp - everest->t_I) / everest->t_c;
         double ratio = everest->Rc_over_R;
         double eta = MaterialData_get__eta(material);
-        double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(eta);
+        double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(eta); // TODO: do we need 64bit randoms?
         if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
 #ifdef XCOLL_TRANSITION_VRCH
 #ifdef XCOLL_REFINE_ENERGY
@@ -160,9 +175,9 @@ double do_crystal(EverestData /*restrict*/ everest, MaterialData /*restrict*/ ma
     return pc;
 }
 
-double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
-               LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length) {
-    if (LocalParticle_get_state(part) < 1){
+double Channel(EverestData RESTRICT everest, MaterialData RESTRICT material,
+               LocalParticle* part, CrystalGeometry RESTRICT cg, double pc, double length) {
+    if (LocalParticle_get_state(part) < 1) {
         // Do nothing if already absorbed
         return pc;
     }
@@ -179,10 +194,10 @@ double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mater
     double const_dech = calculate_dechannelling_length(everest, material, pc);
     double TLdech1 = const_dech*pc*pow(1. - ratio, 2.); //Updated calculate typical dech. length(m)
     double N_atom = 1.0e-1;
-    if(RandomUniform_generate(part) <= N_atom) {
+    if(RandomUniform_generate(part) <= N_atom) { // TODO: do we need 64bit randoms?
         TLdech1 /= 200.;   // Updated dechannelling length (m)
     }
-    double L_dechan = TLdech1*RandomExponential_generate(part);   // Actual dechan. length
+    double L_dechan = TLdech1*RandomExponential_generate(part);   // Actual dechan. length // TODO: do we need 64bit randoms?
 
     // -----------------------------------------------------
     // Calculate curved length L_nucl of nuclear interaction
@@ -195,12 +210,12 @@ double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mater
     } else {
         collnt = collnt/avrrho;
     }
-    double L_nucl = collnt*RandomExponential_generate(part);
+    double L_nucl = collnt*RandomExponential_generate(part); // TODO: do we need 64bit randoms?
 
     // ------------------------------------------------------------------------
     // Compare the 3 lengths: the first one encountered is what will be applied
     // ------------------------------------------------------------------------
-    if (L_chan <= fmin(L_dechan, L_nucl)){
+    if (L_chan <= fmin(L_dechan, L_nucl)) {
         // Channel full length
         double channeled_length;
         channel_transport(everest, material, part, pc, L_chan, t_I, t_P, &channeled_length, &pc);
@@ -211,7 +226,7 @@ double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mater
         channel_transport(everest, material, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan, &channeled_length, &pc);
         // TODO: particle might have died due to ionisation loss
 
-        if (everest->coll->record_scatterings){
+        if (everest->coll->record_scatterings) {
             InteractionRecordData record = everest->coll->record;
             RecordIndex record_index     = everest->coll->record_index;
             InteractionRecordData_log(record, record_index, part, XC_DECHANNELLING, everest->shape_id);
@@ -226,14 +241,14 @@ double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mater
         // Rescale nuclear interaction parameters
         everest->rescale_scattering = avrrho;
 #ifndef XCOLL_REFINE_ENERGY
-        calculate_scattering(everest, (MaterialData) material, pc);
+        calculate_scattering(everest, material, pc);
 #endif
-        pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
-        if (LocalParticle_get_state(part) > 0){
+        pc = nuclear_interaction(everest, material, part, pc);
+        if (LocalParticle_get_state(part) > 0) {
             // We call the main Amorphous function for the leftover
             everest->rescale_scattering = 1;
 #ifndef XCOLL_REFINE_ENERGY
-            calculate_scattering(everest, (MaterialData) material, pc);
+            calculate_scattering(everest, material, pc);
 #endif
             pc = Amorphous(everest, material, part, cg, pc, length - channeled_length, 1);
         }

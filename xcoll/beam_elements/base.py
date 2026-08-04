@@ -39,11 +39,8 @@ class InvalidXcoll(xt.BeamElement):
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
-        particle_states_src,
-        _pkg_root.joinpath('headers','checks.h')
+        particle_states_src
     ]
-
-    _depends_on = [xt.RandomRutherford]  # Needed for checks
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

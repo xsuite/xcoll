@@ -8,23 +8,19 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
 #include <stdint.h>  // for int64_t etc
-#include <stdlib.h>  // for malloc and free
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
 
 
 // These functions compare a particle trajectory (straight line with slope part_tan going
 // through the point [0, part_x]) with a given segment of specific type.
 // The results are always stored in an array s, and n_hit keeps track of the number of hits.
 
-
+#define XC_MAX_SEGMENTS 8
 #define XC_MAX_CROSS_PER_SEGMENT 2  // Update if new segment type allows more crossings
-
-// Maximum number of segments stored by value in a single object's segment array.
-// The crystal always uses 4 segments; update if a by-value object needs more.
-#define XC_MAX_SEGMENTS 4
-
+#define XC_MAX_CROSSINGS (XC_MAX_SEGMENTS*XC_MAX_CROSS_PER_SEGMENT+1)
 
 // Segment type tag, used for switch-based crossing dispatch.
 // Device function pointers are unsupported on CUDA, so instead of a function-pointer
@@ -44,7 +40,7 @@
 // flatten them into one struct (a tagged union without per-member casts). A Segment is
 // stored by value, so functions that scan an array of segments take a `Segment*`
 // (pointer to the first element) exactly as before, but the array slots are values.
-typedef struct Segment_ {
+typedef struct Segment {
     int8_t type;
     // Line segment: two points (s1, x1), (s2, x2).
     double point1_s;
@@ -62,8 +58,7 @@ typedef struct Segment_ {
     double centre_x;
     double point1_angle;
     double point2_angle;
-} Segment_;
-typedef Segment_ Segment;
+} Segment;
 
 
 // Line segment
@@ -73,8 +68,7 @@ typedef Segment_ Segment;
 // points in the trajectory equation; if the results have opposite sign, the two points lie on
 // different sides of the trajectory and hence the segment is crossed.
 
-/*gpufun*/
-void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
+GPUFUN void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
     // Get segment data
     Segment* seg = (Segment*) self;
     double s_p1 = seg->point1_s;
@@ -84,14 +78,14 @@ void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x
     // Calculate crossings
     double trajectory_p1 = x_p1 - part_x - s_p1*part_tan;
     double trajectory_p2 = x_p2 - part_x - s_p2*part_tan;
-    if (trajectory_p1*trajectory_p2 <= 0){
+    if (trajectory_p1*trajectory_p2 <= 0) {
         // It's a crossing
-        if (fabs(s_p2 - s_p1) < 1.e-12){
+        if (fabs(s_p2 - s_p1) < 1.e-12) {
             s[*n_hit] = s_p1;
             (*n_hit)++;
         } else {
             double poly_tan = (x_p2 - x_p1)/(s_p2 - s_p1);
-            if (fabs(poly_tan - part_tan) < 1.e-12){
+            if (fabs(poly_tan - part_tan) < 1.e-12) {
                 s[*n_hit] = s_p1;
                 (*n_hit)++;
             } else {
@@ -102,8 +96,7 @@ void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x
     }
 }
 
-/*gpufun*/
-Segment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x){
+GPUFUN Segment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x) {
     Segment seg;
     seg.type = XC_SEGMENT_LINE;
     seg.point1_s = point1_s;
@@ -123,15 +116,15 @@ Segment create_line_segment(double point1_s, double point1_x, double point2_s, d
 
 // A half-open segment implies one of its points lies at +-inf.
 // In practice we just add a polygon point at the wall overflow (at 1km for the x-coordinate).
-/*gpufun*/
-void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
+
+GPUFUN void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
     // Get segment data
     Segment* seg = (Segment*) self;
     double s_p1 = seg->point_s;
     double x_p1 = seg->point_x;
     double x_p2 = 1.e3*seg->side;
     double s_p2;
-    if (fabs(seg->point_tan) < 1.e-12){
+    if (fabs(seg->point_tan) < 1.e-12) {
         s_p2 = s_p1;
     } else {
         s_p2 = -(x_p2 - x_p1 - s_p1/seg->point_tan)*seg->point_tan;
@@ -139,14 +132,14 @@ void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, doub
     // Calculate crossings
     double trajectory_p1 = x_p1 - part_x - s_p1*part_tan;
     double trajectory_p2 = x_p2 - part_x - s_p2*part_tan;
-    if (trajectory_p1*trajectory_p2 <= 0){
+    if (trajectory_p1*trajectory_p2 <= 0) {
         // It's a crossing
-        if (fabs(s_p2 - s_p1) < 1.e-12){
+        if (fabs(s_p2 - s_p1) < 1.e-12) {
             s[*n_hit] = s_p1;
             (*n_hit)++;
         } else {
             double poly_tan = (x_p2 - x_p1)/(s_p2 - s_p1);
-            if (fabs(poly_tan - part_tan) < 1.e-12){
+            if (fabs(poly_tan - part_tan) < 1.e-12) {
                 s[*n_hit] = s_p1;
                 (*n_hit)++;
             } else {
@@ -157,8 +150,7 @@ void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, doub
     }
 }
 
-/*gpufun*/
-Segment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side){
+GPUFUN Segment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side) {
     Segment seg;
     seg.type = XC_SEGMENT_HALFOPEN;
     seg.point_s = point_s;
@@ -176,8 +168,7 @@ Segment create_halfopen_line_segment(double point_s, double point_x, double poin
 // and a circular arc segment defined by a radius R, a centre (Rs, Rx), and angles t1 and t2.
 // The results are stored in an array s, and n_hit keeps track of the number of hits.
 
-/*gpufun*/
-void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
+GPUFUN void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
     // Get segment data
     Segment* seg = (Segment*) self;
     double R   = seg->R;
@@ -187,27 +178,27 @@ void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double pa
     double t2  = seg->point2_angle;
     // Calculate crossings
     int8_t reversed = 0;
-    if (t2 < t1){
+    if (t2 < t1) {
         reversed = 1;
     }
     double a = 1 + part_tan*part_tan;
     double bb = R_s - part_tan*(part_x - R_x);
     double c = R_s*R_s + (part_x - R_x)*(part_x - R_x) - R*R;
     double disc = bb*bb - a*c;
-    if (disc >= 0){
+    if (disc >= 0) {
         for (int8_t i = 0; i < 2; i++) {
             double sgnD = i*2-1; // negative and positive solutions
             double new_s = 1/a*(bb + sgnD*sqrt(bb*bb - a*c));
             double x = part_x + new_s*part_tan;
             double t = atan2(x - R_x, new_s - R_s);
-            if (reversed){
+            if (reversed) {
                 // t2 < t1, so we are looking at the inverted region of angles
-                if (t1 >= t || t >= t2){
+                if (t1 >= t || t >= t2) {
                     s[*n_hit] = new_s;
                     (*n_hit)++;
                 }
             } else {
-                if (t1 <= t && t <= t2){
+                if (t1 <= t && t <= t2) {
                     s[*n_hit] = new_s;
                     (*n_hit)++;
                 }
@@ -216,8 +207,7 @@ void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double pa
     }
 }
 
-/*gpufun*/
-Segment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle){
+GPUFUN Segment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle) {
     Segment seg;
     seg.type = XC_SEGMENT_CIRCULAR;
     seg.R = R;

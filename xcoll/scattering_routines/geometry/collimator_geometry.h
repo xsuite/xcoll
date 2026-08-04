@@ -9,7 +9,17 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xtrack/beam_elements/elements_src/track_drift.h"
+#include "xtrack/beam_elements/elements_src/track_srotation.h"
+#include "xtrack/beam_elements/elements_src/track_xyshift.h"
+#include "xcoll/scattering_routines/geometry/segments.h"
+#include "xcoll/scattering_routines/geometry/rotation.h"
+#include "xcoll/scattering_routines/geometry/methods.h"
+#include "xcoll/scattering_routines/geometry/get_s.h"
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
 
 
 typedef struct CollimatorGeometry_ {
@@ -32,8 +42,8 @@ typedef struct CollimatorGeometry_ {
     double sin_yR;
     double cos_yR;
     // Segments
-    Segment* segments_L;
-    Segment* segments_R;
+    Segment segments_L[3];
+    Segment segments_R[3];
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;
@@ -45,15 +55,15 @@ typedef CollimatorGeometry_* CollimatorGeometry;
 
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
-/*gpufun*/
-int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
+GPUFUN
+int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry RESTRICT cg) {
     double part_x, part_tan;
     int8_t is_hit = 0;
     double s_L = 1.e21;
     double s_R = 1.e21;
 
     // Find the first hit on the left jaw (if not a right-sided collimator)
-    if (cg->side != -1){
+    if (cg->side != -1) {
         SRotation_single_particle(part, cg->sin_zL, cg->cos_zL);
         part_x = LocalParticle_get_x(part);
 #ifdef XCOLL_USE_EXACT
@@ -62,7 +72,7 @@ int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
         part_tan = LocalParticle_get_xp(part);
 #endif
         s_L = get_s_of_first_crossing(part_x, part_tan, cg->segments_L, 3);
-        if (s_L < S_MAX){
+        if (s_L < XC_S_MAX) {
             is_hit = 1;
         }
         // Return to lab frame
@@ -70,7 +80,7 @@ int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
     }
 
     // Find the first hit on the right jaw (if not a left-sided collimator)
-    if (cg->side != 1){
+    if (cg->side != 1) {
         SRotation_single_particle(part, cg->sin_zR, cg->cos_zR);
         part_x = LocalParticle_get_x(part);
 #ifdef XCOLL_USE_EXACT
@@ -79,7 +89,7 @@ int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
         part_tan = LocalParticle_get_xp(part);
 #endif
         s_R = get_s_of_first_crossing(part_x, part_tan, cg->segments_R, 3);
-        if (s_R < S_MAX && s_R < s_L){
+        if (s_R < XC_S_MAX && s_R < s_L) {
             is_hit = -1;
         }
         // Return to lab frame
@@ -92,15 +102,15 @@ int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
-/*gpufun*/
-int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
+GPUFUN
+int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry RESTRICT cg) {
     double part_x, part_tan;
     int8_t is_hit = 0;
     double s_L = 1.e21;
     double s_R = 1.e21;
 
     // Find the first hit on the left jaw (if not a right-sided collimator)
-    if (cg->side != -1){
+    if (cg->side != -1) {
         SRotation_single_particle(part, cg->sin_zL, cg->cos_zL);
         part_x = LocalParticle_get_x(part);
 #ifdef XCOLL_USE_EXACT
@@ -109,9 +119,9 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
         part_tan = LocalParticle_get_xp(part);
 #endif
         s_L = get_s_of_first_crossing(part_x, part_tan, cg->segments_L, 3);
-        if (s_L < S_MAX){
+        if (s_L < XC_S_MAX) {
             is_hit = 1;
-        } else if (cg->side == 1){
+        } else if (cg->side == 1) {
             // If left-sided and no hit, rotate back to lab frame
             SRotation_single_particle(part, -cg->sin_zL, cg->cos_zL);
         }
@@ -124,11 +134,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
     // if bothsided  and hit:    left frame
 
     // Find the first hit on the right jaw (if not a left-sided collimator)
-    if (cg->side != 1){
-        if (cg->side == -1){
+    if (cg->side != 1) {
+        if (cg->side == -1) {
             // We didn't rotate to the left frame earlier, so full rotation to the right frame now
             SRotation_single_particle(part, cg->sin_zR, cg->cos_zR);
-        } else if (!cg->jaws_parallel){
+        } else if (!cg->jaws_parallel) {
             // We rotated to the left frame before, so now rotate the difference
             SRotation_single_particle(part, cg->sin_zDiff, cg->cos_zDiff);
         }
@@ -139,10 +149,10 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
         part_tan = LocalParticle_get_xp(part);
 #endif
         s_R = get_s_of_first_crossing(part_x, part_tan, cg->segments_R, 3);
-        if (s_R < S_MAX && s_R < s_L){
+        if (s_R < XC_S_MAX && s_R < s_L) {
             is_hit = -1;
-        } else if (is_hit == 1){
-            if (!cg->jaws_parallel){
+        } else if (is_hit == 1) {
+            if (!cg->jaws_parallel) {
                 // Rotate back to left frame
                 SRotation_single_particle(part, -cg->sin_zDiff, cg->cos_zDiff);
             }
@@ -160,7 +170,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
     // if bothsided  and hit:    hit   frame
 
     // Drift to the impact position or end, and move to jaw frame if relevant
-    if (is_hit == 1){
+    if (is_hit == 1) {
         // Move to the impact position
 #ifdef XCOLL_USE_EXACT
         Drift_single_particle_exact(part, s_L);
@@ -173,11 +183,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
         // Rotate the reference frame to tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), asin(cg->sin_yL));
         LocalParticle_set_s(part, new_s);
-        if (cg->record_impacts){
+        if (cg->record_impacts) {
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L, is_hit);
         }
 
-    } else if (is_hit == -1){
+    } else if (is_hit == -1) {
         // Move to the impact position
 #ifdef XCOLL_USE_EXACT
         Drift_single_particle_exact(part, s_R);
@@ -197,7 +207,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
 #else
         LocalParticle_scale_xp(part, -1);
 #endif
-        if (cg->record_impacts){
+        if (cg->record_impacts) {
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R, is_hit);
         }
 
@@ -214,9 +224,9 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry /*re
 
 
 // Return to start position after having logged the impact.
-/*gpufun*/
-void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
-    if (is_hit == 1){
+GPUFUN
+void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry RESTRICT cg) {
+    if (is_hit == 1) {
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_yL));
         LocalParticle_set_s(part, new_s);
@@ -231,7 +241,7 @@ void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry /*re
 #endif
         SRotation_single_particle(part, -cg->sin_zL, cg->cos_zL);
 
-    } else if (is_hit == -1){
+    } else if (is_hit == -1) {
         // Mirror back
         LocalParticle_scale_x(part, -1);
 #ifdef XCOLL_USE_EXACT
@@ -256,14 +266,14 @@ void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry /*re
 }
 
 
-/*gpufun*/
-void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry /*restrict*/ cg){
-    if (is_hit != 0 && LocalParticle_get_state(part) > 0){
-        if (cg->record_exits){
+GPUFUN
+void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry RESTRICT cg) {
+    if (is_hit != 0 && LocalParticle_get_state(part) > 0) {
+        if (cg->record_exits) {
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW, is_hit);
         }
     }
-    if (is_hit == 1){
+    if (is_hit == 1) {
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_yL));
         LocalParticle_set_s(part, new_s);
@@ -271,7 +281,7 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         XYShift_single_particle(part, -cg->jaw_LU, 0);
         LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_yL));
         // If particle survived, drift to end of element
-        if (LocalParticle_get_state(part) > 0){
+        if (LocalParticle_get_state(part) > 0) {
 #ifdef XCOLL_USE_EXACT
             Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
 #else
@@ -280,7 +290,7 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         }
         SRotation_single_particle(part, -cg->sin_zL, cg->cos_zL);
 
-    } else if (is_hit == -1){
+    } else if (is_hit == -1) {
         // Mirror back
         LocalParticle_scale_x(part, -1);
 #ifdef XCOLL_USE_EXACT
@@ -295,7 +305,7 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         XYShift_single_particle(part, -cg->jaw_RU, 0);
         LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_yR));
         // If particle survived, drift to end of element
-        if (LocalParticle_get_state(part) > 0){
+        if (LocalParticle_get_state(part) > 0) {
 #ifdef XCOLL_USE_EXACT
             Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
 #else

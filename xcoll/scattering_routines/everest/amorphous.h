@@ -9,11 +9,24 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/uniform.h"
+// #include "xtrack/random/random_src/uniform_accurate.h"
+#include "xtrack/random/random_src/exponential.h"
+#include "xtrack/random/random_src/normal.h"
+#include "xcoll/scattering_routines/geometry/crystal_geometry.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+// #include "xcoll/scattering_routines/everest/multiple_coulomb_scattering.h"
+#include "xcoll/scattering_routines/everest/nuclear_interaction.h"
+#include "xcoll/scattering_routines/everest/ionisation_loss.h"
+#include "xcoll/scattering_routines/everest/crystal_parameters.h"
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
 
 
-/*gpufun*/
-void volume_reflection(EverestData /*restrict*/ everest, LocalParticle* part, int8_t transition) {
+GPUFUN
+void volume_reflection(EverestData RESTRICT everest, LocalParticle* part, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
@@ -21,11 +34,11 @@ void volume_reflection(EverestData /*restrict*/ everest, LocalParticle* part, in
     int64_t i_slot = -1;
 
     double Ang_avr = everest->Ang_avr;
-    double Ang_rms = everest->Ang_rms * RandomNormal_generate(part);
+    double Ang_rms = everest->Ang_rms * RandomNormal_generate(part); // TODO: do we need 64bit randoms?
     // TODO: Use standard MCS
     // TODO: should we automatically channel after VC? Now it will still roll a dice, and do VRCH if failed. Many VR are missed this way
 
-    if (transition == XC_VOLUME_REFLECTION_TRANS_CH){
+    if (transition == XC_VOLUME_REFLECTION_TRANS_CH) {
         // We are in transition from CH to VR
         double xp = LocalParticle_get_xp(part);
         // TODO: we believe the original 0.45 comes from the 0.9 saturation factor, so we changed it to 0.5
@@ -33,7 +46,7 @@ void volume_reflection(EverestData /*restrict*/ everest, LocalParticle* part, in
         Ang_rms  = 0;   // TODO: why does transition to CH not use any spread?
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_CH, everest->shape_id);
 
-    } else if (transition == XC_VOLUME_REFLECTION_TRANS_MCS){
+    } else if (transition == XC_VOLUME_REFLECTION_TRANS_MCS) {
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_MCS, everest->shape_id);
 
     } else {
@@ -46,8 +59,8 @@ void volume_reflection(EverestData /*restrict*/ everest, LocalParticle* part, in
 
 
 // Amorphous transport is just Multiple Coulomb scattering
-/*gpufun*/
-double amorphous_transport(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
+GPUFUN
+double amorphous_transport(EverestData RESTRICT everest, MaterialData RESTRICT material,
                            LocalParticle* part, double pc, double length, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
@@ -62,21 +75,21 @@ double amorphous_transport(EverestData /*restrict*/ everest, MaterialData /*rest
     double dya = (13.6/pc)*sqrt(length/radl)*1.0e-3; // RMS of coloumb scattering MCS (rad)
     double kxmcs, kymcs;
 
-    if (transition == XC_MULTIPLE_COULOMB_TRANS_VR){
+    if (transition == XC_MULTIPLE_COULOMB_TRANS_VR) {
         // Transition MCS
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR, everest->shape_id);
     } else {
         // Normal MCS
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING, everest->shape_id);
     }
-    kxmcs = dya*RandomNormal_generate(part);
-    kymcs = dya*RandomNormal_generate(part);
+    kxmcs = dya*RandomNormal_generate(part); // TODO: do we need 64bit randoms?
+    kymcs = dya*RandomNormal_generate(part); // TODO: do we need 64bit randoms?
 
     // Transport of Multiple Coulomb Scattering
     Drift_single_particle_4d(part, length);
 
     // Energy lost because of ionisation process[GeV]
-    pc = calcionloss(everest, (MaterialData) material, part, length, pc, 1);
+    pc = calcionloss(everest, material, part, length, pc, 1);
 
     // Store new angles
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
@@ -88,15 +101,25 @@ double amorphous_transport(EverestData /*restrict*/ everest, MaterialData /*rest
 }
 
 
-double Channel(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length);
-double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length, int8_t allow_VI);
+// Pre-declare crystal routines
+GPUFUN
+double Channel(EverestData RESTRICT everest, MaterialData RESTRICT material,
+               LocalParticle* part, CrystalGeometry RESTRICT cg, double pc,
+               double length);
+GPUFUN
+double Amorphous(EverestData RESTRICT everest, MaterialData RESTRICT material,
+                 LocalParticle* part, CrystalGeometry RESTRICT cg, double pc,
+                 double length, int8_t allow_VI);
 
-double volume_interaction(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length, int8_t transition){
+
+double volume_interaction(EverestData RESTRICT everest, MaterialData RESTRICT material,
+                          LocalParticle* part, CrystalGeometry RESTRICT cg, double pc,
+                          double length, int8_t transition) {
 #ifdef XCOLL_REFINE_ENERGY
     calculate_VI_parameters(everest, part, pc);
 #endif
     // Are we reflecting or captured?
-    if (RandomUniform_generate(part) > everest->Vcapt) {
+    if (RandomUniform_generate(part) > everest->Vcapt) { // TODO: do we need 64bit randoms?
         // Volume Reflection
         volume_reflection(everest, part, transition);
         // We call the main Amorphous function for the leftover
@@ -104,7 +127,7 @@ double volume_interaction(EverestData /*restrict*/ everest, MaterialData /*restr
 
     } else {
         // Volume Capture
-        if (everest->coll->record_scatterings){
+        if (everest->coll->record_scatterings) {
             InteractionRecordData record = everest->coll->record;
             RecordIndex record_index     = everest->coll->record_index;
             InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE, everest->shape_id);
@@ -120,11 +143,11 @@ double volume_interaction(EverestData /*restrict*/ everest, MaterialData /*restr
     return pc;
 }
 
-// /*gpufun*/
-double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
-           LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc, double length, int8_t allow_VI) {
+// GPUFUN
+double Amorphous(EverestData RESTRICT everest, MaterialData RESTRICT material,
+           LocalParticle* part, CrystalGeometry RESTRICT cg, double pc, double length, int8_t allow_VI) {
 
-    if (LocalParticle_get_state(part) < 1){
+    if (LocalParticle_get_state(part) < 1) {
         // Do nothing if already absorbed
         return pc;
     }
@@ -161,7 +184,7 @@ double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mat
     // Calculate longitudinal length of nuclear interaction
     // ----------------------------------------------------
     double collnt = MaterialData_get__nuclear_collision_length(material);
-    double length_nucl = collnt*RandomExponential_generate(part);
+    double length_nucl = collnt*RandomExponential_generate(part); // TODO: do we need 64bit randoms?
 
     // --------------------------------------------------------------
     // Calculate longitudinal length of volume interaction (VR or VC)
@@ -170,7 +193,7 @@ double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mat
     // The (straight) trajectory until the point of reflection is r sin(xp - t_I),
     // hence the longitudinal length is r sin(xp - t_I) cos xp
     double length_VI = 1e10;
-    if (xp > everest->t_I){
+    if (xp > everest->t_I) {
     // xp has to be larger than t_I to be able to VR (no matter which transition we consider)
 // #ifdef XCOLL_TRANSITION_VRAM
 //         // Transition region between VR and AM for t_B < xp - tI < t_B + t_c  (or t_B + 2t_c if OLD)
@@ -190,13 +213,13 @@ double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mat
     double length_VR_trans = 1e10;
 #ifdef XCOLL_TRANSITION_VRAM_OLD
     // Transition region between VR and AM for t_B < xp - tI < t_B + 2t_c
-    if (xp - 2.*everest->t_c > everest->t_I){
+    if (xp - 2.*everest->t_c > everest->t_I) {
         length_VR_trans = everest->r * sin(xp - everest->t_I - 2.*everest->t_c) * cos(xp);
     }
 #else
 #ifdef XCOLL_TRANSITION_VRAM
     // Transition region between VR and AM for t_B < xp - tI < t_B + t_c
-    if (xp - everest->t_c > everest->t_I){
+    if (xp - everest->t_c > everest->t_I) {
         length_VR_trans = everest->r * sin(xp - everest->t_I - everest->t_c) * cos(xp);
     }
 #endif
@@ -211,25 +234,25 @@ double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mat
         pc = amorphous_transport(everest, material, part, pc, length_nucl, 0);
         // TODO: particle might have died due to ionisation loss
         // interact
-        pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
-        if (LocalParticle_get_state(part) > 0){
+        pc = nuclear_interaction(everest, material, part, pc);
+        if (LocalParticle_get_state(part) > 0) {
             // We call the main Amorphous function for the leftover
             pc = Amorphous(everest, material, part, cg, pc, length - length_nucl, 1);
         }
 
-    } else if (length_VI <= length_exit && allow_VI == 1){
+    } else if (length_VI <= length_exit && allow_VI == 1) {
         // MCS to volume interaction
         pc = amorphous_transport(everest, material, part, pc, length_VI, 0);
         // TODO: particle might have died due to ionisation loss
         pc = volume_interaction(everest, material, part, cg, pc, length - length_VI, 0);
 
-    } else if (length_VR_trans <= length_exit && allow_VI == 1){
+    } else if (length_VR_trans <= length_exit && allow_VI == 1) {
         // We estimate where we are in the transition region (rather on the VR side or rather on the AM side)
         // by looking at how much correction we needed on the length. If length_VI is closest to length_exit,
         // we are on the VR side. On the other hand, if length_VR_trans is closest to length_exit, we are on the
         // AM side. Note that, by reaching this part we automatically have length_VI > length_exit > length_VR_trans.
         double prob_MCS = (length_VI - length_exit) / (length_VI - length_VR_trans);
-        if (RandomUniform_generate(part) > prob_MCS){
+        if (RandomUniform_generate(part) > prob_MCS) { // TODO: do we need 64bit randoms?
             // We are on the VR side
             pc = amorphous_transport(everest, material, part, pc, length_VR_trans, 0);
             // TODO: particle might have died due to ionisation loss
@@ -253,7 +276,7 @@ double Amorphous(EverestData /*restrict*/ everest, MaterialData /*restrict*/ mat
         // TODO: particle might have died due to ionisation loss
         // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
         double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
-        if (s3 < fmin(s1, s2) && s4 < s2){
+        if (s3 < fmin(s1, s2) && s4 < s2) {
             // We drift until re-entry
             Drift_single_particle_4d(part, s4 - exit_point);
             // We call the main Amorphous function for the leftover

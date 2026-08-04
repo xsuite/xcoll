@@ -8,13 +8,21 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/exponential.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+#include "xcoll/scattering_routines/everest/properties.h"
+#include "xcoll/scattering_routines/everest/multiple_coulomb_scattering.h"
+#include "xcoll/scattering_routines/everest/nuclear_interaction.h"
+#include "xcoll/scattering_routines/everest/ionisation_loss.h"
 
 
-/*gpufun*/
-double jaw(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part,
+GPUFUN
+double jaw(EverestData RESTRICT everest, MaterialData RESTRICT material, LocalParticle* part,
            double pc, double length, int edge_check) {
-    if (LocalParticle_get_state(part) < 1){
+    if (LocalParticle_get_state(part) < 1) {
         // Do nothing if already absorbed
         return pc;
     }
@@ -26,11 +34,11 @@ double jaw(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
     while (1) {
         // Length of the step until nuclear interaction
         double length_step;
-        if (MaterialData_get__cross_section(material, 0) < 0){
+        if (MaterialData_get__cross_section(material, 0) < 0) {
             // No cross-section defined: only do MCS
             length_step = 1.e21;
         } else {
-            length_step = everest->xintl*RandomExponential_generate(part);
+            length_step = everest->xintl*RandomExponential_generate(part); // TODO: do we need 64bit randoms?
         }
 
         if (length_step > rlen) {
@@ -40,13 +48,13 @@ double jaw(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
         }
 
         mcs(everest, material, part, length_step, pc, edge_check);
-        if (LocalParticle_get_state(part) < 1 || (edge_check && LocalParticle_get_x(part) <= 0)){
+        if (LocalParticle_get_state(part) < 1 || (edge_check && LocalParticle_get_x(part) <= 0)) {
             // Particle lost all energy due to ionisation, or left the collimator
             break;
         }
 
         pc = nuclear_interaction(everest, material, part, pc);
-        if (LocalParticle_get_state(part) < 1){
+        if (LocalParticle_get_state(part) < 1) {
             // Particle was absorbed
             break;
         }

@@ -8,11 +8,16 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xcoll/scattering_routines/geometry/crystal_geometry.h"
+#include "xcoll/scattering_routines/everest/constants.h"
+#include "xcoll/scattering_routines/everest/everest.h"
 
 
-/*gpufun*/
-void calculate_initial_angle(EverestData /*restrict*/ everest, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
+GPUFUN
+void calculate_initial_angle(EverestData RESTRICT everest, LocalParticle* part, CrystalGeometry RESTRICT cg) {
     double R = cg->bending_radius;
     double s = LocalParticle_get_s(part);
     double x = LocalParticle_get_x(part);
@@ -24,8 +29,8 @@ void calculate_initial_angle(EverestData /*restrict*/ everest, LocalParticle* pa
 }
 
 
-/*gpufun*/
-void calculate_opening_angle(EverestData /*restrict*/ everest, LocalParticle* part, CrystalGeometry /*restrict*/ cg){
+GPUFUN
+void calculate_opening_angle(EverestData RESTRICT everest, LocalParticle* part, CrystalGeometry RESTRICT cg) {
     double t    = cg->bending_angle;
     double xd   = cg->width;
     double R    = cg->bending_radius;
@@ -42,14 +47,14 @@ void calculate_opening_angle(EverestData /*restrict*/ everest, LocalParticle* pa
     // We could intersect with the upper (positive miscut) or lower bend (negative miscut) before the exit face
     // Distance between bending centre and miscut centre:
     double d = R*sqrt(2*(1-cosp));
-    if (cg->miscut_angle > 0){
+    if (cg->miscut_angle > 0) {
         // Check if intersection with upper bend R-xd is possible
         double Rb = R-xd;
-        if (d > fabs(r - Rb)){
+        if (d > fabs(r - Rb)) {
             double st_UB = (r*r - Rb*Rb)/(2*d);
             double xt_UB = -sqrt(r*r/2. + Rb*Rb/2. - st_UB*st_UB - d*d/4.);
             double s_UB  = (st_UB/d - 0.5)*R*sinp - xt_UB/d*R*(1-cosp);
-            if (s_F > s_UB){
+            if (s_F > s_UB) {
                 // Upper bend encountered before exit face
                 s_F = s_UB;
                 x_F = (st_UB/d + 0.5)*R*(1-cosp) + xt_UB/d*R*sinp + R*cosp;
@@ -57,11 +62,11 @@ void calculate_opening_angle(EverestData /*restrict*/ everest, LocalParticle* pa
         }
     } else {
         // Check if intersection with lower bend R is possible
-        if (d > fabs(R - r)){
+        if (d > fabs(R - r)) {
             double st_LB = (R*R - r*r)/(2*d);
             double xt_LB = -sqrt(r*r/2. + R*R/2. - st_LB*st_LB - d*d/4.);
             double s_LB  = -(st_LB/d + 0.5)*R*sinp + xt_LB/d*R*(1-cosp);
-            if (s_F > s_LB){
+            if (s_F > s_LB) {
                 // Lower bend encountered before exit face
                 s_F = s_LB;
                 x_F = -(st_LB/d - 0.5)*R*(1-cosp) - xt_LB/d*R*sinp + R*cosp;
@@ -76,16 +81,16 @@ void calculate_opening_angle(EverestData /*restrict*/ everest, LocalParticle* pa
 }
 
 
-/*gpufun*/
-double _critical_angle0(MaterialData /*restrict*/ material, double pc){
+GPUFUN
+double _critical_angle0(MaterialData RESTRICT material, double pc) {
     // Define typical angles/probabilities for orientation 110
     double eum = MaterialData_get__crystal_potential(material);
     double eta = MaterialData_get__eta(material);
     return sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals    // pc is actually beta pc
 }
 
-/*gpufun*/
-double _critical_radius(MaterialData /*restrict*/ material, double pc){
+GPUFUN
+double _critical_radius(MaterialData RESTRICT material, double pc) {
     // Define typical angles/probabilities for orientation 110
     double eum = MaterialData_get__crystal_potential(material);
     double ai  = MaterialData_get__crystal_plane_distance(material);
@@ -93,8 +98,8 @@ double _critical_radius(MaterialData /*restrict*/ material, double pc){
     return pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]   // pc is actually beta pc
 }
 
-/*gpufun*/
-double _critical_angle(EverestCollData /*restrict*/ coll, double t_c0, double Rc_over_R){
+GPUFUN
+double _critical_angle(EverestCollData RESTRICT coll, double t_c0, double Rc_over_R) {
     double t_c = 0;
     if (Rc_over_R <= 1.) {
         // Otherwise no channelling possible
@@ -106,9 +111,9 @@ double _critical_angle(EverestCollData /*restrict*/ coll, double t_c0, double Rc
     return t_c;
 }
 
-/*gpufun*/
-void calculate_critical_angle(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,
-                              LocalParticle* part, CrystalGeometry /*restrict*/ cg, double pc){
+GPUFUN
+void calculate_critical_angle(EverestData RESTRICT everest, MaterialData RESTRICT material,
+                              LocalParticle* part, CrystalGeometry RESTRICT cg, double pc) {
     // Define typical angles/probabilities for orientation 110
     everest->t_c0  = _critical_angle0(material, pc);
     double Rcrit = _critical_radius(material, pc);
@@ -117,8 +122,8 @@ void calculate_critical_angle(EverestData /*restrict*/ everest, MaterialData /*r
 }
 
 
-/*gpufun*/
-void calculate_VI_parameters(EverestData /*restrict*/ everest, LocalParticle* part, double pc){
+GPUFUN
+void calculate_VI_parameters(EverestData RESTRICT everest, LocalParticle* part, double pc) {
     double ratio = everest->Rc_over_R;
     double t_c0  = everest->t_c0;
 
@@ -153,6 +158,28 @@ void calculate_VI_parameters(EverestData /*restrict*/ everest, LocalParticle* pa
 
     everest->Ang_rms = Ang_rms;
     everest->Ang_avr = Ang_avr;
+}
+
+
+GPUFUN
+double calculate_dechannelling_length(EverestData RESTRICT everest, MaterialData RESTRICT material, double pc) {
+
+    // Material properties
+    double exenergy = MaterialData_get__excitation_energy(material);
+    if (exenergy < 0) {
+        // Unsupported material for ionisation loss
+        return 1.e21;
+    }
+    exenergy *= 1.0e-6; // [MeV]
+
+    // Energy variables
+    double momentum = pc*1.0e3;   // [MeV]
+    double energy   = sqrt(pow(momentum, 2.) + pow(XC_PROTON_MASS, 2.)); // [MeV]
+    double gammar   = energy/XC_PROTON_MASS;
+
+    double const_dech = 256.0/(9.*pow(M_PI, 2.)) / (log(2.*XC_ELECTRON_MASS*gammar/exenergy/1000) - 1.);
+    const_dech       *= (XC_SCREENING*XC_PLANE_DISTANCE)/(XC_CRADE*XC_ELECTRON_MASS)*1.0e3; // [m/GeV]
+    return const_dech;
 }
 
 #endif /* XCOLL_EVEREST_CRYSTAL_PARAMETERS_H */

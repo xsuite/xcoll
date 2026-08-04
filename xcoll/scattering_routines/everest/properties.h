@@ -3,16 +3,20 @@
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
-#ifndef XCOLL_EVEREST_PROP_H
-#define XCOLL_EVEREST_PROP_H
+#ifndef XCOLL_EVEREST_PROPERTIES_H
+#define XCOLL_EVEREST_PROPERTIES_H
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xcoll/scattering_routines/everest/constants.h"
+#include "xcoll/scattering_routines/everest/everest.h"
 
 
-/*gpufun*/
-void calculate_scattering(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material,double pc) {
+GPUFUN
+void calculate_scattering(EverestData RESTRICT everest, MaterialData RESTRICT material,double pc) {
     // Material properties
     double const atoms = MaterialData_get__atoms_per_volume(material);
     double const bnref = MaterialData_get__nuclear_elastic_slope(material);
@@ -75,11 +79,11 @@ void calculate_scattering(EverestData /*restrict*/ everest, MaterialData /*restr
     int i;
     everest->cprob[0] = 0;
     if(csect[0] == 0) {   // TODO: is this needed?
-        for (i=1; i<5; ++i){
+        for (i=1; i<5; ++i) {
             everest->cprob[i] = everest->cprob[i-1];  // TODO: seems wrong
         }
     } else {
-        for (i=1; i<5; ++i){
+        for (i=1; i<5; ++i) {
             everest->cprob[i] = everest->cprob[i-1] + csect[i]/csect[0];
         }
     }
@@ -87,26 +91,4 @@ void calculate_scattering(EverestData /*restrict*/ everest, MaterialData /*restr
 }
 
 
-/*gpufun*/
-double calculate_dechannelling_length(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, double pc) {
-
-    // Material properties
-    double exenergy = MaterialData_get__excitation_energy(material);
-    if (exenergy < 0){
-        // Unsupported material for ionisation loss
-        return 1.e21;
-    }
-    exenergy *= 1.0e-6; // [MeV]
-
-    // Energy variables
-    double momentum = pc*1.0e3;   // [MeV]
-    double energy   = sqrt(pow(momentum, 2.) + pow(XC_PROTON_MASS, 2.)); // [MeV]
-    double gammar   = energy/XC_PROTON_MASS;
-
-    double const_dech = 256.0/(9.*pow(M_PI, 2.)) / (log(2.*XC_ELECTRON_MASS*gammar/exenergy/1000) - 1.);
-    const_dech       *= (XC_SCREENING*XC_PLANE_DISTANCE)/(XC_CRADE*XC_ELECTRON_MASS)*1.0e3; // [m/GeV]
-    return const_dech;
-}
-
-
-#endif /* XCOLL_EVEREST_PROP_H */
+#endif /* XCOLL_EVEREST_PROPERTIES_H */

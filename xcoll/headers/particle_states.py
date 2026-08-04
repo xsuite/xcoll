@@ -23,6 +23,7 @@ class XcollParticleStates(Constants):
     ERR_INVALID_TRACK       = constant(-390, "Invalid track through Xcoll element.")
     ERR_NOT_IMPLEMENTED     = constant(-391, "Not implemented in Xcoll.")
     ERR_INVALID_XOFIELD     = constant(-392, "Invalid xofield in Xcoll element.")
+    ERR_FAILED_GEOMETRY     = constant(-393, "Failed creating geometry for Xcoll element.")
     ERR                     = constant(-399, "Unknown Xcoll error.")
 
     SECONDARY_PARTICLE      = constant(301,  "The particle has scattered off an Xcoll material element before.")

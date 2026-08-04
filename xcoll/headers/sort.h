@@ -8,7 +8,7 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
 
 #include "xobjects/headers/common.h"
 #include "xcoll/headers/helpers.h"
@@ -236,7 +236,7 @@
     }
 
     template <typename T>
-    GPUFUN void xc_shell_sort_desc_impl(T* arr, int64_t length){
+    GPUFUN void xc_shell_sort_desc_impl(T* arr, int64_t length) {
         const int64_t n_gaps = 7;
         const int64_t gaps[] = {701, 301, 132, 57, 23, 10, 4};
         for (int64_t igap = 0; igap < n_gaps; ++igap) {
@@ -352,7 +352,7 @@
             }                                                                 \
             xc_insertion_sort_asc_##SUFFIX(arr, length);                      \
         }                                                                     \
-        GPUFUN void xc_shell_sort_desc_##SUFFIX(T* arr, int64_t length){      \
+        GPUFUN void xc_shell_sort_desc_##SUFFIX(T* arr, int64_t length) {     \
             const int64_t n_gaps = 7;                                         \
             const int64_t gaps[] = {701, 301, 132, 57, 23, 10, 4};            \
             for (int64_t igap = 0; igap < n_gaps; ++igap) {                   \
@@ -420,8 +420,7 @@
         X(uint32_t,    uint32_t) \
         X(uint64_t,    uint64_t) \
         X(float,       float)    \
-        X(double,      double)   \
-        X(long double, ldouble)
+        X(double,      double)
     XC_CPU_SORT_TYPES(XC_DEFINE_SORT_FUNCTIONS)
 
     #define XC_SORT_ARRAY_ASC(arr) _Generic((arr),  \
@@ -434,8 +433,7 @@
         uint32_t*:    xc_sort_array_asc_uint32_t,   \
         uint64_t*:    xc_sort_array_asc_uint64_t,   \
         float*:       xc_sort_array_asc_float,      \
-        double*:      xc_sort_array_asc_double,     \
-        long double*: xc_sort_array_asc_ldouble     \
+        double*:      xc_sort_array_asc_double      \
     )
 
     #define XC_SORT_ARRAY_DESC(arr) _Generic((arr), \
@@ -448,8 +446,7 @@
         uint32_t*:    xc_sort_array_desc_uint32_t,  \
         uint64_t*:    xc_sort_array_desc_uint64_t,  \
         float*:       xc_sort_array_desc_float,     \
-        double*:      xc_sort_array_desc_double,    \
-        long double*: xc_sort_array_desc_ldouble    \
+        double*:      xc_sort_array_desc_double     \
     )
 
     #undef XC_DEFINE_SORT_FUNCTIONS
@@ -510,7 +507,7 @@
             }                                                                                \
             xc_insertion_sort_asc_impl(arr, length);                                         \
         }                                                                                    \
-        GPUFUN void OCL_OVERLOAD xc_shell_sort_desc_impl(ADDRQ T* arr, int64_t length){      \
+        GPUFUN void OCL_OVERLOAD xc_shell_sort_desc_impl(ADDRQ T* arr, int64_t length) {     \
             const int64_t n_gaps = 7;                                                        \
             const int64_t gaps[] = {701, 301, 132, 57, 23, 10, 4};                           \
             for (int64_t igap = 0; igap < n_gaps; ++igap) {                                  \
@@ -591,7 +588,7 @@
 
 #else
 #error "Xcoll header: No context defined!"
-#endif // context selection
+#endif /* context selection */
 
 
 // Clean up macros to avoid polluting the global namespace

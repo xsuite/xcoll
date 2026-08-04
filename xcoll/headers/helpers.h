@@ -8,7 +8,7 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
 
 #include "xobjects/headers/common.h"
 #include "xobjects/headers/atomicadd.h"
@@ -61,19 +61,19 @@
 
     // CUDA source is C++, so use a function template.
     template <typename T>
-    GPUFUN T xc_max_impl(T x, T y){
+    GPUFUN T xc_max_impl(T x, T y) {
         return x > y ? x : y;
     }
     #define XC_MAX(x, y) xc_max_impl((x), (y))
 
     template <typename T>
-    GPUFUN T xc_min_impl(T x, T y){
+    GPUFUN T xc_min_impl(T x, T y) {
         return x < y ? x : y;
     }
     #define XC_MIN(x, y) xc_min_impl((x), (y))
 
     template <typename T>
-    GPUFUN void xc_sort_pair_asc(T& a, T& b){
+    GPUFUN void xc_sort_pair_asc(T& a, T& b) {
         if (b < a) {
             T tmp = a;
             a = b;
@@ -83,7 +83,7 @@
     #define XC_ASORT(d, x, y) xc_sort_pair_asc((d)[(x)], (d)[(y)])
 
     template <typename T>
-    GPUFUN void xc_sort_pair_desc(T& a, T& b){
+    GPUFUN void xc_sort_pair_desc(T& a, T& b) {
         if (a < b) {
             T tmp = a;
             a = b;
@@ -111,7 +111,6 @@
     GPUFUN uint64_t    xc_max_uint64_t (uint64_t x, uint64_t y)       {return x > y ? x : y;}
     GPUFUN float       xc_max_float    (float x, float y)             {return x > y ? x : y;}
     GPUFUN double      xc_max_double   (double x, double y)           {return x > y ? x : y;}
-    GPUFUN long double xc_max_ldouble  (long double x, long double y) {return x > y ? x : y;}
 
     GPUFUN int8_t      xc_min_int8_t   (int8_t x, int8_t y)           {return x < y ? x : y;}
     GPUFUN int16_t     xc_min_int16_t  (int16_t x, int16_t y)         {return x < y ? x : y;}
@@ -123,7 +122,6 @@
     GPUFUN uint64_t    xc_min_uint64_t (uint64_t x, uint64_t y)       {return x < y ? x : y;}
     GPUFUN float       xc_min_float    (float x, float y)             {return x < y ? x : y;}
     GPUFUN double      xc_min_double   (double x, double y)           {return x < y ? x : y;}
-    GPUFUN long double xc_min_ldouble  (long double x, long double y) {return x < y ? x : y;}
 
     GPUFUN void xc_sort_pair_asc_int8_t   (int8_t* a, int8_t* b)           {if (*b < *a) {int8_t tmp = *a; *a = *b; *b = tmp;}}
     GPUFUN void xc_sort_pair_asc_int16_t  (int16_t* a, int16_t* b)         {if (*b < *a) {int16_t tmp = *a; *a = *b; *b = tmp;}}
@@ -135,7 +133,6 @@
     GPUFUN void xc_sort_pair_asc_uint64_t (uint64_t* a, uint64_t* b)       {if (*b < *a) {uint64_t tmp = *a; *a = *b; *b = tmp;}}
     GPUFUN void xc_sort_pair_asc_float    (float* a, float* b)             {if (*b < *a) {float tmp = *a; *a = *b; *b = tmp;}}
     GPUFUN void xc_sort_pair_asc_double   (double* a, double* b)           {if (*b < *a) {double tmp = *a; *a = *b; *b = tmp;}}
-    GPUFUN void xc_sort_pair_asc_ldouble  (long double* a, long double* b) {if (*b < *a) {long double tmp = *a; *a = *b; *b = tmp;}}
 
     GPUFUN void xc_sort_pair_desc_int8_t   (int8_t* a, int8_t* b)           {if (*a < *b) {int8_t tmp = *a; *a = *b; *b = tmp;}}
     GPUFUN void xc_sort_pair_desc_int16_t  (int16_t* a, int16_t* b)         {if (*a < *b) {int16_t tmp = *a; *a = *b; *b = tmp;}}
@@ -147,7 +144,6 @@
     GPUFUN void xc_sort_pair_desc_uint64_t (uint64_t* a, uint64_t* b)       {if (*a < *b) {uint64_t tmp = *a; *a = *b; *b = tmp;}}
     GPUFUN void xc_sort_pair_desc_float    (float* a, float* b)             {if (*a < *b) {float tmp = *a; *a = *b; *b = tmp;}}
     GPUFUN void xc_sort_pair_desc_double   (double* a, double* b)           {if (*a < *b) {double tmp = *a; *a = *b; *b = tmp;}}
-    GPUFUN void xc_sort_pair_desc_ldouble  (long double* a, long double* b) {if (*a < *b) {long double tmp = *a; *a = *b; *b = tmp;}}
 
     // Dispatching on +(x) applies lvalue conversion and removes top-level
     // qualifiers without evaluating x.
@@ -161,8 +157,7 @@
                 uint32_t:    xc_max_uint32_t, \
                 uint64_t:    xc_max_uint64_t, \
                 float:       xc_max_float,    \
-                double:      xc_max_double,   \
-                long double: xc_max_ldouble   \
+                double:      xc_max_double    \
             )
     #define XC_MAX(x, y) XC_MAX_SELECT(x)((x), (y))
 
@@ -176,8 +171,7 @@
                 uint32_t:    xc_min_uint32_t, \
                 uint64_t:    xc_min_uint64_t, \
                 float:       xc_min_float,    \
-                double:      xc_min_double,   \
-                long double: xc_min_ldouble   \
+                double:      xc_min_double    \
             )
     #define XC_MIN(x, y) XC_MIN_SELECT(x)((x), (y))
 
@@ -191,8 +185,7 @@
                 uint32_t*:    xc_sort_pair_asc_uint32_t, \
                 uint64_t*:    xc_sort_pair_asc_uint64_t, \
                 float*:       xc_sort_pair_asc_float,    \
-                double*:      xc_sort_pair_asc_double,   \
-                long double*: xc_sort_pair_asc_ldouble   \
+                double*:      xc_sort_pair_asc_double    \
             )
     #define XC_ASORT(d, x, y) XC_SORT_PAIR_ASC(&(d)[0])(&(d)[(x)], &(d)[(y)])
 
@@ -206,8 +199,7 @@
                 uint32_t*:    xc_sort_pair_desc_uint32_t, \
                 uint64_t*:    xc_sort_pair_desc_uint64_t, \
                 float*:       xc_sort_pair_desc_float,    \
-                double*:      xc_sort_pair_desc_double,   \
-                long double*: xc_sort_pair_desc_ldouble   \
+                double*:      xc_sort_pair_desc_double    \
             )
     #define XC_DSORT(d, x, y) XC_SORT_PAIR_DESC(&(d)[0])(&(d)[(x)], &(d)[(y)])
 
@@ -249,13 +241,13 @@
 
     // For sort macros, need to overload for each memory space (global, local, private)
     // because OpenCL does not allow overloading on pointer types with different address spaces.
-    #define XC_DEFINE_OCL_ASC_SORT(T, suffix) do {                                 \
-        GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__global T* a, __global T* b){   \
-            if (*b < *a){T tmp = *a; *a = *b; *b = tmp;}}                          \
-        GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__local T* a, __local T* b){     \
-            if (*b < *a){T tmp = *a; *a = *b; *b = tmp;}}                          \
-        GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__private T* a, __private T* b){ \
-            if (*b < *a){T tmp = *a; *a = *b; *b = tmp;}}                          \
+    #define XC_DEFINE_OCL_ASC_SORT(T, suffix) do {                                  \
+        GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__global T* a, __global T* b) {   \
+            if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}                          \
+        GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__local T* a, __local T* b) {     \
+            if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}                          \
+        GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__private T* a, __private T* b) { \
+            if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}                          \
     } while(0)  // Do-while for scoping; allows trailing semicolon after macro usage
     XC_DEFINE_OCL_ASC_SORT(int8_t, int8_t)
     XC_DEFINE_OCL_ASC_SORT(int16_t, int16_t)
@@ -269,13 +261,13 @@
     XC_DEFINE_OCL_ASC_SORT(double, double)
     #define XC_ASORT(d, x, y) xc_sort_pair_asc(&(d)[(x)], &(d)[(y)])
 
-    #define XC_DEFINE_OCL_DESC_SORT(T, suffix) do {                                 \
-        GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__global T* a, __global T* b){   \
-            if (*a < *b){T tmp = *a; *a = *b; *b = tmp;}}                           \
-        GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__local T* a, __local T* b){     \
-            if (*a < *b){T tmp = *a; *a = *b; *b = tmp;}}                           \
-        GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__private T* a, __private T* b){ \
-            if (*a < *b){T tmp = *a; *a = *b; *b = tmp;}}                          \
+    #define XC_DEFINE_OCL_DESC_SORT(T, suffix) do {                                  \
+        GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__global T* a, __global T* b) {   \
+            if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}                           \
+        GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__local T* a, __local T* b) {     \
+            if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}                           \
+        GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__private T* a, __private T* b) { \
+            if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}                           \
     } while(0)  // Do-while for scoping; allows trailing semicolon after macro usage
     XC_DEFINE_OCL_DESC_SORT(int8_t, int8_t)
     XC_DEFINE_OCL_DESC_SORT(int16_t, int16_t)
@@ -294,7 +286,7 @@
 
 #else
 #error "Xcoll header: No context defined!"
-#endif // context selection
+#endif /* context selection */
 
 
-#endif // XCOLL_HELPERS_H
+#endif /* XCOLL_HELPERS_H */

@@ -3,19 +3,27 @@
 // Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
-#ifndef XCOLL_EVEREST_IONLOSS_H
-#define XCOLL_EVEREST_IONLOSS_H
+#ifndef XCOLL_EVEREST_IONISATION_LOSS_H
+#define XCOLL_EVEREST_IONISATION_LOSS_H
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/uniform.h"
+// #include "xtrack/random/random_src/uniform_accurate.h"
+#include "xtrack/random/random_src/normal.h"
+#include "xcoll/scattering_routines/everest/constants.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
 
 
-/*gpufun*/
-void calculate_ionisation_properties(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, double pc) {
+GPUFUN
+void calculate_ionisation_properties(EverestData RESTRICT everest, MaterialData RESTRICT material, double pc) {
     double exenergy = MaterialData_get__excitation_energy(material);
-    if (exenergy < 0){
+    if (exenergy < 0) {
         // Unsupported material for ionisation loss
         return;
     }
@@ -71,10 +79,10 @@ void calculate_ionisation_properties(EverestData /*restrict*/ everest, MaterialD
 }
 
 
-/*gpufun*/
-double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ material, LocalParticle* part,
+GPUFUN
+double calcionloss(EverestData RESTRICT everest, MaterialData RESTRICT material, LocalParticle* part,
                    double ionisation_length, double pc, double scale_factor) {
-    if (MaterialData_get__excitation_energy(material) < 0){
+    if (MaterialData_get__excitation_energy(material) < 0) {
         // Unsupported material for ionisation loss
         return 0;
     }
@@ -100,7 +108,7 @@ double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ m
                      + everest->prob_tail_c4 * ionisation_length * ionisation_length;
 
     double xi = ionisation_length*everest->energy_loss_xi_m;
-    if (RandomUniform_generate(part) < prob_tail) {
+    if (RandomUniform_generate(part) < prob_tail) { // TODO: do we need 64bit randoms?
         ionisation_loss = ionisation_length*everest->energy_loss_tail_m;
     } else {
         ionisation_loss = ionisation_length*everest->energy_loss_most_probable_m;
@@ -108,8 +116,8 @@ double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ m
     }
 
     // Straggling: energy loss is double Gaussian-like for thick absorbers (TODO: it's Landau-Vavilov for thin absorbers when xi << Tmax)
-    double ran1 = RandomNormal_generate(part);
-    double ran2 = RandomUniform_generate(part);
+    double ran1 = RandomNormal_generate(part); // TODO: do we need 64bit randoms?
+    double ran2 = RandomUniform_generate(part); // TODO: do we need 64bit randoms?
     // Sample from two Gaussians, to mimic the fat tail of the Landau distribution
     if (ran2 >= 0.8) {
         ionisation_loss += 3*xi + ran1*xi*3.39729; // 3.39729 = 4/sqrt(2ln2)
@@ -127,12 +135,12 @@ double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ m
         dead = 1;
     } else {
         new_pc_2 = pow(kinetic_energy - ionisation_loss + mp, 2.) - pow(mp, 2.);
-        if (new_pc_2 <= 1.e-12 || new_pc_2 != new_pc_2){
+        if (new_pc_2 <= 1.e-12 || new_pc_2 != new_pc_2) {
             // Rounding error. Kill particle to avoid NaN  (a != a is true only for NaN)
             dead = 1;
         } else {
             new_pc = sqrt(new_pc_2);
-            if (new_pc != new_pc){
+            if (new_pc != new_pc) {
                 // NaN
                 dead = 1;
             }
@@ -140,7 +148,7 @@ double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ m
     }
     if (dead) {
         if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED, everest->shape_id);
-        if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
+        if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE) {
             LocalParticle_set_state(part, XC_LOST_ON_MATERIAL_SEC);
         } else {
             LocalParticle_set_state(part, XC_LOST_ON_MATERIAL);
@@ -151,4 +159,4 @@ double calcionloss(EverestData /*restrict*/ everest, MaterialData /*restrict*/ m
     }
 }
 
-#endif /* XCOLL_EVEREST_IONLOSS_H */
+#endif /* XCOLL_EVEREST_IONISATION_LOSS_H */

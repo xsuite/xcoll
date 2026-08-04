@@ -5,7 +5,6 @@
 
 import xobjects as xo
 import xtrack as xt
-from xcoll.scattering_routines.geometry import XcollGeometry
 
 
 # Example jaw code:
@@ -49,12 +48,23 @@ def _create_c_crossing_func(num_segments, after_s, vlimit):
 # created before tracking each particle. For ease of testing (and because we
 # cannot return Segments to Python), we combine both into one function.
 
-src_geomtest = []
+src_geomtest = [
+    '#include "xobjects/headers/common.h"',
+    '#include "xcoll/scattering_routines/geometry/segments.h"',
+    '#include "xcoll/scattering_routines/geometry/rotation.h"',
+    '#include "xcoll/scattering_routines/geometry/methods.h"',
+    '#include "xcoll/scattering_routines/geometry/get_s.h"',
+    '#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"',
+    '#include "xtrack/beam_elements/elements_src/track_drift.h"',
+    '#include "xtrack/beam_elements/elements_src/track_srotation.h"',
+    '#include "xtrack/beam_elements/elements_src/track_xyshift.h"',
+]
+
 # Jaw
 for vlimit in ['', '_with_vlimit']:
     for after_s in ['', '_after_s']:
         vars = _create_c_vars("double s_U, double x_U, double s_D, double x_D, double tilt_tan, int8_t side", after_s, vlimit)
-        src_geomtest.append(f"/*gpufun*/")
+        src_geomtest.append(f"GPUFUN")
         src_geomtest.append(f"double test_jaw{after_s}{vlimit}({vars}){{")
         src_geomtest.append(f"    Segment* segments = create_jaw(s_U, x_U, s_D, x_D, tilt_tan, side);")
         src_geomtest.append(f"    {_create_c_crossing_func(3, after_s, vlimit)}")
@@ -66,7 +76,7 @@ for vlimit in ['', '_with_vlimit']:
 for vlimit in ['', '_with_vlimit']:
     for after_s in ['', '_after_s']:
         vars = _create_c_vars("double* s_poly, double* x_poly, int8_t num_polys", after_s, vlimit)
-        src_geomtest.append(f"/*gpufun*/")
+        src_geomtest.append(f"GPUFUN")
         src_geomtest.append(f"double test_polygon{after_s}{vlimit}({vars}){{")
         src_geomtest.append(f"    Segment* segments = create_polygon(s_poly, x_poly, num_polys);")
         src_geomtest.append(f"    {_create_c_crossing_func('num_polys', after_s, vlimit)}")
@@ -78,7 +88,7 @@ for vlimit in ['', '_with_vlimit']:
 for vlimit in ['', '_with_vlimit']:
     for after_s in ['', '_after_s']:
         vars = _create_c_vars("double* s_poly, double* x_poly, int8_t num_polys, double tilt_tan, int8_t side", after_s, vlimit)
-        src_geomtest.append(f"/*gpufun*/")
+        src_geomtest.append(f"GPUFUN")
         src_geomtest.append(f"double test_open_polygon{after_s}{vlimit}({vars}){{")
         src_geomtest.append(f"    Segment* segments = create_open_polygon(s_poly, x_poly, num_polys, tilt_tan, side);")
         src_geomtest.append(f"    {_create_c_crossing_func('num_polys+1', after_s, vlimit)}")
@@ -90,7 +100,7 @@ for vlimit in ['', '_with_vlimit']:
 for vlimit in ['', '_with_vlimit']:
     for after_s in ['', '_after_s']:
         vars = _create_c_vars("double R, double width, double length, double jaw_U, double tilt_sin, double tilt_cos", after_s, vlimit)
-        src_geomtest.append(f"/*gpufun*/")
+        src_geomtest.append(f"GPUFUN")
         src_geomtest.append(f"double test_crystal{after_s}{vlimit}({vars}){{")
         src_geomtest.append(f"    Segment segments[XC_MAX_SEGMENTS];  // by value, no allocation")
         # The refactored create_crystal takes a leading LocalParticle* part0 (used
@@ -132,8 +142,6 @@ class XcollGeometryTest(xt.BeamElement):
 
     allow_track = False
     allow_no_prebuilt_kernel = True
-
-    _depends_on = [XcollGeometry]
 
     _extra_c_sources = [src_geomtest]
 

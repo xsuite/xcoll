@@ -9,24 +9,23 @@
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
 
+#include "xobjects/headers/common.h"
 #include "xcoll/headers/helpers.h"
 #include "xcoll/headers/sort.h"
+#include "xcoll/scattering_routines/geometry/segments.h"
 
 
-#define S_MAX 1.e21
+#define XC_S_MAX 1.e21
 
 
-/*gpufun*/
+GPUFUN
 void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
-                       Segment* segments, int8_t n_segments){
-    // Dispatch on the segment type tag (no device function pointers): each
-    // subtype's crossing function reads its fields back through the void* self.
-    // Segments are stored by value, so we take the address of each array slot.
+                   Segment* segments, int8_t n_segments) {
     for (int8_t i=0; i<n_segments;i++) {
         Segment* seg = &segments[i];
-        switch (seg->type){
+        switch (seg->type) {
             case XC_SEGMENT_LINE:
                 get_s_of_crossing_with_line_segment(n_hit, s, part_x, part_tan, seg);
                 break;
@@ -44,30 +43,29 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
 
 // IMPORTANT:
 // The array and interval are assumed to be sorted!
-// Furthermore, the array should have one extra slot allocated at the end, in case it needs to be expanded..
-// This is always true for the arrays created by get_s: they allocate
-// XC_MAX_CROSS_PER_SEGMENT*n_segments + 1 slots on CPU, and
-// XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS + 1 on GPU (where n_segments <= XC_MAX_SEGMENTS).
-/*gpufun*/
-void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
-    if (arr[0] > interval[1]){
+// Furthermore, the array should have one extra slot allocated at the end,
+// in case it needs to be expanded.. This is always true for the arrays
+// created by get_s, as we create them with XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS + 1
+GPUFUN
+void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval) {
+    if (arr[0] > interval[1]) {
         // No overlap
         *length = 0;
     }
-    if ((*length)%2 == 1){
+    if ((*length)%2 == 1) {
         // Special case: last interval of array is open until infinity,
         // so we add an extra point at the end to represent infinity.
-        arr[*length] = S_MAX*0.1;
+        arr[*length] = XC_S_MAX*0.1;
         (*length)++;
-    } else if (arr[*length-1] < interval[0]){
+    } else if (arr[*length-1] < interval[0]) {
         // No overlap
         *length = 0;
     }
     int8_t i_start = 0;
     // Find the start of overlap
-    for (int8_t i=0; i<*length; i++){
-        if (arr[i] >= interval[0]){
-            if (i%2 == 0){
+    for (int8_t i=0; i<*length; i++) {
+        if (arr[i] >= interval[0]) {
+            if (i%2 == 0) {
                 // This is the first point of overlap
                 i_start = i;
             } else {
@@ -80,9 +78,9 @@ void calculate_overlap_array_interval(double* arr, int8_t* length, double* inter
     }
     // Find the end of overlap
     int8_t i_stop = *length - 1;
-    for (int8_t i=0; i<*length; i++){
-        if (arr[i] >= interval[1]){
-            if (i%2 == 0){
+    for (int8_t i=0; i<*length; i++) {
+        if (arr[i] >= interval[1]) {
+            if (i%2 == 0) {
                 // The previous point is the last point of overlap
                 i_stop = i-1;
             } else {
@@ -94,21 +92,21 @@ void calculate_overlap_array_interval(double* arr, int8_t* length, double* inter
         }
     }
     *length = i_stop - i_start + 1;
-    if (i_start > 0){
-        for (int8_t i=0; i<*length; i++){
+    if (i_start > 0) {
+        for (int8_t i=0; i<*length; i++) {
             arr[i] = arr[i+i_start];
         }
     }
 }
 
 
-/*gpufun*/
+GPUFUN
 void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double part_tan_x, \
                                double part_y, double part_tan_y, Segment* segments, \
-                               int8_t n_segments, double y_min, double y_max){
-    if (fabs(part_tan_y) < 1.e-12){
+                               int8_t n_segments, double y_min, double y_max) {
+    if (fabs(part_tan_y) < 1.e-12) {
         // Trajectory parallel to s axis
-        if (part_y < y_min || part_y > y_max){
+        if (part_y < y_min || part_y > y_max) {
             // No crossing
             return;
         } else {

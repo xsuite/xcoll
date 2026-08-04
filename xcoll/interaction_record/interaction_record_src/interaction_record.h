@@ -3,12 +3,15 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-#ifndef XCOLL_IMPACTS_H
-#define XCOLL_IMPACTS_H
+#ifndef XCOLL_INTERACTION_RECORD_H
+#define XCOLL_INTERACTION_RECORD_H
 
 #ifdef XO_CONTEXT_CPU
 #include <stdint.h>  // for int64_t etc
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
+
 
 #define XC_IR_SET_UNGUARDED(record, field, slot, value) \
     InteractionRecordData_set_##field(record, slot, value)
@@ -58,19 +61,19 @@
 
 // TODO: do we need to pass RecordIndex?
 // probably can do RecordIndex record_index = InteractionRecordData_getp__index(record);  ?
-/*gpufun*/
+GPUFUN
 int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex record_index, LocalParticle* parent,
-                                  int64_t interaction, int64_t shape_id){
+                                  int64_t interaction, int64_t shape_id) {
     // This can be used for a point-like interaction where there is no child (or because it's equal to the parent)
     // or to log the parent first, to be followed up with InteractionRecordData_log_child on the same slot
 
     int64_t i_slot = -1;
-    if (record){
+    if (record) {
         // Get a slot in the record (this is thread safe)
         i_slot = RecordIndex_get_slot(record_index);
         // The returned slot id is negative if record is NULL or if record is full
 
-        if (i_slot>=0){
+        if (i_slot>=0) {
             InteractionRecordData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(parent));
             InteractionRecordData_set_at_element(record, i_slot, LocalParticle_get_at_element(parent));
             InteractionRecordData_set__inter(record, i_slot, interaction);
@@ -94,9 +97,9 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
     return i_slot;
 }
 
-/*gpufun*/
-void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slot, LocalParticle* child){
-    if (record && i_slot>=0){
+GPUFUN
+void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slot, LocalParticle* child) {
+    if (record && i_slot>=0) {
         double charge_ratio = LocalParticle_get_charge_ratio(child);
         double mass_ratio = charge_ratio / LocalParticle_get_chi(child);
         double energy = ( LocalParticle_get_ptau(child) + 1 / LocalParticle_get_beta0(child)
@@ -118,4 +121,4 @@ void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slo
 #undef XC_IR_LOG_PARENT_OPTIONAL
 #undef XC_IR_LOG_CHILD_OPTIONAL
 
-#endif /* XCOLL_IMPACTS_H */
+#endif /* XCOLL_INTERACTION_RECORD_H */

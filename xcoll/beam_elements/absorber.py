@@ -6,7 +6,6 @@
 import xtrack as xt
 import xobjects as xo
 from .base import BaseCollimator, BaseCrystal, InvalidXcoll
-from ..scattering_routines.geometry import XcollGeometry
 from ..general import _pkg_root
 
 
@@ -23,7 +22,7 @@ class BlackAbsorber(BaseCollimator):
     skip_in_loss_location_refinement = True
 
     _noexpr_fields = BaseCollimator._noexpr_fields
-    _depends_on    = [BaseCollimator, XcollGeometry]
+    _depends_on    = [BaseCollimator]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','black_absorber.h')
@@ -55,7 +54,7 @@ class BlackCrystal(BaseCrystal):
     skip_in_loss_location_refinement = True
 
     _noexpr_fields = BaseCrystal._noexpr_fields
-    _depends_on    = [BaseCrystal, XcollGeometry]
+    _depends_on    = [BaseCrystal]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','black_crystal.h')

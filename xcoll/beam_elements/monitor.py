@@ -63,7 +63,6 @@ class EmittanceMonitor(xt.BeamElement):
 
     _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
-        xt._pkg_root.joinpath('headers/atomicadd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/emittance_monitor.h')
     ]
 
