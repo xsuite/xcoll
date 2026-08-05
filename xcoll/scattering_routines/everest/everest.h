@@ -15,6 +15,11 @@
 #include "xtrack/random/random_src/rutherford.h"
 #include "xtrack/beam_elements/elements_src/track_drift.h"
 
+// Everest code depends on C declarations of:
+//  - RandomRutherford
+//  - InteractionRecord
+//  - Material
+// as these objects are instantiated.
 
 #define XCOLL_TRANSITION_VRCH
 #define XCOLL_TRANSITION_VRAM

@@ -15,6 +15,7 @@
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/elements_src/track_drift.h"
 #include "xcoll/headers/checks.h"
+#include "xcoll/scattering_routines/geometry/objects.h"
 #include "xcoll/scattering_routines/geometry/crystal_geometry.h"
 #include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
 

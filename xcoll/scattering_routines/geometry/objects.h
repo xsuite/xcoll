@@ -22,7 +22,8 @@
 // Jaw
 // ---
 
-GPUFUN int8_t create_jaw(Segment* segments, double s_U, double x_U, double s_D, double x_D,
+GPUFUN
+int8_t create_jaw(Segment* segments, double s_U, double x_U, double s_D, double x_D,
                        double tilt_tan, int8_t side) {
     segments[0] = create_halfopen_line_segment(s_U, x_U, tilt_tan, side);
     segments[1] = create_line_segment(s_U, x_U, s_D, x_D);
@@ -34,7 +35,8 @@ GPUFUN int8_t create_jaw(Segment* segments, double s_U, double x_U, double s_D, 
 // Polygon
 // -------
 
-GPUFUN int8_t create_polygon(Segment* segments, double* s_poly, double* x_poly, int8_t num_polys) {
+GPUFUN
+int8_t create_polygon(Segment* segments, double* s_poly, double* x_poly, int8_t num_polys) {
     if (num_polys > XC_MAX_SEGMENTS) {
 #ifdef XO_CONTEXT_CPU
         printf("Error: too many polygon segments! Increase XC_MAX_SEGMENTS in segments.h\n");
@@ -54,7 +56,8 @@ GPUFUN int8_t create_polygon(Segment* segments, double* s_poly, double* x_poly, 
 // Open polygon
 // ------------
 
-GPUFUN int8_t create_open_polygon(Segment* segments, double* s_poly, double* x_poly,
+GPUFUN
+int8_t create_open_polygon(Segment* segments, double* s_poly, double* x_poly,
                                   int8_t num_polys, double tilt_tan, int8_t side) {
     if (num_polys + 1 > XC_MAX_SEGMENTS) {
 #ifdef XO_CONTEXT_CPU
@@ -78,7 +81,8 @@ GPUFUN int8_t create_open_polygon(Segment* segments, double* s_poly, double* x_p
 
 // The four corners A, B, C, D are such that AB is the front face, BC the curve furthest from the beam,
 // CD the back face, and DA the curve closest to the beam.
-GPUFUN int8_t create_crystal(Segment* segments, double R, double width, double length,
+GPUFUN
+int8_t create_crystal(Segment* segments, double R, double width, double length,
                              double jaw_U, double tilt_sin, double tilt_cos) {
     // First corner is what defines the crystal position
     double A_s = 0;

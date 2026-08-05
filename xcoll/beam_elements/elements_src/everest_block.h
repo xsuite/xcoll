@@ -108,7 +108,9 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
 
         } else {
             // Check collimator initialisation
-            int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
+            int8_t is_valid = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            is_valid       *= assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
+            is_valid       *= assert_rutherford_set(coll->rng, part, RNG_ERR_RUTH_NOT_SET);
 
             if (is_valid) {
                 // Store s-location of start of block

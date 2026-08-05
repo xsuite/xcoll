@@ -13,12 +13,16 @@
 
 #include "xobjects/headers/common.h"
 
+// Geometry code depends on C declarations of:
+//  - InteractionRecord
+// as these objects are instantiated.
+
 
 // These functions compare a particle trajectory (straight line with slope part_tan going
 // through the point [0, part_x]) with a given segment of specific type.
 // The results are always stored in an array s, and n_hit keeps track of the number of hits.
 
-#define XC_MAX_SEGMENTS 8
+#define XC_MAX_SEGMENTS 10
 #define XC_MAX_CROSS_PER_SEGMENT 2  // Update if new segment type allows more crossings
 #define XC_MAX_CROSSINGS (XC_MAX_SEGMENTS*XC_MAX_CROSS_PER_SEGMENT+1)
 
@@ -68,7 +72,8 @@ typedef struct Segment {
 // points in the trajectory equation; if the results have opposite sign, the two points lie on
 // different sides of the trajectory and hence the segment is crossed.
 
-GPUFUN void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
+GPUFUN
+void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
     // Get segment data
     Segment* seg = (Segment*) self;
     double s_p1 = seg->point1_s;
@@ -96,7 +101,8 @@ GPUFUN void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double
     }
 }
 
-GPUFUN Segment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x) {
+GPUFUN
+Segment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x) {
     Segment seg;
     seg.type = XC_SEGMENT_LINE;
     seg.point1_s = point1_s;
@@ -117,7 +123,8 @@ GPUFUN Segment create_line_segment(double point1_s, double point1_x, double poin
 // A half-open segment implies one of its points lies at +-inf.
 // In practice we just add a polygon point at the wall overflow (at 1km for the x-coordinate).
 
-GPUFUN void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
+GPUFUN
+void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
     // Get segment data
     Segment* seg = (Segment*) self;
     double s_p1 = seg->point_s;
@@ -150,7 +157,8 @@ GPUFUN void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* 
     }
 }
 
-GPUFUN Segment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side) {
+GPUFUN
+Segment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side) {
     Segment seg;
     seg.type = XC_SEGMENT_HALFOPEN;
     seg.point_s = point_s;
@@ -168,7 +176,8 @@ GPUFUN Segment create_halfopen_line_segment(double point_s, double point_x, doub
 // and a circular arc segment defined by a radius R, a centre (Rs, Rx), and angles t1 and t2.
 // The results are stored in an array s, and n_hit keeps track of the number of hits.
 
-GPUFUN void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
+GPUFUN
+void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self) {
     // Get segment data
     Segment* seg = (Segment*) self;
     double R   = seg->R;
@@ -207,7 +216,8 @@ GPUFUN void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, do
     }
 }
 
-GPUFUN Segment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle) {
+GPUFUN
+Segment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle) {
     Segment seg;
     seg.type = XC_SEGMENT_CIRCULAR;
     seg.R = R;
