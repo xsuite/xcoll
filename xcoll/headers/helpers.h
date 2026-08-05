@@ -58,6 +58,7 @@
 /* ========================================================================= */
 
 #if defined(XO_CONTEXT_CUDA) || (defined(XO_CONTEXT_CPU) && defined(__cplusplus))
+extern "C++" {
 
     // CUDA source is C++, so use a function template.
     template <typename T>
@@ -73,24 +74,25 @@
     #define XC_MIN(x, y) xc_min_impl((x), (y))
 
     template <typename T>
-    GPUFUN void xc_sort_pair_asc(T& a, T& b) {
-        if (b < a) {
-            T tmp = a;
-            a = b;
-            b = tmp;
+    GPUFUN void xc_sort_pair_asc(T* a, T* b) {
+        if (*b < *a) {
+            T tmp = *a;
+            *a = *b;
+            *b = tmp;
         }
     }
-    #define XC_ASORT(d, x, y) xc_sort_pair_asc((d)[(x)], (d)[(y)])
+    #define XC_ASORT(d, x, y) xc_sort_pair_asc(&(d)[(x)], &(d)[(y)])
 
     template <typename T>
-    GPUFUN void xc_sort_pair_desc(T& a, T& b) {
-        if (a < b) {
-            T tmp = a;
-            a = b;
-            b = tmp;
+    GPUFUN void xc_sort_pair_desc(T* a, T* b) {
+        if (*a < *b) {
+            T tmp = *a;
+            *a = *b;
+            *b = tmp;
         }
     }
-    #define XC_DSORT(d, x, y) xc_sort_pair_desc((d)[(x)], (d)[(y)])
+    #define XC_DSORT(d, x, y) xc_sort_pair_desc(&(d)[(x)], &(d)[(y)])
+} // extern "C++"
 
 
 /* ========================================================================= */

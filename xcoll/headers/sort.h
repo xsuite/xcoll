@@ -186,6 +186,7 @@
 /* ========================================================================= */
 
 #if defined(XO_CONTEXT_CUDA) || (defined(XO_CONTEXT_CPU) && defined(__cplusplus))
+extern "C++" {
 
     template <typename T>
     GPUFUN void xc_insertion_sort_asc_impl(T* arr, int64_t length) {
@@ -299,6 +300,7 @@
 
     #define XC_SORT_ASC(arr, length) xc_sort_array_asc_impl((arr), (length))
     #define XC_SORT_DESC(arr, length) xc_sort_array_desc_impl((arr), (length))
+} // extern "C++"
 
 
 /* ========================================================================= */
