@@ -183,7 +183,7 @@ def _loop_doublejaw_2partdim(name, func, num_polys):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_jaw(geometry_kernels):
+def test_jaw(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_jaw(part_x=part_x, part_tan_x=part_tan_x, s_U=s_poly[1], x_U=x_poly[1],
                              s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan, side=side)
@@ -191,7 +191,7 @@ def test_jaw(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_jaw_after_s(geometry_kernels):
+def test_jaw_after_s(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_jaw_after_s(part_x=part_x, part_tan_x=part_tan_x, s_U=s_poly[1], x_U=x_poly[1],
                                         s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan, side=side, current_s=0.6)
@@ -199,7 +199,7 @@ def test_jaw_after_s(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_jaw_with_vlimit(geometry_kernels):
+def test_jaw_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_jaw_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                             s_U=s_poly[1], x_U=x_poly[1], s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan,
@@ -208,7 +208,7 @@ def test_jaw_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_jaw_after_s_with_vlimit(geometry_kernels):
+def test_jaw_after_s_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_jaw_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                             s_U=s_poly[1], x_U=x_poly[1], s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan,
@@ -217,7 +217,7 @@ def test_jaw_after_s_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_polygon(geometry_kernels):
+def test_polygon(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_polygon(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly,
                                     x_poly=x_poly, num_polys=len(s_poly))
@@ -225,7 +225,7 @@ def test_polygon(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_polygon_after_s(geometry_kernels):
+def test_polygon_after_s(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_polygon_after_s(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly,
                                             x_poly=x_poly, num_polys=len(s_poly), current_s=0.6)
@@ -233,7 +233,7 @@ def test_polygon_after_s(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_polygon_with_vlimit(geometry_kernels):
+def test_polygon_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_polygon_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                                 s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), y_min=-0.1, y_max=0.25)
@@ -241,7 +241,7 @@ def test_polygon_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_polygon_after_s_with_vlimit(geometry_kernels):
+def test_polygon_after_s_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_polygon_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                                 s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), y_min=-0.1, y_max=0.25, current_s=0.6)
@@ -249,7 +249,7 @@ def test_polygon_after_s_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_open_polygon(geometry_kernels):
+def test_open_polygon(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_open_polygon(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly, x_poly=x_poly,
                                          num_polys=len(s_poly), tilt_tan=tilt_tan, side=side)
@@ -257,7 +257,7 @@ def test_open_polygon(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_open_polygon_after_s(geometry_kernels):
+def test_open_polygon_after_s(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_open_polygon_after_s(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly, x_poly=x_poly,
                                                  num_polys=len(s_poly), tilt_tan=tilt_tan, side=side, current_s=0.6)
@@ -265,7 +265,7 @@ def test_open_polygon_after_s(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_open_polygon_with_vlimit(geometry_kernels):
+def test_open_polygon_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_open_polygon_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                                      s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), tilt_tan=tilt_tan, side=side,
@@ -274,7 +274,7 @@ def test_open_polygon_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_open_polygon_after_s_with_vlimit(geometry_kernels):
+def test_open_polygon_after_s_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
         return geometry_kernels.test_open_polygon_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                                      s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), tilt_tan=tilt_tan, side=side,
@@ -283,7 +283,7 @@ def test_open_polygon_after_s_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_crystal(geometry_kernels):
+def test_crystal(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return geometry_kernels.test_crystal(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
                                     jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos)
@@ -291,7 +291,7 @@ def test_crystal(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_crystal_after_s(geometry_kernels):
+def test_crystal_after_s(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return geometry_kernels.test_crystal_after_s(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
                                             jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos, current_s=0.6)
@@ -299,7 +299,7 @@ def test_crystal_after_s(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_crystal_with_vlimit(geometry_kernels):
+def test_crystal_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return geometry_kernels.test_crystal_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                                 R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
@@ -308,7 +308,7 @@ def test_crystal_with_vlimit(geometry_kernels):
 
 @for_all_test_contexts
 @pytest.mark.xcother
-def test_crystal_after_s_with_vlimit(geometry_kernels):
+def test_crystal_after_s_with_vlimit(geometry_kernels, test_context):
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return geometry_kernels.test_crystal_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
                                                 R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,

@@ -54,6 +54,7 @@ GPUKERN void SortTest_sort_rows_desc_int64_t(GPUGLMEM int64_t* values,
                 xo.Arg(xo.Int64, name="row_length"),
                 xo.Arg(xo.Int64, name="num_rows"),
             ],
+            n_threads="num_rows",
         ),
         "sort_rows_desc_double": xo.Kernel(
             c_name="SortTest_sort_rows_desc_double",
@@ -62,6 +63,7 @@ GPUKERN void SortTest_sort_rows_desc_int64_t(GPUGLMEM int64_t* values,
                 xo.Arg(xo.Int64, name="row_length"),
                 xo.Arg(xo.Int64, name="num_rows"),
             ],
+            n_threads="num_rows",
         ),
         "sort_rows_asc_int64_t": xo.Kernel(
             c_name="SortTest_sort_rows_asc_int64_t",
@@ -70,6 +72,7 @@ GPUKERN void SortTest_sort_rows_desc_int64_t(GPUGLMEM int64_t* values,
                 xo.Arg(xo.Int64, name="row_length"),
                 xo.Arg(xo.Int64, name="num_rows"),
             ],
+            n_threads="num_rows",
         ),
         "sort_rows_desc_int64_t": xo.Kernel(
             c_name="SortTest_sort_rows_desc_int64_t",
@@ -78,6 +81,7 @@ GPUKERN void SortTest_sort_rows_desc_int64_t(GPUGLMEM int64_t* values,
                 xo.Arg(xo.Int64, name="row_length"),
                 xo.Arg(xo.Int64, name="num_rows"),
             ],
+            n_threads="num_rows",
         ),
     }
 
@@ -202,18 +206,10 @@ def _run_sort(sorter, values, descending, double):
             kernel = test_context.kernels['sort_rows_asc_double']
         else:
             kernel = test_context.kernels['sort_rows_asc_int64_t']
-    if isinstance(test_context, xo.ContextCpu):
-        kernel(
-            values=flat_context,
-            row_length=row_length,
-            num_rows=num_rows,
-        )
-    else:
-        kernel(
-            values=flat_context,
-            row_length=row_length,
-            num_rows=num_rows,
-            n_threads=num_rows,
-        )
+    kernel(
+        values=flat_context,
+        row_length=row_length,
+        num_rows=num_rows,
+    )
     result = test_context.nparray_from_context_array(flat_context)
     return result.reshape(num_rows, row_length)
