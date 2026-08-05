@@ -16,9 +16,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize("aper", [None, "auto", "single", "both",
                                   "single_ref_aper", "both_ref_aper"],
                          ids=["without_aper", "auto_aper", "single_aper",

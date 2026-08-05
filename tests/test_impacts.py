@@ -19,9 +19,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize("beam, plane", [
                             [1, 'H'],
                             [2, 'V'],
@@ -35,7 +33,7 @@ def test_impacts_from_line(beam, plane, test_context):
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True, _context=test_context)
     line.build_tracker(_context=test_context)
 
     line.xcoll.collimators.assign_optics()
@@ -51,9 +49,7 @@ def test_impacts_from_line(beam, plane, test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 def test_impacts_single_collimator(test_context):
     coll = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite,
                                 emittance=3.5e-6, _context=test_context)
@@ -64,7 +60,7 @@ def test_impacts_single_collimator(test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCP', record_impacts=True, record_exits=True, _context=test_context)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
@@ -72,9 +68,7 @@ def test_impacts_single_collimator(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize("R, side", [
                             [1, '+'],
                             [-1, '+'],
@@ -90,15 +84,17 @@ def test_impacts_single_crystal(R, side, test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True, _context=test_context)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
     _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'])
 
 
-def test_impacts_to_pandas_default_frame():
-    impacts, _, _ = _make_impacts_for_frame_tests()
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_to_pandas_default_frame(test_context):
+    impacts, _, _ = _make_impacts_for_frame_tests(_context=test_context)
 
     assert impacts._record_all_columns == 1
     assert impacts.to_pandas().equals(impacts.to_pandas(frame='jaw'))
@@ -106,9 +102,11 @@ def test_impacts_to_pandas_default_frame():
         impacts.to_pandas(frame='wrong')
 
 
-def test_impacts_selected_columns_to_pandas():
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_selected_columns_to_pandas(test_context):
     impacts, _, data = _make_impacts_for_frame_tests(
-        columns=['particle_id_before', 'x_before'])
+        columns=['particle_id_before', 'x_before'], _context=test_context)
 
     assert impacts._recorded_columns == (
         '_index', 'at_turn', 'at_element', 'shape_id', '_inter',
@@ -131,8 +129,10 @@ def test_impacts_selected_columns_to_pandas():
         impacts.to_pandas(frame='collimator')
 
 
-def test_impacts_selected_columns_tracking():
-    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_selected_columns_tracking(test_context):
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP', _context=test_context)
     part = xt.Particles(
         p0c=4e11,
         x=[1.1e-3, 1.2e-3, 1.3e-3],
@@ -163,15 +163,19 @@ def test_impacts_selected_columns_tracking():
     assert 's_before' not in df.columns
 
 
-def test_impacts_selected_columns_unknown():
-    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_selected_columns_unknown(test_context):
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP', _context=test_context)
 
     with pytest.raises(ValueError, match="Unknown InteractionRecord columns"):
         xc.InteractionRecord(elements=[coll], columns=['not_a_column'])
 
 
-def test_impacts_to_pandas_collimator_frame():
-    impacts, coll, data = _make_impacts_for_frame_tests()
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_to_pandas_collimator_frame(test_context):
+    impacts, coll, data = _make_impacts_for_frame_tests(_context=test_context)
     df = impacts.to_pandas(frame='collimator')
     expected = _expected_frame(data, coll, frame='collimator')
 
@@ -182,8 +186,10 @@ def test_impacts_to_pandas_collimator_frame():
         assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
-def test_impacts_to_pandas_lattice_frame():
-    impacts, coll, data = _make_impacts_for_frame_tests()
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_to_pandas_lattice_frame(test_context):
+    impacts, coll, data = _make_impacts_for_frame_tests(_context=test_context)
     df = impacts.to_pandas(frame='lattice')
     expected = _expected_frame(data, coll, frame='lattice')
 
@@ -216,12 +222,12 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
 
 
-def _make_impacts_for_frame_tests(columns=None):
+def _make_impacts_for_frame_tests(columns=None, _context=None):
     coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
-                                    angle=[30, -45], name='TCP')
+                                    angle=[30, -45], name='TCP', _context=_context)
     impacts = xc.InteractionRecord(elements=[coll], record_impacts=True,
                                          record_exits=True, capacity=2,
-                                         columns=columns)
+                                         columns=columns, _context=_context)
     data = {
         'at_turn':      np.array([0, 1]),
         'at_element':   np.array([0, 0]),

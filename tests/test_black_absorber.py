@@ -18,9 +18,7 @@ n_part = int(2.e6)
 
 
 @pytest.mark.black
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@for_all_test_contexts
 @fix_random_seed(3482634)
 def test_with_parallel_beam(test_context):
     jaw_L, jaw_R, _, _, _, _, _, _, L, coll = _make_absorber(_context=test_context)
@@ -65,9 +63,7 @@ def test_with_parallel_beam(test_context):
                     ], ids=["H", "H tilt pos", "H tilt neg", "H tilt neg pos", "H tilt pos neg",
                             "V", "V tilt pos", "V tilt neg", "V tilt neg pos", "V tilt pos neg",
                             "S", "S tilt pos", "S tilt neg", "S tilt neg pos", "S tilt pos neg"])
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@for_all_test_contexts
 @fix_random_seed(3482634)
 def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     # Create collimator
@@ -169,9 +165,7 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
 @pytest.mark.parametrize("side, sign_R", [
                         ['+', 1], ['-', 1], ['+', -1], ['-', -1]]
                         , ids=["L R>0", "R R>0", "L R<0", "R R<0"])
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@for_all_test_contexts
 @fix_random_seed(3482634)
 def test_black_crystal(test_context, side, sign_R):
     ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)

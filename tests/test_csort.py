@@ -202,6 +202,18 @@ def _run_sort(sorter, values, descending, double):
             kernel = test_context.kernels['sort_rows_asc_double']
         else:
             kernel = test_context.kernels['sort_rows_asc_int64_t']
-    kernel(values=flat_context, row_length=row_length, num_rows=num_rows)
+    if isinstance(test_context, xo.ContextCpu):
+        kernel(
+            values=flat_context,
+            row_length=row_length,
+            num_rows=num_rows,
+        )
+    else:
+        kernel(
+            values=flat_context,
+            row_length=row_length,
+            num_rows=num_rows,
+            n_threads=num_rows,
+        )
     result = test_context.nparray_from_context_array(flat_context)
     return result.reshape(num_rows, row_length)

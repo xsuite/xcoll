@@ -317,9 +317,7 @@ geant4_tip_user_fields_read_only = geant4_user_fields_read_only
 # Tests
 # =====
 @pytest.mark.black
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@for_all_test_contexts
 def test_black_absorber(test_context):
     # Test instantiation
     elem = xc.BlackAbsorber(length=1, _context=test_context)
@@ -328,9 +326,7 @@ def test_black_absorber(test_context):
 
 
 @pytest.mark.black
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # not on GPU
-)
+@for_all_test_contexts
 def test_black_crystal(test_context):
     # Test instantiation
     elem = xc.BlackCrystal(length=1, jaw=0.99, side='-', _context=test_context)
@@ -339,9 +335,7 @@ def test_black_crystal(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 def test_everest_block(test_context):
     # Test instantiation
     elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreCarbon, _context=test_context)
@@ -362,9 +356,7 @@ def test_everest_block(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 def test_everest(test_context):
     # Test instantiation
     elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreCarbon, _context=test_context)
@@ -373,9 +365,7 @@ def test_everest(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 def test_everest_crystal(test_context):
     # Test instantiation
     elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, side='-', _context=test_context)

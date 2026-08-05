@@ -20,9 +20,7 @@ num_part = int(1e6)
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 def test_transfer_line(test_context):
     # Create the line
     line = _create_transfer_line()

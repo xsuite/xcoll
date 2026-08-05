@@ -29,9 +29,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.parametrize("engine", all_engine_params)
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals, identify_primary_losses", [
                             [1, 'H', 250, 0.2, True, True],
