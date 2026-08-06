@@ -109,7 +109,7 @@ def test_impacts_selected_columns_to_pandas(test_context):
         columns=['particle_id_before', 'x_before'], _context=test_context)
 
     assert impacts._recorded_columns == (
-        '_index', 'at_turn', 'at_element', 'shape_id', '_inter',
+        'at_turn', 'at_element', 'shape_id', '_inter',
         'particle_id_before', 'x_before')
     assert impacts._record_all_columns == 0
     assert len(impacts.at_turn) == 2

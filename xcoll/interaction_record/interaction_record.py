@@ -102,7 +102,7 @@ class InteractionRecord(xt.BeamElement):
         else:
             io_buffer = line.tracker.io_buffer
             if _context is None:
-                _context = line.tracker._context
+                init_dict['_context'] = line.tracker._context
         if io_buffer.capacity < capacity:
             io_buffer.grow(capacity - io_buffer.capacity)
         if _context is not None and type(_context) is not \
@@ -110,7 +110,8 @@ class InteractionRecord(xt.BeamElement):
                 raise ValueError("io_buffer context does not match provided "
                                  "context!")
 
-        super().__init__(_buffer=io_buffer, _context=_context, **init_dict)
+        print(init_dict)
+        super().__init__(_buffer=io_buffer, **init_dict)
 
         _set_recording_flags(elements, record_impacts, record_exits,
                              record_scatterings)
