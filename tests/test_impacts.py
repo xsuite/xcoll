@@ -143,12 +143,12 @@ def test_impacts_selected_columns_tracking(test_context):
 
     impacts = xc.InteractionRecord(
         elements=[coll], columns=['particle_id_before', 'x_before'],
-        record_impacts=True, record_exits=True, capacity=10)
+        record_impacts=True, record_exits=True, num_rows=10)
     coll.track(part)
 
     n_rows = impacts._index.num_recorded
     assert n_rows > 0
-    assert impacts.capacity == 10
+    assert impacts.num_rows == 10
     assert impacts.io_buffer_capacity >= 10
     assert len(impacts.particle_id_before) == 10
     assert len(impacts.x_before) == 10
@@ -226,7 +226,7 @@ def _make_impacts_for_frame_tests(columns=None, _context=None):
     coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
                                     angle=[30, -45], name='TCP', _context=_context)
     impacts = xc.InteractionRecord(elements=[coll], record_impacts=True,
-                                         record_exits=True, capacity=2,
+                                         record_exits=True, num_rows=2,
                                          columns=columns, _context=_context)
     data = {
         'at_turn':      np.array([0, 1]),

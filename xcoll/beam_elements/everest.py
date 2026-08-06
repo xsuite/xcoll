@@ -32,7 +32,9 @@ class EverestBlock(BaseBlock):
     _store_in_to_dict      = [*BaseBlock._store_in_to_dict, 'material']
     _internal_record_class = BaseBlock._internal_record_class
 
-    _depends_on = [BaseBlock]
+    # TODO: the dependencies can be removed after Xtrack splits random source files
+    _depends_on = [BaseBlock, xt.RandomUniform, xt.xt.RandomUniformAccurate,
+                   xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_block.h')
@@ -94,7 +96,9 @@ class EverestCollimator(BaseCollimator):
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
-    _depends_on = [BaseCollimator]
+    # TODO: the dependencies can be removed after Xtrack splits random source files
+    _depends_on = [BaseCollimator, xt.RandomUniform, xt.xt.RandomUniformAccurate,
+                   xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_collimator.h')
@@ -159,7 +163,9 @@ class EverestCrystal(BaseCrystal):
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'lattice', 'material']
     _internal_record_class = BaseCrystal._internal_record_class
 
-    _depends_on = [BaseCrystal]
+    # TODO: the dependencies can be removed after Xtrack splits random source files
+    _depends_on = [BaseCrystal, xt.RandomUniform, xt.xt.RandomUniformAccurate,
+                   xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_crystal.h')

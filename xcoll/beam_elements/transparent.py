@@ -32,11 +32,6 @@ class TransparentCollimator(BaseCollimator):
         _pkg_root.joinpath('beam_elements','elements_src','transparent_collimator.h')
     ]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if not isinstance(self._context, xo.ContextCpu):
-            raise ValueError('TransparentCollimator is currently not supported on GPU.')
-
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
@@ -63,11 +58,6 @@ class TransparentCrystal(BaseCrystal):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','transparent_crystal.h')
     ]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if not isinstance(self._context, xo.ContextCpu):
-            raise ValueError('TransparentCrystal is currently not supported on GPU.')
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)

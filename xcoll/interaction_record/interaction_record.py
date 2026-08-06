@@ -61,35 +61,63 @@ class InteractionRecord(xt.BeamElement):
         _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
     ]
 
-    def __init__(self, *, line=None, elements=None, names=None, capacity=1e6,
+    def __init__(self, *, line=None, elements=None, names=None, num_rows=1e6,
                  columns=None, record_impacts=None, record_exits=None,
                  record_scatterings=None, io_buffer=None, **kwargs):
         elements, names = _get_xcoll_elements(line, elements, names)
         if len(elements) == 0:
             raise ValueError("No Xcoll elements provided to InteractionRecord!")
 
+        # Initialise record table
+        if 'capacity' in kwargs:
+            warn("`capacity` in the InteractionRecord init is deprecated. Use "
+                 "`num_rows` instead.", FutureWarning)
+            num_rows = kwargs.pop('capacity')
+        num_rows = int(num_rows)
+        init_dict, record_all_columns, recorded_columns = _make_columns(
+            num_rows=num_rows, columns=columns
+        )
+        init_dict.update(kwargs)
+
+        # Memory layout of InteractionRecord:
+        #       0: size
+        #       0: _index (size 32)
+        #      32: _record_all_columns (size 8)
+        #   40-96: <8 transformations (shift_x, rot_x_rad, ...)> (size 8*8=64)
+        # 104-304: <pointers to all 26 arrays> (size 26*8=208)
+        # 312-...: <all arrays> (each has size 8*num_rows + 16)
+        #
+        # Total size: 312 + num_logged*8*num_rows + 26*16
+
+        # Get context and buffer with correct capacity
+        _context = kwargs.get('_context')
+        capacity = 728 + 8*num_rows*len(recorded_columns)
         if getattr(line, 'tracker', None) is None \
         or getattr(line.tracker, 'io_buffer', None) is None:
             if io_buffer is None:
-                io_buffer = xt.new_io_buffer()
+                io_buffer = xt.new_io_buffer(_context=_context,
+                                             capacity=capacity)
         elif io_buffer is not None:
             raise ValueError("Cannot provide io_buffer when tracker already built!")
         else:
             io_buffer = line.tracker.io_buffer
+            if _context is None:
+                _context = line.tracker._context
+        if io_buffer.capacity < capacity:
+            io_buffer.grow(capacity - io_buffer.capacity)
+        if _context is not None and type(_context) is not \
+        type(io_buffer.context):
+                raise ValueError("io_buffer context does not match provided "
+                                 "context!")
 
-        capacity = int(capacity)
-        init_dict, record_all_columns, recorded_columns = _make_columns(
-            capacity=capacity, columns=columns
-        )
-        init_dict.update(kwargs)
-        super().__init__(_buffer=io_buffer, **init_dict)
+        super().__init__(_buffer=io_buffer, _context=_context, **init_dict)
 
         _set_recording_flags(elements, record_impacts, record_exits,
                              record_scatterings)
 
         self._line = line
         self._io_buffer = io_buffer
-        self._index.capacity = capacity
+        self._index.capacity = num_rows
         self._record_all_columns = record_all_columns
         self._recorded_columns = recorded_columns
         self._recording_elements = {
@@ -145,7 +173,7 @@ class InteractionRecord(xt.BeamElement):
             return self._io_buffer
 
     @property
-    def capacity(self):
+    def num_rows(self):
         return self._index.capacity
 
     @property
@@ -456,7 +484,7 @@ class InteractionRecord(xt.BeamElement):
             return self._coll_ids[element_name]
 
 
-def _make_columns(*, capacity, columns):
+def _make_columns(*, num_rows, columns):
     array_field_names = [ff.name for ff in InteractionRecord._XoStruct._fields
                             if hasattr(ff.ftype, 'to_nplike')]
     obligatory_columns = {'at_turn', 'at_element', 'shape_id', '_inter'}
@@ -492,13 +520,12 @@ def _make_columns(*, capacity, columns):
 
     final_columns |= obligatory_columns
     init_dict = {
-        field: capacity if field in final_columns else 0
+        field: num_rows if field in final_columns else 0
         for field in array_field_names
     }
     _record_all_columns = int(final_columns == set(array_field_names))
-    _recorded_columns = tuple(
-        ['_index'] + [field for field in array_field_names if field in final_columns]
-    )
+    _recorded_columns = tuple([field for field in array_field_names
+                               if field in final_columns])
 
     return init_dict, _record_all_columns, _recorded_columns
 
