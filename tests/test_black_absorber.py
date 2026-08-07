@@ -24,9 +24,9 @@ def test_with_parallel_beam(test_context):
     jaw_L, jaw_R, _, _, _, _, _, _, L, coll = _make_absorber(_context=test_context)
     # Create particles
     part = _generate_particles(_context=test_context)
-    part_init = part.copy()
+    part_init = part.copy(_context=xo.ContextCpu())
     coll.track(part)
-    part.move(_context=xo.ContextCpu())
+    part = part.copy(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # As the angles are zero, only particles that started in front of the jaw are lost
     mask_hit = (part_init.x >= jaw_L) | (part_init.x <= jaw_R)
@@ -70,14 +70,14 @@ def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     j_LU, j_RU, j_LD, j_RD, s_LU, s_RU, s_LD, s_RD, L, coll = _make_absorber(angle=[angle_L, angle_R], tilts=[tilt_L, tilt_R], _context=test_context)
     # Create particles
     part = _generate_particles(four_dim=True, _context=test_context)
-    part_init = part.copy()
+    part_init = part.copy(_context=xo.ContextCpu())
     # Track
     coll.track(part)
-    part.move(_context=xo.ContextCpu())
+    part = part.copy(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
 
     # Get all expected hit locations
-    # # TODO adapt when exact drifts are implemented
+    # TODO: adapt when exact drifts are implemented
     dri = xt.Drift(length=s_LU)
     dri.track(part_init)
     assert np.allclose(part_init.s, s_LU, atol=1e-12, rtol=0)
@@ -157,8 +157,6 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
         py = 0
     ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12, _context=_context)
     part = xp.build_particles(x=x, y=y, px=px, py=py, particle_ref=ref, _context=_context)
-    part_init = part.copy()
-    part_init.move(_context=xo.ContextCpu())
     return part
 
 
@@ -173,9 +171,10 @@ def test_black_crystal(test_context, side, sign_R):
     px = np.random.uniform(-1, 1, n_part)
     y = np.random.uniform(-1, 1, n_part)
     py = np.random.uniform(-1, 1, n_part)
-    part_init = xp.build_particles(x=x, px=px, y=y, py=py, particle_ref=ref)
+    part_init = xp.build_particles(x=x, px=px, y=y, py=py, particle_ref=ref,
+                                   _context=test_context)
     drift_length = 1  # To send the surviving particles further out
-    dri = xt.Drift(length=drift_length)
+    dri = xt.Drift(length=drift_length, _context=test_context)
 
     for R in [0.87, 3.3, 17]:
         R = sign_R*R
@@ -190,6 +189,7 @@ def test_black_crystal(test_context, side, sign_R):
             part = part_init.copy()
             coll.track(part)
             dri.track(part)
+            part = part.copy(_context=xo.ContextCpu())
 
             Rpos = R - (sign_R-1)/2*width # full radius when positive
             Rneg = R - (sign_R+1)/2*width # shorter radius when positive (full radius when negative)
