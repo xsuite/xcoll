@@ -75,6 +75,8 @@ def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     part = _generate_particles(n_part=n_part, four_dim=True,
                                _context=test_context)
     part_init = part.copy(_context=xo.ContextCpu())
+    part_init.reorganize() # This is needed, because part_init._num_active_particles = -1 in GPU but should be filled to be used on CPU
+
     # Track
     coll.track(part)
     if not isinstance(test_context, xo.ContextCpu):
@@ -265,7 +267,7 @@ def _generate_particles(n_part, four_dim=False, angle=0, _context=None):
     else:
         px = 0
         py = 0
-    ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12,
+    ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=7e12,
                        _context=_context)
     part = xp.build_particles(x=x, y=y, px=px, py=py, particle_ref=ref,
                               _context=_context)

@@ -31,7 +31,6 @@ def _get_geometry(context_name):
 
 @pytest.fixture
 def geometry(test_context):
-    print("FIXTURE:", test_context, type(test_context))
     skip_if_forbid_compile()
     return _get_geometry(test_context)
 
