@@ -17,6 +17,25 @@ def _iterable(obj):
     return  hasattr(obj, '__iter__') and not isinstance(obj, str)
 
 
+def _element_names_of_type(line, classes):
+    # Using get_table() for type discovery also computes all longitudinal
+    # positions. In a GPU context that entails a device-to-host copy for the
+    # length of every thick element in the line.
+    elements = []
+    for name in line.element_names:
+        element = line.get(name)
+        if isinstance(element, xt.Replica):
+            element = element.resolve(line)
+        elements.append((name, element))
+    return [name for cls in classes for name, element in elements
+            if type(element) is cls]
+
+
+def _uses_cpu_context(element):
+    context = element._xobject._buffer.context
+    return context.nplike_lib is np
+
+
 class XcollLineAPI:
     def __init__(self, line):
         self._line = line
@@ -160,12 +179,7 @@ class XcollScatteringAPI(XcollLineAccessor):
     def names(self):
         # This makes sure the accessor can access the names of the
         # collimators dynamically
-        tt = self.line.get_table()
-        names = []
-        for cc in element_classes:
-            ttcc = tt.rows.match(element_type=cc.__name__)
-            names += list(ttcc.name)
-        return names
+        return _element_names_of_type(self.line, element_classes)
 
     def enable(self):
         if len(self) == 0:
@@ -219,12 +233,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
     def names(self):
         # This makes sure the accessor can access the names of the
         # collimators dynamically
-        tt = self.line.get_table()
-        names = []
-        for cc in collimator_classes:
-            ttcc = tt.rows.match(element_type=cc.__name__)
-            names += list(ttcc.name)
-        return names
+        return _element_names_of_type(self.line, collimator_classes)
 
     @property
     def families(self):
@@ -395,9 +404,18 @@ class XcollCollimatorAPI(XcollLineAccessor):
         for nn in to_delete:
             del env.elements[nn]
 
-        # Add new elements to environment
-        for nn, ee in zip(names, elements):
-            env.elements[nn] = ee
+        # Resolve the structural insertion with CPU placeholders. Xtrack needs
+        # the inserted element length several times while rebuilding the line;
+        # reading it from a GPU-backed element each time forces a synchronous
+        # device-to-host transfer. The real elements are restored immediately
+        # after the layout is complete.
+        gpu_elements = []
+        for nn, ee, ll in zip(names, elements, length):
+            if _uses_cpu_context(ee):
+                env.elements[nn] = ee
+            else:
+                env.elements[nn] = xt.Drift(length=ll)
+                gpu_elements.append((nn, ee))
 
         # Apertures
         if need_apertures:
@@ -409,7 +427,12 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 env.elements[nn2] = aper2
                 insertions.append(env.place(nn1, at=name+'@start'))
                 insertions.append(env.place(nn2, at=name+'@end'))
-        self.line.insert(insertions, s_tol=s_tol)
+        try:
+            self.line.insert(insertions, s_tol=s_tol)
+        finally:
+            for nn, ee in gpu_elements:
+                del env.elements[nn]
+                env.elements[nn] = ee
 
     def find_aperture(self, name, *, s_start, s_end, aperture=None, table=None,
                      s_tol=1.e-6):
@@ -522,18 +545,19 @@ class XcollCollimatorAPI(XcollLineAccessor):
         return tw_entry, tw_exit
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None):
-        tw_upstream, tw_downstream = self.get_optics_at(self.names, twiss=twiss)
+        names = self.names
+        tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
-        for name, coll in self.items():
-            coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
-                               twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
+        for name in names:
+            coll = self.line.get(name)
+            coll.assign_optics(
+                name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                twiss_upstream=tw_upstream,
+                twiss_downstream=tw_downstream,
+                beta_gamma_rel=beta_gamma_rel)
 
     def align_to_beam_divergence(self):
-        tt = self.line.get_table()
-        crystal_names = []
-        for cc in crystal_classes:
-            ttcc = tt.rows.match(element_type=cc.__name__)
-            crystal_names += list(ttcc.name)
+        crystal_names = _element_names_of_type(self.line, crystal_classes)
         crystals = [self.line.get(nn) for nn in crystal_names]
         if len(crystals) == 0:
             warn("No crystals found in line to align to beam divergence.")

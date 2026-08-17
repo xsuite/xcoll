@@ -17,6 +17,55 @@ OPEN_JAW = 3
 OPEN_GAP = 999
 
 
+def _uses_cpu_context(element):
+    return element._xobject._buffer.context.nplike_lib is np
+
+
+def _read_xobject_scalars(element, field_names):
+    """Read several scalar xobject fields with one buffer transfer."""
+    xobject = element._xobject
+    fields = {name: getattr(type(xobject), name) for name in field_names}
+    start = min(field.offset for field in fields.values())
+    end = max(field.offset + field.ftype._size for field in fields.values())
+    data = bytearray(xobject._buffer.to_bytearray(
+        xobject._offset + start, end - start))
+    values = {
+        name: np.frombuffer(data, dtype=field.ftype._dtype, count=1,
+                            offset=field.offset - start)[0]
+        for name, field in fields.items()
+    }
+    return values, (xobject, fields, start, data)
+
+
+def _write_xobject_scalars(snapshot, values):
+    """Write several scalar xobject fields with one buffer transfer."""
+    xobject, fields, start, data = snapshot
+    for name, value in values.items():
+        field = fields[name]
+        view = np.frombuffer(data, dtype=field.ftype._dtype, count=1,
+                             offset=field.offset - start)
+        view[0] = value
+    xobject._buffer.update_from_buffer(xobject._offset + start, data)
+
+
+def _get_optics_rows(*, name, twiss, twiss_upstream, twiss_downstream):
+    if twiss is None:
+        if twiss_upstream is None or twiss_downstream is None:
+            raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
+        if name is None:
+            if len(twiss_upstream.name) > 1 or len(twiss_downstream.name) > 1:
+                raise ValueError("Need to provide `name` or twisses that are a single row each.")
+            return twiss_upstream, twiss_downstream
+        return twiss_upstream.rows[name], twiss_downstream.rows[name]
+    if twiss_upstream is not None or twiss_downstream is not None:
+        raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
+    if name is None:
+        raise ValueError("When using `twiss`, need to provide the name as well.")
+    tw_up = twiss.rows[name]
+    tw_down = twiss.rows[twiss.rows.indices[[name]]+1]
+    return tw_up, tw_down
+
+
 # TODO:
 #      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
 #      but as if 'iscollective = False' for normal tracking as it is natively in C...
@@ -704,6 +753,23 @@ class BaseCollimator(BaseBlock):
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
+        if not _uses_cpu_context(self):
+            return BaseCollimator._assign_optics_gpu(
+                self,
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                beta_gamma_rel=beta_gamma_rel, name=name, twiss=twiss,
+                twiss_upstream=twiss_upstream,
+                twiss_downstream=twiss_downstream)
+        return BaseCollimator._assign_optics_regular(
+            self,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            beta_gamma_rel=beta_gamma_rel, name=name, twiss=twiss,
+            twiss_upstream=twiss_upstream,
+            twiss_downstream=twiss_downstream)
+
+    def _assign_optics_regular(self, *, nemitt_x=None, nemitt_y=None,
+                               beta_gamma_rel=None, name=None, twiss=None,
+                               twiss_upstream=None, twiss_downstream=None):
         if nemitt_x is None:
             if self.nemitt_x is None:
                 raise ValueError("Need to provide `nemitt_x`.")
@@ -716,24 +782,9 @@ class BaseCollimator(BaseBlock):
             self.nemitt_y = nemitt_y
         if beta_gamma_rel is None:
             raise ValueError("Need to provide `beta_gamma_rel`.")
-        if twiss is None:
-            if twiss_upstream is None or twiss_downstream is None:
-                raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
-            if name is None:
-                if len(twiss_upstream.name) > 1 or len(twiss_downstream.name) > 1:
-                    raise ValueError("Need to provide `name` or twisses that are a single row each.")
-                tw_up   = twiss_upstream
-                tw_down = twiss_downstream
-            else:
-                tw_up   = twiss_upstream.rows[name]
-                tw_down = twiss_downstream.rows[name]
-        elif twiss_downstream is not None or twiss_downstream is not None:
-            raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
-        elif name is None:
-            raise ValueError("When using `twiss`, need to provide the name as well.")
-        else:
-            tw_up   = twiss.rows[name]
-            tw_down = twiss.rows[twiss.rows.indices[[name]]+1]
+        tw_up, tw_down = _get_optics_rows(
+            name=name, twiss=twiss, twiss_upstream=twiss_upstream,
+            twiss_downstream=twiss_downstream)
         if not np.isclose(tw_up.s[0] + self.length, tw_down.s[0]):
             raise ValueError(f"Downstream twiss not compatible with length {self.length}m.")
         self._optics = {
@@ -742,6 +793,47 @@ class BaseCollimator(BaseBlock):
             'beta_gamma_rel': beta_gamma_rel
         }
         self._apply_optics()
+
+    def _assign_optics_gpu(self, *, nemitt_x=None, nemitt_y=None,
+                           beta_gamma_rel=None, name=None, twiss=None,
+                           twiss_upstream=None, twiss_downstream=None):
+        geometry, snapshot = _read_xobject_scalars(
+            self, self._optics_field_names())
+
+        if nemitt_x is None:
+            assigned_nemitt_x = self.nemitt_x
+            if assigned_nemitt_x is None:
+                raise ValueError("Need to provide `nemitt_x`.")
+        else:
+            if nemitt_x <= 0:
+                raise ValueError(f"The field `nemitt_x` should be positive, but got {nemitt_x}.")
+            assigned_nemitt_x = nemitt_x
+        if nemitt_y is None:
+            assigned_nemitt_y = self.nemitt_y
+            if assigned_nemitt_y is None:
+                raise ValueError("Need to provide `nemitt_y`.")
+        else:
+            if nemitt_y <= 0:
+                raise ValueError(f"The field `nemitt_y` should be positive, but got {nemitt_y}.")
+            assigned_nemitt_y = nemitt_y
+        if beta_gamma_rel is None:
+            raise ValueError("Need to provide `beta_gamma_rel`.")
+
+        tw_up, tw_down = _get_optics_rows(
+            name=name, twiss=twiss, twiss_upstream=twiss_upstream,
+            twiss_downstream=twiss_downstream)
+        if not np.isclose(tw_up.s[0] + geometry['length'], tw_down.s[0]):
+            raise ValueError(f"Downstream twiss not compatible with length {geometry['length']}m.")
+
+        # Emittances and optics are Python attributes, not xobject fields.
+        self._nemitt_x = assigned_nemitt_x
+        self._nemitt_y = assigned_nemitt_y
+        self._optics = {
+            'upstream': tw_up,
+            'downstream': tw_down,
+            'beta_gamma_rel': beta_gamma_rel
+        }
+        self._apply_optics_gpu(geometry, snapshot)
 
     @property
     def nemitt_x(self):
@@ -972,13 +1064,71 @@ class BaseCollimator(BaseBlock):
     def _gap_R_set_manually(self):
         return not np.isclose(self._gap_R, -OPEN_GAP)
 
+    def _optics_field_names(self):
+        return ('length', '_sin_zL', '_cos_zL', '_sin_zR', '_cos_zR',
+                '_jaw_LU', '_jaw_LD', '_jaw_RU', '_jaw_RD', '_side')
+
     def _apply_optics(self, only_L=False, only_R=False):
-        if self.optics_ready():
-            # Only if we have set a value for the gap manually, this needs to be updated
-            if self._gap_L_set_manually() and not only_R:
-                self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]
-            if self._gap_R_set_manually() and not only_L:
-                self.jaw_R = self._gap_R * self.sigma[0][1] + self.co[0][1]
+        if not self.optics_ready():
+            return
+        if _uses_cpu_context(self):
+            self._apply_optics_regular(only_L=only_L, only_R=only_R)
+        else:
+            geometry, snapshot = _read_xobject_scalars(
+                self, self._optics_field_names())
+            self._apply_optics_gpu(
+                geometry, snapshot, only_L=only_L, only_R=only_R)
+
+    def _apply_optics_regular(self, only_L=False, only_R=False):
+        # Only if we have set a value for the gap manually, this needs to be updated
+        if self._gap_L_set_manually() and not only_R:
+            self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]
+        if self._gap_R_set_manually() and not only_L:
+            self.jaw_R = self._gap_R * self.sigma[0][1] + self.co[0][1]
+
+    def _apply_optics_gpu(self, geometry, snapshot, only_L=False,
+                          only_R=False):
+        side = geometry['_side']
+        inconsistent_side = ((self._gap_L_set_manually() and side == -1)
+                             or (self._gap_R_set_manually() and side == 1))
+        if inconsistent_side:
+            self._apply_optics_regular(only_L=only_L, only_R=only_R)
+            return
+
+        tw_align = self._optics[self.align]
+        sigma_x = np.sqrt(tw_align.betx[0] * self.nemitt_x
+                          / self._optics['beta_gamma_rel'])
+        sigma_y = np.sqrt(tw_align.bety[0] * self.nemitt_y
+                          / self._optics['beta_gamma_rel'])
+        x_co = tw_align.x[0]
+        y_co = tw_align.y[0]
+        updates = {}
+
+        if self._gap_L_set_manually() and not only_R:
+            sigma_l = np.sqrt((sigma_x * geometry['_cos_zL'])**2
+                              + (sigma_y * geometry['_sin_zL'])**2)
+            co_l = (x_co * geometry['_cos_zL']
+                    + y_co * geometry['_sin_zL'])
+            jaw_l = self._gap_L * sigma_l + co_l
+            jaw_l_old = (geometry['_jaw_LU'] + geometry['_jaw_LD']) / 2
+            diff_l = jaw_l - jaw_l_old
+            updates['_jaw_LU'] = geometry['_jaw_LU'] + diff_l
+            updates['_jaw_LD'] = geometry['_jaw_LD'] + diff_l
+            self._gap_L = round((jaw_l - co_l) / sigma_l, 6)
+        if self._gap_R_set_manually() and not only_L:
+            sigma_r = np.sqrt((sigma_x * geometry['_cos_zR'])**2
+                              + (sigma_y * geometry['_sin_zR'])**2)
+            co_r = (x_co * geometry['_cos_zR']
+                    + y_co * geometry['_sin_zR'])
+            jaw_r = self._gap_R * sigma_r + co_r
+            jaw_r_old = (geometry['_jaw_RU'] + geometry['_jaw_RD']) / 2
+            diff_r = jaw_r - jaw_r_old
+            updates['_jaw_RU'] = geometry['_jaw_RU'] + diff_r
+            updates['_jaw_RD'] = geometry['_jaw_RD'] + diff_r
+            self._gap_R = round((jaw_r - co_r) / sigma_r, 6)
+
+        if updates:
+            _write_xobject_scalars(snapshot, updates)
 
 
     # Other attributes
@@ -1452,11 +1602,36 @@ class BaseCrystal(BaseBlock):
     def _gap_set_manually(self):
         return not np.isclose(self._gap, OPEN_GAP)
 
+    def _optics_field_names(self):
+        return ('length', '_sin_z', '_cos_z', '_jaw_U', '_side')
+
     def _apply_optics(self):
-        if self.optics_ready():
+        if not self.optics_ready():
+            return
+        if _uses_cpu_context(self):
             # Only if we have set a value for the gap manually, this needs to be updated
             if self._gap_set_manually():
                 self.jaw_U = self._gap * self.sigma[0] + self.co[0]
+        else:
+            geometry, snapshot = _read_xobject_scalars(
+                self, self._optics_field_names())
+            self._apply_optics_gpu(geometry, snapshot)
+
+    def _apply_optics_gpu(self, geometry, snapshot):
+        if not self._gap_set_manually():
+            return
+        tw_align = self._optics[self.align]
+        sigma_x = np.sqrt(tw_align.betx[0] * self.nemitt_x
+                          / self._optics['beta_gamma_rel'])
+        sigma_y = np.sqrt(tw_align.bety[0] * self.nemitt_y
+                          / self._optics['beta_gamma_rel'])
+        sigma = np.sqrt((sigma_x * geometry['_cos_z'])**2
+                        + (sigma_y * geometry['_sin_z'])**2)
+        co = (tw_align.x[0] * geometry['_cos_z']
+              + tw_align.y[0] * geometry['_sin_z'])
+        jaw = self._gap * sigma + co
+        self._gap = round((jaw - co) / sigma, 6)
+        _write_xobject_scalars(snapshot, {'_jaw_U': jaw})
 
 
     # Other attributes
@@ -1541,4 +1716,3 @@ class BaseCrystal(BaseBlock):
             assert isinstance(self._bending_radius, float) and not np.isclose(self._bending_radius, 0)
             assert isinstance(self._bending_angle, float) and abs(self._bending_angle) <= np.pi/2
             assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
-
