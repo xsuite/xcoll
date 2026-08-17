@@ -25,58 +25,6 @@ path = Path(__file__).parent / 'data'
 # TODO: need to test frev and sampling_frequency with coasting beams!
 
 
-def _assert_monitor(mon, dct={}):
-    expected = {
-        'particle_id_start': 0,
-        'particle_id_stop': -1,
-        'start_at_turn': 0,
-        'stop_at_turn': 1,
-        'horizontal': True,
-        'vertical': True,
-        'longitudinal': True,
-        'sampling_frequency': 1,
-        'frev': 1,
-        'suppress_warnings': False,
-    }
-    expected.update(dct)
-    for key in expected:
-        assert getattr(mon, key) == expected[key]
-    size = expected['stop_at_turn'] - expected['start_at_turn']
-    size *= expected['sampling_frequency'] / expected['frev']
-    for col in ['count', 'cached', 'cached_modes']:
-        assert len(mon.data[col]) == size
-    for col in ['x_sum1', 'px_sum1', 'x_x_sum2', 'x_px_sum2', 'px_px_sum2']:
-        if expected['horizontal']:
-            assert len(mon.data[col]) == size
-        else:
-            assert len(mon.data[col]) == 1
-    for col in ['y_sum1', 'py_sum1', 'y_y_sum2', 'y_py_sum2', 'py_py_sum2']:
-        if expected['vertical']:
-            assert len(mon.data[col]) == size
-        else:
-            assert len(mon.data[col]) == 1
-    for col in ['zeta_sum1', 'pzeta_sum1', 'zeta_zeta_sum2', 'zeta_pzeta_sum2', 'pzeta_pzeta_sum2']:
-        if expected['longitudinal']:
-            assert len(mon.data[col]) == size
-        else:
-            assert len(mon.data[col]) == 1
-    for col in ['x_y_sum2', 'x_py_sum2', 'px_y_sum2', 'px_py_sum2']:
-        if expected['horizontal'] and expected['vertical']:
-            assert len(mon.data[col]) == size
-        else:
-            assert len(mon.data[col]) == 1
-    for col in ['x_zeta_sum2', 'x_pzeta_sum2', 'px_zeta_sum2', 'px_pzeta_sum2']:
-        if expected['horizontal'] and expected['longitudinal']:
-            assert len(mon.data[col]) == size
-        else:
-            assert len(mon.data[col]) == 1
-    for col in ['y_zeta_sum2', 'y_pzeta_sum2', 'py_zeta_sum2', 'py_pzeta_sum2']:
-        if expected['vertical'] and expected['longitudinal']:
-            assert len(mon.data[col]) == size
-        else:
-            assert len(mon.data[col]) == 1
-
-
 @pytest.mark.xcother
 @pytest.mark.parametrize("cls", [xc.EmittanceMonitor], ids=["EmittanceMonitor"])
 def test_monitor_instance(cls):
@@ -302,3 +250,55 @@ def test_monitor_reset(test_context):
 
         # Reset monitor for next tracking
         mon.reset()
+
+
+def _assert_monitor(mon, dct={}):
+    expected = {
+        'particle_id_start': 0,
+        'particle_id_stop': -1,
+        'start_at_turn': 0,
+        'stop_at_turn': 1,
+        'horizontal': True,
+        'vertical': True,
+        'longitudinal': True,
+        'sampling_frequency': 1,
+        'frev': 1,
+        'suppress_warnings': False,
+    }
+    expected.update(dct)
+    for key in expected:
+        assert getattr(mon, key) == expected[key]
+    size = expected['stop_at_turn'] - expected['start_at_turn']
+    size *= expected['sampling_frequency'] / expected['frev']
+    for col in ['count', 'cached', 'cached_modes']:
+        assert len(mon.data[col]) == size
+    for col in ['x_sum1', 'px_sum1', 'x_x_sum2', 'x_px_sum2', 'px_px_sum2']:
+        if expected['horizontal']:
+            assert len(mon.data[col]) == size
+        else:
+            assert len(mon.data[col]) == 1
+    for col in ['y_sum1', 'py_sum1', 'y_y_sum2', 'y_py_sum2', 'py_py_sum2']:
+        if expected['vertical']:
+            assert len(mon.data[col]) == size
+        else:
+            assert len(mon.data[col]) == 1
+    for col in ['zeta_sum1', 'pzeta_sum1', 'zeta_zeta_sum2', 'zeta_pzeta_sum2', 'pzeta_pzeta_sum2']:
+        if expected['longitudinal']:
+            assert len(mon.data[col]) == size
+        else:
+            assert len(mon.data[col]) == 1
+    for col in ['x_y_sum2', 'x_py_sum2', 'px_y_sum2', 'px_py_sum2']:
+        if expected['horizontal'] and expected['vertical']:
+            assert len(mon.data[col]) == size
+        else:
+            assert len(mon.data[col]) == 1
+    for col in ['x_zeta_sum2', 'x_pzeta_sum2', 'px_zeta_sum2', 'px_pzeta_sum2']:
+        if expected['horizontal'] and expected['longitudinal']:
+            assert len(mon.data[col]) == size
+        else:
+            assert len(mon.data[col]) == 1
+    for col in ['y_zeta_sum2', 'y_pzeta_sum2', 'py_zeta_sum2', 'py_pzeta_sum2']:
+        if expected['vertical'] and expected['longitudinal']:
+            assert len(mon.data[col]) == size
+        else:
+            assert len(mon.data[col]) == 1

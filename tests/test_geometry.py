@@ -8,22 +8,166 @@ import json
 import pytest
 import numpy as np
 from pathlib import Path
+from functools import cache
+
 
 import xcoll as xc
-
 from xobjects.test_helpers import skip_if_forbid_compile, for_all_test_contexts
-
+from xobjects.context import get_context_from_string
 
 sys.path.insert(1, (Path(__file__).parent / 'data').as_posix())
 from xcoll_geometry_test import XcollGeometryTest
 
 
-@pytest.fixture(scope='module')
-def geometry_kernels():
+# Cache compilation to avoid duplication
+
+@cache
+def _get_geometry(context_name):
+    context = get_context_from_string(context_name)
+    geom = XcollGeometryTest(_context=context)
+    geom.compile_kernels(only_if_needed=True)
+    return geom
+
+@pytest.fixture
+def geometry_kernels(test_context):
+    print("FIXTURE:", test_context, type(test_context))
     skip_if_forbid_compile()
-    geom = XcollGeometryTest()
-    geom.compile_kernels(only_if_needed=True)#, save_source_as='geometry.c')
-    return geom._context.kernels
+    return _get_geometry(test_context)._context.kernels
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_jaw(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_jaw(part_x=part_x, part_tan_x=part_tan_x, s_U=s_poly[1], x_U=x_poly[1],
+                             s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan, side=side)
+    _loop_2jaw_1partdim(name='expected_s_jaw', func=func, num_polys=4)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_jaw_after_s(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_jaw_after_s(part_x=part_x, part_tan_x=part_tan_x, s_U=s_poly[1], x_U=x_poly[1],
+                                        s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan, side=side, current_s=0.6)
+    _loop_2jaw_1partdim(name='expected_s_jaw_after_s', func=func, num_polys=4)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_jaw_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_jaw_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                            s_U=s_poly[1], x_U=x_poly[1], s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan,
+                                            side=side, y_min=-0.1, y_max=0.25)
+    _loop_doublejaw_2partdim(name='expected_s_jaw_with_vlimit', func=func, num_polys=4)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_jaw_after_s_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_jaw_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                            s_U=s_poly[1], x_U=x_poly[1], s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan,
+                                            side=side, y_min=-0.1, y_max=0.25, current_s=0.6)
+    _loop_doublejaw_2partdim(name='expected_s_jaw_after_s_with_vlimit', func=func, num_polys=4)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_polygon(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_polygon(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly,
+                                    x_poly=x_poly, num_polys=len(s_poly))
+    _loop_1jaw_1partdim(name='expected_s_polygon', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_polygon_after_s(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_polygon_after_s(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly,
+                                            x_poly=x_poly, num_polys=len(s_poly), current_s=0.6)
+    _loop_1jaw_1partdim(name='expected_s_polygon_after_s', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_polygon_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_polygon_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                                s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), y_min=-0.1, y_max=0.25)
+    _loop_1jaw_2partdim(name='expected_s_polygon_with_vlimit', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_polygon_after_s_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_polygon_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                                s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), y_min=-0.1, y_max=0.25, current_s=0.6)
+    _loop_1jaw_2partdim(name='expected_s_polygon_after_s_with_vlimit', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_open_polygon(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_open_polygon(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly, x_poly=x_poly,
+                                         num_polys=len(s_poly), tilt_tan=tilt_tan, side=side)
+    _loop_2jaw_1partdim(name='expected_s_open_polygon', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_open_polygon_after_s(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_open_polygon_after_s(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly, x_poly=x_poly,
+                                                 num_polys=len(s_poly), tilt_tan=tilt_tan, side=side, current_s=0.6)
+    _loop_2jaw_1partdim(name='expected_s_open_polygon_after_s', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_open_polygon_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_open_polygon_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                                     s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), tilt_tan=tilt_tan, side=side,
+                                                     y_min=-0.1, y_max=0.25)
+    _loop_doublejaw_2partdim(name='expected_s_open_polygon_with_vlimit', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_open_polygon_after_s_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
+        return geometry_kernels.test_open_polygon_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                                     s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), tilt_tan=tilt_tan, side=side,
+                                                     y_min=-0.1, y_max=0.25, current_s=0.6)
+    _loop_doublejaw_2partdim(name='expected_s_open_polygon_after_s_with_vlimit', func=func, num_polys=8)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_crystal(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
+        return geometry_kernels.test_crystal(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
+                                    jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos)
+    _loop_cry_1jaw_1partdim(name='expected_s_crystal', func=func)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_crystal_after_s(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
+        return geometry_kernels.test_crystal_after_s(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
+                                            jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos, current_s=0.6)
+    _loop_cry_1jaw_1partdim(name='expected_s_crystal_after_s', func=func)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_crystal_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
+        return geometry_kernels.test_crystal_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                                R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
+                                                y_min=-0.1, y_max=0.25)
+    _loop_cry_1jaw_2partdim(name='expected_s_crystal_with_vlimit', func=func)
+
+@for_all_test_contexts
+@pytest.mark.xcother
+def test_crystal_after_s_with_vlimit(geometry_kernels, test_context):
+    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
+        return geometry_kernels.test_crystal_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
+                                                R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
+                                                y_min=-0.1, y_max=0.25, current_s=0.6)
+    _loop_cry_1jaw_2partdim(name='expected_s_crystal_after_s_with_vlimit', func=func)
+
 
 def _generate_polygon_points(num_poly, tilt_L=0, tilt_R=0):
     with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
@@ -180,138 +324,3 @@ def _loop_doublejaw_2partdim(name, func, num_polys):
                             assert part_y_cm not in expected_s[tilt_LR][part_ang_x][part_ang_y][part_x_cm]
                         else:
                             assert np.isclose(s, expected_s[tilt_LR][part_ang_x][part_ang_y][part_x_cm][part_y_cm])
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_jaw(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_jaw(part_x=part_x, part_tan_x=part_tan_x, s_U=s_poly[1], x_U=x_poly[1],
-                             s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan, side=side)
-    _loop_2jaw_1partdim(name='expected_s_jaw', func=func, num_polys=4)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_jaw_after_s(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_jaw_after_s(part_x=part_x, part_tan_x=part_tan_x, s_U=s_poly[1], x_U=x_poly[1],
-                                        s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan, side=side, current_s=0.6)
-    _loop_2jaw_1partdim(name='expected_s_jaw_after_s', func=func, num_polys=4)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_jaw_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_jaw_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                            s_U=s_poly[1], x_U=x_poly[1], s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan,
-                                            side=side, y_min=-0.1, y_max=0.25)
-    _loop_doublejaw_2partdim(name='expected_s_jaw_with_vlimit', func=func, num_polys=4)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_jaw_after_s_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_jaw_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                            s_U=s_poly[1], x_U=x_poly[1], s_D=s_poly[2], x_D=x_poly[2], tilt_tan=tilt_tan,
-                                            side=side, y_min=-0.1, y_max=0.25, current_s=0.6)
-    _loop_doublejaw_2partdim(name='expected_s_jaw_after_s_with_vlimit', func=func, num_polys=4)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_polygon(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_polygon(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly,
-                                    x_poly=x_poly, num_polys=len(s_poly))
-    _loop_1jaw_1partdim(name='expected_s_polygon', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_polygon_after_s(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_polygon_after_s(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly,
-                                            x_poly=x_poly, num_polys=len(s_poly), current_s=0.6)
-    _loop_1jaw_1partdim(name='expected_s_polygon_after_s', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_polygon_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_polygon_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), y_min=-0.1, y_max=0.25)
-    _loop_1jaw_2partdim(name='expected_s_polygon_with_vlimit', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_polygon_after_s_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_polygon_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), y_min=-0.1, y_max=0.25, current_s=0.6)
-    _loop_1jaw_2partdim(name='expected_s_polygon_after_s_with_vlimit', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_open_polygon(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_open_polygon(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly, x_poly=x_poly,
-                                         num_polys=len(s_poly), tilt_tan=tilt_tan, side=side)
-    _loop_2jaw_1partdim(name='expected_s_open_polygon', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_open_polygon_after_s(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_open_polygon_after_s(part_x=part_x, part_tan_x=part_tan_x, s_poly=s_poly, x_poly=x_poly,
-                                                 num_polys=len(s_poly), tilt_tan=tilt_tan, side=side, current_s=0.6)
-    _loop_2jaw_1partdim(name='expected_s_open_polygon_after_s', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_open_polygon_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_open_polygon_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                     s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), tilt_tan=tilt_tan, side=side,
-                                                     y_min=-0.1, y_max=0.25)
-    _loop_doublejaw_2partdim(name='expected_s_open_polygon_with_vlimit', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_open_polygon_after_s_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, s_poly, x_poly, tilt_tan, side):
-        return geometry_kernels.test_open_polygon_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                     s_poly=s_poly, x_poly=x_poly, num_polys=len(s_poly), tilt_tan=tilt_tan, side=side,
-                                                     y_min=-0.1, y_max=0.25, current_s=0.6)
-    _loop_doublejaw_2partdim(name='expected_s_open_polygon_after_s_with_vlimit', func=func, num_polys=8)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_crystal(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
-        return geometry_kernels.test_crystal(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
-                                    jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos)
-    _loop_cry_1jaw_1partdim(name='expected_s_crystal', func=func)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_crystal_after_s(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
-        return geometry_kernels.test_crystal_after_s(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
-                                            jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos, current_s=0.6)
-    _loop_cry_1jaw_1partdim(name='expected_s_crystal_after_s', func=func)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_crystal_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
-        return geometry_kernels.test_crystal_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
-                                                y_min=-0.1, y_max=0.25)
-    _loop_cry_1jaw_2partdim(name='expected_s_crystal_with_vlimit', func=func)
-
-@for_all_test_contexts
-@pytest.mark.xcother
-def test_crystal_after_s_with_vlimit(geometry_kernels, test_context):
-    def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
-        return geometry_kernels.test_crystal_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
-                                                y_min=-0.1, y_max=0.25, current_s=0.6)
-    _loop_cry_1jaw_2partdim(name='expected_s_crystal_after_s_with_vlimit', func=func)
-

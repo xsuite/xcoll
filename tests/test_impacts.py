@@ -33,7 +33,8 @@ def test_impacts_from_line(beam, plane, test_context):
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True, _context=test_context)
+    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True,
+                                   _context=test_context)
     line.build_tracker(_context=test_context)
 
     line.xcoll.collimators.assign_optics()

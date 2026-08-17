@@ -136,11 +136,12 @@ def test_crystals(test_context):
         _track_collimator(name, _context=test_context)
 
 
-def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, atolz=1e-11, atold=2e-8, _context=None):
+def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9,
+                      atolz=1e-11, atold=2e-8, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
-#     _context._cffi_verbose = True
-#     _context._compile_kernels_info = False
+        # _context._cffi_verbose = True
+        # _context._compile_kernels_info = False
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid), _context=_context)
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
@@ -154,6 +155,8 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, at
 #   Also, I want to pass the following compiler flags: -Wall -Wextra for more info.
 #     coll.compile_kernels(particles_class=xp.Particles, save_source_as='test.c')
     coll.track(part)
+    if not isinstance(_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())    # Not super fast
     part.sort(interleave_lost_particles=True)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))

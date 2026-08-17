@@ -14,7 +14,6 @@ import xpart as xp
 import xcoll as xc
 
 
-# Make a context and get a buffer
 context = xo.ContextCpu()         # For CPU
 # context = xo.ContextCupy()      # For CUDA GPUs
 # context = xo.ContextPyopencl()  # For OpenCL GPUs
@@ -26,13 +25,15 @@ coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon, bending_an
                          width=0.002, height=0.05, side='+', miscut=0., lattice='strip', jaw=0.001,
                          _context=context)
 
-x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
-px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
-y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
-py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
+start = time.time()
+x_init  = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
+px_init = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
+y_init  = np.random.normal(loc=0., scale=1e-3, size=num_part)
+py_init = np.random.normal(loc=0., scale=5.e-6, size=num_part)
+start = time.time()
 part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                           particle_ref=particle_ref, _context=context)
-part_init = part.copy()
+part_init = part.copy(_context=xo.ContextCpu())  # Not super fast
 
 print(f"Tracking {num_part} particles (Everest)...     ", end='', flush=True)
 start = time.time()
@@ -40,10 +41,12 @@ coll.track(part)
 print(f"Done in {time.time() - start:.2f} seconds.")
 
 # Sort particles to be able to compare to part_init
-part.sort(interleave_lost_particles=True)
+if not isinstance(context, xo.ContextCpu):
+    part.move(_context=xo.ContextCpu())    # Not super fast
+part.sort(interleave_lost_particles=True)  # Not super fast
 
 # Select only surviving particles and only within the window of interest
-mask = (part.state > 0 ) & ( part.px - part_init.px < 250.e-6) & ( part.px - part_init.px > -50.e-6)
+mask = (part.state > 0 ) & (part.px - part_init.px < 250.e-6) & (part.px - part_init.px > -50.e-6)
 
 plt.figure(figsize=(12,8))
 plt.hist2d(part_init.px[mask]*1.e6, part.px[mask]*1.e6 - part_init.px[mask]*1.e6, 500, norm=mpl.colors.LogNorm())
@@ -53,4 +56,3 @@ plt.ylabel(r'$\Delta\theta$ [$\mu$rad]')
 plt.xlabel(r'$\theta_{in}$ [$\mu$rad]')
 plt.tight_layout()
 plt.show()
-
