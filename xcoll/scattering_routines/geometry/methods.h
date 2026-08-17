@@ -48,9 +48,13 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
 // created by get_s, as we create them with XC_MAX_CROSS_PER_SEGMENT*XC_MAX_SEGMENTS + 1
 GPUFUN
 void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval) {
+    if (*length == 0) {
+        return;
+    }
     if (arr[0] > interval[1]) {
         // No overlap
         *length = 0;
+        return;
     }
     if ((*length)%2 == 1) {
         // Special case: last interval of array is open until infinity,
@@ -60,6 +64,7 @@ void calculate_overlap_array_interval(double* arr, int8_t* length, double* inter
     } else if (arr[*length-1] < interval[0]) {
         // No overlap
         *length = 0;
+        return;
     }
     int8_t i_start = 0;
     // Find the start of overlap
