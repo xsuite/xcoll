@@ -33,7 +33,7 @@ class EverestBlock(BaseBlock):
     _internal_record_class = BaseBlock._internal_record_class
 
     # TODO: the dependencies can be removed after Xtrack splits random source files
-    _depends_on = [BaseBlock, xt.RandomUniform, xt.xt.RandomUniformAccurate,
+    _depends_on = [BaseBlock, xt.RandomUniform, xt.RandomUniformAccurate,
                    xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
@@ -97,7 +97,7 @@ class EverestCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     # TODO: the dependencies can be removed after Xtrack splits random source files
-    _depends_on = [BaseCollimator, xt.RandomUniform, xt.xt.RandomUniformAccurate,
+    _depends_on = [BaseCollimator, xt.RandomUniform, xt.RandomUniformAccurate,
                    xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
@@ -164,7 +164,7 @@ class EverestCrystal(BaseCrystal):
     _internal_record_class = BaseCrystal._internal_record_class
 
     # TODO: the dependencies can be removed after Xtrack splits random source files
-    _depends_on = [BaseCrystal, xt.RandomUniform, xt.xt.RandomUniformAccurate,
+    _depends_on = [BaseCrystal, xt.RandomUniform, xt.RandomUniformAccurate,
                    xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
