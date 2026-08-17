@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 import xcoll as xc
 
 
@@ -26,7 +25,8 @@ path_in = Path(__file__).parent
 
 
 # Load from json
-env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json',
+              _context=context)
 line = env[f'lhcb{beam}']
 
 
@@ -36,7 +36,7 @@ TCPH = xc.EverestCollimator(length=0.6, gap=5, emittance=3.5e-6,
 TCPV = xc.EverestCollimator(length=0.6, gap=5, angle=90, emittance=3.5e-6,
                             material=xc.materials.MolybdenumGraphite)
 TCPS = xc.EverestCollimator(length=0.6, gap=5, angle=127.5, emittance=3.5e-6,
-                            material=xc.materials.Carbon)
+                            material=xc.materials.CarbonFibreCarbon)
 line.xcoll.collimators.install(['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'],
                                [TCPH, TCPV, TCPS], need_apertures=False)
 

@@ -26,106 +26,107 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xcother
+@for_all_test_contexts
 @pytest.mark.parametrize("cls", [xc.EmittanceMonitor], ids=["EmittanceMonitor"])
-def test_monitor_instance(cls):
-    mon = cls()
+def test_monitor_instance(cls, test_context):
+    mon = cls(_context=test_context)
     _assert_monitor(mon)
-    mon = cls(suppress_warnings=True)
+    mon = cls(suppress_warnings=True, _context=test_context)
     _assert_monitor(mon, {'suppress_warnings': True})
-    mon = cls(particle_id_start=7)
+    mon = cls(particle_id_start=7, _context=test_context)
     _assert_monitor(mon, {'particle_id_start': 7})
-    mon = cls(particle_id_stop=5)
+    mon = cls(particle_id_stop=5, _context=test_context)
     _assert_monitor(mon, {'particle_id_stop': 5})
-    mon = cls(particle_id_start=11, particle_id_stop=21)
+    mon = cls(particle_id_start=11, particle_id_stop=21, _context=test_context)
     _assert_monitor(mon, {'particle_id_start': 11, 'particle_id_stop': 21})
-    mon = cls(particle_id_range=[4, 19])
+    mon = cls(particle_id_range=[4, 19], _context=test_context)
     _assert_monitor(mon, {'particle_id_start': 4, 'particle_id_stop': 19})
-    mon = cls(num_particles=33)
+    mon = cls(num_particles=33, _context=test_context)
     _assert_monitor(mon, {'particle_id_stop': 33})
-    mon = cls(num_particles=33, particle_id_start=5)
+    mon = cls(num_particles=33, particle_id_start=5, _context=test_context)
     _assert_monitor(mon, {'particle_id_start': 5, 'particle_id_stop': 38})
-    mon = cls(num_particles=33, particle_id_stop=35)
+    mon = cls(num_particles=33, particle_id_stop=35, _context=test_context)
     _assert_monitor(mon, {'particle_id_start': 2, 'particle_id_stop': 35})
     with pytest.raises(ValueError):
-        mon = cls(particle_id_start=11, particle_id_stop=3)
+        mon = cls(particle_id_start=11, particle_id_stop=3, _context=test_context)
     with pytest.raises(ValueError):
-        mon = cls(num_particles=33, particle_id_stop=5)
+        mon = cls(num_particles=33, particle_id_stop=5, _context=test_context)
     with pytest.raises(ValueError):
-        mon = cls(num_particles=33, particle_id_range=[66,999]) # this should raise
+        mon = cls(num_particles=33, particle_id_range=[66,999], _context=test_context) # this should raise
     with pytest.raises(ValueError):
-        mon = cls(particle_id_range=66) # this should raise
+        mon = cls(particle_id_range=66, _context=test_context) # this should raise
     with pytest.raises(ValueError):
-        mon = cls(particle_id_range=[66]) # this should raise
+        mon = cls(particle_id_range=[66], _context=test_context) # this should raise
     with pytest.raises(ValueError):
-        mon = cls(particle_id_range=[888, 66]) # this should raise
+        mon = cls(particle_id_range=[888, 66], _context=test_context) # this should raise
     with pytest.raises(ValueError):
-        mon = cls(particle_id_range=[66, 888, 777]) # this should raise
+        mon = cls(particle_id_range=[66, 888, 777], _context=test_context) # this should raise
     with pytest.raises(ValueError):
-        mon = cls(particle_id_range=[66,999], particle_id_start=5) # this should raise
+        mon = cls(particle_id_range=[66,999], particle_id_start=5, _context=test_context) # this should raise
     with pytest.raises(ValueError):
-        mon = cls(particle_id_range=[66,999], particle_id_stop=5) # this should raise
+        mon = cls(particle_id_range=[66,999], particle_id_stop=5, _context=test_context) # this should raise
 
-    mon = cls(start_at_turn=5)
+    mon = cls(start_at_turn=5, _context=test_context)
     _assert_monitor(mon, {'start_at_turn': 5, 'stop_at_turn': 6})
-    mon = cls(stop_at_turn=10)
+    mon = cls(stop_at_turn=10, _context=test_context)
     _assert_monitor(mon, {'stop_at_turn': 10})
-    mon = cls(start_at_turn=5, stop_at_turn=10)
+    mon = cls(start_at_turn=5, stop_at_turn=10, _context=test_context)
     _assert_monitor(mon, {'start_at_turn': 5, 'stop_at_turn': 10})
     with pytest.raises(ValueError):
         mon = cls(start_at_turn=5, stop_at_turn=4)
 
-    mon = cls(horizontal=True)
+    mon = cls(horizontal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': False})
-    mon = cls(horizontal=False)
+    mon = cls(horizontal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': True})
-    mon = cls(vertical=True)
+    mon = cls(vertical=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': False})
-    mon = cls(vertical=False)
+    mon = cls(vertical=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': True})
-    mon = cls(longitudinal=True)
+    mon = cls(longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': False, 'longitudinal': True})
-    mon = cls(longitudinal=False)
+    mon = cls(longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': True, 'longitudinal': False})
-    mon = cls(horizontal=True, vertical=True)
+    mon = cls(horizontal=True, vertical=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': True, 'longitudinal': False})
-    mon = cls(horizontal=True, vertical=False)
+    mon = cls(horizontal=True, vertical=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': False})
-    mon = cls(horizontal=False, vertical=True)
+    mon = cls(horizontal=False, vertical=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': False})
-    mon = cls(horizontal=False, vertical=False)
+    mon = cls(horizontal=False, vertical=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': False, 'longitudinal': True})
-    mon = cls(horizontal=True, longitudinal=True)
+    mon = cls(horizontal=True, longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': True})
-    mon = cls(horizontal=True, longitudinal=False)
+    mon = cls(horizontal=True, longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': False})
-    mon = cls(horizontal=False, longitudinal=True)
+    mon = cls(horizontal=False, longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': False, 'longitudinal': True})
-    mon = cls(horizontal=False, longitudinal=False)
+    mon = cls(horizontal=False, longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': False})
-    mon = cls(vertical=True, longitudinal=True)
+    mon = cls(vertical=True, longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': True})
-    mon = cls(vertical=True, longitudinal=False)
+    mon = cls(vertical=True, longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': False})
-    mon = cls(vertical=False, longitudinal=True)
+    mon = cls(vertical=False, longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': False, 'longitudinal': True})
-    mon = cls(vertical=False, longitudinal=False)
+    mon = cls(vertical=False, longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': False})
-    mon = cls(horizontal=True, vertical=True,longitudinal=True)
+    mon = cls(horizontal=True, vertical=True,longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': True, 'longitudinal': True})
-    mon = cls(horizontal=True, vertical=True,longitudinal=False)
+    mon = cls(horizontal=True, vertical=True,longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': True, 'longitudinal': False})
-    mon = cls(horizontal=True, vertical=False,longitudinal=True)
+    mon = cls(horizontal=True, vertical=False,longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': True})
-    mon = cls(horizontal=True, vertical=False,longitudinal=False)
+    mon = cls(horizontal=True, vertical=False,longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': True, 'vertical': False, 'longitudinal': False})
-    mon = cls(horizontal=False, vertical=True,longitudinal=True)
+    mon = cls(horizontal=False, vertical=True,longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': True})
-    mon = cls(horizontal=False, vertical=True,longitudinal=False)
+    mon = cls(horizontal=False, vertical=True,longitudinal=False, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': True, 'longitudinal': False})
-    mon = cls(horizontal=False, vertical=False,longitudinal=True)
+    mon = cls(horizontal=False, vertical=False,longitudinal=True, _context=test_context)
     _assert_monitor(mon, {'horizontal': False, 'vertical': False, 'longitudinal': True})
     with pytest.raises(ValueError):
-        mon = cls(horizontal=False, vertical=False,longitudinal=False)
+        mon = cls(horizontal=False, vertical=False,longitudinal=False, _context=test_context)
 
 
 @pytest.mark.xcother
@@ -138,13 +139,16 @@ def test_monitor_instance(cls):
 def test_blowup_install(beam, plane, aper, test_context):
     aperture = None
     if aper == 'auto':
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
+                      _context=test_context)
     else:
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
+                      _context=test_context)
         if aper == 'single':
-            aperture = xt.LimitEllipse(a=0.01, b=0.01)
+            aperture = xt.LimitEllipse(a=0.01, b=0.01, _context=test_context)
         elif aper == 'both':
-            aperture = [xt.LimitEllipse(a=0.01, b=0.01), xt.LimitEllipse(a=0.02, b=0.02)]
+            aperture = [xt.LimitEllipse(a=0.01, b=0.01, _context=test_context),
+                        xt.LimitEllipse(a=0.02, b=0.02, _context=test_context)]
     need_apertures = aper is not None
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
@@ -165,7 +169,8 @@ def test_blowup_install(beam, plane, aper, test_context):
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
 def test_blowup(beam, plane, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
+                  _context=test_context)
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
@@ -174,9 +179,19 @@ def test_blowup(beam, plane, test_context):
     tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
     tt = line.get_table()
     adt_pos = 0.5*tt['s', tank_start] + 0.5*tt['s', tank_end]
-    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, need_apertures=False, plane=plane,
-                            stop_at_turn=num_turns, use_individual_kicks=True, _context=test_context)
-    mon = xc.EmittanceMonitor.install(line, name="monitor", at=adt_pos, stop_at_turn=num_turns, _context=test_context)
+    adt = xc.BlowUp.install(line,
+                            name=f'{name}_blowup',
+                            at=adt_pos,
+                            need_apertures=False,
+                            plane=plane,
+                            stop_at_turn=num_turns,
+                            use_individual_kicks=True,
+                            _context=test_context)
+    mon = xc.EmittanceMonitor.install(line,
+                                      name="monitor",
+                                      at=adt_pos,
+                                      stop_at_turn=num_turns,
+                                      _context=test_context)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
@@ -184,8 +199,13 @@ def test_blowup(beam, plane, test_context):
     else:
         adt.calibrate_by_emittance(nemitt=nemitt_y)
 
-    part = xp.generate_matched_gaussian_bunch(num_particles=num_part, total_intensity_particles=1.6e11,
-                                              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
+    part = xp.generate_matched_gaussian_bunch(num_particles=num_part,
+                                              total_intensity_particles=1.6e11,
+                                              nemitt_x=nemitt_x,
+                                              nemitt_y=nemitt_y,
+                                              sigma_z=7.55e-2,
+                                              line=line,
+                                              _context=test_context)
 
     adt.activate()
     line.track(part, num_turns=num_turns, with_progress=1)
@@ -215,7 +235,8 @@ def test_blowup(beam, plane, test_context):
 def test_monitor_reset(test_context):
     beam = 1
     plane = 'V'
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
+                  _context=test_context)
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
@@ -224,9 +245,19 @@ def test_monitor_reset(test_context):
     tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
     tt = line.get_table()
     adt_pos = 0.5*tt['s', tank_start] + 0.5*tt['s', tank_end]
-    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, need_apertures=False, plane=plane,
-                            stop_at_turn=num_turns, use_individual_kicks=True)
-    mon = xc.EmittanceMonitor.install(line, name="monitor", at=adt_pos, stop_at_turn=num_turns)
+    adt = xc.BlowUp.install(line,
+                            name=f'{name}_blowup',
+                            at=adt_pos,
+                            need_apertures=False,
+                            plane=plane,
+                            stop_at_turn=num_turns,
+                            use_individual_kicks=True,
+                            _context=test_context)
+    mon = xc.EmittanceMonitor.install(line,
+                                      name="monitor",
+                                      at=adt_pos,
+                                      stop_at_turn=num_turns,
+                                      _context=test_context)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
@@ -234,8 +265,13 @@ def test_monitor_reset(test_context):
     else:
         adt.calibrate_by_emittance(nemitt=nemitt_y)
 
-    part_init = xp.generate_matched_gaussian_bunch(num_particles=int(num_part/5), total_intensity_particles=1.6e11,
-                                                   nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
+    part_init = xp.generate_matched_gaussian_bunch(num_particles=int(num_part/5),
+                                                   total_intensity_particles=1.6e11,
+                                                   nemitt_x=nemitt_x,
+                                                   nemitt_y=nemitt_y,
+                                                   sigma_z=7.55e-2,
+                                                   line=line,
+                                                   _context=test_context)
 
     adt.activate()
     for _ in range(2):

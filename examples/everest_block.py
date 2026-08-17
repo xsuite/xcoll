@@ -15,12 +15,14 @@ context = xo.ContextCpu()         # For CPU
 # context = xo.ContextCupy()      # For CUDA GPUs
 # context = xo.ContextPyopencl()  # For OpenCL GPUs
 
+num_part = int(10e6)
+
 block = xc.EverestBlock(length=1., material=xc.materials.Tungsten,
                         _context=context)
 
-part = xt.Particles(x=np.zeros(1000000), energy0=450.e9, _context=context)
+part = xt.Particles(x=np.zeros(num_part), energy0=450.e9, _context=context)
 
-print("Tracking particles through EverestBlock...   ", end='', flush=True)
+print(f"Tracking {num_part} particles through EverestBlock...   ", end='', flush=True)
 t_start = time.time()
 block.track(part)
 print(f"Done in {time.time()-t_start:.2f} s")

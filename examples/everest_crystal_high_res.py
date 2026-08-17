@@ -25,7 +25,7 @@ px_out_lim = (-50e-6, 250e-6)
 print_n_chunks = 10
 nbins = 500
 
-particle_ref = xt.Particles('proton', p0c=4e11)
+particle_ref = xt.Particles('proton', p0c=4e11, _context=context)
 coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon, bending_angle=149e-6,
                          width=0.002, height=0.05, side='+', miscut=0., lattice='strip', jaw=0.001,
                          _context=context)
@@ -105,5 +105,5 @@ plt.ylim(*yrange)
 plt.ylabel(r'$\Delta\theta$ [$\mu$rad]')
 plt.xlabel(r'$\theta_{in}$ [$\mu$rad]')
 plt.tight_layout()
-plt.savefig('everest_crystal_high_res.png', dpi=300)
+plt.savefig('plots/everest_crystal_high_res.png', dpi=300)
 plt.show()
