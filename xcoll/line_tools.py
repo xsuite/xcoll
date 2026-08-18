@@ -17,75 +17,6 @@ def _iterable(obj):
     return  hasattr(obj, '__iter__') and not isinstance(obj, str)
 
 
-def _element_names_of_type(line, classes):
-    # Using get_table() for type discovery also computes all longitudinal
-    # positions. In a GPU context that entails a device-to-host copy for the
-    # length of every thick element in the line.
-    elements = []
-    for name in line.element_names:
-        element = line.get(name)
-        if isinstance(element, xt.Replica):
-            element = element.resolve(line)
-        elements.append((name, element))
-    return [name for cls in classes for name, element in elements
-            if type(element) is cls]
-
-
-def _uses_cpu_context(element):
-    context = element._xobject._buffer.context
-    return context.nplike_lib is np
-
-
-def _line_non_cpu_context(line):
-    if line._has_valid_tracker():
-        context = line.tracker._context
-        return None if context.nplike_lib is np else context
-    for name in line.element_names:
-        element = line.get(name)
-        if isinstance(element, xt.Replica):
-            element = element.resolve(line)
-        if hasattr(element, '_xobject') and not _uses_cpu_context(element):
-            return element._xobject._buffer.context
-    return None
-
-
-def _line_table_for_edit(line):
-    """Return longitudinal metadata without re-reading a tracked GPU line."""
-    if line._has_valid_tracker():
-        tracker_data = line.tracker._tracker_data_base
-        if hasattr(tracker_data, '_line_table'):
-            return tracker_data._line_table
-    return line.get_table()
-
-
-def _transformations_active(element, cache):
-    """Check element transformations with at most one GPU transfer."""
-    key = id(element._xobject)
-    if key in cache:
-        return cache[key]
-    if not element.allow_rot_and_shift:
-        active = False
-    elif hasattr(element, '_parent') and element.rot_and_shift_from_parent:
-        active = _transformations_active(element._parent, cache)
-    elif _uses_cpu_context(element):
-        active = element.transformations_active
-    else:
-        field_names = (
-            'shift_x', 'shift_y', 'shift_s', 'rot_s_rad', 'rot_x_rad',
-            'rot_y_rad', 'rot_s_rad_no_frame')
-        xobject = element._xobject
-        fields = [getattr(type(xobject), name) for name in field_names]
-        start = min(field.offset for field in fields)
-        end = max(field.offset + field.ftype._size for field in fields)
-        data = xobject._buffer.to_bytearray(
-            xobject._offset + start, end - start)
-        active = any(np.frombuffer(
-            data, dtype=field.ftype._dtype, count=1,
-            offset=field.offset - start)[0] != 0 for field in fields)
-    cache[key] = active
-    return active
-
-
 class XcollLineAPI:
     def __init__(self, line):
         self._line = line
@@ -229,7 +160,12 @@ class XcollScatteringAPI(XcollLineAccessor):
     def names(self):
         # This makes sure the accessor can access the names of the
         # collimators dynamically
-        return _element_names_of_type(self.line, element_classes)
+        tt = self.line.get_table()
+        names = []
+        for cc in element_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            names += list(ttcc.name)
+        return names
 
     def enable(self):
         if len(self) == 0:
@@ -283,7 +219,12 @@ class XcollCollimatorAPI(XcollLineAccessor):
     def names(self):
         # This makes sure the accessor can access the names of the
         # collimators dynamically
-        return _element_names_of_type(self.line, collimator_classes)
+        tt = self.line.get_table()
+        names = []
+        for cc in collimator_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            names += list(ttcc.name)
+        return names
 
     @property
     def families(self):
@@ -368,16 +309,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 el.name = name
 
         # Get positions
-        non_cpu_context = _line_non_cpu_context(self.line)
-        use_cpu_layout = non_cpu_context is not None
-        # Tracker construction caches the complete line table before moving
-        # the elements to the tracking context. Reuse it: line.get_table()
-        # would otherwise rebuild the line attributes from GPU-resident
-        # elements, causing many unnecessary device synchronisations.
-        if use_cpu_layout:
-            tt = _line_table_for_edit(self.line)
-        else:
-            tt = self.line.get_table()
+        tt = self.line.get_table()
         s_start = []
         for name, s, l in zip(names, at, length):
             if s is not None and not isinstance(s, Number):
@@ -388,10 +320,11 @@ class XcollCollimatorAPI(XcollLineAccessor):
                                           "the s position of the element.")
             existing_length = 0
             if name in tt.name:
-                existing_row = tt.rows[name]
-                existing_s = existing_row.s_start[0]
-                existing_length = (
-                    existing_row.s_end[0] - existing_row.s_start[0])
+                if hasattr(self.line[name], 'length'):
+                    existing_length = self.line[name].length
+                else:
+                    existing_length = 0
+                existing_s = tt.rows[name].s_start[0]
                 new_s = existing_s + existing_length/2. - l/2
                 if s is not None and not np.isclose(s, new_s, atol=s_tol):
                     raise ValueError(f"Element {name} already exists in line "
@@ -422,16 +355,14 @@ class XcollCollimatorAPI(XcollLineAccessor):
         # Look for apertures
         aper_upstream   = []
         aper_downstream = []
-        transformations_cache = {}
         for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
             if not need_apertures:
                 aper_upstream.append(None)
                 aper_downstream.append(None)
             else:
-                aper1, aper2 = self.find_aperture(
-                    name, s_start=s1, s_end=s2, aperture=aper, table=tt,
-                    s_tol=s_tol,
-                    transformations_cache=transformations_cache)
+                aper1, aper2 = self.find_aperture(name, s_start=s1, s_end=s2,
+                                                  aperture=aper, table=tt,
+                                                  s_tol=s_tol)
                 aper_upstream.append(aper1)
                 aper_downstream.append(aper2)
 
@@ -443,14 +374,6 @@ class XcollCollimatorAPI(XcollLineAccessor):
                                s_tol=s_tol, to_remove=to_remove)
             el._line = self.line
             el._name = name
-
-        if use_cpu_layout:
-            return self._install_with_cpu_layout(
-                names=names, elements=elements, length=length,
-                s_start=s_start, apertures_upstream=aper_upstream,
-                apertures_downstream=aper_downstream,
-                need_apertures=need_apertures, table=tt,
-                to_remove=to_remove, s_tol=s_tol)
 
         # Install
         insertions = []
@@ -472,18 +395,9 @@ class XcollCollimatorAPI(XcollLineAccessor):
         for nn in to_delete:
             del env.elements[nn]
 
-        # Resolve the structural insertion with CPU placeholders. Xtrack needs
-        # the inserted element length several times while rebuilding the line;
-        # reading it from a GPU-backed element each time forces a synchronous
-        # device-to-host transfer. The real elements are restored immediately
-        # after the layout is complete.
-        gpu_elements = []
-        for nn, ee, ll in zip(names, elements, length):
-            if _uses_cpu_context(ee):
-                env.elements[nn] = ee
-            else:
-                env.elements[nn] = xt.Drift(length=ll)
-                gpu_elements.append((nn, ee))
+        # Add new elements to environment
+        for nn, ee in zip(names, elements):
+            env.elements[nn] = ee
 
         # Apertures
         if need_apertures:
@@ -495,112 +409,10 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 env.elements[nn2] = aper2
                 insertions.append(env.place(nn1, at=name+'@start'))
                 insertions.append(env.place(nn2, at=name+'@end'))
-        try:
-            self.line.insert(insertions, s_tol=s_tol)
-        finally:
-            for nn, ee in gpu_elements:
-                del env.elements[nn]
-                env.elements[nn] = ee
-
-    def _install_with_cpu_layout(self, *, names, elements, length, s_start,
-                                 apertures_upstream, apertures_downstream,
-                                 need_apertures, table, to_remove, s_tol):
-        """Resolve a GPU-resident line edit using CPU structural proxies.
-
-        Xtrack's generic editing machinery scans the line several times after
-        discarding its tracker. If the lattice remains GPU-backed, each scalar
-        length access synchronises the device. A layout-only line of CPU drifts
-        and markers has identical longitudinal geometry and avoids those
-        per-element transfers.
-        """
-        line = self.line
-        env = line.env
-        original_element_names = list(line.element_names)
-
-        layout_elements = {}
-        for ii, env_name in enumerate(original_element_names):
-            if env_name in layout_elements:
-                continue
-            if table.isthick[ii]:
-                element_length = table.s_end[ii] - table.s_start[ii]
-                layout_elements[env_name] = xt.Drift(length=element_length)
-            else:
-                layout_elements[env_name] = xt.Marker()
-        layout_line = xt.Line(elements=layout_elements,
-                              element_names=original_element_names)
-        layout_env = layout_line.env
-
-        to_delete = []
-        for name in names:
-            if name in env.elements:
-                to_remove.append(name)
-                to_delete.append(name)
-        if to_remove:
-            layout_line.remove(to_remove, s_tol=s_tol)
-        for name in to_delete:
-            del layout_env.elements[name]
-
-        insertions = []
-        for name, element_length, at in zip(names, length, s_start):
-            layout_env.elements[name] = xt.Drift(length=element_length)
-            insertions.append(layout_env.place(name, at=at, anchor='start'))
-
-        aperture_names = set()
-        if need_apertures:
-            for name in names:
-                upstream_name = f'{name}_aper_upstream'
-                downstream_name = f'{name}_aper_downstream'
-                aperture_names.update((upstream_name, downstream_name))
-                layout_env.elements[upstream_name] = xt.Marker()
-                layout_env.elements[downstream_name] = xt.Marker()
-                insertions.append(layout_env.place(
-                    upstream_name, at=name+'@start'))
-                insertions.append(layout_env.place(
-                    downstream_name, at=name+'@end'))
-        layout_line.insert(insertions, s_tol=s_tol)
-
-        original_names = set(original_element_names)
-        installed_names = set(names) | aperture_names
-        generated_elements = {}
-        final_layout_names = []
-        for name in layout_line.element_names:
-            if name in original_names or name in installed_names:
-                final_layout_names.append(name)
-            else:
-                if name not in generated_elements:
-                    generated_elements[name] = layout_line.get(name).copy()
-                final_layout_names.append(('drift', name))
-
-        line.discard_tracker()
-        for name in to_delete:
-            del env.elements[name]
-        for name, element in zip(names, elements):
-            env.elements[name] = element
-        if need_apertures:
-            for name, upstream, downstream in zip(
-                    names, apertures_upstream, apertures_downstream):
-                env.elements[f'{name}_aper_upstream'] = upstream
-                env.elements[f'{name}_aper_downstream'] = downstream
-
-        generated_names = {}
-        final_names = []
-        for item in final_layout_names:
-            if isinstance(item, tuple):
-                layout_name = item[1]
-                if layout_name not in generated_names:
-                    new_name = env._get_a_drift_name()
-                    env.elements[new_name] = generated_elements[layout_name]
-                    generated_names[layout_name] = new_name
-                final_names.append(generated_names[layout_name])
-            else:
-                final_names.append(item)
-        line.element_names.clear()
-        line.element_names.extend(final_names)
+        self.line.insert(insertions, s_tol=s_tol)
 
     def find_aperture(self, name, *, s_start, s_end, aperture=None, table=None,
-                     s_tol=1.e-6, transformations_cache=None):
-        if transformations_cache is None:
-            transformations_cache = {}
+                     s_tol=1.e-6):
         if aperture is not None:
             if isinstance(aperture, str):
                 try:
@@ -655,7 +467,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
             else:
                 aper_name = tt_aper.name[-1]
                 aper1 = self.line.get(aper_name)
-                if _transformations_active(aper1, transformations_cache):
+                if aper1.transformations_active:
                     s_aper = tt.rows[aper_name].s_start[0]
                     if not np.isclose(s_aper, s_start, atol=s_tol):
                         print(f"Warning: Using aperture {aper_name} upstream "
@@ -669,7 +481,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
             else:
                 aper_name = tt_aper.name[0]
                 aper2 = self.line.get(aper_name)
-                if _transformations_active(aper2, transformations_cache):
+                if aper2.transformations_active:
                     s_aper = tt.rows[aper_name].s_end[0]
                     if not np.isclose(s_aper, s_end, atol=s_tol):
                         print(f"Warning: Using aperture {aper_name} downstream"
@@ -710,19 +522,18 @@ class XcollCollimatorAPI(XcollLineAccessor):
         return tw_entry, tw_exit
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None):
-        names = self.names
-        tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
+        tw_upstream, tw_downstream = self.get_optics_at(self.names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
-        for name in names:
-            coll = self.line.get(name)
-            coll.assign_optics(
-                name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                twiss_upstream=tw_upstream,
-                twiss_downstream=tw_downstream,
-                beta_gamma_rel=beta_gamma_rel)
+        for name, coll in self.items():
+            coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
+                               twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 
     def align_to_beam_divergence(self):
-        crystal_names = _element_names_of_type(self.line, crystal_classes)
+        tt = self.line.get_table()
+        crystal_names = []
+        for cc in crystal_classes:
+            ttcc = tt.rows.match(element_type=cc.__name__)
+            crystal_names += list(ttcc.name)
         crystals = [self.line.get(nn) for nn in crystal_names]
         if len(crystals) == 0:
             warn("No crystals found in line to align to beam divergence.")
