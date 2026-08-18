@@ -126,7 +126,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     part._init_random_number_generator()
 
     if not is_converging:
-        dri = xt.Drift(length=-coll.length)
+        dri = xt.Drift(length=-coll.length, _context=kwargs.get('_context', None))
         dri.track(part)
         part.start_tracking_at_element -= 1
         part.at_element -= 1
