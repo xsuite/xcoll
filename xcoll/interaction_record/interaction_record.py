@@ -416,28 +416,36 @@ class InteractionRecord(xt.BeamElement):
         n_rows = self._index.num_recorded
         if isinstance(collimator, str):
             collimator = self._collimator_id(collimator)
+        nparr = self._context.nparray_from_context_array
         mask = (self._inter[:n_rows] > 0) & (self.at_element[:n_rows] == collimator)
+        interaction_type = [
+            inter.tolist() if hasattr(inter, 'tolist') else inter
+            for inter in self._inter[:n_rows][mask]
+        ]
         if turn is not None:
             mask = mask & (self.at_turn[:n_rows] == turn)
             df = pd.DataFrame({
-                    'int':  [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
-                    'pid':  self.particle_id_before[:n_rows][mask]
+                    'int':  [shortcuts[inter] for inter in interaction_type],
+                    'pid':  nparr(self.particle_id_before[:n_rows][mask])
                 })
             return df.groupby('pid', sort=False, group_keys=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
-                    'int':   [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
-                    'turn':  self.at_turn[:n_rows][mask],
-                    'pid':   self.particle_id_before[:n_rows][mask]
+                    'int':   [shortcuts[inter] for inter in interaction_type],
+                    'turn':  nparr(self.at_turn[:n_rows][mask]),
+                    'pid':   nparr(self.particle_id_before[:n_rows][mask])
                 })
             return df.groupby(['pid', 'turn'], sort=False, group_keys=False)['int'].apply(list)
 
     def first_touch_per_turn(self, frame=None):
         self._check_columns_recorded(['particle_id_before'], 'first_touch_per_turn')
+        nparr = self._context.nparray_from_context_array
         n_rows = self._index.num_recorded
-        df = pd.DataFrame({'particle_id_before': self.particle_id_before[:n_rows],
-                           'at_turn': self.at_turn[:n_rows],
-                           'at_element': self.at_element[:n_rows]})
+        df = pd.DataFrame({
+                    'particle_id_before': nparr(self.particle_id_before[:n_rows]),
+                    'at_turn':            nparr(self.at_turn[:n_rows]),
+                    'at_element':         nparr(self.at_element[:n_rows])
+                })
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
         idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(
                         ['at_turn', 'particle_id_before'], sort=False, group_keys=False)]
