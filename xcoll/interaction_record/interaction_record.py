@@ -460,6 +460,8 @@ class InteractionRecord(xt.BeamElement):
                 f"columns {missing} were not recorded.")
 
     def _collimator_name(self, element_id):
+        if hasattr(element_id, 'tolist'):
+            element_id = element_id.tolist()
         if not hasattr(self, '_coll_names'):
             return element_id
         elif element_id not in self._coll_names:
@@ -472,6 +474,8 @@ class InteractionRecord(xt.BeamElement):
             return self._coll_names[element_id]
 
     def _collimator_id(self, element_name):
+        if hasattr(element_name, 'tolist'):
+            element_name = element_name.tolist()
         if not hasattr(self, '_coll_ids'):
             return element_name
         elif element_name not in self._coll_ids:
