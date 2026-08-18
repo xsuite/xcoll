@@ -198,12 +198,16 @@ class InteractionRecord(xt.BeamElement):
             raise ValueError(f"Invalid frame {frame}. Must be 'jaw', "
                              f"'collimator', or 'lattice'!")
         n_rows = self._index.num_recorded
+        interaction_type = [
+                    inter.tolist() if hasattr(inter, 'tolist') else inter
+                    for inter in self._inter[:n_rows]
+        ]
         data = {
             'turn':             self.at_turn[:n_rows],
             'collimator':       [self._collimator_name(element_id)
                                  for element_id in self.at_element[:n_rows]],
             'interaction_type': [interaction_names[inter]
-                                 for inter in self._inter[:n_rows]],
+                                 for inter in interaction_type],
         }
         for p in ['before', 'after']:
             for val in ['particle_id', 's', 'x', 'px', 'y', 'py', 'zeta',
