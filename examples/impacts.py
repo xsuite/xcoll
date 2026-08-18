@@ -27,17 +27,13 @@ colldb.install_everest_collimators(verbose=True, line=line)
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
-# Start interaction record
-impacts = xc.InteractionRecord(line=line)
-
 # Build tracker, assign optics and generate particles 
-line.build_tracker()
-line.xcoll.collimators.assign_optics()
-part = line['tcp.d6l7.b1'].generate_pencil(5000)
-
-# Move to a more efficient context for tracking
-line.discard_tracker()
 line.build_tracker(_context=context)
+line.xcoll.collimators.assign_optics()   # Not super fast
+part = line['tcp.d6l7.b1'].generate_pencil(5000, _context=context)
+
+# Start interaction record (after having the line on the correct context)
+impacts = xc.InteractionRecord(line=line, _context=context)
 
 # Track
 line.xcoll.scattering.enable()
@@ -66,7 +62,8 @@ py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0,
                     p0c=4e11, _context=context)
 
-impacts_coll = xc.InteractionRecord(elements=[coll], names='TPCH')
+impacts_coll = xc.InteractionRecord(elements=[coll], names='TPCH',
+                                    _context=context)
 
 coll.track(part)
 if not isinstance(context, xo.ContextCpu):
@@ -74,7 +71,10 @@ if not isinstance(context, xo.ContextCpu):
 part.sort(interleave_lost_particles=True)  # Not super fast
 
 df = impacts_coll.to_pandas()
-df[df.interaction_type == 'Enter Jaw L'].to_csv('results/impacts_coll_enter_jaw_L.csv', index=False)
+df[df.interaction_type == 'Enter Jaw L'].to_csv(
+                                  'results/impacts_coll_enter_jaw_L.csv',
+                                  index=False
+                                )
 
 # ============================================
 # With crystal
@@ -94,9 +94,11 @@ x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
 px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11, _context=context)
+part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0,
+                    p0c=4e11, _context=context)
 
-impacts_crystal = xc.InteractionRecord(elements=[coll_cry], names='TPCH')
+impacts_crystal = xc.InteractionRecord(elements=[coll_cry], names='TPCH',
+                                       _context=context)
 coll_cry.track(part)
 if not isinstance(context, xo.ContextCpu):
     part.move(_context=xo.ContextCpu())    # Not super fast

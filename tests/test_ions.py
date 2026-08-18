@@ -14,8 +14,6 @@ import xcoll as xc
 import xtrack.particles.pdg as pdg
 from  xcoll import constants as xcc
 
-from xobjects.test_helpers import for_all_test_contexts
-
 from _common_api import engine_params
 
 

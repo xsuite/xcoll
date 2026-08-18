@@ -119,9 +119,7 @@ def test_install_single_existing_marker(beam, aper, test_context):
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
 def test_install_single_no_marker(beam, test_context):
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
