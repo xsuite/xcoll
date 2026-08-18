@@ -40,7 +40,7 @@ def test_impacts_from_line(beam, plane, test_context):
     line.xcoll.collimators.assign_optics()
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     tw = line.twiss()
-    part = line[tcp].generate_pencil(num_part, twiss=tw)
+    part = line[tcp].generate_pencil(num_part, twiss=tw, _context=test_context)
 
     line.xcoll.scattering.enable()
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
@@ -214,6 +214,7 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)
     assert np.all([type in expected_types for type in types])
+    assert len(types) > 0   # Need at least some impacts to test
 
     for this_type in ['Enter Jaw L', 'Enter Jaw R']:
         if this_type in expected_types:
