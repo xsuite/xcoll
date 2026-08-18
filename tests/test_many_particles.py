@@ -27,7 +27,8 @@ def test_return_photons(engine):
     num_part = 5000
     capacity = 100_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
-    part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='photons')
+    part = _run(engine, num_part, capacity, particle_ref, True,
+                do_assert=False, return_type='photons')
     pdg = part.pdg_id[part.particle_id >= num_part]
     assert np.all(pdg == 22)
     with flaky_assertions():
@@ -44,7 +45,8 @@ def test_return_electrons():
     num_part = 2500
     capacity = 250_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
-    part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='electrons')
+    part = _run(engine, num_part, capacity, particle_ref, True,
+                do_assert=False, return_type='electrons')
     pdg = part.pdg_id[part.particle_id >= num_part]
     assert np.all((pdg == 11) | (pdg == -11))
     with flaky_assertions():
@@ -59,7 +61,8 @@ def test_return_protons(engine):
     num_part = 2500
     capacity = 50_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
-    part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='protons')
+    part = _run(engine, num_part, capacity, particle_ref, True,
+                do_assert=False, return_type='protons')
     pdg = part.pdg_id[part.particle_id >= num_part]
     assert np.all((pdg == 2212) | (pdg == -2212))
     with flaky_assertions():
@@ -74,7 +77,8 @@ def test_return_neutrons(engine):
     num_part = 2500
     capacity = 50_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
-    part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='neutrons')
+    part = _run(engine, num_part, capacity, particle_ref, True,
+                do_assert=False, return_type='neutrons')
     pdg = part.pdg_id[part.particle_id >= num_part]
     assert np.all((pdg == 2112) | (pdg == -2112))
     with flaky_assertions():
@@ -89,7 +93,8 @@ def test_return_mesons(engine):
     num_part = 2500
     capacity = 50_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
-    part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='mesons')
+    part = _run(engine, num_part, capacity, particle_ref, True,
+                do_assert=False, return_type='mesons')
     pdg = part.pdg_id[part.particle_id >= num_part]
     assert not np.any(pdg == 22)
     assert not np.any((pdg == 11) | (pdg == -11))
@@ -112,7 +117,8 @@ def test_return_baryons():
     num_part = 100
     capacity = 50_000
     particle_ref = xt.Particles('He4', p0c=450e9*4)
-    part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='other_baryons')
+    part = _run(engine, num_part, capacity, particle_ref, True,
+                do_assert=False, return_type='other_baryons')
     pdg = part.pdg_id[part.particle_id >= num_part]
     assert not np.any(pdg == 22)
     assert not np.any((pdg == 11) | (pdg == -11))

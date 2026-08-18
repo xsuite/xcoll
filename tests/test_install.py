@@ -23,10 +23,13 @@ path = Path(__file__).parent / 'data'
                               "both_aper", "single_ref_aper", "both_ref_aper"])
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
 def test_install_single_existing_marker(beam, aper, test_context):
+    # Use test_context from the beginning to fully test installation on
+    # the context, even though this is slow and not advised for real use.
     aperture = None
     need_apertures = aper is not None
     if aper == 'auto' or (aper is not None and aper.endswith('_ref_aper')):
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
+                      _context=test_context)
         if aper == 'single_ref_aper':
             aperture = 'tcp.b6l7.b1_aper' if beam == 1 else 'tcp.b6r7.b2_aper'
         elif aper == 'both_ref_aper':
@@ -35,11 +38,13 @@ def test_install_single_existing_marker(beam, aper, test_context):
             else:
                 aperture = ['tcp.b6r7.b2_aper', 'tcp.d6r7.b2_aper']
     else:
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
+                      _context=test_context)
         if aper == 'single':
-            aperture = xt.LimitEllipse(a=0.01, b=0.01)
+            aperture = xt.LimitEllipse(a=0.01, b=0.01, _context=test_context)
         elif aper == 'both':
-            aperture = [xt.LimitEllipse(a=0.01, b=0.01), xt.LimitEllipse(a=0.02, b=0.02)]
+            aperture = [xt.LimitEllipse(a=0.01, b=0.01, _context=test_context),
+                        xt.LimitEllipse(a=0.02, b=0.02, _context=test_context)]
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
@@ -49,7 +54,13 @@ def test_install_single_existing_marker(beam, aper, test_context):
     tt = line.get_table()
     pos_centre = tt['s', name] + line[name].length/2
     coll = xc.BlackAbsorber(length=0.6, angle=127.5, _context=test_context)
-    line.xcoll.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
+    line.xcoll.collimators.install(
+                            name,
+                            coll,
+                            apertures=aperture,
+                            need_apertures=need_apertures,
+                            _context=test_context
+                        )
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2,
                       line.get_table()['s', name])
@@ -86,7 +97,13 @@ def test_install_single_existing_marker(beam, aper, test_context):
     pos_centre = tt['s', name] + line[name].length/2
     coll = xc.EverestCollimator(length=0.6, angle=90, _context=test_context,
                                 material=xc.materials.MolybdenumGraphite)
-    line.xcoll.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
+    line.xcoll.collimators.install(
+                            name,
+                            coll,
+                            apertures=aperture,
+                            need_apertures=need_apertures,
+                            _context=test_context
+                        )
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2,
                       line.get_table()['s', name])
@@ -107,7 +124,8 @@ def test_install_single_existing_marker(beam, aper, test_context):
 )
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
 def test_install_single_no_marker(beam, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
+                  _context=test_context)
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
@@ -115,8 +133,14 @@ def test_install_single_no_marker(beam, test_context):
     name = 'test_absorber'
     assert name not in line.element_names
     coll = xc.BlackAbsorber(length=1.738, angle=127.5, _context=test_context)
-    line.xcoll.collimators.install(name, coll, at=12.4, need_apertures=True,
-                             apertures=xt.LimitEllipse(0.4, 0.4))
+    line.xcoll.collimators.install(
+                                name,
+                                coll,
+                                at=12.4,
+                                need_apertures=True,
+                                apertures=xt.LimitEllipse(0.4, 0.4),
+                                _context=test_context
+                            )
     assert name in line.element_names
     assert np.isclose(line[name].length, 1.738)
     assert np.isclose(line.get_table()['s', name], 12.4)
@@ -135,8 +159,15 @@ def test_install_single_no_marker(beam, test_context):
     # Test block
     name = 'test_block'
     assert name not in line.element_names
-    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon, _context=test_context)
-    line.xcoll.collimators.install(name, el, need_apertures=False, at=17.89)
+    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon,
+                         _context=test_context)
+    line.xcoll.collimators.install(
+                                name,
+                                el,
+                                need_apertures=False,
+                                at=17.89,
+                                _context=test_context
+                            )
     assert name in line.element_names
     assert np.isclose(line[name].length, 0.63)
     assert np.isclose(line.get_table()['s', name], 17.89)

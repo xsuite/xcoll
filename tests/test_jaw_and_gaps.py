@@ -9,20 +9,22 @@ from pathlib import Path
 
 import xtrack as xt
 import xcoll as xc
+from xobjects.test_helpers import for_all_test_contexts
 
 
 path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xcother
+@for_all_test_contexts
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_gaps(beam):
+def test_gaps(beam, test_context):
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     coll = xc.BlackAbsorber(length=1.738, angle=127.5)
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
     line.xcoll.collimators.install(name, coll, need_apertures=True)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     tw = line.twiss()
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
     coll.assign_optics(name=name, nemitt_x=3.5e-6, nemitt_y=2.5e-6, twiss=tw, beta_gamma_rel=beta_gamma_rel)
@@ -68,6 +70,7 @@ def test_gaps(beam):
     second_angle = np.array(['jaw_R', 'jaw_L', 'gap_L', 'gap_R', 'tilt'])
     for r, i in enumerate(second_angle):
         check_3_times(coll, newval_angle, np.array(['angle', i]), r)
+
 
 def change_and_check(coll, parameter, val=None, is_third=False): # this is ugly
     check = False

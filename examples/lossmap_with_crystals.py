@@ -15,6 +15,10 @@ import xtrack as xt
 import xcoll as xc
 
 
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
+
 beam          = 1
 plane         = 'H'
 num_turns     = 200
@@ -57,8 +61,13 @@ line.xcoll.collimators.align_to_beam_divergence()
 line.optimize_for_tracking()
 
 
+# Move to a more efficient context for tracking
+line.discard_tracker()
+line.build_tracker(_context=context)
+
+
 # # Generate initial pencil distribution on crystal
-# part = line[tcp].generate_pencil(num_particles)
+# part = line[tcp].generate_pencil(num_particles, _context=context)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
@@ -66,14 +75,8 @@ py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
             nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
-            at_element=tcpc
+            at_element=tcpc, _context=context
 )
-
-
-# Move the line to an OpenMP context to be able to use all cores
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
-# Should move iobuffer as well in case of impacts
 
 
 # Track!
@@ -83,9 +86,10 @@ line.xcoll.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
-# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu())
+# Move the line back to CPU to be able to use all prebuilt kernels for the aperture interpolation
+if not isinstance(context, xo.ContextCpu):
+    line.discard_tracker()
+    line.build_tracker(_context=xo.ContextCpu())
 
 
 # Save loss map to json

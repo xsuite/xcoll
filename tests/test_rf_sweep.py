@@ -38,8 +38,14 @@ def test_rf_sweep(sweep, beam, test_context):
 
     line.build_tracker(_context=test_context)
 
-    part = line.build_particles(delta=np.linspace(-0.7*bh, 0.7*bh, num_particles),
-                                x_norm=0, px_norm=0, y_norm=0, py_norm=0, _context=test_context)
+    part = line.build_particles(
+                            delta=np.linspace(-0.7*bh, 0.7*bh, num_particles),
+                            x_norm=0,
+                            px_norm=0,
+                            y_norm=0,
+                            py_norm=0,
+                            _context=test_context
+                        )
 
     rf_sweep = xc.RFSweep(line)
     rf_sweep.prepare(sweep_per_turn=sweep/num_turns)
@@ -48,7 +54,8 @@ def test_rf_sweep(sweep, beam, test_context):
 
     # This sweep is 3.5 buckets, so check that all particles are at least 3 buckets away
     # negative sweep => positive off-momentum etc
-    part.move(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     if sweep < 0:
         assert np.all(part.delta > 3*bh)
     else:
@@ -56,7 +63,8 @@ def test_rf_sweep(sweep, beam, test_context):
 
 
 @pytest.mark.xcother
-def test_rf_sweep_harmonic_number():
+@for_all_test_contexts
+def test_rf_sweep_harmonic_number(test_context):
     """Test that RFSweep correctly resolves frequency from harmonic when frequency==0."""
     num_turns = 6000
     num_particles = 5
@@ -80,10 +88,11 @@ def test_rf_sweep_harmonic_number():
     assert np.isclose(env[cav_name].frequency, 0)
     assert env[cav_name].harmonic == harmonic
 
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     part = line.build_particles(delta=np.linspace(-2e-4, 2e-4, num_particles),
-                                x_norm=0, px_norm=0, y_norm=0, py_norm=0)
+                                x_norm=0, px_norm=0, y_norm=0, py_norm=0,
+                                _context=test_context)
 
     sweep = -300
     rf_sweep = xc.RFSweep(line)
@@ -97,7 +106,8 @@ def test_rf_sweep_harmonic_number():
     line.track(particles=part, num_turns=num_turns)
 
     # Same result as the standard LHC b2 negative sweep test
-    part.move(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     assert np.all(part.delta > 1.5e-3)
 
 

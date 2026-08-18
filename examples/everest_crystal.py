@@ -14,9 +14,9 @@ import xpart as xp
 import xcoll as xc
 
 
-context = xo.ContextCpu()         # For CPU
-# context = xo.ContextCupy()      # For CUDA GPUs
-# context = xo.ContextPyopencl()  # For OpenCL GPUs
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
 
 num_part = int(10e6)
 particle_ref = xt.Particles('proton', p0c=4e11)

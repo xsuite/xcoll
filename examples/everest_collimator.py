@@ -12,21 +12,19 @@ import xtrack as xt
 import xcoll as xc
 
 
-
 # --------------------------------------------------------
 # -------------------- Initialisation --------------------
 # --------------------------------------------------------
-context = xo.ContextCpu()         # For CPU
-# context = xo.ContextCupy()      # For CUDA GPUs
-# context = xo.ContextPyopencl()  # For OpenCL GPUs
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
 
 beam = 1
 path_in = Path(__file__).parent
 
 
 # Load from json
-env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json',
-              _context=context)
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
 line = env[f'lhcb{beam}']
 
 
@@ -48,11 +46,16 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-line.build_tracker(_context=context)
+line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
 line.xcoll.collimators.assign_optics()
+
+
+# Move to a more efficient context for tracking
+line.discard_tracker()
+line.build_tracker(_context=context)
 
 
 # --------------------------------------------------------
@@ -82,7 +85,9 @@ line.track(part, num_turns=1)
 line.xcoll.scattering.disable()
 
 # Sort the particles by their ID
-part.sort(interleave_lost_particles=True)
+if not isinstance(context, xo.ContextCpu):
+    part.move(_context=xo.ContextCpu())    # Not super fast
+part.sort(interleave_lost_particles=True)  # Not super fast
 
 # Plot the surviving particles as green
 plt.figure(1,figsize=(12,12))
@@ -123,7 +128,9 @@ line.track(part, num_turns=1)
 line.xcoll.scattering.disable()
 
 # Sort the particles by their ID
-part.sort(interleave_lost_particles=True)
+if not isinstance(context, xo.ContextCpu):
+    part.move(_context=xo.ContextCpu())    # Not super fast
+part.sort(interleave_lost_particles=True)  # Not super fast
 
 # Plot the surviving particles as green
 plt.figure(1,figsize=(12,12))

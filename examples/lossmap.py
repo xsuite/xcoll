@@ -14,6 +14,10 @@ import xtrack as xt
 import xcoll as xc
 
 
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
+
 beam          = 1
 plane         = 'H'
 num_turns     = 200
@@ -50,15 +54,14 @@ line.xcoll.collimators.assign_optics()
 line.optimize_for_tracking()
 
 
+# Move to a more efficient context for tracking
+line.discard_tracker()
+line.build_tracker(_context=context)
+
+
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = line[tcp].generate_pencil(num_particles)
-
-
-# Move the line to an OpenMP context to be able to use all cores
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
-# Should move iobuffer as well in case of impacts
+part = line[tcp].generate_pencil(num_particles, _context=context)
 
 
 # Track!
@@ -68,9 +71,10 @@ line.xcoll.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
-# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu())
+# Move the line back to CPU to be able to use all prebuilt kernels for the aperture interpolation
+if not isinstance(context, xo.ContextCpu):
+    line.discard_tracker()
+    line.build_tracker(_context=xo.ContextCpu())
 
 
 # Save loss map to json
@@ -89,4 +93,3 @@ print(f"Total calculation time {time.time()-start_time}s")
 # Plot loss map
 ThisLM.plot(savefig=path_out / 'plots' / 'lossmaps' / f'lossmap_B{beam}{plane}.pdf', zoom='betatron')
 plt.show()
-

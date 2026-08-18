@@ -9,6 +9,11 @@ import xcoll as xc
 path = Path(__file__).parent
 
 
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
+
+
 # ============================================
 # From line
 # ============================================
@@ -30,9 +35,9 @@ line.build_tracker()
 line.xcoll.collimators.assign_optics()
 part = line['tcp.d6l7.b1'].generate_pencil(5000)
 
-# This is not needed, but is done here so that we can track with 12 treads.
+# Move to a more efficient context for tracking
 line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
+line.build_tracker(_context=context)
 
 # Track
 line.xcoll.scattering.enable()
@@ -47,19 +52,26 @@ df.to_csv('results/impacts_line.csv', index=False)
 # ============================================
 # With collimator
 # ============================================
-coll = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
+coll = xc.EverestCollimator(length=0.6,
+                            jaw=0.0013,
+                            material=xc.materials.MolybdenumGraphite,
+                            emittance=3.5e-6,
+                            _context=context)
 
 num_part = int(5000)
 x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
 px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0,
+                    p0c=4e11, _context=context)
 
 impacts_coll = xc.InteractionRecord(elements=[coll], names='TPCH')
 
 coll.track(part)
-part.sort(interleave_lost_particles=True)
+if not isinstance(context, xo.ContextCpu):
+    part.move(_context=xo.ContextCpu())    # Not super fast
+part.sort(interleave_lost_particles=True)  # Not super fast
 
 df = impacts_coll.to_pandas()
 df[df.interaction_type == 'Enter Jaw L'].to_csv('results/impacts_coll_enter_jaw_L.csv', index=False)
@@ -67,19 +79,28 @@ df[df.interaction_type == 'Enter Jaw L'].to_csv('results/impacts_coll_enter_jaw_
 # ============================================
 # With crystal
 # ============================================
-coll_cry = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon, bending_angle=149e-6,
-                         width=0.002, height=0.05, side='+', lattice='strip', jaw=0.001)
+coll_cry = xc.EverestCrystal(length=0.002,
+                             material=xc.materials.Silicon,
+                             bending_angle=149e-6,
+                             width=0.002,
+                             height=0.05,
+                             side='+',
+                             lattice='strip',
+                             jaw=0.001,
+                             _context=context)
 
 num_part = int(5000)
 x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
 px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11, _context=context)
 
 impacts_crystal = xc.InteractionRecord(elements=[coll_cry], names='TPCH')
 coll_cry.track(part)
-part.sort(interleave_lost_particles=True)
+if not isinstance(context, xo.ContextCpu):
+    part.move(_context=xo.ContextCpu())    # Not super fast
+part.sort(interleave_lost_particles=True)  # Not super fast
 
 impacts_crystal.to_pandas()
 df_crystal = impacts_crystal.interactions_per_collimator()

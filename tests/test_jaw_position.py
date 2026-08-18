@@ -8,9 +8,11 @@ import pytest
 import numpy as np
 
 import xpart as xp
-from xpart.test_helpers import flaky_assertions, retry
+import xobjects as xo
 import xtrack as xt
 import xcoll as xc
+from xpart.test_helpers import flaky_assertions, retry
+from xobjects.test_helpers import for_all_test_contexts
 
 from _common_api import all_engine_params
 
@@ -31,10 +33,11 @@ tilt_ids = ['no_tilt', 'positive_tilt', 'pos_neg_tilt']
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 @retry()
-def test_positions(engine, jaw, angle, tilt):
+@for_all_test_contexts
+def test_positions(engine, jaw, angle, tilt, test_context):
     length = 0.873
     material = xc.materials.MolybdenumGraphite
-    particle_ref = xt.Particles('proton', p0c=6.8e12)
+    particle_ref = xt.Particles('proton', p0c=6.8e12, _context=test_context)
 
     if engine == "everest":
         num_part = 2_500_000
@@ -44,9 +47,13 @@ def test_positions(engine, jaw, angle, tilt):
         x_dim = 0.05
         y_dim = 0.05
         exact_drift = False
-        coll = xc.EverestCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material=material)
+        coll = xc.EverestCollimator(length=length, jaw=jaw, angle=angle,
+                                    tilt=tilt, material=material,
+                                    _context=test_context)
 
     elif engine == "fluka":
+        if not isinstance(test_context, xo.ContextCpu):
+            pytest.skip("FLUKA engine only works on CPU context.")
         num_part = 5000
         capacity = 2*num_part
         jaw_band = 5e-9
@@ -56,7 +63,9 @@ def test_positions(engine, jaw, angle, tilt):
         exact_drift = True
         if xc.fluka.engine.is_running():
             xc.fluka.engine.stop(clean=True)
-        coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt,  material=material)
+        coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle,
+                                  tilt=tilt,  material=material,
+                                  _context=test_context)
         xc.fluka.engine.particle_ref = particle_ref
         xc.fluka.engine.start(elements=coll, capacity=capacity, verbose=True)
         particle_ref = xc.fluka.engine.particle_ref
@@ -71,15 +80,28 @@ def test_positions(engine, jaw, angle, tilt):
         exact_drift = True
         if xc.geant4.engine.is_running():
             xc.geant4.engine.stop(clean=True)
-        coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material=material)
+        coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle,
+                                   tilt=tilt, material=material,
+                                   _context=test_context)
         xc.geant4.engine.particle_ref = particle_ref
         xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1, verbose=True)
         particle_ref = xc.geant4.engine.particle_ref
 
-    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
-                                                jaw_band=jaw_band, jaw_accuracy=jaw_accuracy, angular_spread=1e-3,
-                                                delta_spread=1e-3, zeta_spread=5e-2, exact_drift=exact_drift,
-                                                x_dim=x_dim, y_dim=y_dim, _capacity=capacity)
+    part_init, hit_ids, not_hit_ids = _generate_particles(
+                                        coll,
+                                        num_part=num_part,
+                                        particle_ref=particle_ref,
+                                        jaw_band=jaw_band,
+                                        jaw_accuracy=jaw_accuracy,
+                                        angular_spread=1e-3,
+                                        delta_spread=1e-3,
+                                        zeta_spread=5e-2,
+                                        exact_drift=exact_drift,
+                                        x_dim=x_dim,
+                                        y_dim=y_dim,
+                                        _capacity=capacity,
+                                        _context=test_context
+                                    )
 
     part = part_init.copy()
     t1 = time.time()
@@ -130,9 +152,11 @@ def test_positions(engine, jaw, angle, tilt):
 #     xc.fluka.engine.stop(clean=True)
 
 
-def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1.e-6,
-                        jaw_accuracy=1.e-12, x_dim=0.05,  y_dim=0.05, angular_spread=0,
-                        delta_spread=0, zeta_spread=0, exact_drift=False):
+def _generate_particles(coll, num_part, particle_ref, _capacity=None,
+                        jaw_band=1.e-6, jaw_accuracy=1.e-12, x_dim=0.05,
+                        y_dim=0.05, angular_spread=0, delta_spread=0,
+                        zeta_spread=0, exact_drift=False,
+                        _context=None):
     if _capacity is None:
         _capacity = num_part
 
@@ -184,8 +208,17 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1
         py_new = np.sin(np.deg2rad(coll.angle))*px + np.cos(np.deg2rad(coll.angle))*py
     else:
         px = 0; py = 0; pz = 1; px_new = 0; py_new = 0
-    part_init = xp.build_particles(x=x_new, y=y_new, px=px_new, py=py_new, delta=delta,
-                                   zeta=zeta, particle_ref=particle_ref, _capacity=_capacity)
+    part_init = xp.build_particles(
+                            x=x_new,
+                            y=y_new,
+                            px=px_new,
+                            py=py_new,
+                            delta=delta,
+                            zeta=zeta,
+                            particle_ref=particle_ref,
+                            _capacity=_capacity,
+                            _context=_context
+                        )
     mask  = (x + px/pz*coll.jaw_s_LU >= coll.jaw_LU) | (x + px/pz*coll.jaw_s_LD >= coll.jaw_LD)
     mask |= (x + px/pz*coll.jaw_s_RU <= coll.jaw_RU) | (x + px/pz*coll.jaw_s_RD <= coll.jaw_RD)
     mask = np.concatenate([mask, np.full(_capacity-num_part, False)])

@@ -7,10 +7,15 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
+import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
+
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
 
 num_part = int(1e5)
 start_time = time.time()
@@ -81,9 +86,20 @@ nemitt_y = 3.534081877201574e-06
 x_norm, px_norm = xp.generate_2D_gaussian(num_part)
 y_norm, py_norm = xp.generate_2D_gaussian(num_part)
 
-part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-                            W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
-                            nemitt_x=nemitt_x,nemitt_y=nemitt_y)
+
+# Move to a more efficient context for tracking
+line.discard_tracker()
+line.build_tracker(_context=context)
+
+part = line.build_particles(x_norm=x_norm,
+                            px_norm=px_norm,
+                            y_norm=y_norm,
+                            py_norm=py_norm,
+                            W_matrix=tw.W_matrix[0],
+                            particle_on_co=line.particle_ref,
+                            nemitt_x=nemitt_x,
+                            nemitt_y=nemitt_y,
+                            _context=context)
 
 
 # Track!

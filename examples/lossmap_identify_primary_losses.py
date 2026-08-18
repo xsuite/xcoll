@@ -15,6 +15,10 @@ import xpart as xp
 import xcoll as xc
 
 
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
+
 beam          = 1
 plane         = 'V'
 num_turns     = 500
@@ -58,7 +62,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 # Assign the optics to deduce the gap settings, and calibrate the ADT
 tw = line.twiss()
-line.collimators.assign_optics(twiss=tw)
+line.xcoll.collimators.assign_optics(twiss=tw)
 if plane == 'H':
     adt.calibrate_by_emittance(nemitt=colldb.nemitt_x, twiss=tw)
 else:
@@ -67,7 +71,7 @@ else:
 
 # Mark secondary particles during tracking, to be able to distinguish them
 # from primaries in the loss map later
-line.scattering.identify_primary_losses()
+line.xcoll.scattering.identify_primary_losses()
 
 
 # Bring one secondary very close to the primaries to induce hierarchy breaking
@@ -78,29 +82,34 @@ line['tcsg.d4l7.b1'].gap = 5.2
 line.optimize_for_tracking()
 
 
-# Generate a matched Gaussian bunch
-part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_intensity_particles=1.6e11,
-                                          nemitt_x=colldb.nemitt_x, nemitt_y=colldb.nemitt_y, sigma_z=7.55e-2, line=line)
-
-
-# Move the line to an OpenMP context to be able to use all cores
+# Move to a more efficient context for tracking
 line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
-# Should move iobuffer as well in case of impacts
+line.build_tracker(_context=context)
+
+
+# Generate a matched Gaussian bunch
+part = xp.generate_matched_gaussian_bunch(num_particles=num_particles,
+                                          total_intensity_particles=1.6e11,
+                                          nemitt_x=colldb.nemitt_x,
+                                          nemitt_y=colldb.nemitt_y,
+                                          sigma_z=7.55e-2,
+                                          line=line,
+                                          _context=context)
 
 
 # Track!
-line.scattering.enable()
+line.xcoll.scattering.enable()
 adt.activate()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 adt.deactivate()
-line.scattering.disable()
+line.xcoll.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
-# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu())
+# Move the line back to CPU to be able to use all prebuilt kernels for the aperture interpolation
+if not isinstance(context, xo.ContextCpu):
+    line.discard_tracker()
+    line.build_tracker(_context=xo.ContextCpu())
 
 
 # Save loss map to json

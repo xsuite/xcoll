@@ -137,6 +137,8 @@ def test_monitor_instance(cls, test_context):
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
 def test_blowup_install(beam, plane, aper, test_context):
+    # Install everything in the correct context from the start.
+    # This takes a bit more time, but is a reliable test.
     aperture = None
     if aper == 'auto':
         env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
@@ -169,8 +171,7 @@ def test_blowup_install(beam, plane, aper, test_context):
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
 def test_blowup(beam, plane, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
-                  _context=test_context)
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
@@ -185,13 +186,11 @@ def test_blowup(beam, plane, test_context):
                             need_apertures=False,
                             plane=plane,
                             stop_at_turn=num_turns,
-                            use_individual_kicks=True,
-                            _context=test_context)
+                            use_individual_kicks=True)
     mon = xc.EmittanceMonitor.install(line,
                                       name="monitor",
                                       at=adt_pos,
-                                      stop_at_turn=num_turns,
-                                      _context=test_context)
+                                      stop_at_turn=num_turns)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
@@ -235,8 +234,7 @@ def test_blowup(beam, plane, test_context):
 def test_monitor_reset(test_context):
     beam = 1
     plane = 'V'
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
-                  _context=test_context)
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
@@ -251,13 +249,11 @@ def test_monitor_reset(test_context):
                             need_apertures=False,
                             plane=plane,
                             stop_at_turn=num_turns,
-                            use_individual_kicks=True,
-                            _context=test_context)
+                            use_individual_kicks=True)
     mon = xc.EmittanceMonitor.install(line,
                                       name="monitor",
                                       at=adt_pos,
-                                      stop_at_turn=num_turns,
-                                      _context=test_context)
+                                      stop_at_turn=num_turns)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
@@ -270,8 +266,7 @@ def test_monitor_reset(test_context):
                                                    nemitt_x=nemitt_x,
                                                    nemitt_y=nemitt_y,
                                                    sigma_z=7.55e-2,
-                                                   line=line,
-                                                   _context=test_context)
+                                                   line=line)
 
     adt.activate()
     for _ in range(2):

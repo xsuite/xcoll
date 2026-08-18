@@ -4,10 +4,8 @@
 # ######################################### #
 
 import json
-import time
 import pytest
 import numpy as np
-import pandas as pd
 from pathlib import Path
 
 import xtrack as xt
@@ -38,7 +36,8 @@ path = Path(__file__).parent / 'data'
                             [2, 'H', 3000, 0.15, False, True]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
-def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, identify_primary_losses, do_plot, test_context):
+def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
+                 identify_primary_losses, do_plot, test_context):
     if do_plot and plt is None:
         pytest.skip("matplotlib not installed")
     if not do_plot and plt is not None:

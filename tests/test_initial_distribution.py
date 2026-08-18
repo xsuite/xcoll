@@ -18,10 +18,7 @@ path = Path(__file__).parent / 'data'
 
 # TODO:  we are not checking the angles of the pencil!
 
-# I feel like it does not make sense to test this on other contexts
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
+@for_all_test_contexts
 @pytest.mark.xcother
 @pytest.mark.parametrize("beam, npart, impact_parameter, pencil_spread, "
                        + "longitudinal, longitudinal_betatron_cut", [
@@ -32,14 +29,15 @@ path = Path(__file__).parent / 'data'
                         , ids=["B1_default", "B2_diff_spread", "B1_bucket"])#, "B2_matched"])
 @retry()
 def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread,
-                                     longitudinal, longitudinal_betatron_cut): #, test_context):
+                                     longitudinal, longitudinal_betatron_cut,
+                                     test_context):
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                                    beam=beam)
 
     colldb.install_everest_collimators(line=line)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     line.xcoll.collimators.assign_optics()
 
     tw = line.twiss()
@@ -47,12 +45,24 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = line[tcp_conv].generate_pencil(npart, twiss=tw, pencil_spread=pencil_spread,
-                                               impact_parameter=impact_parameter, longitudinal=longitudinal,
-                                               longitudinal_betatron_cut=longitudinal_betatron_cut)
-    part_div = line[tcp_div].generate_pencil(npart, twiss=tw, pencil_spread=pencil_spread,
-                                             impact_parameter=impact_parameter, longitudinal=longitudinal,
-                                             longitudinal_betatron_cut=longitudinal_betatron_cut)
+    part_conv = line[tcp_conv].generate_pencil(
+                    npart,
+                    twiss=tw,
+                    pencil_spread=pencil_spread,
+                    impact_parameter=impact_parameter,
+                    longitudinal=longitudinal,
+                    longitudinal_betatron_cut=longitudinal_betatron_cut,
+                    _context=test_context
+                )
+    part_div = line[tcp_div].generate_pencil(
+                    npart,
+                    twiss=tw,
+                    pencil_spread=pencil_spread,
+                    impact_parameter=impact_parameter,
+                    longitudinal=longitudinal,
+                    longitudinal_betatron_cut=longitudinal_betatron_cut,
+                    _context=test_context
+                )
     assert np.unique(part_conv.at_element) == [line.element_names.index(tcp_conv)]
     assert part_conv.start_tracking_at_element == line.element_names.index(tcp_conv)
     assert np.unique(part_div.at_element) == [line.element_names.index(tcp_div)]

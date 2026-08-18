@@ -22,17 +22,17 @@ def test_line_api_facade():
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize('beam', [1, 2])
 def test_line_accessor(beam, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
+                  _context=test_context)
     line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     assert str(line.xcoll.collimators) == ''
     assert len(line.xcoll.collimators) == 0
-    colldb.install_everest_collimators(verbose=True, line=line)
+    colldb.install_everest_collimators(verbose=True, line=line,
+                                       _context=test_context)
     assert str(line.xcoll.collimators) != ''
     if beam == 1:
         assert len(line.xcoll.collimators) == 55
