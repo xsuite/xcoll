@@ -37,6 +37,9 @@ def _uses_cpu_context(element):
 
 
 def _line_non_cpu_context(line):
+    if line._has_valid_tracker():
+        context = line.tracker._context
+        return None if context.nplike_lib is np else context
     for name in line.element_names:
         element = line.get(name)
         if isinstance(element, xt.Replica):
@@ -44,6 +47,43 @@ def _line_non_cpu_context(line):
         if hasattr(element, '_xobject') and not _uses_cpu_context(element):
             return element._xobject._buffer.context
     return None
+
+
+def _line_table_for_edit(line):
+    """Return longitudinal metadata without re-reading a tracked GPU line."""
+    if line._has_valid_tracker():
+        tracker_data = line.tracker._tracker_data_base
+        if hasattr(tracker_data, '_line_table'):
+            return tracker_data._line_table
+    return line.get_table()
+
+
+def _transformations_active(element, cache):
+    """Check element transformations with at most one GPU transfer."""
+    key = id(element._xobject)
+    if key in cache:
+        return cache[key]
+    if not element.allow_rot_and_shift:
+        active = False
+    elif hasattr(element, '_parent') and element.rot_and_shift_from_parent:
+        active = _transformations_active(element._parent, cache)
+    elif _uses_cpu_context(element):
+        active = element.transformations_active
+    else:
+        field_names = (
+            'shift_x', 'shift_y', 'shift_s', 'rot_s_rad', 'rot_x_rad',
+            'rot_y_rad', 'rot_s_rad_no_frame')
+        xobject = element._xobject
+        fields = [getattr(type(xobject), name) for name in field_names]
+        start = min(field.offset for field in fields)
+        end = max(field.offset + field.ftype._size for field in fields)
+        data = xobject._buffer.to_bytearray(
+            xobject._offset + start, end - start)
+        active = any(np.frombuffer(
+            data, dtype=field.ftype._dtype, count=1,
+            offset=field.offset - start)[0] != 0 for field in fields)
+    cache[key] = active
+    return active
 
 
 class XcollLineAPI:
@@ -330,11 +370,14 @@ class XcollCollimatorAPI(XcollLineAccessor):
         # Get positions
         non_cpu_context = _line_non_cpu_context(self.line)
         use_cpu_layout = non_cpu_context is not None
-        if use_cpu_layout and not self.line._has_valid_tracker():
-            # A valid tracker lets get_table obtain all lengths in one context
-            # array operation instead of synchronising once per GPU element.
-            self.line.build_tracker(_context=non_cpu_context, compile=False)
-        tt = self.line.get_table()
+        # Tracker construction caches the complete line table before moving
+        # the elements to the tracking context. Reuse it: line.get_table()
+        # would otherwise rebuild the line attributes from GPU-resident
+        # elements, causing many unnecessary device synchronisations.
+        if use_cpu_layout:
+            tt = _line_table_for_edit(self.line)
+        else:
+            tt = self.line.get_table()
         s_start = []
         for name, s, l in zip(names, at, length):
             if s is not None and not isinstance(s, Number):
@@ -345,11 +388,10 @@ class XcollCollimatorAPI(XcollLineAccessor):
                                           "the s position of the element.")
             existing_length = 0
             if name in tt.name:
-                if hasattr(self.line[name], 'length'):
-                    existing_length = self.line[name].length
-                else:
-                    existing_length = 0
-                existing_s = tt.rows[name].s_start[0]
+                existing_row = tt.rows[name]
+                existing_s = existing_row.s_start[0]
+                existing_length = (
+                    existing_row.s_end[0] - existing_row.s_start[0])
                 new_s = existing_s + existing_length/2. - l/2
                 if s is not None and not np.isclose(s, new_s, atol=s_tol):
                     raise ValueError(f"Element {name} already exists in line "
@@ -380,14 +422,16 @@ class XcollCollimatorAPI(XcollLineAccessor):
         # Look for apertures
         aper_upstream   = []
         aper_downstream = []
+        transformations_cache = {}
         for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
             if not need_apertures:
                 aper_upstream.append(None)
                 aper_downstream.append(None)
             else:
-                aper1, aper2 = self.find_aperture(name, s_start=s1, s_end=s2,
-                                                  aperture=aper, table=tt,
-                                                  s_tol=s_tol)
+                aper1, aper2 = self.find_aperture(
+                    name, s_start=s1, s_end=s2, aperture=aper, table=tt,
+                    s_tol=s_tol,
+                    transformations_cache=transformations_cache)
                 aper_upstream.append(aper1)
                 aper_downstream.append(aper2)
 
@@ -554,7 +598,9 @@ class XcollCollimatorAPI(XcollLineAccessor):
         line.element_names.extend(final_names)
 
     def find_aperture(self, name, *, s_start, s_end, aperture=None, table=None,
-                     s_tol=1.e-6):
+                     s_tol=1.e-6, transformations_cache=None):
+        if transformations_cache is None:
+            transformations_cache = {}
         if aperture is not None:
             if isinstance(aperture, str):
                 try:
@@ -609,7 +655,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
             else:
                 aper_name = tt_aper.name[-1]
                 aper1 = self.line.get(aper_name)
-                if aper1.transformations_active:
+                if _transformations_active(aper1, transformations_cache):
                     s_aper = tt.rows[aper_name].s_start[0]
                     if not np.isclose(s_aper, s_start, atol=s_tol):
                         print(f"Warning: Using aperture {aper_name} upstream "
@@ -623,7 +669,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
             else:
                 aper_name = tt_aper.name[0]
                 aper2 = self.line.get(aper_name)
-                if aper2.transformations_active:
+                if _transformations_active(aper2, transformations_cache):
                     s_aper = tt.rows[aper_name].s_end[0]
                     if not np.isclose(s_aper, s_end, atol=s_tol):
                         print(f"Warning: Using aperture {aper_name} downstream"
