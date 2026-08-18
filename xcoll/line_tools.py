@@ -36,6 +36,16 @@ def _uses_cpu_context(element):
     return context.nplike_lib is np
 
 
+def _line_non_cpu_context(line):
+    for name in line.element_names:
+        element = line.get(name)
+        if isinstance(element, xt.Replica):
+            element = element.resolve(line)
+        if hasattr(element, '_xobject') and not _uses_cpu_context(element):
+            return element._xobject._buffer.context
+    return None
+
+
 class XcollLineAPI:
     def __init__(self, line):
         self._line = line
@@ -318,6 +328,12 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 el.name = name
 
         # Get positions
+        non_cpu_context = _line_non_cpu_context(self.line)
+        use_cpu_layout = non_cpu_context is not None
+        if use_cpu_layout and not self.line._has_valid_tracker():
+            # A valid tracker lets get_table obtain all lengths in one context
+            # array operation instead of synchronising once per GPU element.
+            self.line.build_tracker(_context=non_cpu_context, compile=False)
         tt = self.line.get_table()
         s_start = []
         for name, s, l in zip(names, at, length):
@@ -326,7 +342,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 # line.insert, however, this has to be implemented cautiously
                 # and well-tested.
                 raise NotImplementedError("`at` must be a number indicating "
-                                    "the s position of the blow-up element.")
+                                          "the s position of the element.")
             existing_length = 0
             if name in tt.name:
                 if hasattr(self.line[name], 'length'):
@@ -384,6 +400,14 @@ class XcollCollimatorAPI(XcollLineAccessor):
             el._line = self.line
             el._name = name
 
+        if use_cpu_layout:
+            return self._install_with_cpu_layout(
+                names=names, elements=elements, length=length,
+                s_start=s_start, apertures_upstream=aper_upstream,
+                apertures_downstream=aper_downstream,
+                need_apertures=need_apertures, table=tt,
+                to_remove=to_remove, s_tol=s_tol)
+
         # Install
         insertions = []
         to_delete = []
@@ -433,6 +457,101 @@ class XcollCollimatorAPI(XcollLineAccessor):
             for nn, ee in gpu_elements:
                 del env.elements[nn]
                 env.elements[nn] = ee
+
+    def _install_with_cpu_layout(self, *, names, elements, length, s_start,
+                                 apertures_upstream, apertures_downstream,
+                                 need_apertures, table, to_remove, s_tol):
+        """Resolve a GPU-resident line edit using CPU structural proxies.
+
+        Xtrack's generic editing machinery scans the line several times after
+        discarding its tracker. If the lattice remains GPU-backed, each scalar
+        length access synchronises the device. A layout-only line of CPU drifts
+        and markers has identical longitudinal geometry and avoids those
+        per-element transfers.
+        """
+        line = self.line
+        env = line.env
+        original_element_names = list(line.element_names)
+
+        layout_elements = {}
+        for ii, env_name in enumerate(original_element_names):
+            if env_name in layout_elements:
+                continue
+            if table.isthick[ii]:
+                element_length = table.s_end[ii] - table.s_start[ii]
+                layout_elements[env_name] = xt.Drift(length=element_length)
+            else:
+                layout_elements[env_name] = xt.Marker()
+        layout_line = xt.Line(elements=layout_elements,
+                              element_names=original_element_names)
+        layout_env = layout_line.env
+
+        to_delete = []
+        for name in names:
+            if name in env.elements:
+                to_remove.append(name)
+                to_delete.append(name)
+        if to_remove:
+            layout_line.remove(to_remove, s_tol=s_tol)
+        for name in to_delete:
+            del layout_env.elements[name]
+
+        insertions = []
+        for name, element_length, at in zip(names, length, s_start):
+            layout_env.elements[name] = xt.Drift(length=element_length)
+            insertions.append(layout_env.place(name, at=at, anchor='start'))
+
+        aperture_names = set()
+        if need_apertures:
+            for name in names:
+                upstream_name = f'{name}_aper_upstream'
+                downstream_name = f'{name}_aper_downstream'
+                aperture_names.update((upstream_name, downstream_name))
+                layout_env.elements[upstream_name] = xt.Marker()
+                layout_env.elements[downstream_name] = xt.Marker()
+                insertions.append(layout_env.place(
+                    upstream_name, at=name+'@start'))
+                insertions.append(layout_env.place(
+                    downstream_name, at=name+'@end'))
+        layout_line.insert(insertions, s_tol=s_tol)
+
+        original_names = set(original_element_names)
+        installed_names = set(names) | aperture_names
+        generated_elements = {}
+        final_layout_names = []
+        for name in layout_line.element_names:
+            if name in original_names or name in installed_names:
+                final_layout_names.append(name)
+            else:
+                if name not in generated_elements:
+                    generated_elements[name] = layout_line.get(name).copy()
+                final_layout_names.append(('drift', name))
+
+        line.discard_tracker()
+        for name in to_delete:
+            del env.elements[name]
+        for name, element in zip(names, elements):
+            env.elements[name] = element
+        if need_apertures:
+            for name, upstream, downstream in zip(
+                    names, apertures_upstream, apertures_downstream):
+                env.elements[f'{name}_aper_upstream'] = upstream
+                env.elements[f'{name}_aper_downstream'] = downstream
+
+        generated_names = {}
+        final_names = []
+        for item in final_layout_names:
+            if isinstance(item, tuple):
+                layout_name = item[1]
+                if layout_name not in generated_names:
+                    new_name = env._get_a_drift_name()
+                    env.elements[new_name] = generated_elements[layout_name]
+                    generated_names[layout_name] = new_name
+                final_names.append(generated_names[layout_name])
+            else:
+                final_names.append(item)
+        line.element_names.clear()
+        line.element_names.extend(final_names)
 
     def find_aperture(self, name, *, s_start, s_end, aperture=None, table=None,
                      s_tol=1.e-6):
