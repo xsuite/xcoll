@@ -35,7 +35,8 @@ def _material_in_context(material, context):
     """
     if material is None or context is None:
         return material
-    if material._xobject._buffer.context == context:
+    if isinstance(material._xobject._buffer.context, xo.ContextCpu) \
+    and isinstance(context, xo.ContextCpu):
         return material
     # `HybridClass.copy` rebuilds the xobject in the target context while
     # carrying over the python-side state (names, frozen flag, ...), and leaves
@@ -1235,8 +1236,8 @@ _DEFAULT_MATERIAL = Material(Z=1, A=1, density=1)
 _DEFAULT_MATERIAL.invalidate()
 
 
-def _resolve_material(material, allow_none=None, ref=None, everest_crystal=False,
-                      _context=None):
+def _resolve_material(material, allow_none=None, ref=None,
+                      everest_crystal=False, _context=None):
     if material is None:
         if allow_none is None:
             return _material_in_context(_DEFAULT_MATERIAL, _context)

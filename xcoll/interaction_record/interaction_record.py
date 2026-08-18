@@ -110,7 +110,6 @@ class InteractionRecord(xt.BeamElement):
                 raise ValueError("io_buffer context does not match provided "
                                  "context!")
 
-        print(init_dict)
         super().__init__(_buffer=io_buffer, **init_dict)
 
         _set_recording_flags(elements, record_impacts, record_exits,

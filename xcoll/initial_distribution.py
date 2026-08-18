@@ -7,7 +7,6 @@ import numpy as np
 from warnings import warn
 
 import xtrack as xt
-import xobjects as xo
 import xpart as xp
 
 from .beam_elements import collimator_classes, BaseCrystal
@@ -27,6 +26,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         raise ValueError("Need to provide a valid collimator!")
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
+    kwargs.setdefault('_context', coll._buffer.context)
 
     num_particles = int(num_particles)
     tt = line.get_table()
@@ -116,14 +116,12 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         part = line.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
-                **kwargs)
+                at_element=at_element, _capacity=_capacity, **kwargs)
     else:
         part = line.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
-                **kwargs)
+                at_element=at_element, _capacity=_capacity, **kwargs)
 
     part._init_random_number_generator()
 
