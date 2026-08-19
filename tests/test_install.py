@@ -58,8 +58,7 @@ def test_install_single_existing_marker(beam, aper, test_context):
                             name,
                             coll,
                             apertures=aperture,
-                            need_apertures=need_apertures,
-                            _context=test_context
+                            need_apertures=need_apertures
                         )
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2,
@@ -101,8 +100,7 @@ def test_install_single_existing_marker(beam, aper, test_context):
                             name,
                             coll,
                             apertures=aperture,
-                            need_apertures=need_apertures,
-                            _context=test_context
+                            need_apertures=need_apertures
                         )
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2,
@@ -136,8 +134,7 @@ def test_install_single_no_marker(beam, test_context):
                                 coll,
                                 at=12.4,
                                 need_apertures=True,
-                                apertures=xt.LimitEllipse(0.4, 0.4),
-                                _context=test_context
+                                apertures=xt.LimitEllipse(0.4, 0.4)
                             )
     assert name in line.element_names
     assert np.isclose(line[name].length, 1.738)
@@ -163,8 +160,7 @@ def test_install_single_no_marker(beam, test_context):
                                 name,
                                 el,
                                 need_apertures=False,
-                                at=17.89,
-                                _context=test_context
+                                at=17.89
                             )
     assert name in line.element_names
     assert np.isclose(line[name].length, 0.63)

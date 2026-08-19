@@ -64,9 +64,11 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
                     longitudinal_betatron_cut=longitudinal_betatron_cut,
                     _context=test_context
                 )
-    assert np.unique(part_conv.at_element) == [line.element_names.index(tcp_conv)]
+    assert len(part_conv.at_element) == 1
+    assert part_conv.at_element[0] == line.element_names.index(tcp_conv)
     assert part_conv.start_tracking_at_element == line.element_names.index(tcp_conv)
-    assert np.unique(part_div.at_element) == [line.element_names.index(tcp_div)]
+    assert len(part_div.at_element) == 1
+    assert part_div.at_element[0] == line.element_names.index(tcp_div)
     assert part_div.start_tracking_at_element == line.element_names.index(tcp_div)
 
     # Normalize coordinates

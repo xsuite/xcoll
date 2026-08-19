@@ -7,11 +7,11 @@ import pytest
 import numpy as np
 from pathlib import Path
 
+import xobjects as xo
+from xobjects.test_helpers import for_all_test_contexts
 import xtrack as xt
 import xcoll as xc
-from xobjects.test_helpers import for_all_test_contexts
 import xcoll.constants as xcc
-
 
 num_part = 10000
 num_turns = 3
@@ -66,6 +66,8 @@ def test_impacts_single_collimator(test_context):
                                    record_impacts=True, record_exits=True,
                                    _context=test_context)
     coll.track(part)
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
 
     _assert_impacts(impacts, lengths=coll.length)
@@ -95,6 +97,8 @@ def test_impacts_single_crystal(R, side, test_context):
                                    record_impacts=True, record_exits=True,
                                    _context=test_context)
     coll.track(part)
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
 
     _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'])

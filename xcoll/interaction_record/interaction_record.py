@@ -257,7 +257,7 @@ class InteractionRecord(xt.BeamElement):
             cat = df['collimator'].astype("category")
             codes = cat.cat.codes.to_numpy(copy=False)
             names = cat.cat.categories
-            sh  = self.shape_id[:n_rows]
+            sh  = nparr(self.shape_id[:n_rows])
             els = self.recording_elements
             sin_zL = np.array([els[name]._sin_zL for name in names])
             cos_zL = np.array([els[name]._cos_zL for name in names])
