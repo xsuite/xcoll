@@ -9,6 +9,7 @@ from pathlib import Path
 from types import GeneratorType
 from concurrent.futures import ThreadPoolExecutor
 
+import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
@@ -404,6 +405,10 @@ class LossMap:
         collimator summary is updated.
         """
         tt = line.get_table()
+
+        # Use a copy of the particles to keep the original particles unchanged
+        part = part.copy(_context=xo.ContextCpu())
+
         # # Check that collimators have been tracked
         # tt_geant4 = tt.rows.match(element_type='Geant4Collimator|Geant4Crystal')
         # geant4_coll = [line.get(nn) for nn in tt_geant4.name]

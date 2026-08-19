@@ -95,7 +95,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
         xc.geant4.engine.start(line=line, verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(npart, _capacity=capacity)
+    part = line[tcp].generate_pencil(npart, _capacity=capacity
+                                      _context=test_context)
     if engine == "fluka":
         # Make sure all primaries hit the collimator (not trivial because of assembly)
         if plane == 'H':
