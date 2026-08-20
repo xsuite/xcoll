@@ -81,13 +81,19 @@ def test_impacts_single_collimator(test_context):
                             [1, '-'],
                             [-1, '-']], ids=["R>0 side=+ ", "R<0 side=+ ", "R>0 side=- ", "R<0 side=- "])
 def test_impacts_single_crystal(R, side, test_context):
+    sign = 1 if side == '+' else -1
     coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon,
                              bending_angle=R*149e-6, width=0.002, height=0.05,
-                             side=side, lattice='strip', jaw=0.001,
+                             side=side, lattice='strip', jaw=sign*0.001,
                              _context=test_context)
-
-    x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
-    px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
+    x_init   = np.random.normal(loc=sign*1.5e-3, scale=75.e-6, size=num_part)
+    if R > 0:
+        low = sign*-50.e-6
+        high = sign*250.e-6
+    else:
+        low = sign*50.e-6
+        high = sign*-250.e-6
+    px_init  = np.random.uniform(low=low, high=high, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init,
@@ -100,8 +106,8 @@ def test_impacts_single_crystal(R, side, test_context):
     if not isinstance(test_context, xo.ContextCpu):
         part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
-
-    _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'])
+    enter = 'Enter Jaw L' if side == '+' else 'Enter Jaw R'
+    _assert_impacts(impacts, expected_types=[enter, 'Exit Jaw'])
 
 
 @pytest.mark.xcother
@@ -217,6 +223,7 @@ def test_impacts_to_pandas_lattice_frame(test_context):
 def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], lengths=None):
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)
+    print(types)
     assert np.all([type in expected_types for type in types])
     assert len(types) > 0   # Need at least some impacts to test
 
