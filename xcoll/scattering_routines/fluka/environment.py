@@ -137,10 +137,13 @@ class FlukaInterface(BaseInterface):
         so.move_to(self.lib_dir / so.name)
         if verbose:
             print(f"Created pyFLUKA shared library in {self.lib_dir / so.name}.")
+        # Install the FlukaIO archive so the xobjects FLUKA kernel can link -lFlukaIO
+        flukaio_lib.copy_to(self.lib_dir / 'libFlukaIO.a', method='mount')
+        if verbose:
+            print(f"Installed FlukaIO archive in {self.lib_dir / 'libFlukaIO.a'}.")
         # Clean up the temporary directory
         self.temp_dir = None
         self.restore_environment()
-
 
     def import_fedb(self, fedb_path, verbose=False, overwrite=False):
         import xcoll as xc
