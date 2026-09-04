@@ -140,6 +140,6 @@ print(FakeAbsinthe.to_dict())
 # Not all materials are 100% compatible with Everest. Multiple Coulomb scattering and ionisation loss are
 # always supported, but nuclear interactions are only supported for materials known to Everest.
 # This can be checeked with the `full_everest_supported` attribute:
-print(f"CFC full Everest compatibility: {xc.materials.CarbonFibreCarbon.full_everest_supported}")
+print(f"CFC full Everest compatibility: {xc.materials.CarbonFibreComposite.full_everest_supported}")
 print(f"Ethanol full Everest compatibility: {Ethanol.full_everest_supported}")
 print(f"FakeAbsinthe full Everest compatibility: {FakeAbsinthe.full_everest_supported}")

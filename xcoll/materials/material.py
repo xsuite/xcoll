@@ -1233,5 +1233,5 @@ def _resolve_material(material, allow_none=None, ref=None, everest_crystal=False
         print("Warning: Material 'Carbon' is just the element without full "
               "Everest support. If you want to use the full Carbon material "
               "with scattering (the old K2 material), please use "
-              "'CarbonFibreCarbon' instead.")
+              "'CarbonFibreComposite' instead.")
     return material

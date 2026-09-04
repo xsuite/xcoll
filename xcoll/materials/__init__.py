@@ -29,7 +29,7 @@ show = db.show
 # https://indico.cern.ch/event/340703/contributions/802090/attachments/668678/919103/2015_26_03_collmat.pdf
 
 
-# TCP: CarbonFibreCarbon AC150GPH
+# TCP: CarbonFibreComposite AC150GPH
 # TCPPM: MolybdenumGraphite MG6403Fc
 # TCSG: AC150GPH
 # TCSP: AC150GPH

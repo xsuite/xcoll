@@ -18,4 +18,4 @@ print()
 xc.fluka.interface.compile(flukaio_lib=path / 'fluka4-5.1' / 'lib' / 'libFlukaIO.a', verbose=True)
 
 # Import a FLUKA FEDB
-xc.fluka.interface.import_fedb(fedb_path=path / 'fedb_coupling', verbose=True, overwrite=False)
+xc.fluka.interface.import_fedb(fedb_path=path / 'fedb_coupling', verbose=True, overwrite=True)
