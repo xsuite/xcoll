@@ -86,19 +86,19 @@ class FlukaInterface(BaseInterface):
             flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
             try:
                 flukaio_lib = [
-                    fff for ext in ['a', 'so', 'dylib', 'so.*']
+                    fff #for ext in ['a', 'so', 'dylib', 'so.*']
                     for ll in ['lib', 'll']
                     for bb in ['64', '']
-                    for fff in (dest  / 'lib').glob(f'{ll}flukaio{bb}.{ext}',
+                    for fff in (dest  / 'lib').glob(f'{ll}flukaio{bb}.a',
                                                     case_sensitive=False)
                 ]
             except TypeError:
                 # Fallback; case_sensitive is not available in Python < 3.12
                 flukaio_lib = [
-                    fff for ext in ['a', 'so', 'dylib', 'so.*']
+                    fff #for ext in ['a', 'so', 'dylib', 'so.*']
                     for ll in ['lib', 'll']
                     for bb in ['64', '']
-                    for fff in (dest  / 'lib').glob(f'{ll}FlukaIO{bb}.{ext}')
+                    for fff in (dest  / 'lib').glob(f'{ll}FlukaIO{bb}.a')
                 ]
             if len(flukaio_lib) == 0:
                 raise FileNotFoundError(f"Failed compiling FlukaIO library!\n"
