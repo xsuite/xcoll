@@ -104,9 +104,10 @@ class FlukaInterface(BaseInterface):
                 raise FileNotFoundError(f"Failed compiling FlukaIO library!\n"
                                         f"File not found in {dest / 'lib'}!")
             elif len(flukaio_lib) > 1:
-                raise RuntimeError(f"Compiled into multiple FlukaIO libraries!"
-                                f"\nFiles found in {dest / 'lib'}:\n"
-                                "\n".join([f.as_posix() for f in flukaio_lib]))
+                raise RuntimeError(
+                              f"Compiled into multiple FlukaIO libraries!"
+                            + f"\nFiles found in {dest / 'lib'}:\n"
+                            + "\n".join([f.as_posix() for f in flukaio_lib]))
             flukaio_lib = flukaio_lib[0]
         flukaio_lib = FsPath(flukaio_lib).resolve()
         if not flukaio_lib.exists():
