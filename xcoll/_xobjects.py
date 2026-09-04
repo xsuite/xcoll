@@ -11,7 +11,7 @@ def get_build_info():
     libraries = set()
     library_dirs = set()
     if xc.fluka.interface.ready:
-        libraries.add("FlukaIO")
+        libraries.add("flukaio")
         library_dirs.add(xc.fluka.interface.lib_dir)
     return {
         "include_dirs": [xc._pkg_root.parent],
