@@ -37,6 +37,7 @@ class BaseEngine(xo.HybridClass):
     _uses_input_file = False
     _num_input_files = 1
     _uses_run_folder = False
+    _physics_settings_veto_list = []
 
     _depends_on = [Material, InteractionRecord, xt.RandomUniform,
                    xt.RandomExponential, xt.RandomNormal, xt.RandomRutherford,

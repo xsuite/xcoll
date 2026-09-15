@@ -14,6 +14,7 @@ class PhysicsSettingsHelper:
     """Helper class to manage physics settings for scattering routines.
     """
 
+    # Prepend 'return_' to get the property name for the return flags
     _return_flags = {'photons': [],
                      'leptons': ['electrons', 'muons', 'tauons', 'neutrinos'],
                      'baryons': ['protons', 'neutrons', 'other_baryons'],
@@ -21,19 +22,115 @@ class PhysicsSettingsHelper:
                      'ions':    []}
     _global_return_flags = ['all', 'all_charged', 'none']
     _return_modifiers = ['neutral']
-    _cut_definitions = ['hadron_lower_momentum', 'photon_lower_momentum', 'electron_lower_momentum']
+
+    # Append '_cut' to get the property name for cut definitions
+    _cut_definitions = ['hadron_lower_momentum', 'photon_lower_momentum',
+                        'electron_lower_momentum', 'relative_energy']
+
+    _extra_flags = ['include_showers', 'disable_pair_production_and_bremsstrahlung']
 
     def __init__(self, engine):
         with self.__class__._in_constructor(self):
             self._engine = engine
-            self._use_cuts = True
             # Set flags to default
             self.return_all = None
             self.hadron_lower_momentum_cut = None
             self.photon_lower_momentum_cut = None
             self.electron_lower_momentum_cut = None
+            self.relative_energy_cut = None
             self.include_showers = None
             self.disable_pair_production_and_bremsstrahlung = False
+
+    @property
+    def all_flags(self):
+        all_flags  = self._global_return_flags.copy()
+        all_flags += self._return_flags.keys()
+        all_flags += self._return_modifiers
+        all_flags += [fff for ff in self._return_flags.values() for fff in ff]
+        result  = [f'return_{ff}' for ff in all_flags]
+        result += [f'{ff}_cut' for ff in self._cut_definitions]
+        result += self._extra_flags
+        return result
+
+    def update(self):
+        # Update settings when they are set to use defaults
+        for kk, vv in self.__dict__.items():
+            if kk.startswith('_') and not kk.startswith('__') and kk.endswith('_use_default'):
+                if vv:
+                    prop_name = kk[1:-12]
+                    if prop_name not in self._engine._physics_settings_veto_list:
+                        setattr(self, prop_name, None)
+
+    def show(self):
+        veto = self._engine._physics_settings_veto_list
+
+        # Global return flags
+        mess = ''
+        flags = [f'return_{ff}' for ff in self._global_return_flags
+                 if f'return_{ff}' not in veto]
+        for i, flag in enumerate(flags):
+            prefix = "└" if i == len(flags) - 1 else "├"
+            val = getattr(self, flag)
+            name = f"{flag.replace('return_', '').replace('_', ' ')}:"
+            mess += f"  {prefix} {name:15} {val}\n"
+        if mess != '':
+            print(f"Global return flags:\n{mess}")
+
+        # Global return modifiers
+        mess = ''
+        flags = [f'return_{ff}' for ff in self._return_modifiers
+                 if f'return_{ff}' not in veto]
+        for i, flag in enumerate(flags):
+            prefix = "└" if i == len(flags) - 1 else "├"
+            val = getattr(self, flag)
+            name = f"{flag.replace('return_', '').replace('_', ' ')}:"
+            mess += f"  {prefix} {name:15} {val}\n"
+        if mess != '':
+            print(f"Global return modifiers:\n{mess}")
+
+        # Individual return flags
+        mess = ''
+        flags = {f'return_{ff}': vv for ff, vv in self._return_flags.items()
+                 if f'return_{ff}' not in veto}
+        for i, (flag, vv) in enumerate(flags.items()):
+            prefix = "└" if i == len(flags) - 1 else "├"
+            val = getattr(self, flag)
+            name = f"{flag.replace('return_', '').replace('_', ' ')}:"
+            mess += f"  {prefix} {name:15} {val}\n"
+            subflags = [f'return_{ff}' for ff in vv
+                        if f'return_{ff}' not in veto]
+            for j, subflag in enumerate(subflags):
+                subprefix = "└" if j == len(subflags) - 1 else "├"
+                subval = getattr(self, subflag)
+                subname = f"{subflag.replace('return_', '').replace('other_', '').replace('_', ' ')}:"
+                preprefix = " " if i == len(self._return_flags) - 1 else "│"
+                mess += f"  {preprefix}   {subprefix} {subname:11} {subval}\n"
+        if mess != '':
+            print(f"Individual return flags:\n{mess}")
+
+        # Energy cuts
+        mess = ''
+        flags = [f'{ff}_cut' for ff in self._cut_definitions
+                 if f'{ff}_cut' not in veto]
+        for i, flag in enumerate(flags):
+            prefix = "└" if i == len(flags) - 1 else "├"
+            val = getattr(self, flag)
+            name = f"{flag.replace('_cut', '').replace('_', ' ')}:"
+            mess += f"  {prefix} {name:28} {val}\n"
+        if mess != '':
+            print(f"Energy cuts [eV]:\n{mess}")
+
+        # Physics flags
+        mess = ''
+        flags = [ff for ff in self._extra_flags if ff not in veto]
+        for i, flag in enumerate(flags):
+            prefix = "└" if i == len(flags) - 1 else "├"
+            val = getattr(self, flag)
+            name = f"{flag.replace('_', ' ')}:"
+            mess += f"  {prefix} {name:45} {val}\n"
+        if mess != '':
+            print(f"Physics flags:\n{mess}")
+
 
     @property
     def particle_ref(self):
@@ -60,64 +157,6 @@ class PhysicsSettingsHelper:
     @property
     def ref_is_ion(self):
         return pdg.is_ion(self.ref_id)
-
-    def update(self):
-        # Update settings when they are set to use defaults
-        for kk, vv in self.__dict__.items():
-            if kk.startswith('_') and not kk.startswith('__') and kk.endswith('_use_default'):
-                if vv:
-                    prop_name = kk[1:-12]
-                    setattr(self, prop_name, None)
-
-    def show(self):
-        print("Global return flags:")
-        for i, ff in enumerate(self._global_return_flags):
-            prefix = "└" if i == len(self._global_return_flags) - 1 else "├"
-            val = getattr(self, f'return_{ff}')
-            flag = f"{ff.replace('_', ' ')}:"
-            print(f"  {prefix} {flag:15} {val}")
-        print()
-        print("Global return modifiers:")
-        for i, ff in enumerate(self._return_modifiers):
-            prefix = "└" if i == len(self._return_modifiers) - 1 else "├"
-            val = getattr(self, f'return_{ff}')
-            flag = f"{ff.replace('_', ' ')}:"
-            print(f"  {prefix} {flag:15} {val}")
-        print()
-        print("Individual return flags:")
-        for i, (ff, vv) in enumerate(self._return_flags.items()):
-            prefix = "└" if i == len(self._return_flags) - 1 else "├"
-            val = getattr(self, f'return_{ff}')
-            flag = f"{ff.replace('_', ' ')}:"
-            print(f"  {prefix} {flag:15} {val}")
-            for j, subff in enumerate(vv):
-                subprefix = "└" if j == len(vv) - 1 else "├"
-                subval = getattr(self, f'return_{subff}')
-                subflag = f"{subff.replace('other_', '').replace('_', ' ')}:"
-                preprefix = " " if i == len(self._return_flags) - 1 else "│"
-                print(f"  {preprefix}   {subprefix} {subflag:11} {subval}")
-        if self._use_cuts:
-            print()
-            print("Energy cuts [eV]:")
-            for i, ff in enumerate(self._cut_definitions):
-                prefix = "└" if i == len(self._cut_definitions) - 1 else "├"
-                val = getattr(self, f'{ff}_cut')
-                flag = f"{ff.replace('_', ' ')}:"
-                print(f"  {prefix} {flag:28} {val}")
-        if self._include_showers:
-            print()
-            print("Showers are included in the simulation.")
-        if self._disable_pair_production_and_bremsstrahlung:
-            print()
-            print("Pair production and bremsstrahlung by muons/hadrons is disabled.")
-
-    @property
-    def all_flags(self):
-        all_flags  = self._global_return_flags.copy()
-        all_flags += self._return_flags.keys()
-        all_flags += self._return_modifiers
-        all_flags += [fff for ff in self._return_flags.values() for fff in ff]
-        return [f'return_{ff}' for ff in all_flags] + [f'{ff}_cut' for ff in self._cut_definitions]
 
 
     # =====================
@@ -524,15 +563,10 @@ class PhysicsSettingsHelper:
 
     @property
     def hadron_lower_momentum_cut(self):
-        if not self._use_cuts:
-            return None
         return self._hadron_lower_momentum_cut
 
     @hadron_lower_momentum_cut.setter
     def hadron_lower_momentum_cut(self, val):
-        if not self._use_cuts:
-            self._hadron_lower_momentum_cut = None
-            return
         self._hadron_lower_momentum_cut_use_default = False
         if val is None:
             self._hadron_lower_momentum_cut_use_default = True
@@ -550,15 +584,10 @@ class PhysicsSettingsHelper:
 
     @property
     def photon_lower_momentum_cut(self):
-        if not self._use_cuts:
-            return None
         return self._photon_lower_momentum_cut
 
     @photon_lower_momentum_cut.setter
     def photon_lower_momentum_cut(self, val):
-        if not self._use_cuts:
-            self._photon_lower_momentum_cut = None
-            return
         self._photon_lower_momentum_cut_use_default = False
         if val is None:
             self._photon_lower_momentum_cut_use_default = True
@@ -573,15 +602,10 @@ class PhysicsSettingsHelper:
 
     @property
     def electron_lower_momentum_cut(self):
-        if not self._use_cuts:
-            return None
         return self._electron_lower_momentum_cut
 
     @electron_lower_momentum_cut.setter
     def electron_lower_momentum_cut(self, val):
-        if not self._use_cuts:
-            self._electron_lower_momentum_cut = None
-            return
         self._electron_lower_momentum_cut_use_default = False
         if val is None:
             self._electron_lower_momentum_cut_use_default = True
@@ -598,16 +622,34 @@ class PhysicsSettingsHelper:
         self._electron_lower_momentum_cut = val
 
     @property
+    def relative_energy_cut(self):
+        return self._relative_energy_cut
+
+    @relative_energy_cut.setter
+    def relative_energy_cut(self, val):
+        self._relative_energy_cut_use_default = False
+        if val is None:
+            self._relative_energy_cut_use_default = True
+            val = 0.1
+        elif not isinstance(val, Number) or val <= 0:
+            self._engine.stop()
+            raise ValueError("`relative_energy_cut` has to be a strictly positive number!")
+        elif val < 1e-6:
+            self._print(f"Warning: Relative energy cut of {val} is very low and will "
+                       + "result in very long computation times.")
+        self._relative_energy_cut = val
+
+
+    # ======================
+    # === Other settings ===
+    # ======================
+
+    @property
     def include_showers(self):
-        if not self._use_cuts:
-            return None
         return self._include_showers
 
     @include_showers.setter
     def include_showers(self, val):
-        if not self._use_cuts:
-            self._include_showers = None
-            return
         if val is None:
             self._include_showers_use_default = True
             val = True if self.ref_is_lepton else False
@@ -625,14 +667,20 @@ class PhysicsSettingsHelper:
 
     @disable_pair_production_and_bremsstrahlung.setter
     def disable_pair_production_and_bremsstrahlung(self, val):
+        if val is None:
+            self._disable_pair_production_and_bremsstrahlung_use_default = True
+            val = True
+        else:
+            self._disable_pair_production_and_bremsstrahlung_use_default = False
         if not isinstance(val, bool):
             self._engine.stop()
-            raise ValueError("`disable_pair_production_and_bremsstrahlung` has to be a boolean!")
+            raise ValueError("`disable_pair_production_and_bremsstrahlung` "
+                             "has to be a boolean!")
         self._disable_pair_production_and_bremsstrahlung = val
 
 
     def __getattribute__(self, item):
-        # always use base lookup inside this method
+        # Always use base lookup inside this method
         obj_get = object.__getattribute__
 
         if item.startswith("return_"):
@@ -647,7 +695,7 @@ class PhysicsSettingsHelper:
             all_flags += [fff for ff in return_flags.values() for fff in ff]
 
             if item not in {f"return_{ff}" for ff in all_flags}:
-                engine = obj_get(self, "_engine") # also fetch engine via base lookup to avoid re-entry surprises
+                engine = obj_get(self, "_engine")
                 engine.stop()
                 raise AttributeError(f"Return flag '{item}' does not exist!")
 
@@ -658,11 +706,26 @@ class PhysicsSettingsHelper:
                 engine.stop()
                 raise AttributeError(f"Cut definition '{item}' does not exist!")
 
+        try:
+            engine = obj_get(self, "_engine")
+            if item in engine._physics_settings_veto_list:
+                engine.stop()
+                raise AttributeError(f"{engine.name.capitalize()} does not support "
+                                     f"physics setting '{item}'")
+        except AttributeError:
+            pass
+
         return obj_get(self, item)
 
     def __setattr__(self, name, value):
         if not hasattr(self, name):
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+            self._engine.stop()
+            raise AttributeError(f"{self.__class__.__name__} object has no "
+                                 f"attribute '{name}'")
+        if name in self._engine._physics_settings_veto_list:
+            self._engine.stop()
+            raise AttributeError(f"{self._engine.name.capitalize()} does not "
+                                 f"support physics setting '{name}'")
         super().__setattr__(name, value)
 
     @classmethod

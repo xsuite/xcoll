@@ -39,6 +39,7 @@ class FlukaEngine(BaseEngine):
     _uses_input_file = True
     _num_input_files = 3
     _uses_run_folder = True
+    _physics_settings_veto_list = ['relative_energy_cut']
 
     _depends_on = [BaseEngine]
 
