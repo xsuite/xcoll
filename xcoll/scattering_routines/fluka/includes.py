@@ -37,7 +37,8 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
         physics_file = _physics_include_file(verbose=verbose, lower_momentum_cut=phys.hadron_lower_momentum_cut,
                                              photon_lower_momentum_cut=phys.photon_lower_momentum_cut,
                                              electron_lower_momentum_cut=phys.electron_lower_momentum_cut,
-                                             include_showers=phys.include_showers, bb_int=bb_int)
+                                             include_showers=phys.include_showers, bb_int=bb_int,
+                                             disable_pair_production_and_bremsstrahlung=phys.disable_pair_production_and_bremsstrahlung)
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
         scoring_file = _scoring_include_file(verbose=verbose, return_list=phys,
@@ -196,11 +197,13 @@ SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
 
 
 def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_cut,
-                          electron_lower_momentum_cut, include_showers, bb_int=False):
+                          electron_lower_momentum_cut, include_showers, bb_int=False,
+                          disable_pair_production_and_bremsstrahlung=False):
     filename = FsPath("include_settings_physics.inp").resolve()
     emf = "*EMF" if include_showers else "EMF"
     deltaray = "DELTARAY" if not include_showers else "*DELTARAY"
     emfcut = "EMFCUT" if include_showers else "*EMFCUT"
+    pairbrem = "PAIRBREM" if disable_pair_production_and_bremsstrahlung else "*PAIRBREM"
     photon_lower_momentum_cut = format_fluka_float(photon_lower_momentum_cut/1.e9)
     # TODO: FLUKA electron mass
     electron_lower_energy_cut = sqrt(electron_lower_momentum_cut**2 + 511e3**2)
@@ -233,6 +236,9 @@ DEFAULTS                                                              PRECISIO
 * Kill EM showers
 {emf}                                                                   EMF-OFF
 {deltaray}          -1                      BLCKHOLE  @LASTMAT
+*
+* Uncomment to disable pair production + bremsstrahlung by muons/hadrons
+{pairbrem}        -3.0                      BLCKHOLE  @LASTMAT
 *
 * All particle transport thresholds up to 1 TeV
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..

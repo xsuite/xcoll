@@ -33,6 +33,7 @@ class PhysicsSettingsHelper:
             self.photon_lower_momentum_cut = None
             self.electron_lower_momentum_cut = None
             self.include_showers = None
+            self.disable_pair_production_and_bremsstrahlung = False
 
     @property
     def particle_ref(self):
@@ -103,6 +104,12 @@ class PhysicsSettingsHelper:
                 val = getattr(self, f'{ff}_cut')
                 flag = f"{ff.replace('_', ' ')}:"
                 print(f"  {prefix} {flag:28} {val}")
+        if self._include_showers:
+            print()
+            print("Showers are included in the simulation.")
+        if self._disable_pair_production_and_bremsstrahlung:
+            print()
+            print("Pair production and bremsstrahlung by muons/hadrons is disabled.")
 
     @property
     def all_flags(self):
@@ -611,6 +618,17 @@ class PhysicsSettingsHelper:
             self._engine.stop()
             raise ValueError("`include_showers` has to be a boolean!")
         self._include_showers = val
+
+    @property
+    def disable_pair_production_and_bremsstrahlung(self):
+        return self._disable_pair_production_and_bremsstrahlung
+
+    @disable_pair_production_and_bremsstrahlung.setter
+    def disable_pair_production_and_bremsstrahlung(self, val):
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`disable_pair_production_and_bremsstrahlung` has to be a boolean!")
+        self._disable_pair_production_and_bremsstrahlung = val
 
 
     def __getattribute__(self, item):
