@@ -9,6 +9,8 @@ from contextlib import contextmanager
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
+from ..pretty_print import style, pad_styled
+
 
 class PhysicsSettingsHelper:
     """Helper class to manage physics settings for scattering routines.
@@ -41,6 +43,17 @@ class PhysicsSettingsHelper:
             self.include_showers = None
             self.disable_pair_production_and_bremsstrahlung = False
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() " \
+             + f"to see the contents)>"
+
+    def __str__(self):
+        return self._str(format=False)
+
+    def show(self, full=False):
+        """Print the physics settings."""
+        print(self._str(format=True))
+
     @property
     def all_flags(self):
         all_flags  = self._global_return_flags.copy()
@@ -61,7 +74,8 @@ class PhysicsSettingsHelper:
                     if prop_name not in self._engine._physics_settings_veto_list:
                         setattr(self, prop_name, None)
 
-    def show(self):
+    def _str(self, format):
+        final_message = ''
         veto = self._engine._physics_settings_veto_list
 
         # Global return flags
@@ -74,7 +88,13 @@ class PhysicsSettingsHelper:
             name = f"{flag.replace('return_', '').replace('_', ' ')}:"
             mess += f"  {prefix} {name:15} {val}\n"
         if mess != '':
-            print(f"Global return flags:\n{mess}")
+            title = "Global return flags:"
+            title = style(f"{title:25}", bold=True, colour='forest_green',
+                          enabled=format)
+            title += style(" (prepend 'return_' to get the property name)",
+                           dim=True, italic=True, colour='forest_green',
+                           enabled=format)
+            final_message += f"{title}\n{mess}\n"
 
         # Global return modifiers
         mess = ''
@@ -86,7 +106,13 @@ class PhysicsSettingsHelper:
             name = f"{flag.replace('return_', '').replace('_', ' ')}:"
             mess += f"  {prefix} {name:15} {val}\n"
         if mess != '':
-            print(f"Global return modifiers:\n{mess}")
+            title = "Global return modifiers:"
+            title = style(f"{title:25}", bold=True, colour='forest_green',
+                          enabled=format)
+            title += style(" (prepend 'return_' to get the property name)",
+                           dim=True, italic=True, colour='forest_green',
+                           enabled=format)
+            final_message += f"{title}\n{mess}\n"
 
         # Individual return flags
         mess = ''
@@ -106,7 +132,13 @@ class PhysicsSettingsHelper:
                 preprefix = " " if i == len(self._return_flags) - 1 else "│"
                 mess += f"  {preprefix}   {subprefix} {subname:11} {subval}\n"
         if mess != '':
-            print(f"Individual return flags:\n{mess}")
+            title = "Individual return flags:"
+            title = style(f"{title:25}", bold=True, colour='forest_green',
+                          enabled=format)
+            title += style(" (prepend 'return_' to get the property name)",
+                           dim=True, italic=True, colour='forest_green',
+                           enabled=format)
+            final_message += f"{title}\n{mess}\n"
 
         # Energy cuts
         mess = ''
@@ -118,7 +150,13 @@ class PhysicsSettingsHelper:
             name = f"{flag.replace('_cut', '').replace('_', ' ')}:"
             mess += f"  {prefix} {name:28} {val}\n"
         if mess != '':
-            print(f"Energy cuts [eV]:\n{mess}")
+            title = "Energy cuts [eV]:"
+            title = style(f"{title:25}", bold=True, colour='forest_green',
+                          enabled=format)
+            title += style(" (append '_cut' to get the property name)",
+                           dim=True, italic=True, colour='forest_green',
+                           enabled=format)
+            final_message += f"{title}\n{mess}\n"
 
         # Physics flags
         mess = ''
@@ -129,7 +167,12 @@ class PhysicsSettingsHelper:
             name = f"{flag.replace('_', ' ')}:"
             mess += f"  {prefix} {name:45} {val}\n"
         if mess != '':
-            print(f"Physics flags:\n{mess}")
+            title = "Physics flags:"
+            title = style(title, bold=True, colour='forest_green',
+                          enabled=format)
+            final_message += f"{title}\n{mess}\n"
+
+        return final_message
 
 
     @property
