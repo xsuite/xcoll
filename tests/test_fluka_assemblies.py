@@ -258,7 +258,7 @@ def test_assembly_with_files():
     assert new_assm2.exists()
     assert new_assm1.prototypes == [new_pro_tank, new_pro_jaw]
     assert new_assm2.prototypes == [new_pro_tank, new_pro_jaw]
-    files  = {new_pro_jaw.file, new_pro_tank.file}
+    files  = {new_pro_jaw.file.as_posix(), new_pro_tank.file.as_posix()}
     files |= set([new_assm1.file.as_posix()])
     assert set([ff.as_posix() for ff in new_assm1.files]) == files
     files  = {new_pro_jaw.file.as_posix(), new_pro_tank.file.as_posix()}
