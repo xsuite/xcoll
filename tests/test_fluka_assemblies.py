@@ -261,7 +261,7 @@ def test_assembly_with_files():
     files  = {new_pro_jaw.file, new_pro_tank.file}
     files |= set([new_assm1.file.as_posix()])
     assert set([ff.as_posix() for ff in new_assm1.files]) == files
-    files  = {new_pro_jaw.file, new_pro_tank.file}
+    files  = {new_pro_jaw.file.as_posix(), new_pro_tank.file.as_posix()}
     files |= set([new_assm2.file.as_posix()])
     assert set([ff.as_posix() for ff in new_assm2.files]) == files
     assert new_assm1.check_file_valid()
