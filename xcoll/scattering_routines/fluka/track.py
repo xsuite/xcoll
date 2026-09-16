@@ -146,7 +146,7 @@ def track_core(coll, part):
     start    = part.start_tracking_at_element  # TODO: is this needed?
 
     # send to fluka
-    track_fluka(turn=turn_in+1,     # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
+    ret_code = track_fluka(turn=turn_in+1,     # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
                 fluka_id=coll.fluka_id,
                 length=coll.length + coll.length_front + coll.length_back,
                 alive_part=npart,
@@ -169,6 +169,8 @@ def track_core(coll, part):
                 spin_y_part=data['spin_y'],
                 spin_z_part=data['spin_z']
     )
+    if ret_code < 0:
+        raise RuntimeError(f'FLUKA tracking failed with error code: {ret_code}. Aborting tracking')
 
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
