@@ -8,11 +8,133 @@ import pytest
 import numpy as np
 from pathlib import Path
 from warnings import warn
+from scipy.stats import landau
 
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
 import xcoll.constants as xcc
+
+
+@pytest.mark.fluka
+def test_fluka_ionisation_loss():
+    num_part = 20_000
+    mat = xc.materials.db['MG6403Fc']
+    coll = xc.FlukaCollimator(length=0.6, angle=0, jaw=0.001, material=mat)
+    particle_ref = xt.Particles('proton', p0c=6.8e12)
+    xc.fluka.engine.particle_ref = particle_ref
+    xc.fluka.engine.capacity = 2*num_part
+    xc.fluka.engine.include_elastic = False
+    xc.fluka.engine.include_inelastic = False
+    xc.fluka.engine.include_showers = False
+    xc.fluka.engine.include_single_coulomb = False
+    xc.fluka.engine.include_multiple_coulomb = False
+    xc.fluka.engine.seed = 3456543
+    part_init = xp.build_particles(
+        x=np.random.uniform(0.002-1e-6, 0.002+1e-6, num_part),
+        px=np.random.uniform(-1e-6, 1e-6, num_part),
+        y=np.random.uniform(-1e-6, 1e-6, num_part),
+        py=np.random.uniform(-1e-6, 1e-6, num_part),
+        particle_ref=xc.fluka.engine.particle_ref,
+        _capacity=xc.fluka.engine.capacity
+    )
+
+    # Ionisation parameters: analytic expressions to test against
+    rho = mat.density
+    Z_A = mat._ZA_mean
+    I = mat.excitation_energy
+    beta0 = particle_ref.beta0[0]
+    gamma0 = particle_ref.gamma0[0]
+    K = 0.307075e6         # eV cm^2 / g
+    me = 510.99895e3       # electron mass
+    mp = 938.27208816e6    # proton mass
+    plasma = np.sqrt(rho * Z_A) * 28.816
+    Tmax = 2 * me * beta0**2 * gamma0**2 / (1 + 2*gamma0*me/mp + (me/mp)**2)
+    delta = (2 * np.log(plasma/I) + 2 * np.log(beta0 * gamma0) - 1)
+    dEdx_mass = K*Z_A/beta0**2 * (0.5 * np.log(2*me*beta0**2*gamma0**2*Tmax/I**2) - beta0**2 - 0.5 * delta)
+    dEdx = dEdx_mass * rho
+    dE = dEdx * (100 * coll.length)
+    xi = K/2 * Z_A * rho * 100*coll.length
+    Empv = xi * np.log(2 * me * xi / plasma**2) + 0.2*xi   # Vavilov high-energy approximation
+    # Scipy parameters for Landau distribution
+    scipy_Empv = Empv + xi * (1 - np.euler_gamma - 0.20005183774398613) + xi * np.log(np.pi / 2)
+    scipy_xi = xi * np.pi / 2
+
+    # Check the mean stopping power with all physics deactivated
+    xc.fluka.engine.include_ionisation_fluctuations = False
+    xc.fluka.engine.include_pair_production = False
+    xc.fluka.engine.include_bremsstrahlung = False
+    xc.fluka.engine.start(elements=coll, clean=True, verbose=False, fortran_debug_level=1)
+    xc.fluka.engine.physics_settings()
+    part = part_init.copy()
+    coll.track(part)
+    xc.fluka.engine.stop(clean=True)
+    E_diff = part.energy0[part.state > 0] - part.energy[part.state > 0]
+    mean_stopping_power = np.unique(E_diff)
+    assert len(mean_stopping_power) == 1
+    print(f"Mean stopping power: {mean_stopping_power[0]/1e6} MeV")
+    assert np.isclose(mean_stopping_power[0], dE, rtol=1e-2, atol=0)
+    # We expect 410.12 MeV, which corresponds to 1/rho dE/dx of 2.68 MeV cm2/g
+    assert np.isclose(mean_stopping_power[0], 410.12e6, rtol=1e-7, atol=0)
+
+    # Check the regular ionisation losses
+    xc.fluka.engine.include_ionisation_fluctuations = True
+    xc.fluka.engine.include_pair_production = False
+    xc.fluka.engine.include_bremsstrahlung = False
+    # Higher precision ionisation loss
+    extra_card = "IONFLUCT         1.0       0.0       4.0  BLCKHOLE  @LASTMAT"
+    xc.fluka.engine.start(elements=coll, clean=True, verbose=False, fortran_debug_level=1, extra_cards=[extra_card])
+    xc.fluka.engine.physics_settings()
+    part = part_init.copy()
+    coll.track(part)
+    xc.fluka.engine.stop(clean=True)
+    E_diff = part.energy0[part.state > 0] - part.energy[part.state > 0]
+    assert np.isclose(np.median(E_diff), landau.median(scipy_Empv, scipy_xi), rtol=2e-3, atol=0)
+    # Landau/Vavilov upper tail: P(dE > xi) = xi/T  =>  T_threshold = xi/P
+    #       1 particle  above this threshold  =>  P = 1/N
+    #      10 particles above this threshold  =>  P = 10/N
+    #     100 particles above this threshold  =>  P = 100/N
+    dE_threshold_1         = landau.ppf(1 - 1/num_part,   scipy_Empv, scipy_xi)
+    dE_threshold_10        = landau.ppf(1 - 10/num_part,  scipy_Empv, scipy_xi)
+    dE_threshold_100       = landau.ppf(1 - 100/num_part, scipy_Empv, scipy_xi)
+    dE_threshold_lower_200 = landau.ppf(200/num_part, scipy_Empv, scipy_xi)
+    num_outliers_1         = np.sum(E_diff > dE_threshold_1)
+    num_outliers_10        = np.sum(E_diff > dE_threshold_10)
+    num_outliers_100       = np.sum(E_diff > dE_threshold_100)
+    num_outliers_lower_200 = np.sum(E_diff < dE_threshold_lower_200)
+    # Bounds are Poissonian; only 1e-4 tests should fail
+    assert num_outliers_1 < 6      # Expect 1 outlier
+    assert num_outliers_10 < 24    # Expect 10 outliers
+    assert num_outliers_100 < 139  # Expect 100 outliers
+    assert num_outliers_lower_200 < 256 # Expect 200 outliers
+
+    # Check the full energy losses (including pair production and bremsstrahlung)
+    xc.fluka.engine.include_ionisation_fluctuations = True
+    xc.fluka.engine.include_pair_production = True
+    xc.fluka.engine.include_bremsstrahlung = True
+    # Higher precision ionisation loss
+    extra_card = "IONFLUCT         1.0       0.0       4.0  BLCKHOLE  @LASTMAT"
+    xc.fluka.engine.start(elements=coll, clean=True, verbose=False, fortran_debug_level=1, extra_cards=[extra_card])
+    xc.fluka.engine.physics_settings()
+    part = part_init.copy()
+    coll.track(part)
+    xc.fluka.engine.stop(clean=True)
+    E_diff = part.energy0[part.state > 0] - part.energy[part.state > 0]
+    # Thresholds from file
+    data = xc.json.json_load('data/fluka_calibration_data.json')
+    dE_threshold_1         = data['full']['thresholds']['1']
+    dE_threshold_10        = data['full']['thresholds']['10']
+    dE_threshold_100       = data['full']['thresholds']['100']
+    dE_threshold_lower_200 = data['full']['1st percentile']
+    num_outliers_1         = np.sum(E_diff > dE_threshold_1)
+    num_outliers_10        = np.sum(E_diff > dE_threshold_10)
+    num_outliers_100       = np.sum(E_diff > dE_threshold_100)
+    num_outliers_lower_200 = np.sum(E_diff < dE_threshold_lower_200)
+    # Bounds are Poissonian; only 1e-4 tests should fail
+    assert num_outliers_1 < 6      # Expect 1 outlier
+    assert num_outliers_10 < 24    # Expect 10 outliers
+    assert num_outliers_100 < 139  # Expect 100 outliers
+    assert num_outliers_lower_200 < 256 # Expect 200 outliers
 
 
 @pytest.mark.fluka
@@ -23,7 +145,7 @@ import xcoll.constants as xcc
                             [True,  True]
                          ], ids=["default", "mark", "impacts", "impacts_mark"])
 def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xdist):
-    num_part = 20000       # When this is changed, need to re-generate input distribution
+    num_part = 20000       # When this is changed, need to re-generate input distribution (rm data/fluka_part_init.json)
     capacity = 2*num_part  # When this is changed, need to re-generate input distribution
     particle_ref = xt.Particles('proton', p0c=6.8e12)
 
@@ -40,8 +162,10 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.capacity = capacity
     xc.fluka.engine.seed = 453532
+    xc.fluka.engine.reset_physics_settings()
     xc.fluka.engine.return_baryons = True   # To get some massless particles as well
     xc.fluka.engine.start(elements=[coll1, coll2], clean=True, verbose=False, fortran_debug_level=1)
+    xc.fluka.engine.physics_settings()
 
     # Create black absorbers after starting engine so length_front and length_back are known
     black1 = xc.BlackAbsorber(length=0.6 + coll1.length_front + coll1.length_back, angle=0,   jaw=0.001)
@@ -56,26 +180,26 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
 
     # Track
     coll1.track(part)
+    part.at_element[part.state > 0] += 1  # Need to do this manually for the impact table
     part_mid = part.copy()
     part_mid.sort(interleave_lost_particles=True)
 
-    part.at_element[part.state > 0] += 1  # Need to do this manually for the impact table
     coll2.track(part)
-    part.sort(interleave_lost_particles=True)
     part.at_element[part.state > 0] += 1
+    part.sort(interleave_lost_particles=True)
 
     coll1._drift(part_black, -coll1.length_front)
     black1.track(part_black)
     coll1._drift(part_black, -coll1.length_back)
+    part_black.at_element[part_black.state > 0] += 1
     part_black_mid = part_black.copy()
     part_black_mid.sort(interleave_lost_particles=True)
 
     coll2._drift(part_black, -coll2.length_front)
-    part_black.at_element[part_black.state > 0] += 1
     black2.track(part_black)
     coll2._drift(part_black, -coll2.length_back)
-    part_black.sort(interleave_lost_particles=True)
     part_black.at_element[part_black.state > 0] += 1
+    part_black.sort(interleave_lost_particles=True)
 
     xc.fluka.engine.stop(clean=True)
 
@@ -85,15 +209,17 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     print(f"Particle types generated: ")
     for pdg_id, count in zip(*np.unique(part.pdg_id[(part.state > -99999) & (part.particle_id >= num_part)], return_counts=True)):
         print(f"    PDG ID {pdg_id}: {count} particles")
+    print()
 
     # =======================================
     # === CHECKS AFTER FIRST PASS (coll1) ===
     # =======================================
 
     # Preliminary info
-    print(f"Primary hit states: {np.unique(part_mid.state[~mask_sec])}")
-    print(f"Secondary hit states: {np.unique(part_mid.state[mask_sec])}")
-    print(f"Children generated: {((part_mid.state > -9999999) & (part_mid.particle_id >= num_part)).sum()}")
+    print(f"Checks after first pass (coll1):")
+    print(f"  Primary hit states: {np.unique(part_mid.state[~mask_sec])}")
+    print(f"  Secondary hit states: {np.unique(part_mid.state[mask_sec])}")
+    print(f"  Children generated: {((part_mid.state > -9999999) & (part_mid.particle_id >= num_part)).sum()}")
     if xcc.LOST_ON_MATERIAL not in part_mid.state:
         raise ValueError("No particles lost on material. Choose a different seed.")
     if xcc.LOST_ON_MATERIAL_SEC not in part_mid.state:
@@ -183,13 +309,10 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     assert coll1._acc_ionisation_loss_sec > 0
     assert not np.isclose(coll1._acc_ionisation_loss, coll1._acc_ionisation_loss_sec)
 
-    # Check that the sum of the children energy and leftover energy of the parent is close to the initial energy
-    tree = xc.ParticlesTree(part_mid)
-    for pid, e_parent in zip(part_mid.particle_id[mask_hit], part_mid.energy[mask_hit]):
-        des = tree.descendants_ids(pid)
-        if len(des) > 0:
-            energy_children = part_mid.energy[np.isin(part_mid.particle_id, des)]
-            assert np.isclose(energy_children.sum() + e_parent - energy0, 0., atol=1e-2)
+    # Check the energy sum per parent->children chain, and the number of
+    # outliers in the Landau/Vavilov tail. Keep in mind that only half the
+    # particles hit a collimator.
+    _check_energy_sum(part_mid, mask_hit, num_part/2, energy0)
 
     # Check the impacts
     if log_impacts:
@@ -206,15 +329,17 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
         assert np.allclose(part_black_mid.py[mask_hit | mask_hitbox_but_miss],    df_mid.py_before.values)
         assert np.allclose(part_black_mid.zeta[mask_hit | mask_hitbox_but_miss],  df_mid.zeta_before.values)
         assert np.allclose(part_black_mid.delta[mask_hit | mask_hitbox_but_miss], df_mid.delta_before.values)
+    print()
 
     # ========================================
     # === CHECKS AFTER SECOND PASS (coll2) ===
     # ========================================
 
     # Preliminary info
-    print(f"Primary hit states: {np.unique(part.state[~mask_sec])}")
-    print(f"Secondary hit states: {np.unique(part.state[mask_sec])}")
-    print(f"Children generated: {((part.state > -9999999) & (part.particle_id >= num_part)).sum()}")
+    print(f"Checks after second pass (coll2):")
+    print(f"  Primary hit states: {np.unique(part.state[~mask_sec])}")
+    print(f"  Secondary hit states: {np.unique(part.state[mask_sec])}")
+    print(f"  Children generated: {((part.state > -9999999) & (part.particle_id >= num_part)).sum()}")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
     _compare_particles(part, 'temp_fluka_part.json', running_with_xdist)
@@ -285,7 +410,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     Etot += coll1._acc_ionisation_loss_sec
     Etot += coll2._acc_ionisation_loss
     Etot += coll2._acc_ionisation_loss_sec
-    assert np.isclose(Etot, part_init.energy[part_init.state > -99999].sum())
+    assert np.isclose(Etot, part_init.energy[part_init.state > -99999].sum(), atol=1e-12)
     assert coll1._acc_ionisation_loss > 0
     assert coll1._acc_ionisation_loss_sec > 0
     assert not np.isclose(coll1._acc_ionisation_loss, coll1._acc_ionisation_loss_sec)
@@ -293,14 +418,10 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     assert coll2._acc_ionisation_loss_sec > 0
     assert not np.isclose(coll2._acc_ionisation_loss, coll2._acc_ionisation_loss_sec)
 
-    # Check that the sum of the children energy and leftover energy of the parent is close to the initial energy
-    # Difference of 3e-3 is allowed (empirical) to allow for ionisation losses
-    tree = xc.ParticlesTree(part)
-    for pid, e_parent in zip(part.particle_id[mask_hit], part.energy[mask_hit]):
-        des = tree.descendants_ids(pid)
-        if len(des) > 0:
-            energy_children = part.energy[np.isin(part.particle_id, des)]
-            assert np.isclose((energy0 - energy_children.sum() - e_parent)/energy0, 0., atol=3e-3)
+    # Check the energy sum per parent->children chain, and the number of
+    # outliers in the Landau/Vavilov tail. Keep in mind that only half the
+    # particles hit a collimator.
+    _check_energy_sum(part, mask_hit, num_part/2, energy0)
 
     # Check the impacts
     if log_impacts:
@@ -323,7 +444,6 @@ def _compare_particles(part, file, running_with_xdist):
     if running_with_xdist:
         warn("Not comparing to previous result since running with xdist.")
         return
-
     file = Path(file)
     if file.exists():
         dct = xc.json.json_load(file)
@@ -410,3 +530,141 @@ def _create_masked_particles(num_part):
         xc.json.json_dump(part_init.to_dict(), init_file)
 
     return part_init, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec
+
+
+def _get_num_coll_traversed(part, pids):
+    # Check how many collimators are traversed by all particles
+    # (parent and children) without dying. This gives us an estimate
+    # of the total traversed length, and hence for the amount of
+    # "missing" energy allowed.
+    num_coll_traversed = 0
+    for this_pid in pids:
+        at_element = part.at_element[part.particle_id == this_pid][0]
+        this_ppid = part.parent_particle_id[part.particle_id == this_pid][0]
+        if this_ppid == this_pid:
+            # Primary
+            num_coll_traversed += at_element
+        else:
+            # Child
+            parent_at_element = part.at_element[part.particle_id == this_ppid][0]
+            if parent_at_element < at_element:
+                num_coll_traversed += at_element - parent_at_element - 1
+    return num_coll_traversed
+
+
+def _check_energy_sum(part, mask, tot_part, energy0):
+    # Check the sum of the children energy and leftover energy of the parent.
+    # This sum will not match exactly the initial energy, as ionisation losses
+    # are not accounted for on a particle-by-particle basis (only accumulated
+    # in the collimator). When a particle dies in a collimator, all ionisation
+    # losses in that collimator are automatically added to the dead particle's
+    # energy. So ionisation losses are not individually accounted for ONLY when
+    # a particle survives a collimator.
+    print("Checking energy sum for each parent->children chain...")
+    tree = xc.ParticlesTree(part)
+    # For the first loop, we only check how many primary particles actually
+    # caused ionisation losses, to be able to get our statistics right.
+    for pid, e_parent in zip(part.particle_id[mask], part.energy[mask]):
+        des = tree.descendants_ids(pid)
+        num_coll_traversed = _get_num_coll_traversed(part, [pid, *des])
+        if num_coll_traversed == 0:
+            # This parent and its children did not traverse+survive any
+            # collimator, so remove it from the statistics.
+            tot_part -= 1
+    print(f"Total number of primary particles that traversed at least one collimator: {tot_part}")
+    # For the second loop, we check for each parent->children chain that the
+    # missing energy is statistically compatible with the Landau/Vavilov
+    # distribution of ionisation losses, plus extras. This is benchmarked
+    # earlier for this material (see first test above). In particular, we check
+    # that it is lower than the Landau/Vavilov tail, estimated probabilistically
+    # in such a way that we expect a given number of outliers out of all particles.
+    # Note that we cannot check the lower tail, as not all particles traverse
+    # the full collimator length; there might hence be zero ionisation losses.
+    # Tail: P(dE > xi) = xi/T  =>  T_threshold = xi/P
+    #       1 particle  above this threshold  =>  P = 1/N
+    #      10 particles above this threshold  =>  P = 10/N
+    #     100 particles above this threshold  =>  P = 100/N
+    # Thresholds from file
+    data = xc.json.json_load('data/fluka_calibration_data.json')
+    dE_threshold_1   = data['full']['thresholds']['1']
+    dE_threshold_10  = data['full']['thresholds']['10']
+    dE_threshold_100 = data['full']['thresholds']['100']
+    num_outliers_1   = 0
+    num_outliers_10  = 0
+    num_outliers_100 = 0
+    num_zero_ionisation_losses = 0
+    loss_per_coll = {1: [], 2: []}
+    for pid, e_parent in zip(part.particle_id[mask], part.energy[mask]):
+        des = tree.descendants_ids(pid)
+        energy_children = part.energy[np.isin(part.particle_id, des)]
+        this_diff = (energy0 - energy_children.sum() - e_parent)
+        num_coll_traversed = _get_num_coll_traversed(part, [pid, *des])
+        if num_coll_traversed == 0:
+            # In this case the energy sum needs to match the initial energy exactly
+            # if len(des) > 0:
+            assert np.isclose(this_diff/energy0, 0, atol=1.e-12)
+        else:
+            # In this case, we have missing energy due to ionisation losses,
+            # which should be compatible with the Landau/Vavilov distribution
+            assert np.all(this_diff/energy0 >= -1.e-12)  # No energy should be created
+            if np.isclose(this_diff/energy0, 0, atol=1.e-12):
+                num_zero_ionisation_losses += 1
+            if num_coll_traversed not in loss_per_coll:
+                loss_per_coll[num_coll_traversed] = []
+            loss_per_coll[num_coll_traversed].append(this_diff)
+            if this_diff > dE_threshold_1*num_coll_traversed:
+                num_outliers_1 += 1
+            if this_diff > dE_threshold_10*num_coll_traversed:
+                num_outliers_10 += 1
+            if this_diff > dE_threshold_100*num_coll_traversed:
+                num_outliers_100 += 1
+    print(f"Traversed particles without ionisation losses: {num_zero_ionisation_losses}")
+    print(f"Ionisation losses statistics:")
+    print(f"    Number of outliers above 1 particle threshold: {num_outliers_1}")
+    print(f"    Number of outliers above 10 particle threshold: {num_outliers_10}")
+    print(f"    Number of outliers above 100 particle threshold: {num_outliers_100}")
+    print("Ionisation losses quantiles:")
+    for kkk, lll in loss_per_coll.items():
+        if len(lll) > 0:
+            print(f"  num_coll_traversed = {kkk}:")
+            for n in [1, 10, 100]:
+                q = 1 - n / tot_part
+                print(f"    Quantile for {n} particles: {np.quantile(np.asarray(lll), q) / 1e6} MeV")
+    # _plot_ionisation_losses(loss_per_coll)
+    assert num_outliers_1 < 3      # Expect maximally 1 outlier
+    assert num_outliers_10 < 15    # Expect maximally 10 outliers
+    assert num_outliers_100 < 120  # Expect maximally 100 outliers
+    assert num_zero_ionisation_losses < 100 * len(part.x[mask])/10_000  # These are corner hits
+
+
+def _plot_ionisation_losses(loss_per_coll):
+    import matplotlib.pyplot as plt
+    nbins = 250
+    pos_loss_per_coll = {
+        ncoll: np.asarray(losses)[np.asarray(losses) > 0]
+        for ncoll, losses in loss_per_coll.items()
+    }
+    E_min  = min([min(ll) for ll in pos_loss_per_coll.values() if len(ll) > 0])
+    E_high = max([max(ll) for ll in pos_loss_per_coll.values() if len(ll) > 0])
+    bins = np.logspace(np.log10(E_min), np.log10(E_high), nbins + 1)
+    bin_centres = np.sqrt(bins[:-1] * bins[1:])
+    dlog = np.diff(np.log10(bins))
+    _, ax = plt.subplots(2, 1, figsize=(6, 8))
+    for ii, (ncoll, losses) in enumerate(loss_per_coll.items()):
+        losses = np.asarray(losses)
+        n_zero = np.count_nonzero(losses <= 0)
+        pos_losses = losses[losses > 0]
+        if len(pos_losses) > 0:
+            counts, _ = np.histogram(pos_losses, bins=bins)
+            dNdlogE = counts / (len(losses) * dlog)
+            ax[ii].step(bin_centres, dNdlogE, where='mid')
+            ax[ii].set_xscale('log')
+            ax[ii].set_yscale('log')
+            ax[ii].set_xlabel('Energy [eV]')
+            ax[ii].set_ylabel(r'Normalised frequency $\frac{dN}{d\log E}$')
+            ax[ii].set_title(
+                f"{ncoll} collimator(s), {n_zero} zero-loss chains"
+            )
+            ax[ii].grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.tight_layout()
+    plt.show()
