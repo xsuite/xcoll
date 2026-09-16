@@ -31,26 +31,13 @@ class PhysicsSettingsHelper:
 
     # Prepend 'include_' to get the property name for the physics processes
     _include_processes = ['showers', 'single_coulomb', 'multiple_coulomb',
-                          'ionisation_losses', 'pair_production',
+                          'ionisation_fluctuations', 'pair_production',
                           'bremsstrahlung', 'elastic', 'inelastic']
 
     def __init__(self, engine):
         with self.__class__._in_constructor(self):
             self._engine = engine
-            # Set flags to default
-            self.return_all = None
-            self.hadron_lower_momentum_cut = None
-            self.photon_lower_momentum_cut = None
-            self.electron_lower_momentum_cut = None
-            self.relative_energy_cut = None
-            self.include_showers = None
-            self.include_single_coulomb = None
-            self.include_multiple_coulomb = None
-            self.include_ionisation_losses = None
-            self.include_pair_production = None
-            self.include_bremsstrahlung = None
-            self.include_elastic = None
-            self.include_inelastic = None
+            self.reset()
 
     def __repr__(self):
         return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() " \
@@ -82,6 +69,16 @@ class PhysicsSettingsHelper:
                     prop_name = kk[1:-12]
                     if prop_name not in self._engine._physics_settings_veto_list:
                         setattr(self, prop_name, None)
+
+    def reset(self):
+        # Set flags to default
+        for flag in [
+            'return_all',
+            *[f'{ff}_cut' for ff in self._cut_definitions],
+            *[f'include_{pp}' for pp in self._include_processes],
+        ]:
+            if flag not in self._engine._physics_settings_veto_list:
+                setattr(self, flag, None)
 
     def _str(self, format):
         final_message = ''
@@ -750,20 +747,20 @@ class PhysicsSettingsHelper:
         self._include_multiple_coulomb = val
 
     @property
-    def include_ionisation_losses(self):
-        return self._include_ionisation_losses
+    def include_ionisation_fluctuations(self):
+        return self._include_ionisation_fluctuations
 
-    @include_ionisation_losses.setter
-    def include_ionisation_losses(self, val):
+    @include_ionisation_fluctuations.setter
+    def include_ionisation_fluctuations(self, val):
         if val is None:
-            self._include_ionisation_losses_use_default = True
+            self._include_ionisation_fluctuations_use_default = True
             val = True
         else:
-            self._include_ionisation_losses_use_default = False
+            self._include_ionisation_fluctuations_use_default = False
         if not isinstance(val, bool):
             self._engine.stop()
-            raise ValueError("`include_ionisation_losses` has to be a boolean!")
-        self._include_ionisation_losses = val
+            raise ValueError("`include_ionisation_fluctuations` has to be a boolean!")
+        self._include_ionisation_fluctuations = val
 
     @property
     def include_pair_production(self):

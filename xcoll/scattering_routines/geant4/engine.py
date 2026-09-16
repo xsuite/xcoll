@@ -35,7 +35,7 @@ class Geant4Engine(BaseEngine):
         'include_multiple_coulomb',
         'include_elastic',
         'include_inelastic',
-        'include_ionisation_losses',
+        'include_ionisation_fluctuations',
         'include_pair_production',
         'include_bremsstrahlung'
     ]

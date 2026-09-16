@@ -264,6 +264,10 @@ class BaseEngine(xo.HybridClass):
     def physics_settings(self):
         return self._physics_settings.show()
 
+    def reset_physics_settings(self):
+        return self._physics_settings.reset()
+
+
     def start(self, *, clean=True, input_file=None, **kwargs):
         if not self.interface:
             self.stop()

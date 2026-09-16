@@ -47,7 +47,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
                             include_inelastic=phys.include_inelastic,
                             include_pair_production=phys.include_pair_production,
                             include_bremsstrahlung=phys.include_bremsstrahlung,
-                            include_ionisation_losses=phys.include_ionisation_losses,
+                            include_ionisation_fluctuations=phys.include_ionisation_fluctuations,
                             extra_physics_cards=kwargs.get('extra_physics_cards', [])
                         )
         this_include_files.append(physics_file)
@@ -211,7 +211,7 @@ def _physics_include_file(*, verbose, particle_ref, hadron_lower_momentum_cut,
                           photon_lower_momentum_cut, electron_lower_momentum_cut,
                           include_showers, include_single_coulomb, include_multiple_coulomb,
                           include_elastic, include_inelastic, include_pair_production,
-                          include_bremsstrahlung, include_ionisation_losses,
+                          include_bremsstrahlung, include_ionisation_fluctuations,
                           extra_physics_cards=[]):
     filename = FsPath("include_settings_physics.inp").resolve()
     # Showers
@@ -219,7 +219,7 @@ def _physics_include_file(*, verbose, particle_ref, hadron_lower_momentum_cut,
     deltaray = "DELTARAY" if not include_showers else "*DELTARAY"
     emfcut = "EMFCUT" if include_showers else "*EMFCUT"
     # Ionisation losses
-    if include_ionisation_losses:
+    if include_ionisation_fluctuations:
         # Ionisation losses are on by default
         ionisation_losses = ""
     else:
@@ -293,7 +293,7 @@ def _physics_include_file(*, verbose, particle_ref, hadron_lower_momentum_cut,
         print(f"  - Multiple Coulomb scattering: {'ON' if include_multiple_coulomb else 'OFF'}")
         print(f"  - Pair production: {'ON' if include_pair_production else 'OFF'}")
         print(f"  - Bremsstrahlung: {'ON' if include_bremsstrahlung else 'OFF'}")
-        print(f"  - Ionisation losses: {'ON' if include_ionisation_losses else 'OFF'}")
+        print(f"  - Ionisation losses: {'ON' if include_ionisation_fluctuations else 'OFF'}")
         print(f"  - Elastic hadronic interactions: {'ON' if include_elastic else 'OFF'}")
         print(f"  - Inelastic hadronic interactions: {'ON' if include_inelastic else 'OFF'}")
         if extra_physics_cards:
