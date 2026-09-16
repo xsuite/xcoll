@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from ..pretty_print import style, pad_styled
+from ..pretty_print import style
 
 
 class PhysicsSettingsHelper:
@@ -29,7 +29,10 @@ class PhysicsSettingsHelper:
     _cut_definitions = ['hadron_lower_momentum', 'photon_lower_momentum',
                         'electron_lower_momentum', 'relative_energy']
 
-    _extra_flags = ['include_showers', 'disable_pair_production_and_bremsstrahlung']
+    # Prepend 'include_' to get the property name for the physics processes
+    _include_processes = ['showers', 'single_coulomb', 'multiple_coulomb',
+                          'ionisation_losses', 'pair_production',
+                          'bremsstrahlung', 'elastic', 'inelastic']
 
     def __init__(self, engine):
         with self.__class__._in_constructor(self):
@@ -41,7 +44,13 @@ class PhysicsSettingsHelper:
             self.electron_lower_momentum_cut = None
             self.relative_energy_cut = None
             self.include_showers = None
-            self.disable_pair_production_and_bremsstrahlung = False
+            self.include_single_coulomb = None
+            self.include_multiple_coulomb = None
+            self.include_ionisation_losses = None
+            self.include_pair_production = None
+            self.include_bremsstrahlung = None
+            self.include_elastic = None
+            self.include_inelastic = None
 
     def __repr__(self):
         return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() " \
@@ -62,7 +71,7 @@ class PhysicsSettingsHelper:
         all_flags += [fff for ff in self._return_flags.values() for fff in ff]
         result  = [f'return_{ff}' for ff in all_flags]
         result += [f'{ff}_cut' for ff in self._cut_definitions]
-        result += self._extra_flags
+        result += [f'include_{pp}' for pp in self._include_processes]
         return result
 
     def update(self):
@@ -140,6 +149,24 @@ class PhysicsSettingsHelper:
                            enabled=format)
             final_message += f"{title}\n{mess}\n"
 
+        # Physics processes
+        mess = ''
+        flags = [f'include_{pp}' for pp in self._include_processes
+                 if f'include_{pp}' not in veto]
+        for i, flag in enumerate(flags):
+            prefix = "└" if i == len(flags) - 1 else "├"
+            val = getattr(self, flag)
+            name = f"{flag.replace('_', ' ')}:"
+            mess += f"  {prefix} {name:28} {val}\n"
+        if mess != '':
+            title = "Physics processes:"
+            title = style(title, bold=True, colour='forest_green',
+                          enabled=format)
+            title += style(" (prepend 'include_' to get the property name)",
+                           dim=True, italic=True, colour='forest_green',
+                           enabled=format)
+            final_message += f"{title}\n{mess}\n"
+
         # Energy cuts
         mess = ''
         flags = [f'{ff}_cut' for ff in self._cut_definitions
@@ -150,26 +177,12 @@ class PhysicsSettingsHelper:
             name = f"{flag.replace('_cut', '').replace('_', ' ')}:"
             mess += f"  {prefix} {name:28} {val}\n"
         if mess != '':
-            title = "Energy cuts [eV]:"
+            title = "Energy/momentum cuts [eV]:"
             title = style(f"{title:25}", bold=True, colour='forest_green',
                           enabled=format)
             title += style(" (append '_cut' to get the property name)",
                            dim=True, italic=True, colour='forest_green',
                            enabled=format)
-            final_message += f"{title}\n{mess}\n"
-
-        # Physics flags
-        mess = ''
-        flags = [ff for ff in self._extra_flags if ff not in veto]
-        for i, flag in enumerate(flags):
-            prefix = "└" if i == len(flags) - 1 else "├"
-            val = getattr(self, flag)
-            name = f"{flag.replace('_', ' ')}:"
-            mess += f"  {prefix} {name:45} {val}\n"
-        if mess != '':
-            title = "Physics flags:"
-            title = style(title, bold=True, colour='forest_green',
-                          enabled=format)
             final_message += f"{title}\n{mess}\n"
 
         return final_message
@@ -683,9 +696,9 @@ class PhysicsSettingsHelper:
         self._relative_energy_cut = val
 
 
-    # ======================
-    # === Other settings ===
-    # ======================
+    # ========================
+    # === Physics settings ===
+    # ========================
 
     @property
     def include_showers(self):
@@ -705,21 +718,116 @@ class PhysicsSettingsHelper:
         self._include_showers = val
 
     @property
-    def disable_pair_production_and_bremsstrahlung(self):
-        return self._disable_pair_production_and_bremsstrahlung
+    def include_single_coulomb(self):
+        return self._include_single_coulomb
 
-    @disable_pair_production_and_bremsstrahlung.setter
-    def disable_pair_production_and_bremsstrahlung(self, val):
+    @include_single_coulomb.setter
+    def include_single_coulomb(self, val):
         if val is None:
-            self._disable_pair_production_and_bremsstrahlung_use_default = True
+            self._include_single_coulomb_use_default = True
             val = True
         else:
-            self._disable_pair_production_and_bremsstrahlung_use_default = False
+            self._include_single_coulomb_use_default = False
         if not isinstance(val, bool):
             self._engine.stop()
-            raise ValueError("`disable_pair_production_and_bremsstrahlung` "
-                             "has to be a boolean!")
-        self._disable_pair_production_and_bremsstrahlung = val
+            raise ValueError("`include_single_coulomb` has to be a boolean!")
+        self._include_single_coulomb = val
+
+    @property
+    def include_multiple_coulomb(self):
+        return self._include_multiple_coulomb
+
+    @include_multiple_coulomb.setter
+    def include_multiple_coulomb(self, val):
+        if val is None:
+            self._include_multiple_coulomb_use_default = True
+            val = True
+        else:
+            self._include_multiple_coulomb_use_default = False
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`include_multiple_coulomb` has to be a boolean!")
+        self._include_multiple_coulomb = val
+
+    @property
+    def include_ionisation_losses(self):
+        return self._include_ionisation_losses
+
+    @include_ionisation_losses.setter
+    def include_ionisation_losses(self, val):
+        if val is None:
+            self._include_ionisation_losses_use_default = True
+            val = True
+        else:
+            self._include_ionisation_losses_use_default = False
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`include_ionisation_losses` has to be a boolean!")
+        self._include_ionisation_losses = val
+
+    @property
+    def include_pair_production(self):
+        return self._include_pair_production
+
+    @include_pair_production.setter
+    def include_pair_production(self, val):
+        if val is None:
+            self._include_pair_production_use_default = True
+            val = True
+        else:
+            self._include_pair_production_use_default = False
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`include_pair_production` has to be a boolean!")
+        self._include_pair_production = val
+
+    @property
+    def include_bremsstrahlung(self):
+        return self._include_bremsstrahlung
+
+    @include_bremsstrahlung.setter
+    def include_bremsstrahlung(self, val):
+        if val is None:
+            self._include_bremsstrahlung_use_default = True
+            val = True
+        else:
+            self._include_bremsstrahlung_use_default = False
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`include_bremsstrahlung` has to be a boolean!")
+        self._include_bremsstrahlung = val
+
+    @property
+    def include_elastic(self):
+        return self._include_elastic
+
+    @include_elastic.setter
+    def include_elastic(self, val):
+        if val is None:
+            self._include_elastic_use_default = True
+            val = True
+        else:
+            self._include_elastic_use_default = False
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`include_elastic` has to be a boolean!")
+        self._include_elastic = val
+
+    @property
+    def include_inelastic(self):
+        return self._include_inelastic
+
+    @include_inelastic.setter
+    def include_inelastic(self, val):
+        if val is None:
+            self._include_inelastic_use_default = True
+            val = True
+        else:
+            self._include_inelastic_use_default = False
+        if not isinstance(val, bool):
+            self._engine.stop()
+            raise ValueError("`include_inelastic` has to be a boolean!")
+        self._include_inelastic = val
 
 
     def __getattribute__(self, item):
@@ -748,6 +856,13 @@ class PhysicsSettingsHelper:
                 engine = obj_get(self, "_engine")
                 engine.stop()
                 raise AttributeError(f"Cut definition '{item}' does not exist!")
+
+        elif item.startswith("include_"):
+            include_processes = obj_get(self, "_include_processes")
+            if item not in {f"include_{pp}" for pp in include_processes}:
+                engine = obj_get(self, "_engine")
+                engine.stop()
+                raise AttributeError(f"Physics process '{item}' does not exist!")
 
         try:
             engine = obj_get(self, "_engine")

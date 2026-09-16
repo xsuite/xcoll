@@ -34,11 +34,22 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
         this_include_files.append(_beam_include_file(particle_ref, bb_int=bb_int))
     if 'include_settings_physics.inp' not in [file.name for file in this_include_files]:
-        physics_file = _physics_include_file(verbose=verbose, lower_momentum_cut=phys.hadron_lower_momentum_cut,
-                                             photon_lower_momentum_cut=phys.photon_lower_momentum_cut,
-                                             electron_lower_momentum_cut=phys.electron_lower_momentum_cut,
-                                             include_showers=phys.include_showers, bb_int=bb_int,
-                                             disable_pair_production_and_bremsstrahlung=phys.disable_pair_production_and_bremsstrahlung)
+        physics_file = _physics_include_file(
+                            verbose=verbose,
+                            particle_ref=particle_ref,
+                            hadron_lower_momentum_cut=phys.hadron_lower_momentum_cut,
+                            photon_lower_momentum_cut=phys.photon_lower_momentum_cut,
+                            electron_lower_momentum_cut=phys.electron_lower_momentum_cut,
+                            include_showers=phys.include_showers,
+                            include_single_coulomb=phys.include_single_coulomb,
+                            include_multiple_coulomb=phys.include_multiple_coulomb,
+                            include_elastic=phys.include_elastic,
+                            include_inelastic=phys.include_inelastic,
+                            include_pair_production=phys.include_pair_production,
+                            include_bremsstrahlung=phys.include_bremsstrahlung,
+                            include_ionisation_losses=phys.include_ionisation_losses,
+                            extra_physics_cards=kwargs.get('extra_physics_cards', [])
+                        )
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
         scoring_file = _scoring_include_file(verbose=verbose, return_list=phys,
@@ -196,29 +207,97 @@ SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
     return filename
 
 
-def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_cut,
-                          electron_lower_momentum_cut, include_showers, bb_int=False,
-                          disable_pair_production_and_bremsstrahlung=False):
+def _physics_include_file(*, verbose, particle_ref, hadron_lower_momentum_cut,
+                          photon_lower_momentum_cut, electron_lower_momentum_cut,
+                          include_showers, include_single_coulomb, include_multiple_coulomb,
+                          include_elastic, include_inelastic, include_pair_production,
+                          include_bremsstrahlung, include_ionisation_losses,
+                          extra_physics_cards=[]):
     filename = FsPath("include_settings_physics.inp").resolve()
+    # Showers
     emf = "*EMF" if include_showers else "EMF"
     deltaray = "DELTARAY" if not include_showers else "*DELTARAY"
     emfcut = "EMFCUT" if include_showers else "*EMFCUT"
-    pairbrem = "PAIRBREM" if disable_pair_production_and_bremsstrahlung else "*PAIRBREM"
+    # Ionisation losses
+    if include_ionisation_losses:
+        # Ionisation losses are on by default
+        ionisation_losses = ""
+    else:
+        ionisation_losses  = "* Deactivate ionisation losses\n"
+        ionisation_losses += "IONFLUCT        -1.0      -1.0            BLCKHOLE  @LASTMAT\n*"
+    # Coulomb scattering
+    if include_single_coulomb and include_multiple_coulomb:
+        coulomb  = "* Activate Coulomb scattering (single and multiple)\n"
+        coulomb += "MULSOPT                                        1.0       1.0       1.0GLOBAL\n*"
+    elif include_single_coulomb:
+        coulomb  = "* Activate single Coulomb scattering (disable multiple Coulomb scattering)\n"
+        coulomb += "MULSOPT          0.0       0.0       0.0       1.0       1.0 99999999.GLOBAL\n*"
+    elif include_multiple_coulomb:
+        coulomb  = "* Activate multiple Coulomb scattering (disable single Coulomb scattering)\n"
+        coulomb += "MULSOPT                                       -1.0      -1.0      -1.0GLOBAL\n*"
+    else:
+        # No multiple Coulomb either
+        coulomb  = "* Deactivate all Coulomb scattering\n"
+        coulomb += "MULSOPT                                       -1.0      -1.0      -1.0GLOBAL\n"
+        coulomb += "MULSOPT                    3.0       3.0  BLCKHOLE  @LASTMAT\n*"
+    # Pair production and bremsstrahlung
+    if include_pair_production and include_bremsstrahlung:
+        pairbrem  = "* Activate pair production and bremsstrahlung by muons/hadrons\n"
+        pairbrem += "PAIRBREM         3.0                      BLCKHOLE  @LASTMAT\n*"
+    elif include_pair_production:
+        pairbrem  = "* Activate pair production by muons/hadrons (disable bremsstrahlung)\n"
+        pairbrem += "PAIRBREM         1.0                      BLCKHOLE  @LASTMAT\n*"
+    elif include_bremsstrahlung:
+        pairbrem  = "* Activate bremsstrahlung by muons/hadrons (disable pair production)\n"
+        pairbrem += "PAIRBREM         2.0                      BLCKHOLE  @LASTMAT\n*"
+    else:
+        pairbrem  = "* Disable pair production and bremsstrahlung by muons/hadrons\n"
+        pairbrem += "PAIRBREM        -3.0                      BLCKHOLE  @LASTMAT\n*"
+    # Cuts
     photon_lower_momentum_cut = format_fluka_float(photon_lower_momentum_cut/1.e9)
     # TODO: FLUKA electron mass
     electron_lower_energy_cut = sqrt(electron_lower_momentum_cut**2 + 511e3**2)
     electron_lower_energy_cut = format_fluka_float(electron_lower_energy_cut/1.e9)
-    lower_momentum_cut /= 1.e9
-    bb = "PHYSICS           -1" if not bb_int else "PHYSICS       8000.0"
+    hadron_lower_momentum_cut /= 1.e9
+    # Hadronic interactions
+    thresh = format_fluka_float(5*particle_ref.energy0[0] / 1.e9)
+    if not include_elastic and not include_inelastic:
+        hadron = "* Deactivate hadronic interactions\n"
+        hadron += f"THRESHOLd                     {thresh}{thresh}\n*"
+    elif not include_elastic:
+            hadron = "* Deactivate elastic hadronic interactions\n"
+            hadron += f"THRESHOLd                     {thresh}\n*"
+    elif not include_inelastic:
+            hadron = "* Deactivate inelastic hadronic interactions\n"
+            hadron += f"THRESHOLd                               {thresh}\n*"
+    else:
+        # Hadronic interactions are on by default
+        hadron = ''
+    # EM dissociation
+    emdisso = "PHYSICS" if _is_ion(particle_ref.pdg_id[0]) else "*PHYSICS"
+    # Extra physics cards
+    if extra_physics_cards:
+        extra_physics_cards = ["* Extra physics cards", *extra_physics_cards, '*']
+    extra_physics_cards = "\n".join(extra_physics_cards)
+
     if verbose:
         print(f"Physics include file created with:\n"
-             + f"  - Hadron and muon lower momentum cut: {lower_momentum_cut} GeV")
+             + f"  - Hadron and muon lower momentum cut: {hadron_lower_momentum_cut} GeV")
         if include_showers:
             print(f"  - EM showers: ON\n"
                 + f"  - Photon lower momentum cut: {photon_lower_momentum_cut} GeV\n"
                 + f"  - Electron lower momentum cut: {electron_lower_energy_cut} GeV")
         else:
             print(f"  - EM showers: OFF")
+        print(f"  - Single Coulomb scattering: {'ON' if include_single_coulomb else 'OFF'}")
+        print(f"  - Multiple Coulomb scattering: {'ON' if include_multiple_coulomb else 'OFF'}")
+        print(f"  - Pair production: {'ON' if include_pair_production else 'OFF'}")
+        print(f"  - Bremsstrahlung: {'ON' if include_bremsstrahlung else 'OFF'}")
+        print(f"  - Ionisation losses: {'ON' if include_ionisation_losses else 'OFF'}")
+        print(f"  - Elastic hadronic interactions: {'ON' if include_elastic else 'OFF'}")
+        print(f"  - Inelastic hadronic interactions: {'ON' if include_inelastic else 'OFF'}")
+        if extra_physics_cards:
+            print(f"  - Extra physics cards:\n{extra_physics_cards}")
 
     template = f"""\
 ******************************************************************************
@@ -229,7 +308,6 @@ DEFAULTS                                                              PRECISIO
 *
 * Thresholds for secondary particle (electron, positron, photon) production
 * applied to all materials; electron, positron: 1.0 MeV, photons: 0.1 MeV
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 {emfcut}    {electron_lower_energy_cut}{photon_lower_momentum_cut}       1.0       1.0  @LASTMAT       1.0PROD-CUT
 {emfcut}    {electron_lower_energy_cut}{photon_lower_momentum_cut}       0.0       1.0  @LASTREG       1.0
 *
@@ -237,31 +315,29 @@ DEFAULTS                                                              PRECISIO
 {emf}                                                                   EMF-OFF
 {deltaray}          -1                      BLCKHOLE  @LASTMAT
 *
-* Uncomment to disable pair production + bremsstrahlung by muons/hadrons
-{pairbrem}        -3.0                      BLCKHOLE  @LASTMAT
+{coulomb}
+{pairbrem}
+{ionisation_losses}
+* Particle transport thresholds (this sets physics process thresholds as well)
+PART-THR  {format_fluka_float(hadron_lower_momentum_cut)}            @LASTPAR                 0.0
+PART-THR  {format_fluka_float(2*hadron_lower_momentum_cut)}  DEUTERON                           0.0
+PART-THR  {format_fluka_float(3*hadron_lower_momentum_cut)}    TRITON                           0.0
+PART-THR  {format_fluka_float(3*hadron_lower_momentum_cut)}  3-HELIUM                           0.0
+PART-THR  {format_fluka_float(4*hadron_lower_momentum_cut)}  4-HELIUM                           0.0
 *
-* All particle transport thresholds up to 1 TeV
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-PART-THR  {format_fluka_float(lower_momentum_cut)}            @LASTPAR                 0.0
-PART-THR  {format_fluka_float(2*lower_momentum_cut)}  DEUTERON                           0.0
-PART-THR  {format_fluka_float(3*lower_momentum_cut)}    TRITON                           0.0
-PART-THR  {format_fluka_float(3*lower_momentum_cut)}  3-HELIUM                           0.0
-PART-THR  {format_fluka_float(4*lower_momentum_cut)}  4-HELIUM                           0.0
-*
-* Activate single scattering
-MULSOPT                                        1.0       1.0       1.0GLOBAL
-*
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-* un-comment in case you use FLUKA pro
+{hadron}
+* Activate ion interactions:
+* COALESCE and EVAPORAT if beam or target is ion, EM-DISSO if beam is ion
 PHYSICS           1.                                                  COALESCE
 PHYSICS           3.                                                  EVAPORAT
-PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
-PHYSICS           2.                                                  EM-DISSO
-* beam-beam collisions
-* PHYSICS       8000.0                                                  LIMITS
-{bb}                                                  LIMITS
+{emdisso}           2.                                                  EM-DISSO
+*
+* PHYSICS limits automatically set (default -1) by BEAM card 
+*
 * No low-energy neutron transport
 LOW-PWXS          -1
+*
+{extra_physics_cards}
 """
     with filename.open('w') as fp:
         fp.write(template)

@@ -26,11 +26,18 @@ class Geant4Engine(BaseEngine):
     _uses_input_file = True
     _uses_run_folder = True
     _physics_settings_veto_list = [
+        # These cannot (yet) be set on the Geant4 interface
         'hadron_lower_momentum_cut',
         'photon_lower_momentum_cut',
         'electron_lower_momentum_cut',
         'include_showers',
-        'disable_pair_production_and_bremsstrahlung'
+        'include_single_coulomb',
+        'include_multiple_coulomb',
+        'include_elastic',
+        'include_inelastic',
+        'include_ionisation_losses',
+        'include_pair_production',
+        'include_bremsstrahlung'
     ]
 
     _depends_on = [BaseEngine]
