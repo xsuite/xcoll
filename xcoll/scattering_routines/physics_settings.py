@@ -154,7 +154,7 @@ class PhysicsSettingsHelper:
             prefix = "└" if i == len(flags) - 1 else "├"
             val = getattr(self, flag)
             name = f"{flag.replace('_', ' ')}:"
-            mess += f"  {prefix} {name:28} {val}\n"
+            mess += f"  {prefix} {name:32} {val}\n"
         if mess != '':
             title = "Physics processes:"
             title = style(title, bold=True, colour='forest_green',
@@ -172,7 +172,7 @@ class PhysicsSettingsHelper:
             prefix = "└" if i == len(flags) - 1 else "├"
             val = getattr(self, flag)
             name = f"{flag.replace('_cut', '').replace('_', ' ')}:"
-            mess += f"  {prefix} {name:28} {val}\n"
+            mess += f"  {prefix} {name:24} {val}\n"
         if mess != '':
             title = "Energy/momentum cuts [eV]:"
             title = style(f"{title:25}", bold=True, colour='forest_green',
