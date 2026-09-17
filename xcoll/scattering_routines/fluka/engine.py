@@ -138,7 +138,7 @@ class FlukaEngine(BaseEngine):
     def view(self):
         if self.input_file is None:
             return
-        self.environment.run_flair(self.input_file[0])
+        self.interface.run_flair(self.input_file[0])
 
 
     # =================================
@@ -162,8 +162,8 @@ class FlukaEngine(BaseEngine):
 
     def _pre_start(self, **kwargs):
         import xcoll as xc
-        xc.fluka.environment.assert_gfortran_installed()
-        xc.fluka.environment.set_fluka_environment()
+        xc.fluka.interface.assert_gfortran_installed()
+        xc.fluka.interface.set_fluka_environment()
         return kwargs
 
 
@@ -205,7 +205,12 @@ class FlukaEngine(BaseEngine):
         elif self._server_process.poll() is not None:
             self.stop()
             return False
-        processes = [proc for proc in self.environment.running_processes()
+        try:
+            rprocs = self.interface.running_processes()
+        except RuntimeError as e:
+            self.stop()
+            raise RuntimeError from e
+        processes = [proc for proc in rprocs
                      if 'rfluka' in proc and 'defunct' not in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
@@ -340,6 +345,11 @@ class FlukaEngine(BaseEngine):
                     input_file = [input_file]
                 files_to_delete += list(cwd.glob(f'ran{input_file[0].stem}*'))
                 files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
+            # Remove fluka output files in case not auto-deleted
+            files_to_delete += [
+                    p for p in FsPath(cwd).glob("fluka_*")
+                    if p.name.removeprefix("fluka_").isdigit()
+            ]
 
             # Do not delete the extra files generated with the input file (they are deleted with clean_input_files)
             _input_files = self._get_input_files_to_clean(input_file, cwd, clean_all=False)
@@ -409,9 +419,9 @@ class FlukaEngine(BaseEngine):
         log = self.cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
-        cmds = [xc.fluka.environment.fluka.as_posix(),
+        cmds = [xc.fluka.interface.fluka.as_posix(),
                 self.input_file[0].as_posix(), '-e',
-                xc.fluka.environment.flukaserver.as_posix(), '-M', "1"]
+                xc.fluka.interface.flukaserver.as_posix(), '-M', "1"]
         self._print(f"Running `{' '.join(cmds)}` in folder {self._cwd}...")
         self._server_process = Popen(cmds, cwd=self.cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
@@ -471,13 +481,28 @@ class FlukaEngine(BaseEngine):
 
     def _create_touches(self, touches=None):
         # Create touches file (relcol.dat)
-        # First line is the number of collimators, second line is the IDs (no newline at end)
         if touches is True:
             touches = list(self._element_dict.keys())
-        # Check if touches is a list of collimator names
-        if touches is not None and hasattr(touches, '__iter__') \
-        and not isinstance(touches, str):
+
+        if touches is None or touches is False:
+            return
+
+        elif not hasattr(touches, '__iter__') or isinstance(touches, str):
+            self.stop()
+            raise NotImplementedError("Only True/False or a list of collimator names "
+                                    + "is allowed for `touches` for now.")
+        else:
+            # Check max particle ID limit to prevent FLUKA crash
+            # line 169: /eos/project-f/flukafiles/fluka-coupling/fluka_coupling/fluka/mgdraw.f
+            if self.capacity >= 100_000:
+                self.stop()
+                raise ValueError(f"max(particle_id) = {self.capacity:,}\n"
+                    "The MPPBUN FLUKA variable has a hardcoded limit of 100k.\n"
+                    "This is related to the limit of impacts treated by FLUKA.\n"
+                    "Aborting to prevent FLUKA crash.")
+
             relcol = (self.cwd / 'relcol.dat').resolve()
+            # First line is the number of collimators, second line is the IDs (no newline at end)
             with relcol.open('w') as fid:
                 fid.write(f'{len(touches)}\n')
                 for touch in touches:
@@ -488,8 +513,3 @@ class FlukaEngine(BaseEngine):
                     else:
                         fid.write(f'{self._element_dict[touch].fluka_id} ')
             self._input_file.append(relcol)
-        # Check if touches is not wrongly set
-        elif touches is not None and not touches is False:
-            self.stop()
-            raise NotImplementedError("Only True/False or a list of collimator names "
-                                    + "is allowed for `touches` for now.")

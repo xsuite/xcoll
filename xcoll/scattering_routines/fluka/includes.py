@@ -37,7 +37,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
         physics_file = _physics_include_file(verbose=verbose, lower_momentum_cut=phys.hadron_lower_momentum_cut,
                                              photon_lower_momentum_cut=phys.photon_lower_momentum_cut,
                                              electron_lower_momentum_cut=phys.electron_lower_momentum_cut,
-                                             include_showers=phys.include_showers)
+                                             include_showers=phys.include_showers, bb_int=bb_int)
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
         scoring_file = _scoring_include_file(verbose=verbose, return_list=phys,
@@ -196,7 +196,7 @@ SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
 
 
 def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_cut,
-                          electron_lower_momentum_cut, include_showers):
+                          electron_lower_momentum_cut, include_showers, bb_int=False):
     filename = FsPath("include_settings_physics.inp").resolve()
     emf = "*EMF" if include_showers else "EMF"
     deltaray = "DELTARAY" if not include_showers else "*DELTARAY"
@@ -206,6 +206,7 @@ def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_
     electron_lower_energy_cut = sqrt(electron_lower_momentum_cut**2 + 511e3**2)
     electron_lower_energy_cut = format_fluka_float(electron_lower_energy_cut/1.e9)
     lower_momentum_cut /= 1.e9
+    bb = "PHYSICS           -1" if not bb_int else "PHYSICS       8000.0"
     if verbose:
         print(f"Physics include file created with:\n"
              + f"  - Hadron and muon lower momentum cut: {lower_momentum_cut} GeV")
@@ -251,7 +252,8 @@ PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
 PHYSICS           2.                                                  EM-DISSO
 * beam-beam collisions
-PHYSICS           -1                                                  LIMITS
+* PHYSICS       8000.0                                                  LIMITS
+{bb}                                                  LIMITS
 * No low-energy neutron transport
 LOW-PWXS          -1
 """

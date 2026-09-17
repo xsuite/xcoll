@@ -9,9 +9,8 @@ import os
 import base64
 import shutil
 import inspect
-import functools
 import numpy as np
-from pathlib import PosixPath
+from pathlib import PosixPath, Path
 
 
 class FsPath(PosixPath):
@@ -31,6 +30,8 @@ class FsPath(PosixPath):
             return False
         self = self.expanduser().resolve()
         return self.as_posix() == other.as_posix()
+    def __hash__(self):
+        return hash(Path(self))
 
 
 def ranID(*, length=12, size=1, only_alphanumeric=False):

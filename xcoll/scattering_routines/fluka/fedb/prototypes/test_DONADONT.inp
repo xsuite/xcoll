@@ -1,0 +1,273 @@
+TITLE
+Test element
+GLOBAL                                         1.0       1.0
+DEFAULTS                                                              NEW-DEFA
+BEAM
+BEAMPOS
+GEOBEGIN                                                              COMBNAME
+    0    0          
+* Black body
+SPH blkbody    0.0 0.0 0.0 10000000.0
+* Void sphere
+SPH void       0.0 0.0 0.0 100000.0
+* Bodies from the include file
+* START_CUT_BODIES
+* Element: DONADONT [Bodies]
+* Parking: DONADONT
+* Infos:   Target Collimator Dump Quadruple Tank
+* **************************************
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+RPP DONADONT   -2.0 2.0 -2.0 2.0 -0.005 0.005
+*
+RPP TCQJWCT    -1.9 8.5 -6.5 7.5 -151.7 151.7
+*
+XZP yzero      0.0
+*
+* Main Tank (including flanges)
+* From LHCTCDQV0001 and LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* M-ain T-ank Cyl-inder O-uter (I-nner)
+ZCC MTCylO     0.0 0.0 12.8
+ZCC MTCylI     0.0 0.0 12.5
+* M-ain T-ank F-lange E-xternal R-adius
+ZCC MTFER      0.0 0.0 15.3
+* M-ain T-ank Z R-ight (L-eft)
+XYP MTZR       151.7
+XYP MTZL       -151.7
+* M-ain T-ank F-lange R-ight (L-eft) O-uter (I-nner)
+XYP MTFRO      153.0
+XYP MTFRI      150.4
+XYP MTFLI      -150.4
+XYP MTFLO      -153.0
+*
+* TCDS Vacuum Devices (one left one right)
+* From LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* v-acuum d-evice C-ylinder R-ight (Left) O-uter (I-nner) (F-lange)
+YCC vdCRO      101.655 0.0 7.95
+YCC vdCRI      101.655 0.0 7.75
+YCC vdCRF      101.655 0.0 10.45
+YCC vdCLO      -101.655 0.0 7.95
+YCC vdCLI      -101.655 0.0 7.75
+YCC vdCLF      -101.655 0.0 10.45
+* v-acuum d-evice T-op
+* v-acuum d-evice T-op F-lange (Cap) T-op (B-ottom)
+XZP vdT        15.95
+XZP vdTFT      17.20
+XZP vdTFB      14.70
+XZP vdB        -19.95
+XZP vdBFT      -18.70
+*
+* TCDS Cooling connection
+* From LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* c-ooling c-onnection C-ylinder O-uter (I-nner) (F-lange)
+YCC ccCO       0.0 0.0 10.2
+YCC ccCI       0.0 0.0 10.0
+YCC ccCF       0.0 0.0 12.7
+*
+* TCDS End Flanges
+* From LHCTCDSV0005, LHCTCDQV0003, LHCTCDQV0005 and LHCTCDQV0007
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* DN250 (DN150) R-ight (L-eft) O-uter (I-nner)
+XYP DN250RO    156.025
+XYP DN150RI    163.245
+XYP DN150RO    165.0
+XYP DN250LO    -156.025
+XYP DN150LI    -163.245
+XYP DN150LO    -165.0
+* DN-250 (DN-150) C-onnection T-op (B-ottom) O-uter (I-nner)
+XZP DNCTO      4.15
+XZP DNCTI      3.95
+XZP DNCBI      -3.95
+XZP DNCBO      -4.15
+* DN-250 (DN-150) C-onnection C-urve 1 (2) O-uter (I-nner) Radius
+ZCC DNCC1OR    0.45 0.0 4.15
+ZCC DNCC1IR    0.45 0.0 3.95
+ZCC DNCC2OR    -5.35 0.0 4.15
+ZCC DNCC2IR    -5.35 0.0 3.95
+* DN-250 (DN-150) C-onnection C-urve 1 (2) X C-enter P-lane
+YZP DNCC1XCP   0.45
+YZP DNCC2XCP   -5.35
+* DN150 Cyl-inder
+ZCC DN150Cyl   -2.45 0.0 10.1
+*
+* TCDQ Beam Screen
+* From LHCTCDQA0005, LHCTCDQA0006, LHCTCDQA0001
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* Be-am Scr-een T-op (B-ottom) T-op (B-ottom)
+XZP BeScrTT    2.76
+XZP BeScrTB    2.60
+XZP BeScrBT    -2.60
+XZP BeScrBB    -2.76
+* Be-am Scr-een R-ight (L-eft) R-adius I-nner (O-uter) (P-lane)
+ZCC BeScrRRI   -5.3 0.0 2.60
+ZCC BeScrRRO   -5.3 0.0 2.76
+YZP BeScrRRP   -5.3
+YZP BeScrLRP   -0.3
+* cut off of beam screen
+YZP BeScrCO    -1.90001
+*
+* END_CUT_BODIES
+END
+* Black hole
+BLKBODY      5 +blkbody -void
+* Void around
+VOID         5 +void -TCPPMJAW
+* Region from the include file
+* START_CUT_REGIONS
+* Element: DONADONT [Regions]
+* Parking: DONADONT
+* Infos:   Target Collimator Dump Quadruple Tank
+* **************************************
+* Surrounding vacuum
+TCDQVacO     5 | +DONADONT -DN150RI -DN150Cyl
+               | +DONADONT +DN150RI -DN250RO -DNCTO
+               | +DONADONT +DN150RI -DN250RO +DNCBO
+               | +DONADONT +DN150RI -DN250RO +DNCTO -DNCBO -DNCC1OR -DNCC1XCP
+               | +DONADONT +DN150RI -DN250RO +DNCTO -DNCBO -DNCC2OR +DNCC2XCP
+               | +DONADONT +DN250RO -MTFRI -MTFER
+               | +DONADONT +MTFRI -MTFLI -MTCylO -vdTFB -vdCLF -vdCRF
+               | +DONADONT +MTFRI -MTFLI -MTCylO +vdTFB  -vdBFT -yzero  -vdCRO -vdCLO
+               | +DONADONT +MTFRI -MTFLI -MTCylO +vdTFB  -vdBFT +yzero  -vdCRO -vdCLO -ccCO
+               | +DONADONT +MTFRI -MTFLI -MTCylO +vdBFT  -vdCLF -vdCRF -ccCF
+               | +DONADONT +MTFLI -DN250LO -MTFER
+               | +DONADONT +DN250LO -DN150LI -DNCTO
+               | +DONADONT +DN250LO -DN150LI +DNCBO
+               | +DONADONT +DN250LO -DN150LI +DNCTO -DNCBO -DNCC1XCP -DNCC1OR
+               | +DONADONT +DN250LO -DN150LI +DNCTO -DNCBO +DNCC2XCP -DNCC2OR
+               | +DONADONT +DN150LI -DN150LO -DN150Cyl
+* Main Tank vacuum vessel
+TQDVta       5 | +MTCylO -MTCylI +MTZR -MTZL -vdCRI -vdCLI -ccCI +yzero
+               | +MTCylO -MTCylI +MTZR -MTZL -vdCRI -vdCLI -yzero
+* Main Tank inner vacuum
+TQDVine      5 | +DONADONT -MTFRO +DNCTI -DNCBI +DNCC1XCP -DNCC2XCP
+               | +DONADONT -MTFRO -DNCC1XCP +DNCC1IR
+               | +DONADONT -MTFRO +DNCC2XCP +DNCC2IR
+               | +DONADONT +MTFLO +DNCTI +DNCC1XCP -DNCBI -DNCC2XCP
+               | +DONADONT +MTFLO +DNCC2IR +DNCC2XCP
+               | +DONADONT +MTFLO +DNCC1IR -DNCC1XCP
+               | +MTFRO -MTZR  +MTCylO
+               | +DONADONT +vdCRO +vdTFT -vdT
+               | +DONADONT +vdCRO +vdB
+               | +DONADONT +ccCO  +vdB
+               | +DONADONT +vdCLO +vdTFT -vdT
+               | +DONADONT +vdCLO +vdB
+               | +MTZL  -MTFLO +MTCylO
+TQDVini1     5 +MTZR -MTZL +MTCylI -BeScrCO -TCQJWCT 
+TQDVini2     5 | +MTZR  -MTZL  +MTCylI +BeScrCO -BeScrRRP -BeScrTT
+               | +MTZR  -MTZL  +MTCylI +BeScrCO -BeScrRRP +BeScrBB
+               | +MTZR  -MTZL  +MTCylI +BeScrRRP -BeScrRRO
+               | +MTZR  -MTZL  +BeScrCO -BeScrRRP -BeScrBT +BeScrTB
+               | +MTZR  -MTZL  +BeScrRRP +BeScrRRI
+*
+* Flanges
+TQDVRF       5 +MTFER -MTCylO +MTFRO -MTFRI
+TQDVLF       5 +MTFER -MTCylO +MTFLI -MTFLO
+*
+* TCDS Vacuum Devices
+vdRta        5 -MTCylO +vdT -vdB +vdCRO -vdCRI
+vdRTF        5 +vdCRF -vdCRO +vdTFT -vdTFB
+vdRBF        5 +DONADONT +vdCRF -vdCRO +vdBFT
+vdRTCap      5 +DONADONT +vdCRF -vdTFT
+vdRin        5 -MTCylI +vdT -vdB +vdCRI
+vdLta        5 -MTCylO +vdT -vdB +vdCLO -vdCLI
+vdLTF        5 +vdCLF -vdCLO +vdTFT -vdTFB
+vdLBF        5 +DONADONT +vdCLF -vdCLO +vdBFT
+vdLTCap      5 +DONADONT +vdCLF -vdTFT
+vdLin        5 -MTCylI +vdT -vdB +vdCLI
+*
+*
+* TCDS Cooling connection
+ccta         5 -MTCylO +yzero -vdB +ccCO -ccCI
+ccin         5 -MTCylI +yzero -vdB +ccCI
+ccF          5 +DONADONT +ccCF -ccCO +vdBFT
+* UHV DN250 Upstream
+DN250R       5 |(+DN250RO -MTFRO +MTFER +DNCC2XCP -DNCC2OR)
+               |(+DN250RO -MTFRO +MTFER -DNCC1XCP -DNCC1OR)
+               |(+DN250RO -MTFRO +MTFER +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+DN250RO -MTFRO +MTFER +DNCC1XCP -DNCC2XCP +DNCBO)
+* UHV DN150 Upstream
+DN150R       5 |(+DONADONT -DN150RI +DN150Cyl +DNCC2XCP -DNCC2OR)
+               |(+DONADONT -DN150RI +DN150Cyl -DNCC1XCP -DNCC1OR)
+               |(+DONADONT -DN150RI +DN150Cyl +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+DONADONT -DN150RI +DN150Cyl +DNCC1XCP -DNCC2XCP +DNCBO)
+* UHV DN250-DN150 Connection Upstream
+DNConR       5 |(+DONADONT -MTFRO +DNCC2XCP +DNCC2OR -DNCC2IR)
+               |(+DONADONT -MTFRO -DNCC1XCP +DNCC1OR -DNCC1IR)
+               |(+DONADONT -MTFRO +DNCC1XCP -DNCC2XCP +DNCTO -DNCTI)
+               |(+DONADONT -MTFRO +DNCC1XCP -DNCC2XCP +DNCBI -DNCBO)
+* DN250 Left Upstream
+DN250L       5 |(+MTFLO -DN250LO +MTFER +DNCC2XCP -DNCC2OR)
+               |(+MTFLO -DN250LO +MTFER -DNCC1XCP -DNCC1OR)
+               |(+MTFLO -DN250LO +MTFER +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+MTFLO -DN250LO +MTFER +DNCC1XCP -DNCC2XCP +DNCBO)
+* DN150 Left Upstream
+DN150L       5 |(+DONADONT +DN150LI +DN150Cyl +DNCC2XCP -DNCC2OR)
+               |(+DONADONT +DN150LI +DN150Cyl -DNCC1XCP -DNCC1OR)
+               |(+DONADONT +DN150LI +DN150Cyl +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+DONADONT +DN150LI +DN150Cyl +DNCC1XCP -DNCC2XCP +DNCBO)
+* DN250-DN150 connection Left Upstream
+DNConL       5 |(+DONADONT +MTFLO +DNCC2XCP +DNCC2OR -DNCC2IR)
+               |(+DONADONT +MTFLO -DNCC1XCP +DNCC1OR -DNCC1IR)
+               |(+DONADONT +MTFLO +DNCC1XCP -DNCC2XCP +DNCTO -DNCTI)
+               |(+DONADONT +MTFLO +DNCC1XCP -DNCC2XCP +DNCBI -DNCBO)
+* TCDQ Beam Screen
+BScreen      5 |+MTZR -MTZL +BeScrRRO -BeScrRRI +BeScrRRP
+               |+MTZR -MTZL +BeScrTT -BeScrTB +BeScrCO -BeScrRRP
+               |+MTZR -MTZL +BeScrBT -BeScrBB +BeScrCO -BeScrRRP
+* TCDQ Jaw Container
+TCDQJWVC     5 +TCQJWCT
+*
+* END_CUT_REGIONS
+END
+GEOEND
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+ASSIGNMA    BLCKHOLE   BLKBODY
+ASSIGNMA      VACUUM      VOID
+#include ../materials/materials.inp
+* START_CUT_MATERIALS
+* Element: TCDQTKBD [Materials]
+* Parking: TCDQTKBD
+* Infos:   Target Collimator Dump Quadruple Tank
+* **************************************
+ASSIGNMA      VACUUM  TCDQVacO
+*
+* TQDVta X2 Cr Ni Mo 18-14-3 = SS316L From LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+ASSIGNMA      SS316L    TQDVta
+ASSIGNMA      SS316L    TQDVRF
+ASSIGNMA      SS316L    TQDVLF
+ASSIGNMA      SS316L     vdRta
+ASSIGNMA      SS316L     vdRTF
+ASSIGNMA      SS316L   vdRTCap
+ASSIGNMA      SS316L     vdRBF
+ASSIGNMA      SS316L     vdLta
+ASSIGNMA      SS316L     vdLTF
+ASSIGNMA      SS316L   vdLTCap
+ASSIGNMA      SS316L     vdLBF
+ASSIGNMA      SS316L      ccta
+ASSIGNMA      SS316L       ccF
+* Cr Ni Mo N 17.13.3 = SS316LN
+ASSIGNMA     SS316LN    DN250R
+ASSIGNMA     SS316LN    DN150R
+ASSIGNMA     SS316LN    DNConR
+ASSIGNMA     SS316LN    DN250L
+ASSIGNMA     SS316LN    DN150L
+ASSIGNMA     SS316LN    DNConL
+*
+ASSIGNMA      VACUUM   TQDVine
+ASSIGNMA      VACUUM  TQDVini1
+ASSIGNMA      VACUUM  TQDVini2
+ASSIGNMA      VACUUM     vdRin
+ASSIGNMA      VACUUM     vdLin
+ASSIGNMA      VACUUM      ccin
+ASSIGNMA      COPPER   BScreen
+ASSIGNMA      VACUUM  TCDQJWVC
+* END_CUT_MATERIALS
+*
+* START_CUT_STEPSIZES
+* END_CUT_STEPSIZES
+RANDOMIZ         1.0
+START
+STOP

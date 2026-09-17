@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaPrototype",
+    "name": "TCPPMJAW",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TCPPMJAW",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": null,
+    "extra_commands": null,
+    "is_broken": false
+}

@@ -46,7 +46,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Assign the optics to deduce the gap settings
-line.collimators.assign_optics()
+line.xcoll.collimators.assign_optics()
 
 
 # Generate initial matched bunch
@@ -68,9 +68,9 @@ rf_sweep.info()
 
 
 # Track during RF sweep:
-line.scattering.enable()
+line.xcoll.scattering.enable()
 line.track(particles=part, num_turns=num_turns, time=True, with_progress=5)
-line.scattering.disable()
+line.xcoll.scattering.disable()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 

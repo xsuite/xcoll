@@ -218940,7 +218940,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.d5r4.b2_aper"
   },
   "acsph.h5r4.b2_mken": {
@@ -218985,7 +218985,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.c5r4.b2_aper"
   },
   "acsph.g5r4.b2_mken": {
@@ -219030,7 +219030,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.b5r4.b2_aper"
   },
   "acsph.f5r4.b2_mken": {
@@ -219075,7 +219075,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.a5r4.b2_aper"
   },
   "acsph.e5r4.b2_mken": {
@@ -219212,7 +219212,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.a5l4.b2_aper"
   },
   "acsph.h5l4.b2_mken": {
@@ -219257,7 +219257,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.b5l4.b2_aper"
   },
   "acsph.g5l4.b2_mken": {
@@ -219302,7 +219302,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.c5l4.b2_aper"
   },
   "acsph.f5l4.b2_mken": {
@@ -219347,7 +219347,7 @@
    "__class__": "Cavity",
    "voltage": 1500000.0,
    "frequency": 400789598.7709246,
-   "lag": 180.0,
+   "phase": 3.141592653589793,
    "name_associated_aperture": "acsca.d5l4.b2_aper"
   },
   "acsph.e5l4.b2_mken": {

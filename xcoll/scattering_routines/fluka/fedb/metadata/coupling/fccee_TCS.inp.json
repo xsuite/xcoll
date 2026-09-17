@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaPrototype",
+    "name": "TCS",
+    "fedb_series": "fccee",
+    "fedb_tag": "TCS",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": null,
+    "extra_commands": null,
+    "is_broken": false
+}

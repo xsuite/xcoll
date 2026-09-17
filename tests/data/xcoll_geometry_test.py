@@ -128,6 +128,7 @@ class XcollGeometryTest(xt.BeamElement):
     _xofields = {}
 
     allow_track = False
+    allow_no_prebuilt_kernel = True
 
     _depends_on = [XcollGeometry]
 

@@ -10,8 +10,8 @@ except ImportError as e:
     rpyc = None
 import xcoll as xc
 
-if xc.geant4.environment.ready:
-    old_bdsim = xc.geant4.environment.bdsim_older_than(compare_version='1.7.7.develop')  # No unstable particles returned in older BDSIM
+if xc.geant4.interface.ready:
+    old_bdsim = xc.geant4.interface.bdsim_older_than(compare_version='1.7.7.develop')  # No unstable particles returned in older BDSIM
 else:
     old_bdsim = True
 
@@ -28,10 +28,10 @@ all_engine_params = [
 
 def check_skip(engine):
     if engine == "fluka":
-        if not xc.fluka.environment.ready:
+        if not xc.fluka.interface.ready:
             pytest.skip("FLUKA installation not found")
     elif engine == "geant4":
-        if not xc.geant4.environment.ready:
+        if not xc.geant4.interface.ready:
             pytest.skip("BDSIM+Geant4 installation not found")
         if rpyc is None:
             pytest.skip("rpyc not installed")

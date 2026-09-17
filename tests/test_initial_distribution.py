@@ -22,6 +22,7 @@ path = Path(__file__).parent / 'data'
 # @for_all_test_contexts(
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
+@pytest.mark.xcother
 @pytest.mark.parametrize("beam, npart, impact_parameter, pencil_spread, "
                        + "longitudinal, longitudinal_betatron_cut", [
                         [1, 1e4, 0, 1e-6, None, None],
@@ -39,7 +40,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     colldb.install_everest_collimators(line=line)
     line.build_tracker()
-    line.collimators.assign_optics()
+    line.xcoll.collimators.assign_optics()
 
     tw = line.twiss()
     tcp_conv = f"tcp.c6{'l' if beam == 1 else 'r'}7.b{beam}"

@@ -1,0 +1,456 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2025.                 #
+# ######################################### #
+
+import os
+import sys
+import json
+import tempfile
+from subprocess import run, PIPE
+# try:
+#     from platformdirs import user_config_path, user_data_path
+# except (ImportError, ModuleNotFoundError):
+#     user_config_path = None
+#     user_data_path = None
+
+from .general import _pkg_root
+
+try:
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
+except (ImportError, ModuleNotFoundError):
+    from .xaux import FsPath
+
+
+# Xcoll paths can be set via environment variables:
+#   XCOLL_PATH: parent directory for all Xcoll paths (config, data, lib)
+#   XCOLL_CONFIG_PATH: directory for configuration files
+#   XCOLL_DATA_PATH: directory for data files
+#   XCOLL_LIB_PATH: directory for library files
+#
+# Otherwise the paths are set in the home folder (~/.xcoll/), the package
+# folder (xcoll/xcoll/), or, if those are not writable, in a temporary
+# folder (/tmp/xcoll/).
+
+
+def _is_writable_directory(path: FsPath) -> bool:
+    newly_generated = False
+    if path.exists():
+        if not path.is_dir():
+            return False
+    else:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            newly_generated = True
+        except OSError:
+            return False
+    try:
+        with tempfile.TemporaryFile(dir=path):
+            pass
+    except OSError:
+        if newly_generated:
+            try:
+                path.rmdir()
+            except OSError:
+                pass
+        return False
+    return True
+
+def _select_directory(name) -> FsPath:
+    candidates = []
+    env_var_name = f'XCOLL_{name.upper()}_PATH'
+    env_var = os.environ.get(env_var_name)
+    if env_var is not None:
+        candidates.append(FsPath(env_var).expanduser().resolve())
+    env_var_parent = os.environ.get('XCOLL_PATH')
+    if env_var_parent is not None:
+        candidates.append(
+            (FsPath(env_var_parent) / name).expanduser().resolve()
+        )
+    candidates += [
+        FsPath.home() / '.xcoll' / name,
+        _pkg_root / name,
+        FsPath(tempfile.gettempdir()) / 'xcoll' / name,
+    ]
+    for path in candidates:
+        if _is_writable_directory(path):
+            return path
+    raise RuntimeError("No writable directory was found.")
+
+_config_dir = _select_directory('config')
+_data_dir = _select_directory('data')
+_lib_dir = _select_directory('lib')
+
+
+class BaseInterface:
+    _config_dir = _config_dir
+    _data_dir = _data_dir
+    _lib_dir = _lib_dir
+    _paths = {} # The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
+    _optional_paths = {}
+    _read_only_paths = {}
+
+    def __init__(self, *args, **kwargs):
+        self._old_sys_path = None
+        self._old_os_env = None
+        self._temp_dir = None
+        self._in_constructor = True
+        for path in self._paths.keys():
+            setattr(self, f'_{path}', None)
+        for path in self._optional_paths.keys():
+            setattr(self, f'_{path}', None)
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._lib_dir.mkdir(parents=True, exist_ok=True)
+        self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
+        sys.path.append(self._lib_dir.as_posix())
+        self.load()
+        self._in_constructor = False
+
+    def __del__(self):
+        self.restore_environment()
+        if self._temp_dir:
+            self._temp_dir.cleanup()
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() to see the paths)>"
+
+    def __str__(self):
+        res = ["BaseInterface"]
+        res.append(f"    Configuration file:  {self._config_file.as_posix()}")
+        res.append(f"    Configuration dir:   {self._config_dir.as_posix()}")
+        res.append(f"    Library dir:         {self._lib_dir.as_posix()}")
+        res.append(f"    Data dir:            {self._data_dir.as_posix()}")
+        if self._temp_dir:
+            res.append(f"    Temporary dir:       {self._temp_dir.name}")
+        if self.__class__ is not BaseInterface:
+            res.append("")
+            res.append(f"{self.__class__.__name__}")
+            for path in self._paths.keys():
+                value = getattr(self, f'_{path}', None)
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()}")
+            for path in self._optional_paths.keys():
+                value = getattr(self, f'_{path}', None)
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (optional)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (optional)")
+            for path in self._read_only_paths.keys():
+                value = getattr(self, path)
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (read-only)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (read-only)")
+            if self._old_sys_path and self._old_os_env:
+                res.append("")
+                res.append("Custom environment stored:")
+                res.append(f"    sys.path: {self._old_sys_path}")
+                res.append(f"    os.environ: {self._old_os_env}")
+        return "\n".join(res)
+
+    @property
+    def config_file(self):
+        """The interface configuration file."""
+        return self._config_file
+
+    @property
+    def config_dir(self):
+        """The directory where the configuration files are stored."""
+        return self._config_dir
+
+    @property
+    def data_dir(self):
+        """The directory where the data files are stored."""
+        return self._data_dir
+
+    @property
+    def lib_dir(self):
+        """The directory where the library files are stored."""
+        return self._lib_dir
+
+    @property
+    def initialised(self):
+        return all(getattr(self, path, None) is not None and getattr(self, path, None).exists()
+                   for path in self._paths.keys())
+
+    @property
+    def compiled(self):
+        raise NotImplementedError("This property should be implemented in the subclass.")
+
+    @property
+    def ready(self):
+        return self.initialised and self.compiled
+
+    @property
+    def temp_dir(self):
+        if not self._temp_dir:
+            self._temp_dir = tempfile.TemporaryDirectory()
+        return FsPath(self._temp_dir.name)
+
+    @temp_dir.setter
+    def temp_dir(self, value):
+        if value is None:
+            if self._temp_dir:
+                self._temp_dir.cleanup()
+                self._temp_dir = None
+            return
+        if self._temp_dir:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        if isinstance(value, FsPath):
+            value = value.resolve()
+        elif isinstance(value, str):
+            value = FsPath(value).resolve()
+        else:
+            raise TypeError("temp_dir must be a string or FsPath.")
+        if not value.exists():
+            raise FileNotFoundError(f"Provided temp_dir {value} does not exist!")
+        self._temp_dir = tempfile.TemporaryDirectory(dir=value)
+
+    @temp_dir.deleter
+    def temp_dir(self):
+        self.temp_dir = None
+
+    def show(self):
+        """Print the interface paths."""
+        print(self)
+
+    def save(self):
+        data = {'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}
+        for path in self._paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['paths'][path] = value
+        for path in self._optional_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['optional_paths'][path] = value
+        for path in self._read_only_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['read_only_paths'][path] = value
+        # Check if anything changed
+        with open(self._config_file, 'r') as fid:
+            try:
+                existing_data = json.load(fid)
+            except json.JSONDecodeError:
+                # File corrupted, need to save
+                existing_data = {}
+        if data == existing_data:
+            return
+        # If yes, save to file
+        with open(self._config_file, 'w') as fid:
+            json.dump(data, fid, indent=4)
+
+    def load(self):
+        if not self._config_file.exists():
+            with open(self._config_file, 'w') as fid:
+                json.dump({'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}, fid, indent=4)
+        with open(self._config_file, 'r') as fid:
+            try:
+                data = json.load(fid)
+            except json.JSONDecodeError:
+                with open(self._config_file, 'w') as fid:
+                    json.dump({'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}, fid, indent=4)
+                return
+        if 'paths' not in data or 'read_only_paths' not in data or 'optional_paths' not in data:
+            return
+        for key, value in data['paths'].items():
+            setattr(self, key, FsPath(value) if value else None)
+        for key, value in data['optional_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
+        for key, value in data['read_only_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
+
+    def store_environment(self):
+        self._old_sys_path = sys.path.copy()
+        self._old_os_env = os.environ.copy()
+
+    def restore_environment(self):
+        if self._old_sys_path:
+            sys.path = self._old_sys_path
+            self._old_sys_path = None
+        if self._old_os_env:
+            os.environ = self._old_os_env
+            self._old_os_env = None
+
+    def brute_force_path(self, path):
+        if path is None:
+            return
+        num_parents = 0
+        if str(path) in self._paths:
+            num_parents = self._paths[path]
+            path = getattr(self, path)
+        if str(path) in self._optional_paths:
+            num_parents = self._optional_paths[path]
+            path = getattr(self, path)
+        if str(path) in self._read_only_paths:
+            num_parents = self._read_only_paths[path]
+            path = getattr(self, path)
+        path = FsPath(path).resolve()
+        if num_parents > 0:
+            path = path.parents[num_parents-1]
+        if not path.exists():
+            raise FileNotFoundError(f"Could not find path {path}!")
+        try:
+            cmd = run(['tree', path.as_posix()], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            # No tree executable. Return as no more can be done. TODO: alternatives for mac and windows?
+            return
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip()
+            raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
+
+    def __getattr__(self, key):
+        if key in self._paths | self._optional_paths | self._read_only_paths:
+            value = getattr(self, f'_{key}', None)
+            if value:
+                return FsPath(value)
+        else:
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{key}'")
+
+    def __setattr__(self, key, value):
+        if key in self._paths.keys() or key in self._optional_paths.keys():
+            if value:
+                value = FsPath(value)
+                if not self._in_constructor:
+                    self.brute_force_path(value)
+            old_value = getattr(self, f'_{key}', None)
+            if value != old_value:
+                super().__setattr__(f'_{key}', value)
+                if not self._in_constructor:
+                    self.save()
+        elif key.startswith('_') and key[1:] in self._read_only_paths.keys():
+            # Read-only attribute can only be set internally
+            old_value = getattr(self, f'_{key}', None)
+            if value != old_value:
+                super().__setattr__(key, value)
+                if not self._in_constructor:
+                    self.save()
+        elif key in self._read_only_paths.keys():
+            raise AttributeError(f"Attribute '{key}' of {self.__class__.__name__} "
+                               + f"is read-only!")
+        else:
+            super().__setattr__(key, value)
+
+    def __delattr__(self, item):
+        if item in self._paths.keys() or item in self._optional_paths.keys():
+            self.__setattr__(self, f'_{item}', None)
+            self.save()
+
+    def assert_environment_ready(self):
+        if not self.initialised:
+            raise RuntimeError(f"{self.__class__.__name__} not initialised! "
+                            f"Please set all paths in the interface before "
+                            f"starting the engine.")
+        if not self.compiled:
+            raise RuntimeError(f"{self.__class__.__name__} not compiled! "
+                            f"Please compile before starting the engine.")
+
+    def assert_installed(self, program, *, program_name=None,
+                         version_cmd="--version", verbose=False):
+        if program_name is None:
+            program_name = program
+        if not hasattr(self, f'_{program}_installed'):
+            try:
+                cmd = run(["which", program], stdout=PIPE, stderr=PIPE)
+            except Exception as err:
+                new_err = RuntimeError(f"Could not run `which {program}`!")
+                new_err.__cause__ = err
+                setattr(self, f'_{program}_installed', [new_err, None])
+            else:
+                stdout = cmd.stdout.decode('UTF-8').strip()
+                if cmd.returncode != 0:
+                    stderr = cmd.stderr.decode('UTF-8').strip()
+                    err = RuntimeError(f"Could not run `which {program}` ("
+                                    f"output error code {cmd.returncode})!\n"
+                                    f"Output given is:\n{stdout}\nError given "
+                                    f"is:\n{stderr}")
+                    setattr(self, f'_{program}_installed', [err, None])
+                else:
+                    file = stdout.split('\n')[0]
+                    try:
+                        cmd = run([program, version_cmd], stdout=PIPE, stderr=PIPE)
+                    except Exception as err:
+                        new_err = RuntimeError(f"Could not run `{program} {version_cmd}`!")
+                        new_err.__cause__ = err
+                        setattr(self, f'_{program}_installed', [file, new_err])
+                    else:
+                        stdout = cmd.stdout.decode('UTF-8').strip()
+                        if cmd.returncode != 0:
+                            stderr = cmd.stderr.decode('UTF-8').strip()
+                            err = RuntimeError(f"Could not run `{program} "
+                                    f"{version_cmd}` (output error code "
+                                    f"{cmd.returncode})!\nOutput given is:\n"
+                                    f"{stdout}\nError given is:\n{stderr}")
+                            setattr(self, f'_{program}_installed', [file, err])
+                        else:
+                            version = stdout.split('\n')[0]
+                            setattr(self, f'_{program}_installed', [file, version])
+        file, version = getattr(self, f'_{program}_installed')
+        if isinstance(file, Exception):
+            # Which failed!
+            raise file
+        elif isinstance(version, Exception):
+            # Version command failed!
+            if verbose:
+                print(f"Found {program_name} in {file}", flush=True)
+            raise version
+        else:
+            if verbose:
+                print(f"Found {program_name} ({version}) in {file}", flush=True)
+            return file, version
+
+
+    def assert_gcc_installed(self, minimum_version=9, verbose=False):
+        gcc = os.environ.get('CC', 'gcc')
+        _, version = self.assert_installed(gcc, program_name='CC', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gcc_installed = False
+            raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
+
+    def assert_gxx_installed(self, minimum_version=9, verbose=False):
+        gxx = os.environ.get('CXX', 'g++')
+        _, version = self.assert_installed(gxx, program_name='CXX', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gxx_installed = False
+            raise RuntimeError(f"Need gxx {minimum_version} or higher, but found gxx {version}!")
+
+    def assert_gfortran_installed(self, minimum_version=9, verbose=False):
+        gfortran = os.environ.get('FC', 'gfortran')
+        _, version = self.assert_installed(gfortran, program_name='FC', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gfortran_installed = False
+            raise RuntimeError(f"Need gfortran {minimum_version} or higher, but found gfortran {version}!")
+
+    def whoami(self):
+        if not hasattr(self, '_whoami'):
+            # Get username
+            cmd = run(["whoami"], stdout=PIPE, stderr=PIPE)
+            if cmd.returncode == 0:
+                self._whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+            else:
+                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
+        return self._whoami
+
+    def running_processes(self):
+        # Get fluka processes for this user
+        cmd = run(["ps", "-u", self.whoami()], stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            return cmd.stdout.decode('UTF-8').strip().split('\n')
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")

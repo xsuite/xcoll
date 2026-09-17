@@ -124,6 +124,9 @@ test_elements.py::test_everest_crystal[ContextCpu]
 test_elements.py::test_everest_crystal[ContextCpu:auto]
 test_elements.py::test_fluka
 test_elements.py::test_fluka_generic
+test_elements.py::test_geant4_generic
+test_elements.py::test_geant4_tip
+test_environment_tools.py::test_environment_api_facade
 test_everest.py::test_primaries
 test_everest.py::test_materials_b1
 test_everest.py::test_materials_b2
@@ -141,6 +144,10 @@ test_fluka_assemblies.py::test_new_prototype
 test_fluka_assemblies.py::test_prototype_with_files
 test_fluka_assemblies.py::test_new_assembly
 test_fluka_assemblies.py::test_assembly_with_files
+test_fluka_deep.py::test_fluka_deep_check[default]
+test_fluka_deep.py::test_fluka_deep_check[mark]
+test_fluka_deep.py::test_fluka_deep_check[impacts]
+test_fluka_deep.py::test_fluka_deep_check[impacts_mark]
 test_fluka_input.py::test_fluka_input_single[collimator]
 test_fluka_input.py::test_fluka_input_single[crystal]
 test_fluka_input.py::test_fluka_input_line[no_crystals]
@@ -149,6 +156,10 @@ test_geant4.py::test_reload_bdsim[ContextCpu]
 test_geant4.py::test_reload_bdsim[ContextCpu:auto]
 test_geant4.py::test_black_absorbers[ContextCpu]
 test_geant4.py::test_black_absorbers[ContextCpu:auto]
+test_geant4_deep.py::test_geant4_deep_check[default]
+test_geant4_deep.py::test_geant4_deep_check[mark]
+test_geant4_deep.py::test_geant4_deep_check[impacts]
+test_geant4_deep.py::test_geant4_deep_check[impacts_mark]
 test_geant4_serial_bdsim.py::test_serial_bdsim
 test_geometry.py::test_jaw
 test_geometry.py::test_jaw_after_s
@@ -184,6 +195,9 @@ test_impacts.py::test_impacts_single_crystal[R>0 side=- -ContextCpu]
 test_impacts.py::test_impacts_single_crystal[R>0 side=- -ContextCpu:auto]
 test_impacts.py::test_impacts_single_crystal[R<0 side=- -ContextCpu]
 test_impacts.py::test_impacts_single_crystal[R<0 side=- -ContextCpu:auto]
+test_impacts.py::test_impacts_to_pandas_default_frame
+test_impacts.py::test_impacts_to_pandas_collimator_frame
+test_impacts.py::test_impacts_to_pandas_lattice_frame
 test_initial_distribution.py::test_create_initial_distribution[B1_default]
 test_initial_distribution.py::test_create_initial_distribution[B2_diff_spread]
 test_initial_distribution.py::test_create_initial_distribution[B1_bucket]
@@ -327,6 +341,7 @@ test_jaw_position.py::test_positions[positive-127.5-positive_tilt-geant4]
 test_jaw_position.py::test_positions[positive-127.5-pos_neg_tilt-everest]
 test_jaw_position.py::test_positions[positive-127.5-pos_neg_tilt-fluka]
 test_jaw_position.py::test_positions[positive-127.5-pos_neg_tilt-geant4]
+test_line_tools.py::test_line_api_facade
 test_line_tools.py::test_line_accessor[1-ContextCpu]
 test_line_tools.py::test_line_accessor[1-ContextCpu:auto]
 test_line_tools.py::test_line_accessor[2-ContextCpu]

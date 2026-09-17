@@ -7,13 +7,13 @@ import xtrack.particles.pdg as pdg
 
 class BaseWrapper:
     _engine_cls = None
-    _environment_cls = None
+    _interface_cls = None
     _particle_masses_meta = None
     _particle_names_meta = None
 
     def __init__(self):
         self._engine = None
-        self._environment = None
+        self._interface = None
 
     def __str__(self):
         return f"{self.__class__.__name__}"
@@ -27,9 +27,14 @@ class BaseWrapper:
         return self._engine
 
     @property
+    def interface(self):
+        self._lazy_load_interface()
+        return self._interface
+
+    @property
     def environment(self):
-        self._lazy_load_environment()
-        return self._environment
+        print("WARNING: .environment is deprecated. Use .interface instead.")
+        return self.interface
 
     @property
     def particle_masses(self):
@@ -45,16 +50,16 @@ class BaseWrapper:
                 "This wrapper does not implement particle_names.")
         return BaseWrapperAccessor(self._particle_names_meta)
 
-    def _lazy_load_environment(self):
-        # Ensure the environment is loaded
-        if not self._environment:
-            self._environment = self._environment_cls()
+    def _lazy_load_interface(self):
+        # Ensure the interface is loaded
+        if not self._interface:
+            self._interface = self._interface_cls()
 
     def _lazy_load_engine(self):
         # Ensure the engine is loaded
         if not self._engine:
             self._engine = self._engine_cls()
-            self._engine._environment = self.environment
+            self._engine._interface = self.interface
             if self._particle_masses_meta is None:
                 self._engine._masses = None
             else:

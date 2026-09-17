@@ -143,7 +143,7 @@ class Geant4Engine(BaseEngine):
             self._conn = rpyc.classic.connect('localhost', port=port)
             self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
             self._conn.execute('import sys')
-            self._conn.execute(f'sys.path.append("{self._environment.data_dir.as_posix()}")')  # For g4interface on server
+            self._conn.execute(f'sys.path.append("{self.interface.lib_dir.as_posix()}")')  # For g4interface on server
             self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
             self._conn.execute('import engine_server')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()

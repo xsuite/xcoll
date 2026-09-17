@@ -4,8 +4,13 @@
 # ######################################### #
 
 import pytest
+import shutil
+from pathlib import Path
 from _common_api import check_skip
 
+@pytest.fixture(scope="session")
+def running_with_xdist(worker_id):
+    return worker_id != "master"
 
 def pytest_runtest_setup(item):
     # If any engine marker applies to this test item, run the skip check.
@@ -17,10 +22,28 @@ def pytest_runtest_setup(item):
 
 
 def pytest_collection_modifyitems(config, items):
-    running_xdist = hasattr(config, "workerinput") or config.getoption("-n") not in (None, 0)
+    running_xdist = hasattr(config, "workerinput") or config.getoption("-n") not in (None, 0, 1)
     if not running_xdist:
         return
 
     for item in items:
         if item.get_closest_marker("serial"):
             item.add_marker(pytest.mark.skip("Serial test cannot run under xdist"))
+
+@pytest.fixture
+def register_cleanup():
+    paths = []
+
+    def add(path):
+        paths.append(path)
+
+    yield add
+
+    for p in paths:
+        if Path(p).is_dir():
+            shutil.rmtree(p, ignore_errors=True)
+        elif Path(p).is_file():
+            try:
+                Path(p).unlink()
+            except Exception:
+                pass

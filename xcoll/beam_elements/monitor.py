@@ -529,8 +529,8 @@ class EmittanceMonitor(xt.BeamElement):
                     + f"rank {rank} instead of expected {len(covariance_S)}.\n"
                     + f"{N[i]} particles logged.")
 
-            from xtrack.linear_normal_form import compute_linear_normal_form
-            _, _, _, eigenvalues = compute_linear_normal_form(covariance_S)
+            from xtrack.linear_normal_form import get_linear_normal_form
+            _, _, _, eigenvalues = get_linear_normal_form(covariance_S)
             self._gemitt_I[i] = eigenvalues[0].imag
             self._gemitt_II[i] = eigenvalues[1].imag
             self._gemitt_III[i] = eigenvalues[2].imag

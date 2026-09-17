@@ -55,6 +55,11 @@ def test_ions(engine):
     print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
         + f"{num_part} Pu-239 ions through {coll.length:.2f}m")
 
+    if engine == "fluka":
+        xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        xc.geant4.engine.stop(clean=True)
+
     # Get only the initial particles that survived and all new particles (even if dead, as neutral particles will be flagged dead)
     mask = (part.state > 0) | (part.particle_id >= num_part)
     pdg_ids, counts = np.unique(part.pdg_id[mask], return_counts=True)
@@ -73,8 +78,3 @@ def test_ions(engine):
 
     # Check that we have some fission products (PDG ID > 1 billion
     assert np.sum((pdg_ids > 1000000000) & (pdg_ids < 1000942390)) > 0
-
-    if engine == "fluka":
-        xc.fluka.engine.stop(clean=True)
-    elif engine == "geant4":
-        xc.geant4.engine.stop(clean=True)

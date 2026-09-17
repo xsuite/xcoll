@@ -499,7 +499,7 @@ class CollimatorDatabase:
             else:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
-        line.collimators.install(names, elements, at=at, apertures=apertures,
+        line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
     def install_everest_collimators(self, line, *, names=None, families=None, apertures=None,
@@ -525,11 +525,11 @@ class CollimatorDatabase:
             else:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
-        line.collimators.install(names, elements, at=at, apertures=apertures,
+        line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
     def install_fluka_collimators(self, line, *, names=None, families=None, apertures=None,
-                                need_apertures=True, s_tol=1e-6, verbose=False):
+                                  need_apertures=True, s_tol=1e-6, verbose=False):
         import xcoll as xc
         if xc.fluka.engine.is_running():
             print("Warning: FlukaEngine is already running. Stopping it to install collimators.")
@@ -574,10 +574,11 @@ class CollimatorDatabase:
                 at.append(None)
             else:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
-        line.collimators.install(names, elements, at=at, apertures=apertures, need_apertures=need_apertures)
+
+        line.xcoll.collimators.install(names, elements, need_apertures=need_apertures)
 
     def install_geant4_collimators(self, line, *, names=None, families=None, apertures=None,
-                                need_apertures=True, s_tol=1e-6, verbose=False):
+                                   need_apertures=True, s_tol=1e-6, verbose=False):
         import xcoll as xc
         if xc.geant4.engine.is_running():
             print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
@@ -609,7 +610,7 @@ class CollimatorDatabase:
             else:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
-        line.collimators.install(names, elements, at=at, apertures=apertures,
+        line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
 

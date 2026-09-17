@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import pytest
 from pathlib import Path
 
 import numpy as np
@@ -89,6 +90,7 @@ test_context = xo.ContextCpu()
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_primaries(test_context):
+@pytest.mark.everest
 def test_primaries():
     _track_collimator('tcp.c6l7.b1', _context=test_context)
     _track_collimator('tcp.c6r7.b2', _context=test_context)
@@ -97,6 +99,7 @@ def test_primaries():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_materials_b1(test_context):
+@pytest.mark.everest
 def test_materials_b1():
     for key, name in materials_b1.items():
         _track_collimator(name, _context=test_context)
@@ -105,6 +108,7 @@ def test_materials_b1():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_materials_b2(test_context):
+@pytest.mark.everest
 def test_materials_b2():
     for key, name in materials_b2.items():
         _track_collimator(name, _context=test_context)
@@ -113,6 +117,7 @@ def test_materials_b2():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_angles_b1(test_context):
+@pytest.mark.everest
 def test_angles_b1():
     for key, name in angles_b1.items():
         _track_collimator(name, _context=test_context)
@@ -121,6 +126,7 @@ def test_angles_b1():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_angles_b2(test_context):
+@pytest.mark.everest
 def test_angles_b2():
     for key, name in angles_b2.items():
         _track_collimator(name, _context=test_context)
@@ -129,6 +135,7 @@ def test_angles_b2():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_lengths_b1(test_context):
+@pytest.mark.everest
 def test_lengths_b1():
     for key, name in lengths_b1.items():
         _track_collimator(name, _context=test_context, atolz=2e-11)
@@ -137,6 +144,7 @@ def test_lengths_b1():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_lengths_b2(test_context):
+@pytest.mark.everest
 def test_lengths_b2():
     for key, name in lengths_b2.items():
         _track_collimator(name, _context=test_context, atolz=2e-11)
@@ -145,6 +153,7 @@ def test_lengths_b2():
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 # )
 # def test_crystals(test_context):
+@pytest.mark.everest
 def test_crystals():
     for name in crystals_b1 + crystals_b2:
         _track_collimator(name, _context=test_context)

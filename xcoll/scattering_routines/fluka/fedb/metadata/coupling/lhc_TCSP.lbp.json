@@ -12,6 +12,7 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "secondary with jaw in CFC and in-jaw BPMs (IR6)",
+    "allow_prefiltering": true,
     "extra_commands": null,
     "is_broken": false
 }

@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import pytest
 from pathlib import Path
 
 import xcoll as xc
@@ -12,6 +13,7 @@ import xcoll as xc
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.xcother
 def test_loading():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1, ignore_crystals=False)
     colldb_2 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3_b1.yaml', ignore_crystals=False)
@@ -27,6 +29,7 @@ def test_loading():
     assert df3.equals(df4)
 
 
+@pytest.mark.xcother
 def test_loading_no_families():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1, ignore_crystals=False)
     colldb_2 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3_b1_no_families.yaml', nemitt_x=3.5e-6, nemitt_y=3.5e-6, ignore_crystals=False)
@@ -37,6 +40,7 @@ def test_loading_no_families():
     assert df1_no_fam.equals(df2_no_fam)
 
 
+@pytest.mark.xcother
 def test_loading_no_merge():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1, ignore_crystals=False)
     colldb_2 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3_b1_no_merge.yaml', ignore_crystals=False)
@@ -45,6 +49,7 @@ def test_loading_no_merge():
     assert df1.equals(df2)
 
 
+@pytest.mark.xcother
 def test_loading_crystals():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1)
     colldb_2 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1, ignore_crystals=False)
@@ -54,6 +59,7 @@ def test_loading_crystals():
     assert df2_no_cry.equals(df1)
 
 
+@pytest.mark.xcother
 def test_loading_SixTrack():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1)
     colldb_2 = xc.CollimatorDatabase.from_SixTrack(path / 'colldb_lhc_run3_b1.dat', nemitt_x=3.5e-6, nemitt_y=3.5e-6)
@@ -77,6 +83,7 @@ def test_loading_SixTrack():
     assert df1.equals(df2)
 
 
+@pytest.mark.xcother
 def test_loading_SixTrack_crystals():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1, ignore_crystals=False)
     colldb_2 = xc.CollimatorDatabase.from_SixTrack(path / 'colldb_lhc_run3_b1.dat', nemitt_x=3.5e-6, nemitt_y=3.5e-6, ignore_crystals=False)
@@ -100,6 +107,7 @@ def test_loading_SixTrack_crystals():
     assert df1.equals(df2)
 
 
+@pytest.mark.xcother
 def test_dumping():
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1)
     colldb_2 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=2)

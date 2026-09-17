@@ -11,9 +11,10 @@ from xcoll.materials import Material, db as mdb
 from xcoll.compare import deep_equal
 
 
-# TODO: make test_crystal_material_creation and test_adapt(), and expand test_db
+# TODO: make test_crystal_material_creation and expand test_db
 
 
+@pytest.mark.xcother
 def test_elemental_material_creation():
     with pytest.raises(ValueError, match="Invalid material definition! Use either `Z` and `A` for "
                        "elemental materials, or `components` and `n_atoms`, `mass_fractions`, "
@@ -342,6 +343,7 @@ def test_elemental_material_creation():
     assert mat._excitation_energy_set_manually is False
 
 
+@pytest.mark.xcother
 def test_compound_material_creation():
     with pytest.raises(ValueError, match="One of `n_atoms`, `mass_fractions`, `volume_fractions`, "
                        "or `molar_fractions` must be provided"):
@@ -552,6 +554,7 @@ def test_compound_material_creation():
     assert mat._excitation_energy_set_manually is False
 
 
+@pytest.mark.xcother
 def test_mixture_material_creation():
     with pytest.raises(ValueError, match="Variable `components` must be provided"):
         Material(mass_fractions=[0.01, 0.001, 0.529107, 0.016, 0.002, 0.033872, 0.337021, 0.013, 0.044, 0.014])
@@ -636,6 +639,7 @@ def test_mixture_material_creation():
     }, debug=True)
 
 
+@pytest.mark.xcother
 def test_different_fractions():
     Ethanol_v0 = Material(components=['C', 'H', 'O'], n_atoms=[2, 6, 1], density=0.78945, name='Ethanol_v0')
     mf = Ethanol_v0.mass_fractions
@@ -662,12 +666,38 @@ def test_different_fractions():
     assert np.allclose(StrongBooze.molar_fractions, [0.16571654, 0.66666667, 0.1676168 ])
 
 
+@pytest.mark.xcother
 def test_crystal_material_creation():
+    # TODO
     pass
 
+@pytest.mark.xcother
 def test_adapt():
-    pass
+    mat = Material(A=12.01, Z=6, density=2.265, name='AdaptMAT')
+    adapted = mat.adapt(density=1.85, radiation_length=0.25,
+                        excitation_energy=78.0, state='solid')
 
+    assert adapted is not mat
+    assert isinstance(adapted, Material)
+    assert adapted.name is None
+    assert mat.name == 'AdaptMAT'
+    assert np.isclose(mat.density, 2.265)
+    assert np.isclose(adapted.A, mat.A)
+    assert np.isclose(adapted.Z, mat.Z)
+    assert np.isclose(adapted.density, 1.85)
+    assert adapted.state == 'solid'
+    assert np.isclose(adapted.radiation_length, 0.25)
+    assert np.isclose(adapted.excitation_energy, 78.0)
+
+    returned = adapted.adapt(inplace=True, density=2.0, hcut=0.03)
+    assert returned is adapted
+    assert np.isclose(adapted.density, 2.0)
+    assert np.isclose(adapted.hcut, 0.03)
+
+    with pytest.raises(ValueError, match="Cannot adapt A inplace"):
+        adapted.adapt(inplace=True, A=13.0)
+
+@pytest.mark.xcother
 def test_db():
     # Create a material that is not in the database
     this_mat = Material(A=183.84, Z=74, density=19.25)
