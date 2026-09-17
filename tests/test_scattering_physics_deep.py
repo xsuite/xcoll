@@ -15,9 +15,11 @@ import xtrack as xt
 import xcoll as xc
 import xcoll.constants as xcc
 
+from _common_api import old_bdsim, engine_params
+
 
 @pytest.mark.fluka
-def test_fluka_ionisation_loss():
+def test_ionisation_loss():
     num_part = 20_000
     mat = xc.materials.db['MG6403Fc']
     coll = xc.FlukaCollimator(length=0.6, angle=0, jaw=0.001, material=mat)
@@ -137,21 +139,29 @@ def test_fluka_ionisation_loss():
     assert num_outliers_lower_200 < 256 # Expect 200 outliers
 
 
-@pytest.mark.fluka
+@pytest.mark.parametrize("engine", engine_params)
 @pytest.mark.parametrize("log_impacts, mark_scattered_particles", [
                             [False, False],
                             [False, True],
                             [True,  False],
                             [True,  True]
                          ], ids=["default", "mark", "impacts", "impacts_mark"])
-def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xdist):
-    num_part = 20000       # When this is changed, need to re-generate input distribution (rm data/fluka_part_init.json)
-    capacity = 2*num_part  # When this is changed, need to re-generate input distribution
+def test_deep_physics_check(engine, log_impacts, mark_scattered_particles, running_with_xdist):
+    num_part = 24_000      # When this is changed, need to re-generate input distribution (rm data/{engine}_part_init.json)
+    capacity = 4*num_part  # When this is changed, need to re-generate input distribution
     particle_ref = xt.Particles('proton', p0c=6.8e12)
 
     # Prepare collimators, engine, and initial particles
-    coll1 = xc.FlukaCollimator(length=0.6, angle=0,   jaw=0.001,  assembly='hilumi_tcppm')
-    coll2 = xc.FlukaCollimator(length=0.6, angle=123, jaw=0.0005, assembly='hilumi_tcppm')
+    if engine == 'fluka':
+        xc_engine = xc.fluka.engine
+        coll_has_flanges = True
+        coll1 = xc.FlukaCollimator(length=0.6, angle=0,   jaw=0.001,  assembly='hilumi_tcppm')
+        coll2 = xc.FlukaCollimator(length=0.6, angle=123, jaw=0.0005, assembly='hilumi_tcppm')
+    elif engine == 'geant4':
+        xc_engine = xc.geant4.engine
+        coll_has_flanges = False
+        coll1 = xc.Geant4Collimator(length=0.6, angle=0,   jaw=0.001,  material='MG6403Fc')
+        coll2 = xc.Geant4Collimator(length=0.6, angle=123, jaw=0.0005, material='MG6403Fc')
     if mark_scattered_particles:
         coll1.mark_scattered_particles = True
         coll2.mark_scattered_particles = True
@@ -159,13 +169,14 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
         coll1.mark_scattered_particles = False
         coll2.mark_scattered_particles = False
 
-    xc.fluka.engine.particle_ref = particle_ref
-    xc.fluka.engine.capacity = capacity
-    xc.fluka.engine.seed = 453532
-    xc.fluka.engine.reset_physics_settings()
-    xc.fluka.engine.return_baryons = True   # To get some massless particles as well
-    xc.fluka.engine.start(elements=[coll1, coll2], clean=True, verbose=False, fortran_debug_level=1)
-    xc.fluka.engine.physics_settings()
+    xc_engine.particle_ref = particle_ref
+    if engine == 'fluka':
+        xc_engine.capacity = capacity
+    xc_engine.seed = 453532
+    xc_engine.reset_physics_settings()
+    xc_engine.return_baryons = True   # To get some massless particles as well
+    xc_engine.start(elements=[coll1, coll2], clean=True, verbose=False)
+    xc_engine.physics_settings()
 
     # Create black absorbers after starting engine so length_front and length_back are known
     black1 = xc.BlackAbsorber(length=0.6 + coll1.length_front + coll1.length_back, angle=0,   jaw=0.001)
@@ -174,7 +185,13 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     if log_impacts:
         impacts = xc.InteractionRecord(elements=[coll1, coll2], record_impacts=True)
 
-    part_init, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec = _create_masked_particles(num_part)
+    part_init, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec = _create_masked_particles(
+        num_part,
+        capacity,
+        engine,
+        coll_has_flanges
+    )
+    num_part = len(part_init.x[part_init.state > 0])
     part = part_init.copy()
     part_black = part_init.copy()
 
@@ -201,7 +218,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     part_black.at_element[part_black.state > 0] += 1
     part_black.sort(interleave_lost_particles=True)
 
-    xc.fluka.engine.stop(clean=True)
+    xc_engine.stop(clean=True)
 
     if log_impacts:
         df = impacts.to_pandas(frame='lattice')
@@ -229,10 +246,13 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     if xcc.VIRTUAL_ENERGY_SEC not in part_mid.state:
         raise ValueError("No secondary virtual energy particles created. Choose a different seed.")
     if xcc.MASSLESS_OR_NEUTRAL not in part_mid.state:
-        raise ValueError("No massless or neutral particles created. Choose a different seed.")
+        if old_bdsim:
+            warn("No massless or neutral particles created.")
+        else:
+            raise ValueError("No massless or neutral particles created. Choose a different seed.")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
-    _compare_particles(part_mid, 'temp_fluka_part_mid.json', running_with_xdist)
+    _compare_particles(part_mid, f'temp/{engine}_part_mid.json', running_with_xdist)
 
     # Verify all state flags.
     # Do not use USE_IN_LOSSMAP_PRIM/SEC to check the states directly.
@@ -248,9 +268,10 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
 
     # Verify that all missed particles survived
     assert np.all(np.unique(part_mid.state[mask_miss & ~mask_sec]) == [1])
-    assert np.all(np.unique(part_mid.state[mask_hitbox_but_miss & ~mask_sec]) == [1])
     assert np.all(np.unique(part_mid.state[mask_miss & mask_sec]) == [xcc.SECONDARY_PARTICLE])
-    assert np.all(np.unique(part_mid.state[mask_hitbox_but_miss & mask_sec]) == [xcc.SECONDARY_PARTICLE])
+    if coll_has_flanges:
+        assert np.all(np.unique(part_mid.state[mask_hitbox_but_miss & ~mask_sec]) == [1])
+        assert np.all(np.unique(part_mid.state[mask_hitbox_but_miss & mask_sec]) == [xcc.SECONDARY_PARTICLE])
 
     # Verify that primary particles die as primary, and survive as secondary
     # if marked (otherwise survive as primary)
@@ -292,13 +313,15 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
 
     # Verify the final positions
     assert np.allclose(part_mid.s[mask_miss], coll1.length)
-    assert np.allclose(part_mid.s[mask_hitbox_but_miss], coll1.length)
+    if coll_has_flanges:
+        assert np.allclose(part_mid.s[mask_hitbox_but_miss], coll1.length)
     assert np.allclose(part_mid.s[np.isin(part_mid.state, kill_states)], coll1.length + coll1.length_back)
 
     # The energy of missed particles should not have changed
-    energy0 = xc.fluka.engine.particle_ref.energy0[0]
+    energy0 = xc_engine.particle_ref.energy0[0]
     assert np.allclose(part_mid.energy[mask_miss], energy0)
-    assert np.allclose(part_mid.energy[mask_hitbox_but_miss], energy0)
+    if coll_has_flanges:
+        assert np.allclose(part_mid.energy[mask_hitbox_but_miss], energy0)
 
     # Check total summed energy
     Etot  = part_mid.energy[part_mid.state > -99999].sum()  # Should be close to initial total energy
@@ -310,25 +333,35 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     assert not np.isclose(coll1._acc_ionisation_loss, coll1._acc_ionisation_loss_sec)
 
     # Check the energy sum per parent->children chain, and the number of
-    # outliers in the Landau/Vavilov tail. Keep in mind that only half the
-    # particles hit a collimator.
-    _check_energy_sum(part_mid, mask_hit, num_part/2, energy0)
+    # outliers in the Landau/Vavilov tail.
+    _check_energy_sum(part_mid, mask_hit)
 
     # Check the impacts
     if log_impacts:
         df_mid = df[df.collimator == coll1.name]
         assert not np.any([pid in df_mid.particle_id_before.values for pid in part_mid.particle_id[mask_miss]])
-        assert np.all([pid in df_mid.particle_id_before.values for pid in part_mid.particle_id[mask_hitbox_but_miss]])
+        if coll_has_flanges:
+            assert np.all([pid in df_mid.particle_id_before.values for pid in part_mid.particle_id[mask_hitbox_but_miss]])
         assert np.all([pid in df_mid.particle_id_before.values for pid in part_mid.particle_id[mask_hit]])
         df_mid = df_mid.sort_values("particle_id_before")
-        assert np.all(part_black_mid.particle_id[mask_hit | mask_hitbox_but_miss] == df_mid.particle_id_before.values)
-        assert np.allclose(part_black_mid.s[mask_hit | mask_hitbox_but_miss],     df_mid.s_before.values)
-        assert np.allclose(part_black_mid.x[mask_hit | mask_hitbox_but_miss],     df_mid.x_before.values)
-        assert np.allclose(part_black_mid.px[mask_hit | mask_hitbox_but_miss],    df_mid.px_before.values)
-        assert np.allclose(part_black_mid.y[mask_hit | mask_hitbox_but_miss],     df_mid.y_before.values)
-        assert np.allclose(part_black_mid.py[mask_hit | mask_hitbox_but_miss],    df_mid.py_before.values)
-        assert np.allclose(part_black_mid.zeta[mask_hit | mask_hitbox_but_miss],  df_mid.zeta_before.values)
-        assert np.allclose(part_black_mid.delta[mask_hit | mask_hitbox_but_miss], df_mid.delta_before.values)
+        if coll_has_flanges:
+            assert np.all(part_black_mid.particle_id[mask_hit | mask_hitbox_but_miss] == df_mid.particle_id_before.values)
+            assert np.allclose(part_black_mid.s[mask_hit | mask_hitbox_but_miss],     df_mid.s_before.values)
+            assert np.allclose(part_black_mid.x[mask_hit | mask_hitbox_but_miss],     df_mid.x_before.values)
+            assert np.allclose(part_black_mid.px[mask_hit | mask_hitbox_but_miss],    df_mid.px_before.values)
+            assert np.allclose(part_black_mid.y[mask_hit | mask_hitbox_but_miss],     df_mid.y_before.values)
+            assert np.allclose(part_black_mid.py[mask_hit | mask_hitbox_but_miss],    df_mid.py_before.values)
+            assert np.allclose(part_black_mid.zeta[mask_hit | mask_hitbox_but_miss],  df_mid.zeta_before.values)
+            assert np.allclose(part_black_mid.delta[mask_hit | mask_hitbox_but_miss], df_mid.delta_before.values)
+        else:
+            assert np.all(part_black_mid.particle_id[mask_hit] == df_mid.particle_id_before.values)
+            assert np.allclose(part_black_mid.s[mask_hit],     df_mid.s_before.values)
+            assert np.allclose(part_black_mid.x[mask_hit],     df_mid.x_before.values)
+            assert np.allclose(part_black_mid.px[mask_hit],    df_mid.px_before.values)
+            assert np.allclose(part_black_mid.y[mask_hit],     df_mid.y_before.values)
+            assert np.allclose(part_black_mid.py[mask_hit],    df_mid.py_before.values)
+            assert np.allclose(part_black_mid.zeta[mask_hit],  df_mid.zeta_before.values)
+            assert np.allclose(part_black_mid.delta[mask_hit], df_mid.delta_before.values)
     print()
 
     # ========================================
@@ -342,7 +375,7 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     print(f"  Children generated: {((part.state > -9999999) & (part.particle_id >= num_part)).sum()}")
 
     # Compare to previous result; should be independent of logging impacts or marking scattered particles
-    _compare_particles(part, 'temp_fluka_part.json', running_with_xdist)
+    _compare_particles(part, f'temp/{engine}_part.json', running_with_xdist)
 
     # Verify that there are no leftover hit states
     assert not np.any(part_mid.state == xcc.HIT_ON_FLUKA)
@@ -419,9 +452,8 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
     assert not np.isclose(coll2._acc_ionisation_loss, coll2._acc_ionisation_loss_sec)
 
     # Check the energy sum per parent->children chain, and the number of
-    # outliers in the Landau/Vavilov tail. Keep in mind that only half the
-    # particles hit a collimator.
-    _check_energy_sum(part, mask_hit, num_part/2, energy0)
+    # outliers in the Landau/Vavilov tail.
+    _check_energy_sum(part, mask_hit)
 
     # Check the impacts
     if log_impacts:
@@ -442,12 +474,14 @@ def test_fluka_deep_check(log_impacts, mark_scattered_particles, running_with_xd
 
 def _compare_particles(part, file, running_with_xdist):
     if running_with_xdist:
-        warn("Not comparing to previous result since running with xdist.")
+        warn("Not comparing to previous result (running with xdist).")
         return
+
     file = Path(file)
+    file.parent.mkdir(parents=True, exist_ok=True)
     if file.exists():
         dct = xc.json.json_load(file)
-        if time.time() - dct['time'] < 7200:
+        if time.time() - dct['time'] < 600:
             # Only use recent results for comparison (to increase reproducibility)
             print("Comparing to previous result...")
             part2 = xt.Particles.from_dict(dct['data'])
@@ -469,67 +503,115 @@ def _compare_particles(part, file, running_with_xdist):
                                   np.isin(part2.state, [xcc.MASSLESS_OR_NEUTRAL]))
             assert np.array_equal(np.isin(part.state,  [xcc.EXCITED_ION_STATE]),
                                   np.isin(part2.state, [xcc.EXCITED_ION_STATE]))
+            return
 
-    # Otherwise, save the current result for future comparison
-    dct = {'time': time.time(),
-           'data': part.to_dict()}
+    print("Storing result for future comparison")
+    dct = {'time': time.time(), 'data': part.to_dict()}
     xc.json.json_dump(dct, file)
 
 
-def _create_masked_particles(num_part):
+def _create_masked_particles(num_part, capacity, engine, coll_has_flanges):
     # When this is changed, need to re-generate input distribution
-    capacity = xc.fluka.engine.capacity
-    step_size = num_part//16
-    mask_miss = np.concat([np.full(2*step_size, True),  np.full(2*step_size, True),
-                           np.full(2*step_size, False), np.full(2*step_size, False),
-                           np.full(4*step_size, False), np.full(4*step_size, False),
-                           np.full(capacity - 16*step_size, False)])
-    mask_hitbox_but_miss = np.concat([np.full(2*step_size, False), np.full(2*step_size, False),
-                                      np.full(2*step_size, True),  np.full(2*step_size, True),
-                                      np.full(4*step_size, False), np.full(4*step_size, False),
-                           np.full(capacity - 16*step_size, False)])
-    mask_hit = np.concat([np.full(2*step_size, False), np.full(2*step_size, False),
-                          np.full(2*step_size, False), np.full(2*step_size, False),
-                          np.full(4*step_size, True),  np.full(4*step_size, True),
-                          np.full(capacity - 16*step_size, False)])
-    mask_sec = np.concat([np.full(2*step_size, False), np.full(2*step_size, True),
-                          np.full(2*step_size, False), np.full(2*step_size, True),
-                          np.full(4*step_size, False), np.full(4*step_size, True),
-                          np.full(capacity - 16*step_size, False)])
-
-    init_file = Path('data/fluka_part_init.json')
-    if init_file.exists():
-        part_init = xt.Particles.from_dict(xc.json.json_load(init_file))
+    if engine == 'fluka':
+        xc_engine = xc.fluka.engine
+    elif engine == 'geant4':
+        xc_engine = xc.geant4.engine
+    num_steps_miss = 2   # *2 for primary/secondary
+    if coll_has_flanges:
+        num_steps_hitbox_but_miss = 2   # *2 for primary/secondary
     else:
-        x_miss  = np.linspace(-0.999e-3, 0.999e-3, 2*step_size)
-        px_miss = np.zeros(2*step_size)
-        x_hitbox_but_miss  = np.concat([-0.99e-3*np.ones(step_size), 0.99e-3*np.ones(step_size)])
-        px_hitbox_but_miss = np.concat([np.linspace(3e-5, 4e-5, step_size),
-                                        np.linspace(-4e-5, -3e-5, step_size)])
-        x_hit  = np.concat([np.linspace(1.001e-3, 2e-3, step_size),
-                            np.linspace(-2e-3, -1.001e-3, step_size),
-                            np.linspace(0.9e-3, 0.99e-3, step_size),
-                            np.linspace(-0.99e-3, -0.9e-3, step_size)])
-        px_hit = np.concat([np.zeros(2*step_size),
-                            np.linspace(2e-4, 1e-3, step_size),
-                            np.linspace(-1e-3, -2e-4, step_size)])
-        x_miss_sec  = x_miss
-        px_miss_sec = px_miss
-        x_hitbox_but_miss_sec  = x_hitbox_but_miss
-        px_hitbox_but_miss_sec = px_hitbox_but_miss
-        x_hit_sec  = x_hit
-        px_hit_sec = px_hit
-        part_init = xp.build_particles(
-            x=np.concat([x_miss, x_miss_sec, x_hitbox_but_miss, x_hitbox_but_miss_sec, x_hit, x_hit_sec]),
-            px=np.concat([px_miss, px_miss_sec, px_hitbox_but_miss, px_hitbox_but_miss_sec, px_hit, px_hit_sec]),
-            y=np.linspace(-1e-6, 1e-6, step_size*16),
-            py=np.linspace(-1e-7, 1e-7, step_size*16),
-            particle_ref=xc.fluka.engine.particle_ref,
-            _capacity=capacity)
-        part_init.state[mask_sec] = xcc.SECONDARY_PARTICLE  # Mark secondary particles in initial distribution
-        xc.json.json_dump(part_init.to_dict(), init_file)
+        num_steps_hitbox_but_miss = 0
+    num_steps_hit = 4   # *2 for primary/secondary
+    num_steps = 2*(num_steps_miss + num_steps_hitbox_but_miss + num_steps_hit)
+    step_size = num_part//num_steps
+    print(f"{num_part=}  {capacity=}")
+    print(f"{num_steps} steps of {step_size} particles each, for a total of {num_steps*step_size} particles.")
 
-    return part_init, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec
+    # Masks
+    mask_miss = np.concatenate([
+        np.full(2*num_steps_miss*step_size, True),
+        np.full(2*num_steps_hitbox_but_miss*step_size, False),
+        np.full(2*num_steps_hit*step_size, False),
+        np.full(capacity - num_steps*step_size, False)
+    ])
+    mask_hitbox_but_miss = np.concatenate([
+        np.full(2*num_steps_miss*step_size, False),
+        np.full(2*num_steps_hitbox_but_miss*step_size, True),
+        np.full(2*num_steps_hit*step_size, False),
+        np.full(capacity - num_steps*step_size, False)
+    ])
+    mask_hit = np.concatenate([
+        np.full(2*num_steps_miss*step_size, False),
+        np.full(2*num_steps_hitbox_but_miss*step_size, False),
+        np.full(2*num_steps_hit*step_size, True),
+        np.full(capacity - num_steps*step_size, False)
+    ])
+    mask_sec = np.concatenate([
+        np.full(num_steps_miss*step_size, False),
+        np.full(num_steps_miss*step_size, True),
+        np.full(num_steps_hitbox_but_miss*step_size, False),
+        np.full(num_steps_hitbox_but_miss*step_size, True),
+        np.full(num_steps_hit*step_size, False),
+        np.full(num_steps_hit*step_size, True),
+        np.full(capacity - num_steps*step_size, False)
+    ])
+
+    # Coordinates
+    init_file = Path(f'data/{engine}_part_init.json')
+    if init_file.exists():
+        part = xt.Particles.from_dict(xc.json.json_load(init_file))
+
+    else:
+        x_miss = np.linspace(-0.999e-3, 0.999e-3, num_steps_miss*step_size)
+        px_miss = np.zeros(num_steps_miss*step_size)
+        if coll_has_flanges:
+            x_hitbox_but_miss = np.concatenate([
+                -0.99e-3*np.ones(step_size),
+                0.99e-3*np.ones(step_size)
+            ])
+            px_hitbox_but_miss = np.concatenate([
+                np.linspace(3e-5, 4e-5, step_size),
+                np.linspace(-4e-5, -3e-5, step_size)
+            ])
+        else:
+            x_hitbox_but_miss = np.array([])
+            px_hitbox_but_miss = np.array([])
+        x_hit  = np.concatenate([
+            np.linspace(1.001e-3, 2e-3, step_size),
+            np.linspace(-2e-3, -1.001e-3, step_size),
+            np.linspace(0.9e-3, 0.99e-3, step_size),
+            np.linspace(-0.99e-3, -0.9e-3, step_size)
+        ])
+        px_hit = np.concatenate([
+            np.zeros(2*step_size),
+            np.linspace(2e-4, 1e-3, step_size),
+            np.linspace(-1e-3, -2e-4, step_size)
+        ])
+
+        # Sanity checks
+        assert len(x_miss) == num_steps_miss*step_size
+        assert len(x_hitbox_but_miss) == num_steps_hitbox_but_miss*step_size
+        assert len(x_hit) == num_steps_hit*step_size
+
+        part = xp.build_particles(
+            x=np.concatenate([
+                x_miss, x_miss,
+                x_hitbox_but_miss, x_hitbox_but_miss,
+                x_hit, x_hit
+            ]),
+            px=np.concatenate([
+                px_miss, px_miss,
+                px_hitbox_but_miss, px_hitbox_but_miss,
+                px_hit, px_hit
+            ]),
+            y=np.linspace(-1e-6, 1e-6, step_size*num_steps),
+            py=np.linspace(-1e-7, 1e-7, step_size*num_steps),
+            particle_ref=xc_engine.particle_ref,
+            _capacity=capacity)
+        part.state[mask_sec] = xcc.SECONDARY_PARTICLE  # Mark secondary particles in initial distribution
+        xc.json.json_dump(part.to_dict(), init_file)
+
+    return part, mask_miss, mask_hitbox_but_miss, mask_hit, mask_sec
 
 
 def _get_num_coll_traversed(part, pids):
@@ -552,7 +634,7 @@ def _get_num_coll_traversed(part, pids):
     return num_coll_traversed
 
 
-def _check_energy_sum(part, mask, tot_part, energy0):
+def _check_energy_sum(part, mask):
     # Check the sum of the children energy and leftover energy of the parent.
     # This sum will not match exactly the initial energy, as ionisation losses
     # are not accounted for on a particle-by-particle basis (only accumulated
@@ -561,6 +643,8 @@ def _check_energy_sum(part, mask, tot_part, energy0):
     # energy. So ionisation losses are not individually accounted for ONLY when
     # a particle survives a collimator.
     print("Checking energy sum for each parent->children chain...")
+    tot_part = len(part.particle_id[mask])
+    energy0 = part.energy0[0]
     tree = xc.ParticlesTree(part)
     # For the first loop, we only check how many primary particles actually
     # caused ionisation losses, to be able to get our statistics right.

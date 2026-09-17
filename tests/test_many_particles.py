@@ -10,7 +10,7 @@ from xpart.test_helpers import flaky_assertions, retry
 import xcoll as xc
 from  xcoll import constants as xcc
 
-from _common_api import check_skip_old_bdsim, engine_params, engine_params
+from _common_api import check_skip_old_bdsim, engine_params
 
 
 # # Treat warnings as errors to debug

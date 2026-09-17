@@ -25,8 +25,8 @@ class Geant4Engine(BaseEngine):
     _int32 = True
     _uses_input_file = True
     _uses_run_folder = True
+    # These cannot (yet) be set on the Geant4 interface
     _physics_settings_veto_list = [
-        # These cannot (yet) be set on the Geant4 interface
         'hadron_lower_momentum_cut',
         'photon_lower_momentum_cut',
         'electron_lower_momentum_cut',
