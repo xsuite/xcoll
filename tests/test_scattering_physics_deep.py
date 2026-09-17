@@ -524,8 +524,6 @@ def _create_masked_particles(num_part, capacity, engine, coll_has_flanges):
     num_steps_hit = 4   # *2 for primary/secondary
     num_steps = 2*(num_steps_miss + num_steps_hitbox_but_miss + num_steps_hit)
     step_size = num_part//num_steps
-    print(f"{num_part=}  {capacity=}")
-    print(f"{num_steps} steps of {step_size} particles each, for a total of {num_steps*step_size} particles.")
 
     # Masks
     mask_miss = np.concatenate([
