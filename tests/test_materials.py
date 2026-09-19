@@ -15,6 +15,25 @@ from xobjects.test_helpers import for_all_test_contexts
 # TODO: make test_crystal_material_creation and expand test_db
 
 
+@pytest.fixture(autouse=True)
+def restore_materials_database():
+    # Named materials register themselves globally. Keep each parametrized test
+    # independent of other tests that happen to run in the same xdist worker.
+    mappings = (
+        mdb._materials,
+        mdb._aliases,
+        mdb._fluka_names,
+        mdb._geant4_names,
+    )
+    snapshots = [mapping.copy() for mapping in mappings]
+
+    yield
+
+    for mapping, snapshot in zip(mappings, snapshots):
+        mapping.clear()
+        mapping.update(snapshot)
+
+
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_elemental_material_creation(test_context):

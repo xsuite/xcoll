@@ -31,8 +31,7 @@ def test_line_accessor(beam, test_context):
     colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     assert str(line.xcoll.collimators) == ''
     assert len(line.xcoll.collimators) == 0
-    colldb.install_everest_collimators(verbose=True, line=line,
-                                       _context=test_context)
+    colldb.install_everest_collimators(verbose=True, line=line)
     assert str(line.xcoll.collimators) != ''
     if beam == 1:
         assert len(line.xcoll.collimators) == 55

@@ -100,8 +100,8 @@ def _generate_matched_particles(line, _context=None):
     tw = line.twiss(method='4d', start="monitor start", end="END", init=tw_init)
     nemitt_x = 7.639770207283603e-06
     nemitt_y = 3.534081877201574e-06
-    x_norm, px_norm = xp.generate_2D_gaussian(num_part, _context=_context)
-    y_norm, py_norm = xp.generate_2D_gaussian(num_part, _context=_context)
+    x_norm, px_norm = xp.generate_2D_gaussian(num_part)
+    y_norm, py_norm = xp.generate_2D_gaussian(num_part)
     part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
                                 W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                                 nemitt_x=nemitt_x,nemitt_y=nemitt_y,
