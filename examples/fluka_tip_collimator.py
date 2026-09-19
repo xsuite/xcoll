@@ -29,7 +29,6 @@ coll2 = xc.FlukaCollimator(length=0.6, material=xc.materials.MolybdenumGraphite,
 
 # Connect to FLUKA
 xc.fluka.engine.particle_ref = particle_ref
-xc.fluka.engine.capacity = capacity
 xc.fluka.engine.seed = 5656565
 xc.fluka.engine.start(elements=[coll1, coll2], clean=False, verbose=False, fortran_debug_level=1)
 
@@ -43,7 +42,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                particle_ref=xc.fluka.engine.particle_ref,
-                               _capacity=xc.fluka.engine.capacity)
+                               _capacity=capacity)
 part1 = part_init.copy()
 part2 = part_init.copy()
 part_pre = xp.build_particles(x=[0], particle_ref=xc.fluka.engine.particle_ref, _capacity=2)
