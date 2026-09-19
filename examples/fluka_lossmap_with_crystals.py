@@ -34,7 +34,7 @@ line = env[f'lhcb{beam}']
 
 # Initialise colldb
 colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldbs' / f'lhc_run3_crystals.yaml',
-                                               beam=beam, ignore_crystals=False)
+                                         beam=beam, ignore_crystals=False)
 
 
 # Install collimators into line
@@ -57,7 +57,7 @@ line.xcoll.collimators.align_to_beam_divergence()
 
 # Connect to FLUKA
 xc.fluka.engine.particle_ref = particle_ref
-xc.fluka.engine.minimum_free_length_fortran_array = 500
+xc.fluka.engine.minimum_free_length_fortran_array = relative_capacity
 xc.fluka.engine.relative_length_fortran_array = relative_capacity
 xc.fluka.engine.seed = 5656565
 xc.fluka.engine.start(line=line, cwd='run_fluka_temp', clean=False, verbose=True, return_ions=True)
@@ -92,6 +92,7 @@ print(f"Done tracking in {line.time_last_track:.1f}s.")
 # Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu())
+
 
 # Save loss map to json
 lm_time = time.time()

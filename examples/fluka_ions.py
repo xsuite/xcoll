@@ -23,7 +23,10 @@ coll = xc.FlukaCollimator(length=0.05, material='mogr', jaw=0.001)
 xc.fluka.engine.particle_ref = particle_ref
 # xc.fluka.engine.return_none = True
 # xc.fluka.engine.return_ions = True
+xc.fluka.engine.minimum_free_length_fortran_array = 250
+xc.fluka.engine.relative_length_fortran_array = 50
 xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
+xc.fluka.engine.physics_settings()
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
 # longitudinal coordinates set to zero)

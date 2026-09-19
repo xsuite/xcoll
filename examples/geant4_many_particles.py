@@ -21,6 +21,7 @@ def run_many_particles_geant4(particle_ref, num_part, capacity):
     xc.geant4.engine.particle_ref = particle_ref
     xc.geant4.engine.return_all = True
     xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, return_all=True, clean=True, verbose=True)
+    xc.geant4.engine.physics_settings()
 
     part = run_many_particles(coll, xc.geant4.engine.particle_ref, num_part, capacity)
 
