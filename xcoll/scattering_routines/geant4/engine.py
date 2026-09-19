@@ -83,17 +83,6 @@ class Geant4Engine(BaseEngine):
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
-    # ============================
-    # === Overwrite Properties ===
-    # ============================
-
-    @property
-    def capacity(self):
-        return None  # Geant4 capacity is dynamic
-
-    @property
-    def relative_capacity(self):
-        return None  # Geant4 capacity is dynamic
 
     # =================================
     # === Base methods to overwrite ===

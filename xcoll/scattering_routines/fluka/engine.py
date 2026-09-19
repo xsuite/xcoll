@@ -33,6 +33,8 @@ class FlukaEngine(BaseEngine):
         '_network_port':      xo.Int64,
         '_timeout_sec':       xo.Int32,
         '_max_particle_id':   xo.Int64,
+        '_minimum_free_length_fortran_array': xo.UInt32,
+        '_relative_length_fortran_array':     xo.UInt32,
     }
 
     _int32 = True
@@ -60,14 +62,45 @@ class FlukaEngine(BaseEngine):
         kwargs.setdefault('_timeout_sec', 36000)
         kwargs.setdefault('_network_port', -1)
         kwargs.setdefault('_max_particle_id', -1)
-        kwargs.setdefault('_capacity', 5000)
-        kwargs.setdefault('_relative_capacity', 2)
         super().__init__(**kwargs)
+        self.minimum_free_length_fortran_array = None
+        self.relative_length_fortran_array = None
 
 
     # ======================
     # === New Properties ===
     # ======================
+
+    @property
+    def minimum_free_length_fortran_array(self):
+        return int(self._minimum_free_length_fortran_array)
+
+    @minimum_free_length_fortran_array.setter
+    def minimum_free_length_fortran_array(self, val):
+        if val is None or val == 0:
+            val = 50
+        elif not isinstance(val, Number) or val <= 0:
+            self.stop()
+            raise ValueError("`minimum_free_length_fortran_array` has to be a "
+                             "strictly positive integer!")
+        self._minimum_free_length_fortran_array = int(val)
+
+    @property
+    def relative_length_fortran_array(self):
+        if self._relative_length_fortran_array == 0:
+            return None
+        else:
+            return int(self._relative_length_fortran_array)
+
+    @relative_length_fortran_array.setter
+    def relative_length_fortran_array(self, val):
+        if val is None:
+            val = 0
+        elif not isinstance(val, Number) or val <= 1:
+            self.stop()
+            raise ValueError("`relative_length_fortran_array` has to be a "
+                             "positive integer larger than 1!")
+        self._relative_length_fortran_array = int(val)
 
     @property
     def network_port(self):
@@ -81,9 +114,10 @@ class FlukaEngine(BaseEngine):
     def timeout_sec(self, val):
         if val is None:
             val = 36000
-        if not isinstance(Number) or val <= 60:
+        if not isinstance(val, Number) or val <= 60:
             self.stop()
-            raise ValueError("`timeout_sec` has to be an integer and larger than 60!")
+            raise ValueError("`timeout_sec` has to be a positive integer "
+                             "larger than 60!")
         self._timeout_sec = val
 
     @property
@@ -386,7 +420,7 @@ class FlukaEngine(BaseEngine):
             raise RuntimeError("FLUKA engine needs a working directory to init Fortran!")
         try:
             from pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level,
+            pyfluka_init(debug_level=fortran_debug_level,
                          cwd_path=self.cwd.as_posix())
         except (ModuleNotFoundError, ImportError) as error:
             self._warn(error)
@@ -495,9 +529,9 @@ class FlukaEngine(BaseEngine):
         else:
             # Check max particle ID limit to prevent FLUKA crash
             # line 169: /eos/project-f/flukafiles/fluka-coupling/fluka_coupling/fluka/mgdraw.f
-            if self.capacity >= 100_000:
+            if self.max_particle_id >= 100_000:
                 self.stop()
-                raise ValueError(f"max(particle_id) = {self.capacity:,}\n"
+                raise ValueError(f"max(particle_id) = {self.max_particle_id:,}\n"
                     "The MPPBUN FLUKA variable has a hardcoded limit of 100k.\n"
                     "This is related to the limit of impacts treated by FLUKA.\n"
                     "Aborting to prevent FLUKA crash.")

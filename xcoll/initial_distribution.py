@@ -31,11 +31,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     num_particles = int(num_particles)
     tt = line.get_table()
     if _capacity is None and len(tt.rows.match(
-            element_type='FlukaCollimator|FlukaCrystal')) > 0:
-        import xcoll as xc
-        _capacity = cap if (cap := xc.fluka.engine.capacity) else 5*num_particles
-    if _capacity is None and len(tt.rows.match(
-            element_type='Geant4Collimator|Geant4Crystal')) > 0:
+            element_type='Fluka.*|Geant4.*')) > 0:
         _capacity = 5*num_particles
 
     # Define the plane
