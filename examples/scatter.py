@@ -111,7 +111,7 @@ for idx in range(3):
 # Fluka
 # -----
 
-xc.fluka.engine.start(elements=fluka_coll, particle_ref=particle_ref, cwd='temp_scratch', capacity=capacity)
+xc.fluka.engine.start(elements=fluka_coll, particle_ref=particle_ref, cwd='temp_scratch')
 part_init = generate_particles(num_part, xc.fluka.engine.particle_ref, capacity)
 
 part_fluka = []

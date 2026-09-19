@@ -17,6 +17,69 @@ path = Path(__file__).parent / 'data'
 
 @pytest.mark.xcother
 @for_all_test_contexts
+@pytest.mark.parametrize('length', [0., 0.2, 1.2])
+@pytest.mark.parametrize('method', ['direct', 'black_absorbers', 'everest_collimators'])
+def test_install_device_placeholder(length, method, capsys, test_context):
+    # Use test_context from the beginning to fully test installation on
+    # the context, even though this is slow and not advised for real use.
+    line = xt.Line(elements={
+        'before': xt.Drift(length=2., _context=test_context),
+        'coll': xt.Device(length=length, _context=test_context),
+        'after': xt.Drift(length=2., _context=test_context),
+    })
+    aperture = xt.LimitEllipse(a=0.02, b=0.03, _context=test_context)
+    if method == 'direct':
+        line.xcoll.collimators.install(
+            'coll', xc.BlackAbsorber(length=0.6, _context=test_context),
+            apertures=aperture, need_apertures=True)
+    else:
+        colldb = xc.CollimatorDatabase(
+            collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC')},
+            nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+        getattr(colldb, f'install_{method}')(line, apertures=aperture)
+
+    expected_class = (xc.EverestCollimator if method == 'everest_collimators'
+                      else xc.BlackAbsorber)
+    assert isinstance(line['coll'], expected_class)
+    assert line['coll'].length == pytest.approx(0.6)
+    tt = line.get_table()
+    assert tt['s_center', 'coll'] == pytest.approx(2. + length / 2)
+    assert tt['s', 'coll_aper_upstream'] == pytest.approx(tt['s_start', 'coll'])
+    assert tt['s', 'coll_aper_downstream'] == pytest.approx(tt['s_end', 'coll'])
+    assert line.get_length() == pytest.approx(4. + length)
+    assert 'Removed active element' not in capsys.readouterr().out
+
+
+@pytest.mark.xcother
+@for_all_test_contexts
+@pytest.mark.parametrize('mode', [None, 'thin', 'thick'])
+def test_install_overlapping_devices(mode, capsys, test_context):
+    # Use test_context from the beginning to fully test installation on
+    # the context, even though this is slow and not advised for real use.
+    line = xt.Line(elements={
+        'before': xt.Drift(length=2., _context=test_context),
+        'instrument': xt.Device(length=0.25, _context=test_context),
+        'monitor': xt.Device(length=0.75, _context=test_context),
+        'after': xt.Drift(length=2., _context=test_context),
+    })
+    if mode is not None:
+        line.slice_thick_elements([xt.Strategy(
+            xt.Uniform(2, mode=mode), element_type=xt.Device)])
+
+    line.xcoll.collimators.install('coll', xc.BlackAbsorber(length=1., _context=test_context), at=2.)
+
+    tt = line.get_table()
+    assert tt['s_start', 'coll'] == pytest.approx(2.)
+    assert tt['s_end', 'coll'] == pytest.approx(3.)
+    assert tt['s_start', 'after'] == pytest.approx(3.)
+    assert line.get_length() == pytest.approx(5.)
+    assert not any(isinstance(ee, (xt.Device, xt.ThickSliceDevice))
+                   for ee in line.elements)
+    assert 'Removed active element' not in capsys.readouterr().out
+
+
+@pytest.mark.xcother
+@for_all_test_contexts
 @pytest.mark.parametrize("aper", [None, "auto", "single", "both",
                                   "single_ref_aper", "both_ref_aper"],
                          ids=["without_aper", "auto_aper", "single_aper",

@@ -34,7 +34,8 @@ def test_ions(engine):
             xc.fluka.engine.stop(clean=True)
         coll = xc.FlukaCollimator(length=length, jaw=jaw, material=material)
         xc.fluka.engine.particle_ref = particle_ref
-        xc.fluka.engine.start(elements=coll, seed=seed)
+        xc.fluka.engine.start(elements=coll, seed=seed,
+                              relative_length_fortran_array=10)
         part = xp.build_particles(x=np.ones(num_part)*2*coll.jaw_L,
                                   particle_ref=xc.fluka.engine.particle_ref,
                                   _capacity=10*num_part)

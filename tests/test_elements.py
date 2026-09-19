@@ -338,10 +338,10 @@ def test_black_crystal(test_context):
 @for_all_test_contexts
 def test_everest_block(test_context):
     # Test instantiation
-    elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreCarbon, _context=test_context)
+    elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreComposite, _context=test_context)
     assert np.isclose(elem.length, 1.3)
     assert elem._tracking == True
-    assert deep_equal(elem.material.to_dict(), xc.materials.CarbonFibreCarbon.to_dict())
+    assert deep_equal(elem.material.to_dict(), xc.materials.CarbonFibreComposite.to_dict())
     assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
     assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
     assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
@@ -359,7 +359,7 @@ def test_everest_block(test_context):
 @for_all_test_contexts
 def test_everest(test_context):
     # Test instantiation
-    elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreCarbon, _context=test_context)
+    elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreComposite, _context=test_context)
     _check_all_elements(elem, everest_fields, everest_dict_fields, everest_user_fields, \
                         everest_user_fields_read_only)
 
@@ -383,7 +383,7 @@ def test_fluka():
 @pytest.mark.fluka
 def test_fluka_generic():
     # Test instantiation
-    elem = xc.FlukaCollimator(length=1, material=xc.materials.CarbonFibreCarbon)
+    elem = xc.FlukaCollimator(length=1, material=xc.materials.CarbonFibreComposite)
     _check_all_elements(elem, fluka_fields, fluka_generic_dict_fields,
                         fluka_generic_user_fields, fluka_generic_user_fields_read_only)
 
@@ -398,7 +398,7 @@ def test_fluka_generic():
 @pytest.mark.geant4
 def test_geant4_generic():
     # Test instantiation
-    elem = xc.Geant4Collimator(length=1, material=xc.materials.CarbonFibreCarbon)
+    elem = xc.Geant4Collimator(length=1, material=xc.materials.CarbonFibreComposite)
     _check_all_elements(elem, geant4_fields, geant4_dict_fields,
                         geant4_user_fields, geant4_user_fields_read_only)
 
@@ -406,7 +406,7 @@ def test_geant4_generic():
 @pytest.mark.geant4
 def test_geant4_tip():
     # Test instantiation
-    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreCarbon,
+    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreComposite,
                                   tip_thickness=0.02, tip_material=xc.materials.Boron)
     _check_all_elements(elem, geant4_tip_fields, geant4_tip_dict_fields,
                         geant4_tip_user_fields, geant4_tip_user_fields_read_only)

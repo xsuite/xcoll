@@ -42,7 +42,7 @@ import xcoll as xc
 #     impacts = xc.InteractionRecord(names=[coll.name], elements=[coll])
 
 #     xc.fluka.engine.particle_ref = particle_ref
-#     xc.fluka.engine.start(elements=coll, capacity=capacity, verbose=True, touches=True)
+#     xc.fluka.engine.start(elements=coll, verbose=True, touches=True)
 #     particle_ref = xc.fluka.engine.particle_ref
 
 #     part_init, _, _ = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,

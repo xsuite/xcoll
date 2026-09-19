@@ -67,7 +67,7 @@ def test_positions(engine, jaw, angle, tilt, test_context):
                                   tilt=tilt,  material=material,
                                   _context=test_context)
         xc.fluka.engine.particle_ref = particle_ref
-        xc.fluka.engine.start(elements=coll, capacity=capacity, verbose=True)
+        xc.fluka.engine.start(elements=coll, verbose=True)
         particle_ref = xc.fluka.engine.particle_ref
 
     elif engine == "geant4":
@@ -129,6 +129,7 @@ def test_positions(engine, jaw, angle, tilt, test_context):
 # @retry()
 # def test_fluka_assemblies(assembly):
 #     num_part = 5_000
+#     capacity = 2*num_part
 #     length = 0.873
 #     jaw = jaws[1]
 #     particle_ref = xt.Particles('proton', p0c=6.8e12)
@@ -136,11 +137,11 @@ def test_positions(engine, jaw, angle, tilt, test_context):
 #         xc.fluka.engine.stop(clean=True)
 #     coll = xc.FlukaCollimator(length=length, jaw=jaw, assembly=assembly)
 #     xc.fluka.engine.particle_ref = particle_ref
-#     xc.fluka.engine.start(elements=coll, capacity=num_part*2, verbose=True)
+#     xc.fluka.engine.start(elements=coll, verbose=True)
 #     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
 #                                                 jaw_band=5e-9, angular_spread=1e-3, delta_spread=1e-3,
 #                                                 zeta_spread=5e-2, exact_drift=True, jaw_accuracy=1.e-9,
-#                                                 _capacity=xc.fluka.engine.capacity,
+#                                                 _capacity=capacity,
 #                                                 particle_ref=xc.fluka.engine.particle_ref)
 #     with flaky_assertions():
 #         part = part_init.copy()

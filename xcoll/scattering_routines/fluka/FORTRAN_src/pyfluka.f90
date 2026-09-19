@@ -1,20 +1,17 @@
-subroutine pyfluka_init(n_alloc, debug_level, cwd_path)
+subroutine pyfluka_init(debug_level, cwd_path)
     use mod_fluka
     !, only : fluka_enable, fluka_mod_init
     use physical_constants, only : clight
     use mod_units, only : units_path
 
     implicit none
-    integer, intent(in)    :: n_alloc
     integer, intent(in)    :: debug_level
     character(len=255), intent(in) :: cwd_path
 
-    ! NB: In SixTrack, npart was passed, not n_alloc.
-    ! (Needed for e.g. avoiding to re-compile?)
     units_path = cwd_path
     fluka_debug_level  = debug_level
 
-    call fluka_mod_init(n_alloc, 500, clight)
+    call fluka_mod_init(clight)
     fluka_enable = .true.
 end subroutine
 
@@ -158,7 +155,7 @@ end subroutine
 
 subroutine track_fluka(turn, fluka_id, length, alive_part, max_part, x_part, xp_part, y_part, yp_part, &
                        zeta_part, e_part, m_part, q_part, A_part, Z_part, pdg_id_part, part_id, parent_id, &
-                       part_weight, spin_x_part, spin_y_part, spin_z_part)
+                       part_weight, spin_x_part, spin_y_part, spin_z_part, ret_code)
 
     use floatPrecision
     use numerical_constants, only : zero, one, c1e3, c1m3
@@ -194,20 +191,21 @@ subroutine track_fluka(turn, fluka_id, length, alive_part, max_part, x_part, xp_
     real(kind=8),    intent(inout) :: spin_y_part(max_part)  ! spin_y  ! y component of the particle spin
     real(kind=8),    intent(inout) :: spin_z_part(max_part)  ! spin_z  ! z component of the particle spin
 
-    integer ret
+    integer(kind=4), intent(out)   :: ret_code ! status code propagated from fluka_send_receive
 
     npart = max_part
     napx = alive_part
 
-    ret = fluka_send_receive(turn, fluka_id, length, alive_part, max_part, x_part, y_part, xp_part, yp_part, &
+    ret_code = fluka_send_receive(turn, fluka_id, length, alive_part, max_part, x_part, y_part, xp_part, yp_part, &
                            zeta_part, e_part, A_part, Z_part, m_part, q_part, pdg_id_part, &
                            part_id, parent_id, part_weight, spin_x_part, spin_y_part, spin_z_part )
     napx = alive_part
 
-    if (ret.lt.0) then
-        write(lout,*) 'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
+    if (ret_code.lt.0) then
+        write(lout,*) 'FLUKA> ERROR ', ret_code, ' in Fluka communication returned by fluka_send_receive...'
         write(lout,*) 'ENDED WITH ERROR.'
         flush(lout)
+        alive_part = 0 ! kill all particles if FLUKA failed
     end if
 
     return

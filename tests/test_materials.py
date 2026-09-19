@@ -745,9 +745,9 @@ def test_db(test_context):
     assert this_mat not in mdb.values()
     assert this_mat not in mdb.fluka.values()
     assert this_mat not in mdb.geant4.values()
-    assert xc.materials.CarbonFibreCarbon in mdb.values()
-    assert xc.materials.CarbonFibreCarbon in mdb.fluka.values()
-    assert xc.materials.CarbonFibreCarbon not in mdb.geant4.values()
+    assert xc.materials.CarbonFibreComposite in mdb.values()
+    assert xc.materials.CarbonFibreComposite in mdb.fluka.values()
+    assert xc.materials.CarbonFibreComposite not in mdb.geant4.values()
 
     this_mat_fluka  = Material(name='Yawa_FLUKA', A=1.84, Z=74,
                                density=19.25, fluka_name='Yawa',

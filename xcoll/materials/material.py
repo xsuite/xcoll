@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 import scipy.constants as sc
 from collections import defaultdict
 
@@ -1257,10 +1258,10 @@ def _resolve_material(material, allow_none=None, ref=None,
     if everest_crystal and not material.full_everest_crystal_supported:
         raise ValueError(f"Material {material.name} does not have full Everest crystal support!")
     if material.name == 'Carbon':
-        print("Warning: Material 'Carbon' is just the element without full "
+        warn("Warning: Material 'Carbon' is just the element without full "
               "Everest support. If you want to use the full Carbon material "
               "with scattering (the old K2 material), please use "
-              "'CarbonFibreCarbon' instead.")
+              "'CarbonFibreComposite' instead.", FutureWarning)
     # When the consuming element lives on a non-default (e.g. GPU) context, the
     # MaterialData must live there too, otherwise the device kernel reads host
     # memory. Land a context-local copy (no-op if already in `_context`).

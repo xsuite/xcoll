@@ -25,11 +25,12 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 @retry()
 def test_hierarchy(engine):
     if engine == "fluka":
-        if xc.fluka.engine.is_running():
-            xc.fluka.engine.stop(clean=True)
+        xc_engine = xc.fluka.engine
     elif engine == "geant4":
-        if xc.geant4.engine.is_running():
-            xc.geant4.engine.stop(clean=True)
+        xc_engine = xc.geant4.engine
+    if xc_engine.is_running():
+        xc_engine.stop(clean=True)
+
     length = 1.2
     num_slices = 2000
     jaw = 0.001
@@ -45,22 +46,15 @@ def test_hierarchy(engine):
 
     if engine == "fluka":
         coll = xc.FlukaCollimator(length=length/num_slices, jaw=jaw, material=material)
-        xc.fluka.engine.particle_ref = particle_ref
-        xc.fluka.engine.start(elements=coll, seed=seed)
-        xc.fluka.engine.return_all = True
-        xc.fluka.engine.capacity = capacity
-        part_init = xp.build_particles(x=coords[:,0], y=coords[:,1],
-                                       particle_ref=xc.fluka.engine.particle_ref,
-                                       _capacity=xc.fluka.engine.capacity)
-
     elif engine == "geant4":
         coll = xc.Geant4Collimator(length=length/num_slices, jaw=jaw, material=material)
-        xc.geant4.engine.particle_ref = particle_ref
-        xc.geant4.engine.start(elements=coll, seed=seed)
-        xc.geant4.engine.return_all = True
-        part_init = xp.build_particles(x=coords[:,0], y=coords[:,1],
-                                       particle_ref=xc.geant4.engine.particle_ref,
-                                       _capacity=capacity)
+
+    xc_engine.particle_ref = particle_ref
+    xc_engine.start(elements=coll, seed=seed)
+    xc_engine.return_all = True
+    part_init = xp.build_particles(x=coords[:,0], y=coords[:,1],
+                                   particle_ref=xc_engine.particle_ref,
+                                   _capacity=capacity)
 
     parents = part_init.particle_id[part_init.state==1]
     part = part_init.copy()
@@ -73,10 +67,7 @@ def test_hierarchy(engine):
     print(f"Time per track: {(time.time()-t_start)/num_slices*1e3:.2f}ms for "
         + f"{len(part_init.x)} protons through {coll.length/1000:.2f}mm")
 
-    if engine == "fluka":
-        xc.fluka.engine.stop(clean=True)
-    elif engine == "geant4":
-        xc.geant4.engine.stop(clean=True)
+    xc_engine.stop(clean=True)
 
     mask_child = part.particle_id > parents.max()
     child_id   = part.particle_id[mask_child]
@@ -118,7 +109,7 @@ def test_hierarchy(engine):
         assert (distance <= grid_sep/2).sum() / len(distance) > 0.90    # Allow only 10% of children to leave the grid cell
         assert (distance <= grid_sep).sum() / len(distance) > 0.95      # Allow only 5% of children to leave two grid cells
         assert (distance <= 1.5*grid_sep).sum() / len(distance) > 0.98  # Allow only 2% of children to leave three grid cells
-        assert (distance <= 2*grid_sep).sum() / len(distance) > 0.99  # Allow only 1% of children to leave four grid cells
+        assert (distance <= 2*grid_sep).sum() / len(distance) > 0.99    # Allow only 1% of children to leave four grid cells
 
 
 # TODO
@@ -129,7 +120,7 @@ def test_hierarchy(engine):
 #     raise NotImplementedError("Need to implement test for child particle ids with DONADON collimator")
 #     coll = xc.FlukaCollimator(length=0.0001, assembly='donadon', jaw=0)
 #     xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='electron', p0c=200e9)
-#     xc.fluka.engine.capacity = 100_000
+#     xc.fluka.engine.minimum_free_length_fortran_array = 100_000
 #     xc.fluka.engine.seed = 7856231
 #     xc.fluka.engine.start(elements=coll, clean=False, verbose=True)
 #     x_init, y_init = np.array(np.meshgrid(np.linspace(-0.01, 0.01, 21), np.linspace(-0.01, 0.01, 21))).reshape(2,-1)
@@ -137,7 +128,7 @@ def test_hierarchy(engine):
 #     py_init = 0
 #     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
 #                                    particle_ref=xc.fluka.engine.particle_ref,
-#                                    _capacity=xc.fluka.engine.capacity)
+#                                    _capacity=xc.fluka.engine.minimum_free_length_fortran_array)
 
 #     part = part_init.copy()
 #     xc.fluka.engine.stop(clean=True)
