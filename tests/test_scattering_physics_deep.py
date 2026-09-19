@@ -20,12 +20,15 @@ from _common_api import old_bdsim, engine_params
 
 @pytest.mark.fluka
 def test_ionisation_loss():
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
+
     num_part = 20_000
+    capacity = 2*num_part
     mat = xc.materials.db['MG6403Fc']
     coll = xc.FlukaCollimator(length=0.6, angle=0, jaw=0.001, material=mat)
     particle_ref = xt.Particles('proton', p0c=6.8e12)
     xc.fluka.engine.particle_ref = particle_ref
-    xc.fluka.engine.capacity = 2*num_part
     xc.fluka.engine.include_elastic = False
     xc.fluka.engine.include_inelastic = False
     xc.fluka.engine.include_showers = False
@@ -38,7 +41,7 @@ def test_ionisation_loss():
         y=np.random.uniform(-1e-6, 1e-6, num_part),
         py=np.random.uniform(-1e-6, 1e-6, num_part),
         particle_ref=xc.fluka.engine.particle_ref,
-        _capacity=xc.fluka.engine.capacity
+        _capacity=capacity
     )
 
     # Ionisation parameters: analytic expressions to test against
@@ -147,18 +150,23 @@ def test_ionisation_loss():
                             [True,  True]
                          ], ids=["default", "mark", "impacts", "impacts_mark"])
 def test_deep_physics_check(engine, log_impacts, mark_scattered_particles, running_with_xdist):
+    if engine == 'fluka':
+        xc_engine = xc.fluka.engine
+    elif engine == 'geant4':
+        xc_engine = xc.geant4.engine
+    if xc_engine.is_running():
+        xc_engine.stop(clean=True)
+
     num_part = 24_000      # When this is changed, need to re-generate input distribution (rm data/{engine}_part_init.json)
     capacity = 4*num_part  # When this is changed, need to re-generate input distribution
     particle_ref = xt.Particles('proton', p0c=6.8e12)
 
     # Prepare collimators, engine, and initial particles
     if engine == 'fluka':
-        xc_engine = xc.fluka.engine
         coll_has_flanges = True
         coll1 = xc.FlukaCollimator(length=0.6, angle=0,   jaw=0.001,  assembly='hilumi_tcppm')
         coll2 = xc.FlukaCollimator(length=0.6, angle=123, jaw=0.0005, assembly='hilumi_tcppm')
     elif engine == 'geant4':
-        xc_engine = xc.geant4.engine
         coll_has_flanges = False
         coll1 = xc.Geant4Collimator(length=0.6, angle=0,   jaw=0.001,  material='MG6403Fc')
         coll2 = xc.Geant4Collimator(length=0.6, angle=123, jaw=0.0005, material='MG6403Fc')
@@ -170,8 +178,6 @@ def test_deep_physics_check(engine, log_impacts, mark_scattered_particles, runni
         coll2.mark_scattered_particles = False
 
     xc_engine.particle_ref = particle_ref
-    if engine == 'fluka':
-        xc_engine.capacity = capacity
     xc_engine.seed = 453532
     xc_engine.reset_physics_settings()
     xc_engine.return_baryons = True   # To get some massless particles as well
@@ -605,7 +611,8 @@ def _create_masked_particles(num_part, capacity, engine, coll_has_flanges):
             y=np.linspace(-1e-6, 1e-6, step_size*num_steps),
             py=np.linspace(-1e-7, 1e-7, step_size*num_steps),
             particle_ref=xc_engine.particle_ref,
-            _capacity=capacity)
+            _capacity=capacity
+        )
         part.state[mask_sec] = xcc.SECONDARY_PARTICLE  # Mark secondary particles in initial distribution
         xc.json.json_dump(part.to_dict(), init_file)
 

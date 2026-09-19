@@ -283,8 +283,7 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
         coll = xc.FlukaCollimator(length=0.4, material='MoGr')
         coll.jaw = 0.002
         xc.fluka.engine.particle_ref = particle_ref
-        xc.fluka.engine.capacity = capacity
-        xc.fluka.engine.relative_capacity = 20
+        xc.fluka.engine.relative_length_fortran_array = 20
         if return_type is not None:
             xc.fluka.engine.return_none = True
             setattr(xc.fluka.engine, f'return_{return_type}', True)

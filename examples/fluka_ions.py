@@ -23,7 +23,6 @@ coll = xc.FlukaCollimator(length=0.05, material='mogr', jaw=0.001)
 xc.fluka.engine.particle_ref = particle_ref
 # xc.fluka.engine.return_none = True
 # xc.fluka.engine.return_ions = True
-xc.fluka.engine.capacity = capacity
 xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -34,7 +33,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                 particle_ref=xc.fluka.engine.particle_ref,
-                                _capacity=xc.fluka.engine.capacity)
+                                _capacity=capacity)
 part = part_init.copy()
 
 # Do the tracking in FLUKA

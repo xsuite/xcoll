@@ -86,8 +86,8 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
     coll_dummy = xc.FlukaCollimator(assembly="lhc_ippipe", length=0.6, jaw=0.001)
 
     xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id=pdg_id_b1, p0c=p0c_b1)
-    xc.fluka.engine.capacity = _capacity
-    xc.fluka.engine.relative_capacity = 200 if ions else 20
+    xc.fluka.engine.minimum_free_length_fortran_array = _capacity
+    xc.fluka.engine.relative_length_fortran_array = 200 if ions else 20
 
     # xc.fluka.engine.seed = 5656565
     xc.fluka.engine.start(elements=coll_dummy, clean=False , verbose=True, include_showers=False, return_ions=True, bb_int=bb_int, touches=False)
@@ -112,7 +112,7 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
                             at_element=ip,
                             match_at_s=line.get_s_position(ip),
                             particle_ref=xc.fluka.engine.particle_ref,
-                            _capacity=xc.fluka.engine.capacity,
+                            _capacity=_capacity,
     mode="normalized_transverse")
     part = part_init.copy()
 

@@ -57,10 +57,10 @@ line.xcoll.collimators.align_to_beam_divergence()
 
 # Connect to FLUKA
 xc.fluka.engine.particle_ref = particle_ref
-xc.fluka.engine.capacity = capacity
-xc.fluka.engine.relative_capacity = relative_capacity
+xc.fluka.engine.minimum_free_length_fortran_array = 500
+xc.fluka.engine.relative_length_fortran_array = relative_capacity
 xc.fluka.engine.seed = 5656565
-xc.fluka.engine.start(line=line, capacity=xc.fluka.engine.capacity, cwd='run_fluka_temp', clean=False, verbose=True, return_ions=True)
+xc.fluka.engine.start(line=line, cwd='run_fluka_temp', clean=False, verbose=True, return_ions=True)
 
 
 # # Generate initial pencil distribution on crystal
@@ -73,7 +73,7 @@ part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
             nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
             at_element=tcpc, particle_ref=xc.fluka.engine.particle_ref,
-            _capacity=xc.fluka.engine.capacity)
+            _capacity=capacity)
 
 
 # Move the line to an OpenMP context to be able to use all cores
