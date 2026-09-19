@@ -103,7 +103,7 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
     active       *= FlukaCollimatorData_get__tracking(el);
     double const length = FlukaCollimatorData_get_length(el);
     double const length_front = FlukaCollimatorData_get_length_front(el);
-    double const length_back = FlukaCollimatorData_length_back(el);
+    double const length_back = FlukaCollimatorData_get_length_back(el);
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
