@@ -15,5 +15,5 @@ citation = "F.F. Van der Veken, et al.: Recent Developments with the New Tools f
 # ======================
 # Do not change
 # ======================
-__version__ = '0.12.3'
+__version__ = '0.12.4rc0'
 # ======================
