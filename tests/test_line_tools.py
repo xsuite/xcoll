@@ -25,8 +25,10 @@ def test_line_api_facade():
 @for_all_test_contexts
 @pytest.mark.parametrize('beam', [1, 2])
 def test_line_accessor(beam, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
-                  _context=test_context)
+    # Structural edits on a full LHC line are intentionally performed on CPU.
+    # Repeated insertion into a 100k-element device buffer is prohibitively
+    # expensive and is not representative of the supported workflow.
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     assert str(line.xcoll.collimators) == ''
@@ -63,6 +65,11 @@ def test_line_accessor(beam, test_context):
         assert len(line.xcoll.collimators['tcsg7']) == 15
     assert len(line.xcoll.collimators['tcla7']) == 5
     assert len(line.xcoll.collimators['tct8']) == 2
+
+    # Move the completed line without compiling a tracking kernel. This keeps
+    # the accessor/property checks context-dependent while avoiding a full LHC
+    # kernel compilation in a test that never tracks.
+    line.build_tracker(_context=test_context, compile=False)
     for plane in ['d', 'c', 'b']:
         tcp = f"tcp.{plane}6{'l' if beam==1 else 'r'}7.b{beam}"
         assert tcp in line.xcoll.collimators

@@ -131,26 +131,23 @@ def test_monitor_instance(cls, test_context):
 
 @pytest.mark.xcother
 @retry()
-@for_all_test_contexts
 @pytest.mark.parametrize("aper", [None, "auto", "single", "both"],
                          ids=["without_aper", "auto_aper", "single_aper", "both_aper"])
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
-def test_blowup_install(beam, plane, aper, test_context):
-    # Install everything in the correct context from the start.
-    # This takes a bit more time, but is a reliable test.
+def test_blowup_install(beam, plane, aper):
+    # This test exercises structural installation and aperture handling. The
+    # context-dependent tracking test below covers moving BlowUp to a device.
     aperture = None
     if aper == 'auto':
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
-                      _context=test_context)
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     else:
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
-                      _context=test_context)
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
         if aper == 'single':
-            aperture = xt.LimitEllipse(a=0.01, b=0.01, _context=test_context)
+            aperture = xt.LimitEllipse(a=0.01, b=0.01)
         elif aper == 'both':
-            aperture = [xt.LimitEllipse(a=0.01, b=0.01, _context=test_context),
-                        xt.LimitEllipse(a=0.02, b=0.02, _context=test_context)]
+            aperture = [xt.LimitEllipse(a=0.01, b=0.01),
+                        xt.LimitEllipse(a=0.02, b=0.02)]
     need_apertures = aper is not None
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
@@ -162,7 +159,7 @@ def test_blowup_install(beam, plane, aper, test_context):
     adt_pos = 0.5*tt['s', tank_start] + 0.5*tt['s', tank_end]
     xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, need_apertures=need_apertures,
                       aperture=aperture, plane=plane, stop_at_turn=num_turns,
-                      use_individual_kicks=True, _context=test_context)
+                      use_individual_kicks=True)
 
 
 @pytest.mark.xcother

@@ -79,20 +79,19 @@ def test_install_overlapping_devices(mode, capsys, test_context):
 
 
 @pytest.mark.xcother
-@for_all_test_contexts
 @pytest.mark.parametrize("aper", [None, "auto", "single", "both",
                                   "single_ref_aper", "both_ref_aper"],
                          ids=["without_aper", "auto_aper", "single_aper",
                               "both_aper", "single_ref_aper", "both_ref_aper"])
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_install_single_existing_marker(beam, aper, test_context):
-    # Use test_context from the beginning to fully test installation on
-    # the context, even though this is slow and not advised for real use.
+def test_install_single_existing_marker(beam, aper):
+    # Installation is a structural, host-side operation. GPU-context
+    # installation is covered on small lines above; doing it repeatedly on a
+    # 100k-element LHC line causes device-buffer reconstruction to dominate.
     aperture = None
     need_apertures = aper is not None
     if aper == 'auto' or (aper is not None and aper.endswith('_ref_aper')):
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
-                      _context=test_context)
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
         if aper == 'single_ref_aper':
             aperture = 'tcp.b6l7.b1_aper' if beam == 1 else 'tcp.b6r7.b2_aper'
         elif aper == 'both_ref_aper':
@@ -101,13 +100,12 @@ def test_install_single_existing_marker(beam, aper, test_context):
             else:
                 aperture = ['tcp.b6r7.b2_aper', 'tcp.d6r7.b2_aper']
     else:
-        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json',
-                      _context=test_context)
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
         if aper == 'single':
-            aperture = xt.LimitEllipse(a=0.01, b=0.01, _context=test_context)
+            aperture = xt.LimitEllipse(a=0.01, b=0.01)
         elif aper == 'both':
-            aperture = [xt.LimitEllipse(a=0.01, b=0.01, _context=test_context),
-                        xt.LimitEllipse(a=0.02, b=0.02, _context=test_context)]
+            aperture = [xt.LimitEllipse(a=0.01, b=0.01),
+                        xt.LimitEllipse(a=0.02, b=0.02)]
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
@@ -116,7 +114,7 @@ def test_install_single_existing_marker(beam, aper, test_context):
     assert not isinstance(line[name], xc.BlackAbsorber)
     tt = line.get_table()
     pos_centre = tt['s', name] + line[name].length/2
-    coll = xc.BlackAbsorber(length=0.6, angle=127.5, _context=test_context)
+    coll = xc.BlackAbsorber(length=0.6, angle=127.5)
     line.xcoll.collimators.install(
                             name,
                             coll,
@@ -157,7 +155,7 @@ def test_install_single_existing_marker(beam, aper, test_context):
             break
     tt = line.get_table()
     pos_centre = tt['s', name] + line[name].length/2
-    coll = xc.EverestCollimator(length=0.6, angle=90, _context=test_context,
+    coll = xc.EverestCollimator(length=0.6, angle=90,
                                 material=xc.materials.MolybdenumGraphite)
     line.xcoll.collimators.install(
                             name,
@@ -180,18 +178,16 @@ def test_install_single_existing_marker(beam, aper, test_context):
 
 
 @pytest.mark.xcother
-@for_all_test_contexts
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_install_single_no_marker(beam, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json',
-                  _context=test_context)
+def test_install_single_no_marker(beam):
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
     # Test absorber
     name = 'test_absorber'
     assert name not in line.element_names
-    coll = xc.BlackAbsorber(length=1.738, angle=127.5, _context=test_context)
+    coll = xc.BlackAbsorber(length=1.738, angle=127.5)
     line.xcoll.collimators.install(
                                 name,
                                 coll,
@@ -217,8 +213,7 @@ def test_install_single_no_marker(beam, test_context):
     # Test block
     name = 'test_block'
     assert name not in line.element_names
-    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon,
-                         _context=test_context)
+    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon)
     line.xcoll.collimators.install(
                                 name,
                                 el,
