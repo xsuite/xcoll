@@ -632,14 +632,23 @@ class LossMap:
         if len(part.s[part.state==0]) > 0:
             if verbose:
                 print("Performing the aperture losses refinement.")
+
+            # Xtrack's LossLocationRefinement is CPU-only. Particles are
+            # already copied to CPU in add_particles; use a CPU copy of the
+            # line as well when the tracked line lives on an accelerator.
+            refinement_line = line
+            if not isinstance(line._context, xo.ContextCpu):
+                refinement_line = line.copy(_context=xo.ContextCpu())
+                refinement_line.build_tracker()
+
             time_dependent_was_enabled = False
-            if line.enable_time_dependent_vars:
-                line.enable_time_dependent_vars = False
+            if refinement_line.enable_time_dependent_vars:
+                refinement_line.enable_time_dependent_vars = False
                 if verbose:
                     print("Temporarily disabled time-dependent variables in the line for loss location refinement.")
                 time_dependent_was_enabled = True
             loss_loc_refinement = xt.LossLocationRefinement(
-                line,
+                refinement_line,
                 n_theta = 360,            # Angular resolution
                 r_max = 0.5,              # Maximum transverse aperture [m]
                 dr = 50e-6,               # Transverse accuracy [m]
@@ -647,7 +656,7 @@ class LossMap:
             )
             loss_loc_refinement.refine_loss_location(part)
             if time_dependent_was_enabled:
-                line.enable_time_dependent_vars = True
+                refinement_line.enable_time_dependent_vars = True
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
