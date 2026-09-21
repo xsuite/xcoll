@@ -38,7 +38,10 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
                                                    beam=beam)
 
     colldb.install_everest_collimators(line=line)
-    line.build_tracker(_context=test_context)
+    # The line is only needed for optics and particle construction in this
+    # test. Keep the large LHC line on CPU; only the generated particles need
+    # to exercise the requested context.
+    line.build_tracker()
     line.xcoll.collimators.assign_optics()
 
     tw = line.twiss()
@@ -121,13 +124,14 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         # assert p > 0.05
         pass     #  TODO: temporary hack; need to understand but distribution looks fine (though a bit shifted)
     elif longitudinal == 'bucket':
-        count,_ = np.histogram(part_conv.delta, bins=50)
+        delta = test_context.nparray_from_context_array(part_conv.delta)
+        count,_ = np.histogram(delta, bins=50)
         _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
         assert p > 0.05
 
     # Vertical collimator (diverging beam) ---------------------------------------------
     coll_div = line[tcp_div]
-    drift = xt.Drift(length=coll_div.length)
+    drift = xt.Drift(length=coll_div.length, _context=test_context)
     drift.track(part_div)
     mask_div_L = part_div.y > 0
     mask_div_R = part_div.y < 0
@@ -168,6 +172,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         # assert p > 0.05
         pass     #  TODO: temporary hack; need to understand but distribution looks fine (though a bit shifted)
     elif longitudinal == 'bucket':
-        count,_ = np.histogram(part_div.delta, bins=50)
+        delta = test_context.nparray_from_context_array(part_div.delta)
+        count,_ = np.histogram(delta, bins=50)
         _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
         assert p > 0.05

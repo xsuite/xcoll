@@ -36,15 +36,15 @@ def test_transfer_line(test_context):
     line.xcoll.scattering.enable()   # Re-enable scattering
     line.track(part)
     tt_mon = line.get_table().rows.match(element_type='EmittanceMonitor')
-    xnp = test_context.nplike_lib
-    nemitt_x = xnp.array([line[name].nemitt_x for name in tt_mon.name])
-    nemitt_y = xnp.array([line[name].nemitt_y for name in tt_mon.name])
-    assert xnp.allclose(nemitt_x[0:2],  7.65e-6, atol=1e-7)
-    assert xnp.allclose(nemitt_x[2:4], 10.75e-6, atol=1e-7)
-    assert xnp.allclose(nemitt_x[4:6], 15.68e-6, atol=1e-7)
-    assert xnp.allclose(nemitt_y[0:2],  3.53e-6, atol=1e-7)
-    assert xnp.allclose(nemitt_y[2:4],  6.54e-6, atol=1e-7)
-    assert xnp.allclose(nemitt_y[4:6], 10.87e-6, atol=1e-7)
+    nparray = test_context.nparray_from_context_array
+    nemitt_x = np.array([nparray(line[name].nemitt_x) for name in tt_mon.name])
+    nemitt_y = np.array([nparray(line[name].nemitt_y) for name in tt_mon.name])
+    assert np.allclose(nemitt_x[0:2],  7.65e-6, atol=1e-7)
+    assert np.allclose(nemitt_x[2:4], 10.75e-6, atol=1e-7)
+    assert np.allclose(nemitt_x[4:6], 15.68e-6, atol=1e-7)
+    assert np.allclose(nemitt_y[0:2],  3.53e-6, atol=1e-7)
+    assert np.allclose(nemitt_y[2:4],  6.54e-6, atol=1e-7)
+    assert np.allclose(nemitt_y[4:6], 10.87e-6, atol=1e-7)
 
 
 def _create_transfer_line():

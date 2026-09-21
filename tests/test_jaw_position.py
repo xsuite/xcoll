@@ -113,6 +113,13 @@ def test_positions(engine, jaw, angle, tilt, test_context):
     elif engine == "geant4":
         xc.geant4.engine.stop(clean=True)
 
+    # The validation helpers use NumPy and Python sets. Move the tracked data
+    # back once instead of mixing host masks with device arrays or triggering
+    # many implicit device-to-host conversions.
+    if not isinstance(test_context, xo.ContextCpu):
+        part_init.move(_context=xo.ContextCpu())
+        part.move(_context=xo.ContextCpu())
+
     # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     with flaky_assertions():
         _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
@@ -223,8 +230,11 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None,
     mask  = (x + px/pz*coll.jaw_s_LU >= coll.jaw_LU) | (x + px/pz*coll.jaw_s_LD >= coll.jaw_LD)
     mask |= (x + px/pz*coll.jaw_s_RU <= coll.jaw_RU) | (x + px/pz*coll.jaw_s_RD <= coll.jaw_RD)
     mask = np.concatenate([mask, np.full(_capacity-num_part, False)])
-    expected_hit_ids = part_init.particle_id[mask & (part_init.state > 0)]
-    expected_not_hit_ids = part_init.particle_id[~mask & (part_init.state > 0)]
+    context = part_init._context
+    particle_id = context.nparray_from_context_array(part_init.particle_id)
+    state = context.nparray_from_context_array(part_init.state)
+    expected_hit_ids = particle_id[mask & (state > 0)]
+    expected_not_hit_ids = particle_id[~mask & (state > 0)]
 
     return part_init, expected_hit_ids, expected_not_hit_ids
 
