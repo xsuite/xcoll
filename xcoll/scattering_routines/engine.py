@@ -786,16 +786,20 @@ class BaseEngine(xo.HybridClass):
             mask_new = np.zeros_like(pdg_id, dtype=bool)
 
         # General categories
-        mask_new[(pdg_id > 1000000000) | (pdg_id < -1000000000)] = self.return_ions
+        is_ion = np.abs(pdg_id) > 1000000000
+        mask_new[is_ion] = self.return_ions
+
         # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
-        mask_new[(pdg_id > 0) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
-                              & (pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
-        mask_new[(pdg_id < 0) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
-                              & (-pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
+        # restrict to |pdg_id| < 1e9 to not clash with ions
+        mask_new[~is_ion & (pdg_id > 0) & (pdg_id // 10 % 10 != 0)
+                         & (pdg_id // 100 % 10 != 0) & (pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
+        mask_new[~is_ion & (pdg_id < 0) & (-pdg_id // 10 % 10 != 0)
+                         & (-pdg_id // 100 % 10 != 0) & (-pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
+
         # PDG ID of baryons: from XXX. where X != 0 and . is any digit
-        mask_new[(pdg_id > 1000) & (pdg_id < 9000) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
+        mask_new[~is_ion & (pdg_id > 1000) & (pdg_id < 9000) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
                                  & (pdg_id // 1000 % 10 != 0)] = self.return_other_baryons    # PDG ID of from XX0X is a diquark
-        mask_new[(pdg_id < -1000) & (pdg_id > -9000) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
+        mask_new[~is_ion & (pdg_id < -1000) & (pdg_id > -9000) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
                                   & (-pdg_id // 1000 % 10 != 0)] = self.return_other_baryons
 
         if not self.return_neutral:
