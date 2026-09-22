@@ -1,20 +1,17 @@
-subroutine pyfluka_init(n_alloc, debug_level, cwd_path)
+subroutine pyfluka_init(debug_level, cwd_path)
     use mod_fluka
     !, only : fluka_enable, fluka_mod_init
     use physical_constants, only : clight
     use mod_units, only : units_path
 
     implicit none
-    integer, intent(in)    :: n_alloc
     integer, intent(in)    :: debug_level
     character(len=255), intent(in) :: cwd_path
 
-    ! NB: In SixTrack, npart was passed, not n_alloc.
-    ! (Needed for e.g. avoiding to re-compile?)
     units_path = cwd_path
     fluka_debug_level  = debug_level
 
-    call fluka_mod_init(n_alloc, 500, clight)
+    call fluka_mod_init(clight)
     fluka_enable = .true.
 end subroutine
 

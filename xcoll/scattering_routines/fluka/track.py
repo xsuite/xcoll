@@ -28,13 +28,6 @@ def track_pre(coll, particles):
                        + f"(id: {id(xc.fluka.engine)})")
 
     npart = particles._num_active_particles
-    if 1.4*npart > xc.fluka.engine.capacity:
-        raise ValueError(f"Tracking {npart} particles but only {xc.fluka.engine.capacity} allocated in "
-                       + f"FlukaEngine!\nRemember to leave room for secondaries...")
-    if xc.fluka.engine.relative_capacity == 2 and xc.fluka.engine.particle_ref.pdg_id[0] != 2212:
-        xc.fluka.engine._print("Warning: relative_capacity is set to 2. This is "
-                             + "probably not enough for anything except protons.")
-
     xc.fluka.engine.init_tracking(npart+particles._num_lost_particles)
 
     if particles.particle_id.max() > xc.fluka.engine.max_particle_id:
@@ -100,13 +93,15 @@ def track_core(coll, part):
     precision  = p0c * 1.e-12  # To avoid numerical issues like negative energy. Ideally this should be 2.22e-15
 
     # Decide how much extra capacity to send to FLUKA
-    min_capacity = 50
-    available_capacity = xc.fluka.engine.capacity - max_id - 1
-    if available_capacity < min_capacity:
-        raise ValueError("Not enough capacity in particles to accomodate secondaries.")
-    available_capacity = min(int(np.ceil((xc.fluka.engine.relative_capacity - 1)*npart)),
-                         available_capacity)
-    available_capacity = max(available_capacity, min_capacity) # Some minimum value to be safe
+    min_capacity = xc.fluka.engine.minimum_free_length_fortran_array
+    relative_capacity = xc.fluka.engine.relative_length_fortran_array
+    if relative_capacity is None:
+        if xc.fluka.engine.particle_ref.pdg_id[0] == 2212:
+            relative_capacity = 2
+        else:
+            relative_capacity = 5
+    available_capacity = int(np.ceil((relative_capacity - 1)*npart))
+    available_capacity = max(available_capacity, min_capacity)
 
     # Prepare arrays for FORTRAN
     data = {}
@@ -170,7 +165,8 @@ def track_core(coll, part):
                 spin_z_part=data['spin_z']
     )
     if ret_code < 0:
-        raise RuntimeError(f'FLUKA tracking failed with error code: {ret_code}. Aborting tracking')
+        raise RuntimeError(f'FLUKA tracking (running in {xc.fluka.engine.cwd}) '
+                           f'failed with error code: {ret_code}. Aborting tracking')
 
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...

@@ -98,7 +98,7 @@ def test_reload_bdsim(test_context):
 )
 def test_black_absorbers(test_context):
     n_part = 10_000
-    _capacity = n_part*4
+    _capacity = n_part*8
     angles = [0,45,90]
     angles = [0]
     jaws = np.array([0.03, -0.02])
@@ -128,7 +128,7 @@ def test_black_absorbers(test_context):
     py = np.random.uniform(-1e-3, 1e-3, n_part)
     part_init = xp.build_particles(x=x, y=y, px=px, py=py, _context=test_context,
                               particle_ref=xc.geant4.engine.particle_ref,
-                              _capacity=2*_capacity)
+                              _capacity=_capacity)
     part = part_init.copy()
     part_ba = part_init.copy()
 

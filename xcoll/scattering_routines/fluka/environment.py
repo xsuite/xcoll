@@ -44,6 +44,7 @@ class FlukaInterface(BaseInterface):
         except (ModuleNotFoundError, ImportError):
             return False
 
+
     def compile(self, flukaio_lib=None, flukaio_path=None, verbose=False):
         # Check all dependencies
         self.assert_installed('make', verbose=verbose)
@@ -80,16 +81,48 @@ class FlukaInterface(BaseInterface):
             else:
                 stderr = cmd.stderr.decode('UTF-8').strip()
                 os.chdir(cwd)
-                raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
+                raise RuntimeError(f"Failed to compile FlukaIO!\nError given "
+                                   f"is:\n{stderr}")
             flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
+            try:
+                flukaio_lib = [
+                    fff #for ext in ['a', 'so', 'dylib', 'so.*']
+                    for ll in ['lib', 'll']
+                    for bb in ['64', '']
+                    for fff in (dest  / 'lib').glob(f'{ll}flukaio{bb}.a',
+                                                    case_sensitive=False)
+                ]
+            except TypeError:
+                # Fallback; case_sensitive is not available in Python < 3.12
+                flukaio_lib = [
+                    fff #for ext in ['a', 'so', 'dylib', 'so.*']
+                    for ll in ['lib', 'll']
+                    for bb in ['64', '']
+                    for fff in (dest  / 'lib').glob(f'{ll}FlukaIO{bb}.a')
+                ]
+            if len(flukaio_lib) == 0:
+                raise FileNotFoundError(f"Failed compiling FlukaIO library!\n"
+                                        f"File not found in {dest / 'lib'}!")
+            elif len(flukaio_lib) > 1:
+                raise RuntimeError(
+                              f"Compiled into multiple FlukaIO libraries!"
+                            + f"\nFiles found in {dest / 'lib'}:\n"
+                            + "\n".join([f.as_posix() for f in flukaio_lib]))
+            flukaio_lib = flukaio_lib[0]
         flukaio_lib = FsPath(flukaio_lib).resolve()
         if not flukaio_lib.exists():
             raise FileNotFoundError(f"Could not find FlukaIO library {flukaio_lib}!")
 
+        # Install the FlukaIO library so the xobjects FLUKA kernel can link -lflukaio
+        libname = flukaio_lib.name.replace('64', '').lower()
+        flukaio_lib.copy_to(self.lib_dir / libname, method='mount')
+        if verbose:
+            print(f"Installed FlukaIO archive in {self.lib_dir / libname}.")
+
         # Copy the FORTRAN source files to the temporary directory and compile it
         dest = (self.temp_dir / 'FORTRAN_src').resolve()
         dest.mkdir(parents=True, exist_ok=True)
-        flukaio_lib.copy_to(dest / 'libFlukaIO.a', method='mount')
+        flukaio_lib.copy_to(dest / 'libFlukaIO.a', method='mount') # Hard-coded name because FORTRAN_src expects it
         for path in _FORTRAN_SRC.glob('*'):
             path.copy_to(dest, method='mount')
         os.chdir(dest)

@@ -48,7 +48,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
 
     if engine == "fluka":
         num_turns = 2
-        capacity = 5*npart
+        capacity = None  # Let generate_pencil decide capacity
         if xc.fluka.engine.is_running():
             xc.fluka.engine.stop(clean=True)
     elif engine == "geant4":
@@ -93,7 +93,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
         line.xcoll.scattering.identify_primary_losses()
 
     if engine == "fluka":
-        xc.fluka.engine.start(line=line, capacity=capacity, verbose=True)
+        xc.fluka.engine.start(line=line, verbose=True)
     elif engine == "geant4":
         xc.geant4.engine.start(line=line, verbose=True)
 

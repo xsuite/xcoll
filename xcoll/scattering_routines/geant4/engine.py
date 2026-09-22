@@ -18,14 +18,27 @@ from ...general import _pkg_root
 
 class Geant4Engine(BaseEngine):
 
-    _xofields = BaseEngine._xofields | {
-        '_relative_energy_cut':        xo.Float64
-        # 'random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
-    }
+    _xofields = BaseEngine._xofields #| {
+    #     random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
+    # }
 
     _int32 = True
     _uses_input_file = True
     _uses_run_folder = True
+    # These cannot (yet) be set on the Geant4 interface
+    _physics_settings_veto_list = [
+        'hadron_lower_momentum_cut',
+        'photon_lower_momentum_cut',
+        'electron_lower_momentum_cut',
+        'include_showers',
+        'include_single_coulomb',
+        'include_multiple_coulomb',
+        'include_elastic',
+        'include_inelastic',
+        'include_ionisation_fluctuations',
+        'include_pair_production',
+        'include_bremsstrahlung'
+    ]
 
     _depends_on = [BaseEngine]
 
@@ -42,27 +55,12 @@ class Geant4Engine(BaseEngine):
         super().__init__(**kwargs)
         self._already_started = False
         # Set default values for new properties
-        self.relative_energy_cut = None
         self.reentry_protection_enabled = None
-        self._physics_settings._use_cuts = False
 
 
     # ======================
     # === New Properties ===
     # ======================
-
-    @property
-    def relative_energy_cut(self):
-        return self._relative_energy_cut
-
-    @relative_energy_cut.setter
-    def relative_energy_cut(self, val):
-        if val is None:
-            val = 0.1
-        if not isinstance(val, Number) or val <= 0:
-            self.stop()
-            raise ValueError("`relative_energy_cut` has to be a strictly postive number!")
-        self._relative_energy_cut = val
 
     @property
     def reentry_protection_enabled(self):
@@ -85,17 +83,6 @@ class Geant4Engine(BaseEngine):
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
-    # ============================
-    # === Overwrite Properties ===
-    # ============================
-
-    @property
-    def capacity(self):
-        return None  # Geant4 capacity is dynamic
-
-    @property
-    def relative_capacity(self):
-        return None  # Geant4 capacity is dynamic
 
     # =================================
     # === Base methods to overwrite ===
@@ -103,7 +90,6 @@ class Geant4Engine(BaseEngine):
 
     def _set_engine_properties(self, **kwargs):
         kwargs = super()._set_engine_properties(**kwargs)
-        self._set_property('relative_energy_cut', kwargs)
         self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
@@ -150,7 +136,7 @@ class Geant4Engine(BaseEngine):
             self._g4link.XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
                                          referencePdgId=self.particle_ref.pdg_id[0],
                                          referenceEk=Ekin,
-                                         relativeEnergyCut=self.relative_energy_cut,
+                                         relativeEnergyCut=self._physics_settings.relative_energy_cut,
                                          seed=self.seed, batchMode=True,
                                          workdir=self.cwd.as_posix())
         else:
@@ -163,7 +149,7 @@ class Geant4Engine(BaseEngine):
             self._g4link = XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
                                            referencePdgId=self.particle_ref.pdg_id[0],
                                            referenceEk=Ekin,
-                                           relativeEnergyCut=self.relative_energy_cut,
+                                           relativeEnergyCut=self._physics_settings.relative_energy_cut,
                                            seed=self.seed, batchMode=True,
                                            workdir=self.cwd.as_posix())
 
