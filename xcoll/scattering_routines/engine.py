@@ -786,7 +786,7 @@ class BaseEngine(xo.HybridClass):
             mask_new = np.zeros_like(pdg_id, dtype=bool)
 
         # General categories
-        mask_new[pdg_id > 1000000000] = self.return_ions
+        mask_new[(pdg_id > 1000000000) | (pdg_id < -1000000000)] = self.return_ions
         # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
         mask_new[(pdg_id > 0) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
                               & (pdg_id // 1000 % 10 == 0)] = self.return_other_mesons

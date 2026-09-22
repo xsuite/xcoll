@@ -165,7 +165,8 @@ def track_core(coll, part):
                 spin_z_part=data['spin_z']
     )
     if ret_code < 0:
-        raise RuntimeError(f'FLUKA tracking failed with error code: {ret_code}. Aborting tracking')
+        raise RuntimeError(f'FLUKA tracking (running in {xc.fluka.engine.cwd}) '
+                           f'failed with error code: {ret_code}. Aborting tracking')
 
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
