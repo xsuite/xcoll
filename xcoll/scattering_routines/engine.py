@@ -6,6 +6,7 @@
 import numpy as np
 from pathlib import Path
 from numbers import Number
+from warnings import warn
 
 import xobjects as xo
 import xtrack as xt
@@ -27,8 +28,6 @@ class BaseEngine(xo.HybridClass):
     _xofields = {
         '_particle_ref':      xt.Particles._XoStruct,
         '_seed':              xo.UInt64,
-        '_capacity':          xo.Int64,
-        '_relative_capacity': xo.Int64,
     }
 
     _int32 = False
@@ -37,6 +36,7 @@ class BaseEngine(xo.HybridClass):
     _uses_input_file = False
     _num_input_files = 1
     _uses_run_folder = False
+    _physics_settings_veto_list = []
 
     _depends_on = [Material, InteractionRecord, xt.RandomUniform,
                    xt.RandomExponential, xt.RandomNormal, xt.RandomRutherford,
@@ -59,7 +59,6 @@ class BaseEngine(xo.HybridClass):
         self._deactivated_elements = {}
         kwargs.setdefault('_particle_ref', xt.Particles())
         kwargs.setdefault('_seed', 0)
-        kwargs.setdefault('_capacity', 0)
         super().__init__(**kwargs)
         self._physics_settings = PhysicsSettingsHelper(self)
 
@@ -168,49 +167,6 @@ class BaseEngine(xo.HybridClass):
         self.particle_ref = None
 
     @property
-    def capacity(self):
-        if self._capacity == 0:
-            return None
-        else:
-            return int(self._capacity)
-
-    @capacity.setter
-    def capacity(self, val):
-        if val is None:
-            val = 0
-        if not isinstance(val, Number) or val < 0:
-            self.stop()
-            raise ValueError("`capacity` has to be a positive integer!")
-        self._capacity = int(val)
-
-    @capacity.deleter
-    def capacity(self):
-        self.capacity = None
-
-    @property
-    def relative_capacity(self):
-        if self._relative_capacity == 0:
-            return None
-        else:
-            return int(self._relative_capacity)
-
-    @relative_capacity.setter
-    def relative_capacity(self, val):
-        if val is None:
-            val = 2
-        if not isinstance(val, Number) or val < 0:
-            self.stop()
-            raise ValueError("`relative_capacity` has to be a positive integer!")
-        if val <= 1:
-            self.stop()
-            raise ValueError("`relative_capacity` has to be larger than 1!")
-        self._relative_capacity = int(val)
-
-    @relative_capacity.deleter
-    def relative_capacity(self):
-        self.relative_capacity = None
-
-    @property
     def seed(self):
         if self._seed == 0:
             return None
@@ -246,6 +202,26 @@ class BaseEngine(xo.HybridClass):
     def element_dict(self):
         return self._element_dict
 
+    @property
+    def capacity(self):
+        warn("Attribute `capacity` is no longer used. If you are using FLUKA, "
+             "and want to control the minimum length of the FORTRAN arrays, "
+             "please use `minimum_free_length_fortran_array` instead.",
+             FutureWarning)
+    @capacity.setter
+    def capacity(self, val):
+        return self.capacity
+
+    @property
+    def relative_capacity(self):
+        warn("Attribute `relative_capacity` is no longer used. If you are "
+             "using FLUKA, and want to control the length of the FORTRAN "
+             "arrays, please use `relative_length_fortran_array` instead.",
+             FutureWarning)
+    @relative_capacity.setter
+    def relative_capacity(self, val):
+        return self.relative_capacity
+
     def __getattr__(self, name):
         if name != '_physics_settings' and hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
             return getattr(self._physics_settings, name)
@@ -262,6 +238,10 @@ class BaseEngine(xo.HybridClass):
 
     def physics_settings(self):
         return self._physics_settings.show()
+
+    def reset_physics_settings(self):
+        return self._physics_settings.reset()
+
 
     def start(self, *, clean=True, input_file=None, **kwargs):
         if not self.interface:
@@ -535,8 +515,6 @@ class BaseEngine(xo.HybridClass):
         self._get_elements(kwargs.pop('elements', None), kwargs.pop('names', None))
         self._set_cwd(kwargs.pop('cwd', None))
         # Now we can set the rest of the properties
-        self._set_property('capacity', kwargs)
-        self._set_property('relative_capacity', kwargs)
         for ff in self._physics_settings.all_flags:
             self._set_property(ff, kwargs)
         return kwargs
@@ -562,6 +540,7 @@ class BaseEngine(xo.HybridClass):
     def _use_seed(self, seed=None):
         if seed is None:
             if self.seed is None:
+                self._old_seed = self.seed
                 rng = np.random.default_rng()
                 if self._int32:
                     self.seed = rng.integers(0, int(2**31)) # 32-bit signed

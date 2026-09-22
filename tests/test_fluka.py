@@ -28,7 +28,7 @@ def test_simple_track(num_part):
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=0.6, jaw=0.001, assembly='hilumi_tcppm')
     xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.fluka.engine.start(elements=coll, capacity=_capacity, clean=False, verbose=True)
+    xc.fluka.engine.start(elements=coll, clean=False, verbose=True)
 
     # Particle distribution
     x_init   = np.random.normal(loc=0.002, scale=1e-3, size=num_part)
@@ -37,7 +37,7 @@ def test_simple_track(num_part):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                    particle_ref=xc.fluka.engine.particle_ref,
-                                   _capacity=xc.fluka.engine.capacity)
+                                   _capacity=_capacity)
     part_fluka = part_init.copy()
     part_drift = part_init.copy()
 

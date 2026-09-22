@@ -36,6 +36,10 @@ class FlukaWrapper(BaseWrapper):
         self._lazy_load_interface()
         return FlukaPrototypeAccessor()
 
+    @property
+    def card_alignment(self):
+        return "* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7.."
+
     def view(self, elements=None, *, input_file=None):
         if elements:
             if input_file:

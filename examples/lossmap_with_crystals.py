@@ -31,7 +31,7 @@ line = env[f'lhcb{beam}']
 
 # Initialise colldb
 colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldbs' / f'lhc_run3_crystals.yaml',
-                                               beam=beam, ignore_crystals=False)
+                                         beam=beam, ignore_crystals=False)
 
 
 # Install collimators into line

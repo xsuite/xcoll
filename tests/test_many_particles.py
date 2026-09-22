@@ -10,7 +10,7 @@ from xpart.test_helpers import flaky_assertions, retry
 import xcoll as xc
 from  xcoll import constants as xcc
 
-from _common_api import check_skip_old_bdsim, engine_params, engine_params
+from _common_api import check_skip_old_bdsim, engine_params
 
 
 # # Treat warnings as errors to debug
@@ -24,8 +24,8 @@ from _common_api import check_skip_old_bdsim, engine_params, engine_params
 def test_return_photons(engine):
     check_skip_old_bdsim(engine)
     print("Testing return_none=True, return_photons=True")
-    num_part = 5000
-    capacity = 100_000
+    num_part = 20_000  # Enough particles to increase chance of photon production
+    capacity = 200_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
     part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='photons')
     pdg = part.pdg_id[part.particle_id >= num_part]
@@ -283,8 +283,7 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
         coll = xc.FlukaCollimator(length=0.4, material='MoGr')
         coll.jaw = 0.002
         xc.fluka.engine.particle_ref = particle_ref
-        xc.fluka.engine.capacity = capacity
-        xc.fluka.engine.relative_capacity = 20
+        xc.fluka.engine.relative_length_fortran_array = 20
         if return_type is not None:
             xc.fluka.engine.return_none = True
             setattr(xc.fluka.engine, f'return_{return_type}', True)
