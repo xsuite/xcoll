@@ -57,7 +57,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
                                              use_crystals=any([assm.is_crystal for assm in assemblies]))
         this_include_files.append(scoring_file)
     if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
-        material_file = _assignmat_include_file(assemblies=assemblies)
+        material_file = _assignmat_include_file(particle_ref, assemblies=assemblies)
         this_include_files.append(material_file)
 
     # Add any additional include files
@@ -74,7 +74,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
     return this_include_files, kwargs
 
 
-def _assignmat_include_file(assemblies=[]):
+def _assignmat_include_file(particle_ref, assemblies=[]):
     from xcoll.materials.database import db as mdb
     template =  ''.join([mat._generated_fluka_code for mat in mdb.fluka.values()
                          if mat._generated_fluka_code is not None])
@@ -120,11 +120,12 @@ def _assignmat_include_file(assemblies=[]):
         pos1   = format_fluka_float(pos[3]-50.0+1e-4) # XXX Does it always work with the 50cm shift?
         pos2   = format_fluka_float(pos[4])
         pos3   = format_fluka_float(pos[5])
+        pos4   = format_fluka_float(particle_ref.p0c[0] / 1e9)
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110
 CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &
-CRYSTAL   {pos1}{pos2}{pos3}                              &&
+CRYSTAL   {pos1}{pos2}{pos3}{pos4}                        &&
 """
     filename = FsPath("include_custom_assignmat.inp").resolve()
 
