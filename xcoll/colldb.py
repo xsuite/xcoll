@@ -439,7 +439,7 @@ class CollimatorDatabase:
             names = self.get_collimators_from_family(families)
         elif families is not None:
             names.append(self.get_collimators_from_family(families))
-        return list(set(names)) # Remove duplicates
+        return list(dict.fromkeys(names)) # Remove duplicates, preserving order
 
     def _check_installed(self, line, name, collimator_class):
         if name in line.element_names:
