@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
 from numbers import Number
 from contextlib import contextmanager
 
@@ -894,3 +895,59 @@ class PhysicsSettingsHelper:
             yield
         finally:
             cls.__setattr__ = original_setattr
+
+
+    def mask_particle_return_types(self, pdg_id, q_new):
+        if self.return_all:
+            # Allow everything and exclude
+            mask_new = np.ones_like(pdg_id, dtype=bool)
+        else:
+            # Allow nothing and include
+            mask_new = np.zeros_like(pdg_id, dtype=bool)
+
+        # General categories
+        is_ion = np.abs(pdg_id) > 1000000000
+        mask_new[is_ion] = self.return_ions
+
+        # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
+        # restrict to |pdg_id| < 1e9 to not clash with ions
+        mask_new[~is_ion & (pdg_id > 0) & (pdg_id // 10 % 10 != 0)
+                 & (pdg_id // 100 % 10 != 0) & (pdg_id // 1000 % 10 == 0)
+                ] = self.return_other_mesons
+        mask_new[~is_ion & (pdg_id < 0) & (-pdg_id // 10 % 10 != 0)
+                 & (-pdg_id // 100 % 10 != 0) & (-pdg_id // 1000 % 10 == 0)
+                ] = self.return_other_mesons
+
+        # PDG ID of baryons: from XXX. where X != 0 and . is any digit
+        # restrict to |pdg_id| < 1e9 to not clash with ions
+        mask_new[~is_ion & (pdg_id > 1000) & (pdg_id < 9000)
+                 & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
+                 & (pdg_id // 1000 % 10 != 0)
+                ] = self.return_other_baryons    # PDG ID of from XX0X is a diquark
+        mask_new[~is_ion & (pdg_id < -1000) & (pdg_id > -9000)
+                 & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
+                 & (-pdg_id // 1000 % 10 != 0)
+                ] = self.return_other_baryons
+
+        if not self.return_neutral:
+            # General modifier, has to be before more specific return types,
+            # as other neutral particles might have been specifically activated.
+            mask_new[np.abs(q_new) < 1.e-12] = False
+
+        mask_new[np.abs(pdg_id) == 22] = self.return_photons
+        mask_new[np.abs(pdg_id) == 11] = self.return_electrons
+        mask_new[np.abs(pdg_id) == 12] = self.return_electrons and self.return_neutrinos
+        mask_new[np.abs(pdg_id) == 13] = self.return_muons
+        mask_new[np.abs(pdg_id) == 14] = self.return_muons and self.return_neutrinos
+        mask_new[np.abs(pdg_id) == 15] = self.return_tauons
+        mask_new[np.abs(pdg_id) == 16] = self.return_tauons and self.return_neutrinos
+        mask_new[np.abs(pdg_id) == 211] = self.return_pions
+        mask_new[np.abs(pdg_id) == 111] = self.return_pions and self.return_neutral
+        mask_new[np.abs(pdg_id) == 321] = self.return_kaons
+        mask_new[np.abs(pdg_id) == 130] = self.return_kaons and self.return_neutral
+        mask_new[np.abs(pdg_id) == 310] = self.return_kaons and self.return_neutral
+        mask_new[np.abs(pdg_id) == 311] = self.return_kaons and self.return_neutral
+        mask_new[np.abs(pdg_id) == 2212] = self.return_protons
+        mask_new[np.abs(pdg_id) == 2112] = self.return_neutrons
+
+        return mask_new

@@ -223,12 +223,15 @@ class BaseEngine(xo.HybridClass):
         return self.relative_capacity
 
     def __getattr__(self, name):
-        if name != '_physics_settings' and hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
+        if name != '_physics_settings' and hasattr(self, '_physics_settings') \
+        and name in self._physics_settings.all_flags:
             return getattr(self._physics_settings, name)
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        raise AttributeError(f"'{self.__class__.__name__}' object has no "
+                             f"attribute '{name}'")
 
     def __setattr__(self, name, value):
-        if hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
+        if hasattr(self, '_physics_settings') \
+        and name in self._physics_settings.all_flags:
             return setattr(self._physics_settings, name, value)
         return super().__setattr__(name, value)
 
@@ -775,54 +778,6 @@ class BaseEngine(xo.HybridClass):
         else:
             kwargs['cwd'] = FsPath.cwd()
         return kwargs
-
-
-    def _mask_particle_return_types(self, pdg_id, q_new):
-        if self.return_all:
-            # Allow everything and exclude
-            mask_new = np.ones_like(pdg_id, dtype=bool)
-        else:
-            # Allow nothing and include
-            mask_new = np.zeros_like(pdg_id, dtype=bool)
-
-        # General categories
-        is_ion = np.abs(pdg_id) > 1000000000
-        mask_new[is_ion] = self.return_ions
-
-        # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
-        # restrict to |pdg_id| < 1e9 to not clash with ions
-        mask_new[~is_ion & (pdg_id > 0) & (pdg_id // 10 % 10 != 0)
-                         & (pdg_id // 100 % 10 != 0) & (pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
-        mask_new[~is_ion & (pdg_id < 0) & (-pdg_id // 10 % 10 != 0)
-                         & (-pdg_id // 100 % 10 != 0) & (-pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
-
-        # PDG ID of baryons: from XXX. where X != 0 and . is any digit
-        mask_new[~is_ion & (pdg_id > 1000) & (pdg_id < 9000) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
-                                 & (pdg_id // 1000 % 10 != 0)] = self.return_other_baryons    # PDG ID of from XX0X is a diquark
-        mask_new[~is_ion & (pdg_id < -1000) & (pdg_id > -9000) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
-                                  & (-pdg_id // 1000 % 10 != 0)] = self.return_other_baryons
-
-        if not self.return_neutral:
-            # General modifier, has to be before more specific return types,
-            # as other neutral particles might have been specifically activated.
-            mask_new[np.abs(q_new) < 1.e-12] = False
-
-        mask_new[pdg_id == 22] = self.return_photons
-        mask_new[(pdg_id == 11) | (pdg_id == -11)] = self.return_electrons
-        mask_new[(pdg_id == 12) | (pdg_id == -12)] = self.return_electrons and self.return_neutrinos
-        mask_new[(pdg_id == 13) | (pdg_id == -13)] = self.return_muons
-        mask_new[(pdg_id == 14) | (pdg_id == -14)] = self.return_muons and self.return_neutrinos
-        mask_new[(pdg_id == 15) | (pdg_id == -15)] = self.return_tauons
-        mask_new[(pdg_id == 16) | (pdg_id == -16)] = self.return_tauons and self.return_neutrinos
-        mask_new[(pdg_id == 211) | (pdg_id == -211)] = self.return_pions
-        mask_new[(pdg_id == 111)] = self.return_pions and self.return_neutral
-        mask_new[(pdg_id == 321) | (pdg_id == -321)] = self.return_kaons
-        mask_new[(pdg_id == 130) | (pdg_id == -130)] = self.return_kaons and self.return_neutral
-        mask_new[(pdg_id == 310) | (pdg_id == -310)] = self.return_kaons and self.return_neutral
-        mask_new[(pdg_id == 311) | (pdg_id == -311)] = self.return_kaons and self.return_neutral
-        mask_new[(pdg_id == 2212) | (pdg_id == -2212)] = self.return_protons
-        mask_new[(pdg_id == 2112) | (pdg_id == -2112)] = self.return_neutrons
-        return mask_new
 
 
     # =================================================

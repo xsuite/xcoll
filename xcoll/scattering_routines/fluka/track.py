@@ -231,7 +231,7 @@ def track_core(coll, part):
     # ================
     q_new = data['q'][:npart]
     pdg_id = data['pdg_id'][:npart]
-    mask_new &= xc.fluka.engine._mask_particle_return_types(pdg_id, q_new)
+    mask_new &= xc.fluka.engine._physics_settings.mask_particle_return_types(pdg_id, q_new)
 
     if np.any(mask_new):
         # Check that there is enough room in the particles object
