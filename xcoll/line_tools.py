@@ -286,7 +286,16 @@ class XcollCollimatorAPI(XcollLineAccessor):
             elements = [elements]
         if not _iterable(at):
             at = [at for _ in range(len(names))]
-        apertures = [apertures for _ in range(len(names))]  # TODO: this should be done smarter! What if we want to provide a different aperture for each element?
+        if not _iterable(apertures) or len(apertures) != len(names):
+            # A single aperture spec (None, an aperture name, a single
+            # aperture object, or an [upstream, downstream] pair) is applied
+            # to every element. Only when `apertures` already provides
+            # exactly one entry per name is it used as a genuine per-element
+            # list (one aperture spec per collimator). Each of those entries
+            # can in turn be a single aperture spec or its own
+            # [upstream, downstream] pair, e.g. for 3 collimators:
+            #     apertures = [ap1, [ap2_up, ap2_down], 'ap3_name']
+            apertures = [apertures for _ in range(len(names))]
         # names = np.array(names)
         if len(elements) != len(names):
             raise ValueError("Length of `elements` does not match length of "
