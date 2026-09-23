@@ -75,7 +75,6 @@ from xtrack.particles import pdg
 # Constants
 # ############################################################ #
 ELECTRON_MASS_EV = xt.ELECTRON_MASS_EV
-EV_TO_MEV = 1e-6
 
 ALPHA = sc.alpha
 # Reduced Planck constant times the speed of light, in eV m (~1.9733e-7 eV m)
@@ -329,8 +328,8 @@ class ElementData:
     f_Z : float
         ``log(Z)/3 + f_c``, entering the high-Z differential cross section.
     gamma_factor, epsilon_factor : float
-        Prefactors of the screening variables ``gamma`` and ``epsilon``, in
-        MeV.
+        Prefactors of the Tsai screening variables ``gamma`` and ``epsilon``
+        [eV], to be multiplied by ``y/(etot - photon_energy)`` [1/eV].
     """
 
     def __init__(self, Z):
@@ -435,10 +434,15 @@ class ElementData:
         Returns
         -------
         gamma_factor, epsilon_factor : float
-            Prefactors of the screening variables, in MeV.
+            Prefactors of the screening variables [eV].
         """
-        gamma_factor = 100*ELECTRON_MASS_EV*EV_TO_MEV / np.cbrt(self.Z)
-        epsilon_factor = 100*ELECTRON_MASS_EV*EV_TO_MEV / np.cbrt(self.Z)**2
+        # The Tsai screening variables are gamma = 100 m_e k /(E (E-k) Z^(1/3))
+        # and epsilon = gamma / Z^(1/3), which are dimensionless only if m_e
+        # and the energies are expressed in the same unit. Geant4 works in
+        # MeV; here everything is in eV, so the electron mass enters in eV to
+        # pair with `dum1 = y/(etot - photon_energy)` in 1/eV.
+        gamma_factor = 100*ELECTRON_MASS_EV / np.cbrt(self.Z)
+        epsilon_factor = 100*ELECTRON_MASS_EV / np.cbrt(self.Z)**2
 
         return gamma_factor, epsilon_factor
 

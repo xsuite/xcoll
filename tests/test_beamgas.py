@@ -12,7 +12,8 @@ import xcoll as xc
 from xcoll.beamgas.cross_sections import (BremsstrahlungCalculator,
                                           CoulombScatteringCalculator,
                                           ElementData, HBAR_C_EV_M, ALPHA,
-                                          CLASSICAL_ELECTRON_RADIUS)
+                                          CLASSICAL_ELECTRON_RADIUS,
+                                          ELECTRON_MASS_EV)
 
 
 #############################################################
@@ -272,6 +273,47 @@ class TestBremsstrahlungCrossSection:
                 epsabs=0, epsrel=1e-10)
             assert np.isclose(observed, expected/norm, rtol=0.02)
 
+    @pytest.mark.parametrize('Z', [1, 7, 18, 54])
+    def test_screening_variables_are_dimensionless(self, Z):
+        # The Tsai screening variables are
+        #   gamma   = 100 m_e k / (E (E-k) Z^(1/3))
+        #   epsilon = gamma / Z^(1/3)
+        # which are dimensionless only if m_e and the energies share a unit.
+        # Everything here is in eV, so the prefactors must carry m_e in eV;
+        # a stray eV->MeV conversion would make them 1e6 too small and pin
+        # the screening functions to the complete-screening limit.
+        calc = BremsstrahlungCalculator(Z, P0C, energy_cut=1e6)
+        etot = calc.ekin + ELECTRON_MASS_EV
+        k = 0.99*etot
+        dum1 = (k/etot)/(etot - k)
+        expected_gamma = 100*ELECTRON_MASS_EV*k/(etot*(etot - k)*np.cbrt(Z))
+        assert np.isclose(dum1*calc.element_data.gamma_factor, expected_gamma,
+                          rtol=1e-12)
+        assert np.isclose(dum1*calc.element_data.epsilon_factor,
+                          expected_gamma/np.cbrt(Z), rtol=1e-12)
+        # ... and at the tip of the spectrum screening must actually bite
+        assert expected_gamma > 1.0
+
+    def test_screening_suppresses_the_hard_tip(self):
+        # Screening only matters where gamma is O(1), i.e. y -> 1. Check the
+        # differential cross section is pushed below its complete-screening
+        # (gamma = 0) value there, and is untouched at small y.
+        calc = BremsstrahlungCalculator(7, P0C, energy_cut=1e6)
+        etot = calc.ekin + ELECTRON_MASS_EV
+        complete_screening = (calc.element_data.f_Z_factor_1,
+                              calc.element_data.f_Z_factor_2)
+
+        def unscreened(y):
+            dum0 = (1 - y) + 0.75*y**2
+            return dum0*complete_screening[0] + (1 - y)*complete_screening[1]
+
+        for y, expected_ratio in [(1e-3, 1.0), (0.99, 0.75)]:
+            ratio = calc._compute_dxsec(y*etot)/unscreened(y)
+            if expected_ratio == 1.0:
+                assert np.isclose(ratio, 1.0, rtol=1e-3)
+            else:
+                assert ratio < expected_ratio
+
     def test_sampled_energies_within_bounds(self):
         calc = BremsstrahlungCalculator(7, P0C, energy_cut=1e6)
         rng = np.random.default_rng(2)
@@ -289,11 +331,24 @@ class TestBremsstrahlungCrossSection:
         sample = calc.sample_deflections(px, py, delta, rng)
 
         # The particle always loses momentum, and the loss is bounded by the
-        # photon energy (equality holds for collinear emission)
+        # photon energy (equality only for exactly collinear emission)
         assert np.all(sample.delta < 0)
         momentum_loss = -sample.delta*P0C
         assert np.all(momentum_loss <= sample.photon_energy*(1 + 1e-9))
-        assert np.allclose(momentum_loss, sample.photon_energy, rtol=1e-3)
+
+        # Exact vector momentum conservation: starting along z with p = p0c,
+        # |p_out| = sqrt(p0c^2 - 2 k p0c cos(theta) + k^2). Asserting this
+        # rather than momentum_loss == photon_energy matters at the tip of
+        # the spectrum, where p0c - k -> 0 and the transverse recoil is no
+        # longer a negligible correction.
+        kk = sample.photon_energy/P0C
+        expected = np.sqrt(1.0 - 2.0*kk*np.cos(sample.theta) + kk**2)
+        assert np.allclose(1.0 + sample.delta, expected, rtol=1e-12)
+
+        # Away from the tip the loss is the photon energy to good accuracy
+        soft = sample.photon_energy < 0.9*(calc.ekin + ELECTRON_MASS_EV)
+        assert np.allclose(momentum_loss[soft], sample.photon_energy[soft],
+                           rtol=1e-3)
         # Bremsstrahlung is sampled without biasing
         assert np.all(sample.weight == 1.0)
 
