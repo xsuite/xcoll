@@ -532,7 +532,7 @@ class BeamGasScattering(xt.BeamElement):
 
         # Leave room for the secondaries that collimators may produce
         particles = xt.Particles(
-            _capacity=2*n,
+            _capacity=4*n,
             p0c=self.p0c,
             mass0=self.particle_ref.mass0,
             q0=self.particle_ref.q0,
