@@ -174,19 +174,7 @@ class BeamGasScattering(xt.BeamElement):
     Every generated macro-particle interacts exactly once. This *forced
     interaction* scheme is the correct estimator in the single-scattering
     regime of a dilute residual gas, where the real probability of
-    interacting in one turn is many orders of magnitude below one: it removes
-    the need for any cross-section biasing and makes the whole generated
-    sample useful.
-
-    References
-    ----------
-    .. [1] Geant4 Collaboration, "Geant4 Physics Reference Manual", Rev. 11.x.
-       https://geant4.web.cern.ch/docs/
-    .. [2] A. Xiao and M. Borland, "Monte Carlo simulation of Touschek
-       effect", Phys. Rev. ST Accel. Beams **13**, 074201 (2010), whose
-       weighted-scattering-centre architecture (implemented in Xfields as
-       :class:`xfields.TouschekScattering`) this element mirrors.
-       https://doi.org/10.1103/PhysRevSTAB.13.074201
+    interacting in one turn is many orders of magnitude below one.
     """
 
     _xofields = {
