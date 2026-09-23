@@ -3,12 +3,18 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
+import pytest
 import numpy as np
 from pathlib import Path
+from types import SimpleNamespace
+
 import xtrack as xt
 import xcoll as xc
-import pytest
-
+from xcoll.scattering_routines.fluka.environment import format_fluka_float
+from xcoll.scattering_routines.fluka.includes import (
+    _physics_include_file,
+    _scoring_include_file,
+)
 from xcoll.scattering_routines.fluka.fluka_input import get_collimators_from_input_file
 
 
@@ -240,3 +246,400 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
      10         INROT_10             INROT_10            0.241000   
      11         INROT_11             INROT_11            0.051400   
      12         INROT_12             INROT_12            0.051400""" in insertion_txt
+
+
+
+def _active_cards(text, card):
+    """Return uncommented FLUKA cards of the requested type."""
+    result = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("*"):
+            continue
+        if stripped.split()[0] == card:
+            result.append(line)
+    return result
+
+def _make_physics_input(tmp_path, monkeypatch, **kwargs):
+    monkeypatch.chdir(tmp_path)
+    params = {
+        "verbose": False,
+        "particle_ref": xt.Particles("proton", p0c=7e12),
+        "hadron_lower_momentum_cut": 2e9,
+        "photon_lower_momentum_cut": 3e6,
+        "electron_lower_momentum_cut": 4e6,
+        "include_showers": True,
+        "include_single_coulomb": True,
+        "include_multiple_coulomb": True,
+        "include_elastic": True,
+        "include_inelastic": True,
+        "include_pair_production": True,
+        "include_bremsstrahlung": True,
+        "include_ionisation_fluctuations": True,
+    }
+    params.update(kwargs)
+    filename = _physics_include_file(**params)
+    return filename.read_text()
+
+
+@pytest.mark.parametrize("include_showers", [True, False])
+def test_fluka_input_showers(tmp_path, monkeypatch, include_showers):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_showers=include_showers,
+    )
+    emfcut = _active_cards(text, "EMFCUT")
+    emf = _active_cards(text, "EMF")
+    deltaray = _active_cards(text, "DELTARAY")
+    if include_showers:
+        assert len(emfcut) == 2
+        assert len(emf) == 0
+        assert len(deltaray) == 0
+    else:
+        assert len(emfcut) == 0
+        assert len(emf) == 1
+        assert len(deltaray) == 1
+
+
+@pytest.mark.parametrize(
+    "single,multiple,expected",
+    [
+        (
+            True, True,
+            [
+                "MULSOPT                                        "
+                "1.0       1.0       1.0GLOBAL",
+            ],
+        ),
+        (
+            True, False,
+            [
+                "MULSOPT          0.0       0.0       0.0       "
+                "1.0       1.0 99999999.GLOBAL",
+            ],
+        ),
+        (
+            False, True,
+            [
+                "MULSOPT                                       "
+                "-1.0      -1.0      -1.0GLOBAL",
+            ],
+        ),
+        (
+            False, False,
+            [
+                "MULSOPT                                       "
+                "-1.0      -1.0      -1.0GLOBAL",
+                "MULSOPT                    3.0       3.0  "
+                "BLCKHOLE  @LASTMAT",
+            ],
+        ),
+    ],
+)
+def test_fluka_input_coulomb(
+    tmp_path, monkeypatch, single, multiple, expected
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_single_coulomb=single,
+        include_multiple_coulomb=multiple,
+    )
+    assert _active_cards(text, "MULSOPT") == expected
+
+
+@pytest.mark.parametrize(
+    "pair,brem,what1",
+    [
+        (True,  True,   3.0),
+        (True,  False,  1.0),
+        (False, True,   2.0),
+        (False, False, -3.0),
+    ],
+)
+def test_fluka_input_pair_bremsstrahlung(
+    tmp_path, monkeypatch, pair, brem, what1
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_pair_production=pair,
+        include_bremsstrahlung=brem,
+    )
+    cards = _active_cards(text, "PAIRBREM")
+    assert len(cards) == 1
+    assert float(cards[0].split()[1]) == what1
+
+
+@pytest.mark.parametrize("fluctuations", [True, False])
+def test_fluka_input_ionisation_fluctuations(
+    tmp_path, monkeypatch, fluctuations
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_ionisation_fluctuations=fluctuations,
+    )
+    cards = _active_cards(text, "IONFLUCT")
+    if fluctuations:
+        assert cards == []
+    else:
+        assert len(cards) == 1
+        assert "-1.0" in cards[0]
+
+
+@pytest.mark.parametrize(
+    "elastic,inelastic,comment,n_threshold_values",
+    [
+        (True,  True,  None,                                         0),
+        (False, True,  "Deactivate elastic hadronic interactions",  1),
+        (True,  False, "Deactivate inelastic hadronic interactions",1),
+        (False, False, "Deactivate hadronic interactions",          2),
+    ],
+)
+def test_fluka_input_hadronic_interactions(
+    tmp_path, monkeypatch,
+    elastic, inelastic, comment, n_threshold_values,
+):
+    particle_ref = xt.Particles("proton", p0c=7e12)
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        particle_ref=particle_ref,
+        include_elastic=elastic,
+        include_inelastic=inelastic,
+    )
+    cards = _active_cards(text, "THRESHOLd")
+    if elastic and inelastic:
+        assert cards == []
+        return
+    assert len(cards) == 1
+    assert comment in text
+    threshold = format_fluka_float(
+        5 * particle_ref.energy0[0] / 1e9
+    ).strip()
+    assert cards[0].count(threshold) == n_threshold_values
+
+
+def test_fluka_input_momentum_cuts(tmp_path, monkeypatch):
+    hadron_cut = 2e9
+    photon_cut = 3e6
+    electron_cut = 4e6
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        hadron_lower_momentum_cut=hadron_cut,
+        photon_lower_momentum_cut=photon_cut,
+        electron_lower_momentum_cut=electron_cut,
+        include_showers=True,
+    )
+    # Hadron thresholds: generic, D, T, He3, He4
+    part_thr = _active_cards(text, "PART-THR")
+    assert len(part_thr) == 5
+    values = [float(line.split()[1]) for line in part_thr]
+    assert values == [2.0, 4.0, 6.0, 6.0, 8.0]
+    # EM production cuts.
+    emfcut = _active_cards(text, "EMFCUT")
+    assert len(emfcut) == 2
+    photon_gev = format_fluka_float(photon_cut / 1e9).strip()
+    electron_energy = np.sqrt(electron_cut**2 + (511e3)**2)
+    electron_gev = format_fluka_float(electron_energy / 1e9).strip()
+    for line in emfcut:
+        assert electron_gev in line
+        assert photon_gev in line
+
+
+@pytest.mark.parametrize(
+    "particle,p0c,active",
+    [
+        ("proton", 7e12, False),
+        ("Pu-239", 94*7e12, True),
+    ],
+)
+def test_fluka_input_em_dissociation(
+    tmp_path, monkeypatch, particle, p0c, active
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        particle_ref=xt.Particles(particle, p0c=p0c),
+    )
+    cards = [
+        line for line in _active_cards(text, "PHYSICS")
+        if "EM-DISSO" in line
+    ]
+    assert bool(cards) is active
+
+
+_RETURN_DEFAULTS = {
+    "return_all": False,
+    "return_all_charged": False,
+    "return_neutral": False,
+    "return_photons": False,
+    "return_electrons": False,
+    "return_muons": False,
+    "return_tauons": False,
+    "return_neutrinos": False,
+    "return_protons": False,
+    "return_neutrons": False,
+    "return_other_baryons": False,
+    "return_pions": False,
+    "return_kaons": False,
+    "return_other_mesons": False,
+    "return_ions": False,
+}
+
+def _return_settings(**kwargs):
+    values = _RETURN_DEFAULTS.copy()
+    values.update(kwargs)
+    return SimpleNamespace(**values)
+
+def _make_scoring_input(tmp_path, monkeypatch, **kwargs):
+    monkeypatch.chdir(tmp_path)
+    filename = _scoring_include_file(
+        verbose=False,
+        return_list=_return_settings(**kwargs),
+    )
+    return filename.read_text()
+
+def _active_usrbdx_particles(text):
+    return {
+        line.split()[2]
+        for line in _active_cards(text, "USRBDX")
+    }
+
+
+@pytest.mark.parametrize(
+    "flag,particles",
+    [
+        (
+            "return_photons",
+            {"PHOTON", "OPTIPHOT", "RAY"},
+        ),
+        (
+            "return_electrons",
+            {"ELECTRON", "POSITRON"},
+        ),
+        (
+            "return_muons",
+            {"MUON+", "MUON-"},
+        ),
+        (
+            "return_tauons",
+            {"TAU+", "TAU-"},
+        ),
+        (
+            "return_neutrinos",
+            {
+                "NEUTRIE", "ANEUTRIE",
+                "NEUTRIM", "ANEUTRIM",
+                "NEUTRIT", "ANEUTRIT",
+            },
+        ),
+        (
+            "return_protons",
+            {"PROTON", "APROTON"},
+        ),
+        (
+            "return_neutrons",
+            {"NEUTRON", "ANEUTRON"},
+        ),
+        (
+            "return_pions",
+            {"PION+", "PION-"},
+        ),
+        (
+            "return_kaons",
+            {"KAON+", "KAON-"},
+        ),
+        (
+            "return_ions",
+            {"DEUTERON", "TRITON", "3-HELIUM", "4-HELIUM", "HEAVYION"},
+        ),
+        (
+            "return_other_mesons",
+            {"D+", "D-", "DS+", "DS-"},
+        ),
+        (
+            "return_other_baryons",
+            {
+                "LAMBDAC+", "ALAMBDC-",
+                "SIGMA-", "SIGMA+",
+                "ASIGMA-", "ASIGMA+",
+                "XSI-", "AXSI+",
+                "XSIC+", "AXSIC-",
+                "XSIPC+", "AXSIPC-",
+                "OMEGA-", "AOMEGA+",
+            },
+        ),
+    ],
+)
+def test_fluka_input_return_types(
+    tmp_path, monkeypatch, flag, particles
+):
+    text = _make_scoring_input(
+        tmp_path, monkeypatch,
+        **{flag: True},
+    )
+    assert _active_usrbdx_particles(text) == particles
+
+
+@pytest.mark.parametrize(
+    "flag,particles",
+    [
+        (
+            "return_pions",
+            {"PION+", "PION-", "PIZERO"},
+        ),
+        (
+            "return_kaons",
+            {
+                "KAON+", "KAON-",
+                "KAONZERO", "AKAONZER", "KAONLONG", "KAONSHRT",
+            },
+        ),
+        (
+            "return_other_mesons",
+            {"D+", "D-", "DS+", "DS-", "D0", "D0BAR"},
+        ),
+        (
+            "return_other_baryons",
+            {
+                "LAMBDAC+", "ALAMBDC-",
+                "SIGMA-", "SIGMA+",
+                "ASIGMA-", "ASIGMA+",
+                "XSI-", "AXSI+",
+                "XSIC+", "AXSIC-",
+                "XSIPC+", "AXSIPC-",
+                "OMEGA-", "AOMEGA+",
+
+                "LAMBDA", "ALAMBDA",
+                "SIGMAZER", "ASIGMAZE",
+                "XSIZERO", "AXSIZERO",
+                "XSIC0", "AXSIC0",
+                "XSIPC0", "AXSIPC0",
+                "OMEGAC0", "AOMEGAC0",
+            },
+        ),
+    ],
+)
+def test_fluka_input_return_types_neutral(
+    tmp_path, monkeypatch, flag, particles
+):
+    text = _make_scoring_input(
+        tmp_path, monkeypatch,
+        return_neutral=True,
+        **{flag: True},
+    )
+    assert _active_usrbdx_particles(text) == particles
+
+
+def test_fluka_input_return_all(tmp_path, monkeypatch):
+    text = _make_scoring_input(
+        tmp_path, monkeypatch,
+        return_all=True,
+    )
+    assert _active_usrbdx_particles(text) == {"ALL-PART"}
+
+
+def test_fluka_input_return_all_charged(tmp_path, monkeypatch):
+    text = _make_scoring_input(
+        tmp_path, monkeypatch,
+        return_all_charged=True,
+    )
+    assert _active_usrbdx_particles(text) == {"ALL-CHAR"}
+
