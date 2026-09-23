@@ -380,19 +380,52 @@ class TestBeamGasStudyValidation:
                 {'name': gd.name, 's': gd.s,
                  'Zz': np.ones(len(gd.s))*ATOMIC_DENSITY}))
 
-    def test_raises_on_non_lepton_beam(self, toy_ring):
+    def _study_with_particle_ref(self, toy_ring, particle_ref):
         line = toy_ring['line'].copy()
-        line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=1e12)
+        line.particle_ref = particle_ref
+        return xc.BeamGasStudy(
+            line=line, gas_density=toy_ring['gas_density'],
+            process='brems', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
+            sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
+            n_scattering_events=10)
+
+    def test_raises_on_non_lepton_beam(self, toy_ring):
         with pytest.raises(ValueError, match='electron and positron'):
-            xc.BeamGasStudy(
-                line=line, gas_density=toy_ring['gas_density'],
-                process='brems', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-                sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-                n_scattering_events=10)
+            self._study_with_particle_ref(
+                toy_ring, xt.Particles(pdg_id=2212, p0c=1e12))
+
+    def test_raises_when_pdg_id_not_set(self, toy_ring):
+        # An electron built without a PDG id: right mass, but the study
+        # cannot tell an electron from a positron
+        with pytest.raises(ValueError, match='no PDG id'):
+            self._study_with_particle_ref(
+                toy_ring, xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=-1.0,
+                                       p0c=P0C))
+
+    def test_raises_on_charge_inconsistent_with_pdg_id(self, toy_ring):
+        with pytest.raises(ValueError, match='q0'):
+            self._study_with_particle_ref(
+                toy_ring, xt.Particles(pdg_id=11, mass0=xt.ELECTRON_MASS_EV,
+                                       q0=+1.0, p0c=P0C))
+
+    @pytest.mark.parametrize('name,pdg_id,q0', [('electron', 11, -1.0),
+                                                ('positron', -11, 1.0)])
+    def test_accepts_electrons_and_positrons(self, toy_ring, name, pdg_id, q0):
+        line = toy_ring['line'].copy()
+        line.set_particle_ref(name, p0c=P0C)
+        study = xc.BeamGasStudy(
+            line=line, gas_density=toy_ring['gas_density'],
+            process='coulomb', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
+            sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
+            n_scattering_events=10)
+        assert study.pdg_id == pdg_id
+        # q0 is taken from the PDG id, and drives the Mott term
+        assert study.q0 == q0
+        assert study.calculators['N'].q0 == q0
 
     def test_raises_when_no_beamgas_elements(self, toy_ring):
         line = xt.Line(elements=[xt.Drift(length=1.0)])
-        line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, p0c=P0C)
+        line.set_particle_ref('electron', p0c=P0C)
         with pytest.raises(ValueError, match='does not contain'):
             xc.BeamGasStudy(
                 line=line, gas_density=toy_ring['gas_density'],

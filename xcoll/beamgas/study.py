@@ -10,6 +10,7 @@ import numpy as np
 from scipy import constants as sc
 
 import xtrack as xt
+from xtrack.particles import pdg
 
 from ..beam_elements.beamgas import (BeamGasScattering, _resolve_process,
                                      _resolve_n_scattering_events)
@@ -18,6 +19,9 @@ from .cross_sections import (BremsstrahlungCalculator,
                              atomic_number_from_symbol)
 
 C_LIGHT = sc.c
+
+PDG_ID_ELECTRON = 11
+PDG_ID_POSITRON = -11
 
 
 def _allocated_mask(particles):
@@ -187,8 +191,8 @@ class BeamGasStudy:
         ----------
         line : xtrack.Line
             Line containing the :class:`xcoll.BeamGasScattering` elements to
-            configure. It must have a ``particle_ref``, which must be an
-            electron or a positron.
+            configure. It must have a ``particle_ref`` with its PDG id set to
+            an electron (``11``) or a positron (``-11``).
         gas_density : xtrack.Table
             Residual-gas density profile. It must contain a column ``s`` with
             the longitudinal positions [m] and one column per gas species,
@@ -276,17 +280,36 @@ class BeamGasStudy:
             raise ValueError("`n_scattering_events` is required.")
 
         particle_ref = line.particle_ref
-        if not np.isclose(particle_ref.mass0, xt.ELECTRON_MASS_EV, rtol=1e-6):
+        pdg_id = int(np.atleast_1d(particle_ref.pdg_id)[0])
+        if pdg_id == 0:
+            raise ValueError(
+                "The reference particle has no PDG id set. The beam-gas "
+                "models need to know whether the beam is made of electrons "
+                "or positrons, because the sign of the McKinley-Feshbach "
+                "term of the Coulomb cross section depends on it. Set it "
+                "with e.g. `line.set_particle_ref('electron', p0c=...)`.")
+        if pdg_id not in (PDG_ID_ELECTRON, PDG_ID_POSITRON):
             raise ValueError(
                 "The beam-gas models implemented in Xcoll are only valid for "
-                "electron and positron beams, but the reference particle has "
-                f"mass0={float(particle_ref.mass0):.6e} eV.")
+                "electron and positron beams, but the reference particle is "
+                f"a {pdg.get_name_from_pdg_id(pdg_id)} (PDG id {pdg_id}).")
+
+        # q0 sets the sign of the McKinley-Feshbach interference term, so it
+        # must agree with the PDG id rather than be trusted blindly
+        q0_from_pdg = -1.0 if pdg_id == PDG_ID_ELECTRON else 1.0
+        if not np.isclose(float(particle_ref.q0), q0_from_pdg):
+            raise ValueError(
+                f"The reference particle is a "
+                f"{pdg.get_name_from_pdg_id(pdg_id)} (PDG id {pdg_id}), which "
+                f"must have q0={q0_from_pdg:+.0f}, but it has "
+                f"q0={float(particle_ref.q0):+g}.")
 
         self.line = line
         self.particle_ref = particle_ref
+        self.pdg_id = pdg_id
         self.twiss = twiss
         self.p0c = float(particle_ref.p0c[0])
-        self.q0 = float(particle_ref.q0)
+        self.q0 = q0_from_pdg
         self.beta0 = float(particle_ref.beta0[0])
 
         self.process = _resolve_process(process)
