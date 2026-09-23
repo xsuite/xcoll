@@ -8,8 +8,8 @@ from .general import _pkg_root, __version__, citation
 from .beam_elements import (BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal,
                             EverestBlock, EverestCollimator, EverestCrystal, Geant4Collimator,
                             Geant4CollimatorTip, Geant4Crystal, FlukaCollimator, FlukaCrystal,
-                            BlowUp, EmittanceMonitor, collimator_classes, crystal_classes,
-                            element_classes)
+                            BlowUp, EmittanceMonitor, BeamGasScattering,
+                            collimator_classes, crystal_classes, element_classes)
 from .materials import Material, RefMaterial
 from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, create_generic_assembly
 from .scattering_routines.geant4 import Geant4Engine
@@ -18,8 +18,7 @@ from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
 from .particles_tree import ParticlesTree
-from .beamgas.manager import BeamGasManager
-from .beam_elements.beamgas import BeamGasScattering
+from .beamgas import BeamGasResult, BeamGasStudy
 from .line_tools import XcollLineAPI
 from .environment_tools import XcollEnvironmentAPI
 
