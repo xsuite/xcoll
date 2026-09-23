@@ -260,10 +260,6 @@ class BeamGasStudy:
         ----------
         .. [1] Geant4 Collaboration, "Geant4 Physics Reference Manual",
            Rev. 11.x. https://geant4.web.cern.ch/docs/
-        .. [2] A. Xiao and M. Borland, "Monte Carlo simulation of Touschek
-           effect", Phys. Rev. ST Accel. Beams **13**, 074201 (2010), whose
-           architecture this study mirrors.
-           https://doi.org/10.1103/PhysRevSTAB.13.074201
         """
         # Input validation
         if line is None:
@@ -285,9 +281,7 @@ class BeamGasStudy:
             raise ValueError(
                 "The reference particle has no PDG id set. The beam-gas "
                 "models need to know whether the beam is made of electrons "
-                "or positrons, because the sign of the McKinley-Feshbach "
-                "term of the Coulomb cross section depends on it. Set it "
-                "with e.g. `line.set_particle_ref('electron', p0c=...)`.")
+                "or positrons.")
         if pdg_id not in (PDG_ID_ELECTRON, PDG_ID_POSITRON):
             raise ValueError(
                 "The beam-gas models implemented in Xcoll are only valid for "
