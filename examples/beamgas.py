@@ -1,9 +1,10 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
+# This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.constants as sc
 
 import xobjects as xo
 import xtrack as xt
@@ -12,11 +13,8 @@ import xcoll as xc
 ######################################################
 # Constants
 ######################################################
-import scipy.constants as sc
-
 KB = sc.Boltzmann
-T_ROOM = 293.15 # K
-C_LIGHT = sc.speed_of_light
+T_ROOM = 293.15  # K
 
 ######################################################
 # Beam parameters
@@ -27,7 +25,7 @@ nemitt_y = 1e-7
 sigma_z = 4e-3
 sigma_delta = 1e-3
 
-bunch_population = 4e9
+bunch_intensity = 4e9
 
 ######################################################
 # Build a toy ring
@@ -39,10 +37,8 @@ lquad = 0.3
 k1qf = 0.1
 k1qd = 0.7
 
-# Create environment
 env = xt.Environment()
 
-# Define the line (toy ring)
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=lquad, k1=k1qf),
     env.new('d1.1',  xt.Drift, length=1),
@@ -65,65 +61,44 @@ line = env.new_line(components=[
     env.new('d4.2',  xt.Drift, length=1),
 ])
 
-# Set the reference particle
 line.set_particle_ref('electron', p0c=1e9)
-
-# Configure the bend model
 line.configure_bend_model(core='full', edge=None)
 
 ######################################################
 # Insert beam-gas scattering centers
 ######################################################
-# # We insert beam-gas scattering centers in the middle of each magnet
-# tab = line.get_table()
-# tab_bends_quads = tab.rows[(tab.element_type == 'Bend') | (tab.element_type == 'Quadrupole')]
+# Each BeamGasScattering element represents the lattice section between the
+# previous scattering center (or the start of the line) and itself, so the
+# last one must sit at the end of the line to cover the whole circumference.
+circumference = line.get_length()
+n_beamgas = 16
 
-# for ii, nn in enumerate(tab_bends_quads.name):
-#     beamgas_name = f'BeamGasScattering.{ii}'
-#     env.elements[beamgas_name] = xc.BeamGasScattering()
-#     line.insert(beamgas_name, at=0.0, from_=nn)
-
-# # The last BeamGasScattering element has to be placed at the end of the line
-# beamgas_name = f'BeamGasScattering.{ii+1}'
-# env.elements[beamgas_name] = xc.BeamGasScattering()
-# line.insert(beamgas_name, at=tab.s[-1])
-
-tab = line.get_table()
-
-# The last BeamGasScattering element has to be placed at the end of the line
-s_beamgas_to_insert = np.linspace(0, 21.2, 16)[1:]
-for ii, ss in enumerate(s_beamgas_to_insert):
+placements = []
+for ii, ss in enumerate(np.linspace(0, circumference, n_beamgas + 1)[1:]):
     beamgas_name = f'BeamGasScattering.{ii}'
     env.elements[beamgas_name] = xc.BeamGasScattering()
-    line.insert(beamgas_name, at=ss)
+    placements.append(env.place(beamgas_name, at=ss))
+
+line.insert(placements)
 
 ######################################################
 # Install apertures
 ######################################################
 tab = line.get_table()
-needs_aperture = np.unique(tab.element_type)[
-    ~np.isin(np.unique(tab.element_type), ["", "Drift", "Marker"])
-]
+needs_aperture = tab.rows.match_not(
+    element_type='Drift.*|Marker|').name
 
-aper_size = 0.040 # m
+aper_size = 0.040  # m
+
+env.new('aper', xt.LimitRect,
+        min_x=-aper_size, max_x=aper_size,
+        min_y=-aper_size, max_y=aper_size)
 
 placements = []
-for nn, ee in zip(tab.name, tab.element_type):
-    if ee not in needs_aperture:
-        continue
-
-    env.new(
-        f'{nn}_aper_entry', xt.LimitRect,
-        min_x=-aper_size, max_x=aper_size,
-        min_y=-aper_size, max_y=aper_size
-    )
+for nn in needs_aperture:
+    env.new(f'{nn}_aper_entry', 'aper')
+    env.new(f'{nn}_aper_exit', 'aper')
     placements.append(env.place(f'{nn}_aper_entry', at=f'{nn}@start'))
-
-    env.new(
-        f'{nn}_aper_exit', xt.LimitRect,
-        min_x=-aper_size, max_x=aper_size,
-        min_y=-aper_size, max_y=aper_size
-    )
     placements.append(env.place(f'{nn}_aper_exit', at=f'{nn}@end'))
 
 line.insert(placements)
@@ -131,71 +106,98 @@ line.insert(placements)
 ######################################################
 # Define an example flat pressure profile
 ######################################################
+tab = line.get_table()
 tt_beamgas = tab.rows[tab.element_type == 'BeamGasScattering']
 
-# Let's consider N_2 and pressure = 1e-5 mbar at room temperature
+# N2 at 1e-7 mbar and room temperature. The gas density table holds the
+# *atomic* density of each species, hence the factor 2 for the N2 molecule.
 _mbar_to_pascal = 1e2
 pressure_mbar = 1e-7
 pressure_pascal = pressure_mbar * _mbar_to_pascal
 
 atomic_density = 2 * pressure_pascal / (KB * T_ROOM)
 
-xt.Table({'name': tt_beamgas.name,
-          's': tt_beamgas.s})
-
-gas_density = xt.Table(
-    {
-        'name': tt_beamgas.name,
-        's': tt_beamgas.s,
-        'N': np.ones(len(tt_beamgas.name)) * atomic_density
-    }
-)
+gas_density = xt.Table({
+    'name': tt_beamgas.name,
+    's': tt_beamgas.s,
+    'N': np.ones(len(tt_beamgas.name)) * atomic_density,
+})
 
 ######################################################
 # Beam-gas simulation
 ######################################################
-beamgas_manager = xc.BeamGasManager(
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
+
+beamgas = xc.BeamGasStudy(
     line=line,
     gas_density=gas_density,
     process='coulomb',
+    # Only the large angles can drive a particle into the aperture; restricting
+    # the generated range is the main variance-reduction knob of the study.
     coulomb_theta=(8e-3, 20e-3),
     # process='brems',
     # brems_energy_cut=1e6,
-    interaction_length_is_nturns=1
+    nemitt_x=nemitt_x,
+    nemitt_y=nemitt_y,
+    sigma_z=sigma_z,
+    sigma_delta=sigma_delta,
+    bunch_intensity=bunch_intensity,
+    n_scattering_events=1000,
+    seed=1997,
+    method='4d',
 )
 
-beamgas_manager.initialise_beamgas()
+beamgas.initialise_beamgas()
 
-# Generate particle distribution
-particles = line.build_particles(num_particles=1000)
+print(beamgas.local_rates())
 
-# Initialise the particles for the beam-gas tracking
-beamgas_manager.initialise_particles(particles)
+result = beamgas.run(
+    track=True,
+    n_turns=100,
+    keep_particles=True,
+    with_progress=1,
+)
 
-# Enable beam-gas scattering
-beamgas_manager.enable_scattering()
+print(f'Beam-gas interaction rate: {result.rate_scattering*1e-3:.3f} kHz')
+print(f'Beam-gas loss rate:        {result.rate_tracking*1e-3:.3f} kHz')
+print(f'Beam-gas lifetime:         {result.lifetime_tracking/60:.2f} min')
 
-line.track(particles, num_turns=1)
+######################################################
+# Optional: refine loss locations
+######################################################
+loss_loc_refinement = xt.LossLocationRefinement(
+    line,
+    n_theta=360,  # Angular resolution of the polygonal aperture approximation
+    r_max=0.5,    # Maximum transverse aperture in m
+    dr=50e-6,     # Transverse loss refinement accuracy [m]
+    ds=0.1,       # Longitudinal loss refinement accuracy [m]
+)
 
-# Disable beam-gas scattering
-beamgas_manager.disable_scattering()
+loss_loc_refinement.refine_loss_location(result.particles)
 
-line.track(particles, num_turns=99)
+# `result.lost_particles` is a snapshot taken right after tracking, so it does
+# not see the refined loss locations: re-filter the refined particle object.
+# Xcoll flags the different loss mechanisms with distinct non-positive states,
+# and the spare capacity kept for secondaries shows up as particle_id < 0.
+particles = result.particles
+lost_particles = particles.filter((particles.state > -999999999) & (particles.state <= 0))
 
-loss_loc_refinement = xt.LossLocationRefinement(line,
-    n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-    r_max = 0.5,   # Maximum transverse aperture in m
-    dr = 50e-6,    # Transverse loss refinement accuracy [m]
-    ds = 0.1,      # Longitudinal loss refinement accuracy [m]
-    )
+######################################################
+# Plot: Toy ring beam-gas loss map
+######################################################
+binwidth = 0.1
 
-loss_loc_refinement.refine_loss_location(particles)
-
-# Compute lifetime
-circumference = line.get_length()
-t_rev = circumference / C_LIGHT
-surviving_fraction = particles._num_active_particles / 1000
-
-lifetime = -t_rev * beamgas_manager.biasing_factor / np.log(surviving_fraction)
-
-print(lifetime/60)
+plt.title(
+    f'Toy ring beam-gas loss map '
+    f'(beam-gas lifetime: {result.lifetime_tracking/60:.2f} min)'
+)
+plt.hist(
+    lost_particles.s,
+    bins=np.arange(0, circumference + binwidth, binwidth),
+    weights=lost_particles.weight*1e-3,
+)
+plt.xlabel('s [m]')
+plt.ylabel('Loss rate [kHz]')
+plt.grid()
+plt.show()
