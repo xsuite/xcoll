@@ -160,7 +160,6 @@ class BaseEngine(xo.HybridClass):
                 raise ValueError("{self.__class__.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
-        self._physics_settings.update()
 
     @particle_ref.deleter
     def particle_ref(self):
@@ -517,9 +516,12 @@ class BaseEngine(xo.HybridClass):
         self._sync_line_particle_ref()
         self._get_elements(kwargs.pop('elements', None), kwargs.pop('names', None))
         self._set_cwd(kwargs.pop('cwd', None))
-        # Now we can set the rest of the properties
+        # We store all physics settings raw to avoid losing dynamic defaults
+        self._old_physics_settings = self._physics_settings._get_raw_settings()
         for ff in self._physics_settings.all_flags:
-            self._set_property(ff, kwargs)
+            if ff in kwargs:
+                val = kwargs.pop(ff)
+                setattr(self, ff, val)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
@@ -530,6 +532,9 @@ class BaseEngine(xo.HybridClass):
         # The following properties have a specific logic
         self._reactivate_elements()
         self._reset_cwd(clean=clean)
+        # Reset physics settings
+        self._physics_settings._set_raw_settings(self._old_physics_settings)
+        del self._old_physics_settings
         # Reset all other properties
         self_attributes = self.__dict__.copy()
         for kk, vv in self_attributes.items():
