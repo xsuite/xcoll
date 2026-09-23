@@ -698,6 +698,58 @@ class TestRun:
 
 
 #############################################################
+# line.xcoll.beamgas_configure facade
+#############################################################
+class TestLineFacade:
+
+    def _kwargs(self, toy_ring):
+        return dict(gas_density=toy_ring['gas_density'], process='coulomb',
+                    coulomb_theta=(8e-3, 20e-3),
+                    nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
+                    sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
+                    n_scattering_events=200, seed=1997, method='4d')
+
+    def test_returns_an_initialised_study(self, toy_ring):
+        study = toy_ring['line'].xcoll.beamgas_configure(
+            verbose=False, **self._kwargs(toy_ring))
+        assert isinstance(study, xc.BeamGasStudy)
+        # initialise_beamgas() has already run, so the elements are configured
+        assert len(study.elements) == len(
+            [nn for nn in toy_ring['line'].element_names
+             if isinstance(toy_ring['line'][nn], xc.BeamGasScattering)])
+        for nn in study.elements:
+            assert toy_ring['line'][nn].interaction_rate > 0
+        assert study.twiss is not None
+
+    def test_equivalent_to_direct_construction(self, toy_ring):
+        kwargs = self._kwargs(toy_ring)
+        via_facade = toy_ring['line'].xcoll.beamgas_configure(
+            verbose=False, **kwargs)
+        result_facade = via_facade.run(track=True, n_turns=20)
+
+        direct = xc.BeamGasStudy(line=toy_ring['line'], **kwargs)
+        direct.initialise_beamgas(verbose=False)
+        result_direct = direct.run(track=True, n_turns=20)
+
+        assert result_facade.rate_scattering == result_direct.rate_scattering
+        assert result_facade.rate_tracking == result_direct.rate_tracking
+
+    def test_forwards_element_selection(self, toy_ring):
+        names = ['BeamGasScattering.0', 'BeamGasScattering.1']
+        with pytest.warns(UserWarning, match='not represented'):
+            study = toy_ring['line'].xcoll.beamgas_configure(
+                elements=names, verbose=False, **self._kwargs(toy_ring))
+        assert study.elements == names
+
+    def test_propagates_validation_errors(self, toy_ring):
+        kwargs = self._kwargs(toy_ring)
+        kwargs['process'] = 'compton'
+        with pytest.raises(ValueError, match='brems'):
+            toy_ring['line'].xcoll.beamgas_configure(
+                verbose=False, **kwargs)
+
+
+#############################################################
 # The element is passive during tracking
 #############################################################
 class TestPassiveTracking:

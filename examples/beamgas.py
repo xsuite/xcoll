@@ -129,8 +129,9 @@ gas_density = xt.Table({
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
-beamgas = xc.BeamGasStudy(
-    line=line,
+# The facade builds the study and initialises it in one call. Equivalently,
+# construct xc.BeamGasStudy(line=line, ...) and call initialise_beamgas().
+beamgas = line.xcoll.beamgas_configure(
     gas_density=gas_density,
     process='coulomb',
     # Only the large angles can drive a particle into the aperture; restricting
@@ -147,8 +148,6 @@ beamgas = xc.BeamGasStudy(
     seed=1997,
     method='4d',
 )
-
-beamgas.initialise_beamgas()
 
 print(beamgas.local_rates())
 
