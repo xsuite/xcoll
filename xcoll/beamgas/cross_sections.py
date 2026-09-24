@@ -874,8 +874,11 @@ class CoulombScatteringCalculator:
                      / (ELECTRON_MASS_EV**2 + mass**2 + 2*mass*etot))
 
         self._screening_As = self._compute_screening_As()
-        self._z_lim = (1.0 - np.cos(self.theta_lim[0]),
-                       1.0 - np.cos(self.theta_lim[1]))
+        # z = 1 - cos(theta) = 2 sin^2(theta/2); the latter form keeps full
+        # relative precision at small angles, where 1 - cos(theta) cancels
+        # catastrophically (it is exactly zero below theta ~ 1e-8)
+        self._z_lim = (2.0*np.sin(0.5*self.theta_lim[0])**2,
+                       2.0*np.sin(0.5*self.theta_lim[1])**2)
 
         # Integrated once here, and reused as the normalisation of the
         # importance weights, so that the sampler and the total cross section
@@ -1038,7 +1041,7 @@ class CoulombScatteringCalculator:
 
         u = rng.random(n)
         z = z1*np.exp(u*log_ratio)
-        theta = np.arccos(np.clip(1.0 - z, -1.0, 1.0))
+        theta = 2.0*np.arcsin(np.minimum(np.sqrt(0.5*z), 1.0))
 
         # w = (dsigma/dz) / (g(z) * sigma), with g(z) = 1/(z log(z2/z1))
         weight = self._dxsec_dz(z) * z * log_ratio / self.xsec

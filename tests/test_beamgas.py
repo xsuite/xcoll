@@ -234,6 +234,23 @@ class TestCoulombCrossSection:
         assert np.allclose(np.arccos(np.clip(cos_angle, -1, 1)), sample.theta,
                            atol=1e-9)
 
+    def test_small_angles_keep_full_precision(self):
+        # 1 - cos(theta) is exactly zero below theta ~ 1e-8, so the window
+        # and the sampled angles must be computed without it
+        calc = CoulombScatteringCalculator(7, P0C, q0=-1.0,
+                                           theta_lim=(1e-10, 1e-3))
+        assert np.isclose(calc._z_lim[0], 0.5e-20, rtol=1e-12)
+        assert np.isfinite(calc.xsec) and calc.xsec > 0
+        theta, weight = calc.sample_theta(100_000, np.random.default_rng(0))
+        assert theta.min() >= 1e-10*(1 - 1e-12)
+        assert theta.max() <= 1e-3*(1 + 1e-12)
+        assert np.all(np.isfinite(weight))
+        # Below the screening angle the cross section is flat in z, so
+        # lowering theta_min further only adds a negligible amount
+        wider = CoulombScatteringCalculator(7, P0C, q0=-1.0,
+                                            theta_lim=(1e-12, 1e-3))
+        assert np.isclose(wider.xsec, calc.xsec, rtol=1e-6)
+
     def test_raises_on_invalid_theta_range(self):
         with pytest.raises(ValueError):
             CoulombScatteringCalculator(7, P0C, theta_lim=(2e-2, 1e-3))
