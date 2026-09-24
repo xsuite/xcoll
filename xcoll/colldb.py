@@ -571,6 +571,7 @@ class CollimatorDatabase:
                 at.append(None)
             else:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
+
         line.xcoll.collimators.install(names, elements, need_apertures=need_apertures)
 
     def install_geant4_collimators(self, line, *, names=None, families=None, apertures=None,
