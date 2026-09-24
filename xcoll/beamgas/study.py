@@ -269,10 +269,15 @@ class BeamGasStudy:
             the events that can lead to a loss. Default 10 keV.
         coulomb_theta : tuple of float, optional
             Range of the generated Coulomb scattering angle [rad]. Only used
-            when ``process='coulomb'``. Restricting it to the loss-relevant
-            range is the main variance-reduction knob of the study, since the
-            small-angle part of the cross section is many orders of magnitude
-            larger but cannot cause losses. Default ``(1e-7, 50e-3)``.
+            when ``process='coulomb'``. Losses from angles outside this range
+            are missing from the result, so ``theta_min`` must lie below the
+            smallest angle that can cause a loss and ``theta_max`` high enough
+            that the cross section above it is negligible. Thanks to the
+            log-uniform importance sampling, widening the range only costs
+            statistics as ``log(theta_max/theta_min)``, so err on the wide
+            side. :meth:`run` reports both truncation effects (see
+            ``BeamGasResult.cutoff_scan`` and ``rate_above_theta_max``).
+            Default ``(1e-7, 50e-3)``.
         seed : int or None, optional
             Seed of the random-number generator. If ``None`` (default), a
             fresh unseeded generator is used.

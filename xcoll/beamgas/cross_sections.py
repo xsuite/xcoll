@@ -796,16 +796,18 @@ class CoulombScatteringCalculator:
     ``delta`` is left unchanged by the interaction.
 
     Events are generated only within ``theta_lim``, and ``compute_xsec``
-    returns the cross section restricted to the same range. Since the
-    small-angle part of the distribution cannot lead to a loss but dominates
-    the cross section by many orders of magnitude, restricting ``theta_lim``
-    to the loss-relevant range is the main variance-reduction knob of the
-    beam-gas simulation.
+    returns the cross section restricted to the same range. Scattering
+    outside ``theta_lim`` is not represented at all, so any loss it would
+    cause is missing from the result.
 
     Within ``theta_lim`` the polar angle is drawn from a log-uniform proposal
     in ``z``, which over-samples the large angles that actually cause losses;
     the resulting bias is corrected exactly by the importance weight returned
-    in :attr:`ScatteringSample.weight`.
+    in :attr:`ScatteringSample.weight`. With this proposal the fraction of
+    events above a given angle only decreases as ``1/log(theta_max/theta_min)``
+    when ``theta_min`` is lowered, so a wide ``theta_lim`` costs little
+    statistics, whereas a ``theta_lim`` that cuts into the loss-relevant range
+    biases the loss rate low.
 
     Parameters
     ----------
