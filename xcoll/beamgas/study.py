@@ -109,6 +109,35 @@ class BeamGasResult:
         study.
     tracked : bool
         Whether the generated particles were tracked to determine losses.
+    rate_tracking_error : float or None
+        Monte Carlo standard error of ``rate_tracking`` [1/s]. ``None`` when
+        tracking is disabled.
+    lifetime_tracking_error : float or None
+        Monte Carlo standard error of ``lifetime_tracking`` [s], propagated
+        from ``rate_tracking_error`` to first order. ``None`` when tracking is
+        disabled.
+    cutoff_scan : xtrack.Table or None
+        Loss rate as a function of the lower generation cut, obtained from
+        the single tracked sample: since every event carries its importance
+        weight, the events above a cut ``c`` are an unbiased sample of a
+        study generated with its lower cut set to ``c``. One row per
+        log-spaced ``cut``, from the configured lower cut (``theta_min`` for
+        Coulomb scattering, ``brems_energy_cut`` for bremsstrahlung) upwards,
+        with columns ``cut``, ``num_events`` and ``num_lost`` (in
+        ``[cut, next cut)``), ``loss_probability`` (weighted fraction of
+        those events that is lost), and ``rate_tracking``,
+        ``rate_tracking_error`` and ``lifetime_tracking`` that a study with
+        its lower cut set to ``cut`` would give. If ``lifetime_tracking``
+        has not saturated in the first rows, the configured cut is too high.
+        Only losses of the generated primaries are included. ``None`` when
+        tracking is disabled.
+    rate_above_theta_max : float or None
+        Interaction rate for Coulomb scattering above ``theta_max`` [1/s],
+        which is not generated. It is an upper bound on the loss rate missing
+        because of the upper cut, and equals it when every event near
+        ``theta_max`` is lost (``cutoff_scan.loss_probability`` close to one
+        in the last rows). ``None`` unless ``process='coulomb'`` and
+        tracking is enabled.
     particles_by_element : dict or None
         Mapping ``{element_name: xtrack.Particles}`` with the generated
         particles for each scattering element. ``None`` unless
@@ -135,7 +164,9 @@ class BeamGasResult:
     ----------
     element_names, gas_density, local_rates, rate_scattering,
     lifetime_scattering, rate_tracking, lifetime_tracking, tracked,
-    particles_by_element, particles, lost_particles, interaction_log
+    rate_tracking_error, lifetime_tracking_error, cutoff_scan,
+    rate_above_theta_max, particles_by_element, particles, lost_particles,
+    interaction_log
         See above.
     """
     element_names: list
@@ -146,6 +177,10 @@ class BeamGasResult:
     rate_tracking: float | None
     lifetime_tracking: float | None
     tracked: bool
+    rate_tracking_error: float | None = None
+    lifetime_tracking_error: float | None = None
+    cutoff_scan: xt.Table | None = None
+    rate_above_theta_max: float | None = None
     particles_by_element: dict | None = None
     particles: xt.Particles | None = None
     lost_particles: xt.Particles | None = None
@@ -773,6 +808,10 @@ class BeamGasStudy:
 
         rate_tracking = None
         lifetime_tracking = None
+        rate_tracking_error = None
+        lifetime_tracking_error = None
+        cutoff_scan = None
+        rate_above_theta_max = None
         if track:
             lost = merged_particles.filter(_lost_mask(merged_particles))
             rate_tracking = float(np.sum(lost.weight))
@@ -780,6 +819,17 @@ class BeamGasStudy:
                 np.inf if rate_tracking == 0
                 else float(self.bunch_intensity/rate_tracking))
             lost_particles = lost
+
+            events = self._event_losses(particles_by_element)
+            cutoff_scan = self._cutoff_scan(*events)
+            rate_tracking_error = float(cutoff_scan.rate_tracking_error[0])
+            lifetime_tracking_error = (
+                np.nan if rate_tracking == 0
+                else lifetime_tracking*rate_tracking_error/rate_tracking)
+            if self.process == 'coulomb':
+                rate_above_theta_max = self._rate_above_theta_max()
+            self._warn_on_truncation(events[0], events[1]*events[2],
+                                     cutoff_scan, rate_above_theta_max)
 
         lifetime_scattering = (
             np.inf if rate_scattering == 0
@@ -806,6 +856,10 @@ class BeamGasStudy:
             rate_tracking=rate_tracking,
             lifetime_tracking=lifetime_tracking,
             tracked=track,
+            rate_tracking_error=rate_tracking_error,
+            lifetime_tracking_error=lifetime_tracking_error,
+            cutoff_scan=cutoff_scan,
+            rate_above_theta_max=rate_above_theta_max,
             particles_by_element=particles_by_element,
             particles=merged_particles,
             lost_particles=lost_particles,
@@ -815,6 +869,236 @@ class BeamGasStudy:
     # ######################################################## #
     # Diagnostics
     # ######################################################## #
+    # Resolution of BeamGasResult.cutoff_scan
+    _CUTOFF_SCAN_BINS_PER_DECADE = 10
+    # Warn when more than this fraction of the loss rate comes from events
+    # within a factor two of the lower cut
+    _LOWER_CUT_WARN_FRACTION = 1e-3
+    # Warn when the Coulomb interaction rate above theta_max exceeds this
+    # fraction of the tracked loss rate
+    _UPPER_CUT_WARN_FRACTION = 1e-2
+
+    @property
+    def _generation_window(self):
+        """
+        Range of the variable that bounds the generated events.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        window : tuple of float
+            ``(theta_min, theta_max)`` [rad] for Coulomb scattering, or
+            ``(brems_energy_cut, ekin)`` [eV] for bremsstrahlung.
+        """
+        if self.process == 'coulomb':
+            return self.coulomb_theta
+        ekin = next(iter(self.calculators.values())).ekin
+        return (self.brems_energy_cut, float(ekin))
+
+    def _event_losses(self, particles_by_element):
+        """
+        Join the interaction log of every element with the tracked states.
+
+        Xtrack reorders the particles while tracking, so the generated events
+        are matched to the particles by ``particle_id``.
+
+        Parameters
+        ----------
+        particles_by_element : dict
+            Mapping ``{element_name: xtrack.Particles}`` of tracked particles.
+
+        Returns
+        -------
+        x : ndarray
+            Generation variable of each event: scattering angle [rad] for
+            Coulomb scattering, photon energy [eV] for bremsstrahlung.
+        weight : ndarray
+            Weight of each event [1/s].
+        lost : ndarray of bool
+            Whether the primary particle of each event is lost.
+        i_element : ndarray of int
+            Index in :attr:`elements` of the element that generated each
+            event.
+        """
+        column = 'theta' if self.process == 'coulomb' else 'photon_energy'
+        x, weight, lost, i_element = [], [], [], []
+        for ii, nn in enumerate(self.elements):
+            log = self.line[nn].scatter_log
+            particles = particles_by_element[nn]
+            allocated = _allocated_mask(particles)
+            ids = particles.particle_id[allocated]
+            order = np.argsort(ids)
+            idx = order[np.searchsorted(ids, log['particle_id'], sorter=order)]
+            x.append(np.asarray(log[column], dtype=float))
+            weight.append(np.asarray(log['weight'], dtype=float))
+            lost.append(particles.state[allocated][idx] <= 0)
+            i_element.append(np.full(idx.size, ii))
+
+        return tuple(np.concatenate(vv) for vv in (x, weight, lost, i_element))
+
+    def _cutoff_scan(self, x, weight, lost, i_element):
+        """
+        Tabulate the loss rate as a function of the lower generation cut.
+
+        The events above a cut are an unbiased importance sample of a study
+        generated with its lower cut set there, so the loss rate of every
+        such study follows from the single tracked sample. The loss rate of
+        each element is a sum of independent event contributions, so its
+        variance is the number of events times their sample variance.
+
+        Parameters
+        ----------
+        x, weight, lost, i_element : ndarray
+            Per-event arrays returned by :meth:`_event_losses`.
+
+        Returns
+        -------
+        table : xtrack.Table
+            See :attr:`BeamGasResult.cutoff_scan`.
+        """
+        lo, hi = self._generation_window
+        n_bins = max(int(np.ceil(
+            self._CUTOFF_SCAN_BINS_PER_DECADE*np.log10(hi/lo))), 1)
+        edges = np.geomspace(lo, hi, n_bins + 1)
+        i_bin = np.clip(np.searchsorted(edges, x, side='right') - 1,
+                        0, n_bins - 1)
+        contribution = weight*lost
+        n_elements = len(self.elements)
+
+        def per_bin(values, element_wise=False):
+            if not element_wise:
+                return np.bincount(i_bin, weights=values, minlength=n_bins)
+            flat = np.bincount(i_element*n_bins + i_bin, weights=values,
+                               minlength=n_elements*n_bins)
+            return flat.reshape(n_elements, n_bins)
+
+        def above(binned):
+            # Sum over all the bins from the current one upwards
+            return np.flip(np.cumsum(np.flip(binned, axis=-1), axis=-1),
+                           axis=-1)
+
+        num_events = per_bin(np.ones_like(x))
+        weight_in_bin = per_bin(weight)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            loss_probability = per_bin(contribution)/weight_in_bin
+
+        s1 = above(per_bin(contribution, element_wise=True))
+        s2 = above(per_bin(contribution**2, element_wise=True))
+        n = np.bincount(i_element, minlength=n_elements)[:, None]
+        with np.errstate(invalid='ignore', divide='ignore'):
+            variance = np.where(n > 1, n*(s2 - s1**2/n)/(n - 1), 0.0)
+        rate = s1.sum(axis=0)
+        with np.errstate(divide='ignore'):
+            lifetime = np.where(rate > 0, self.bunch_intensity/rate, np.inf)
+
+        return xt.Table({
+            'cut': edges[:-1],
+            'num_events': num_events.astype(int),
+            'num_lost': per_bin(lost.astype(float)).astype(int),
+            'loss_probability': loss_probability,
+            'rate_tracking': rate,
+            'rate_tracking_error': np.sqrt(np.maximum(variance, 0.0)
+                                           .sum(axis=0)),
+            'lifetime_tracking': lifetime,
+        }, index='cut')
+
+    def _rate_above_theta_max(self):
+        """
+        Compute the Coulomb interaction rate above ``theta_max``.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        rate : float
+            Interaction rate of the whole study for scattering angles between
+            ``theta_max`` and ``pi`` [1/s].
+        """
+        theta_max = self.coulomb_theta[1]
+        if theta_max >= np.pi:
+            return 0.0
+
+        xsecs_above = {
+            kk: CoulombScatteringCalculator(
+                    Z, self.p0c, q0=self.q0,
+                    theta_lim=(theta_max, np.pi)).xsec
+            for kk, Z in self.atomic_numbers.items()}
+
+        rate = 0.0
+        for nn in self.elements:
+            elem = self.line[nn]
+            integrated_densities = self._integrated_atomic_densities(
+                float(elem.s) - float(elem.ds), float(elem.s))
+            rate += sum(integrated_densities[kk]*xsecs_above[kk]
+                        for kk in self.gas_species)
+
+        return float(self.bunch_intensity*self._f_rev*rate)
+
+    def _warn_on_truncation(self, x, contribution, cutoff_scan,
+                            rate_above_theta_max):
+        """
+        Warn when the generation window visibly truncates the loss rate.
+
+        Parameters
+        ----------
+        x : ndarray
+            Generation variable of each event, see :meth:`_event_losses`.
+        contribution : ndarray
+            Loss-rate contribution of each event, i.e. its weight if lost and
+            zero otherwise [1/s].
+        cutoff_scan : xtrack.Table
+            Table returned by :meth:`_cutoff_scan`.
+        rate_above_theta_max : float or None
+            Coulomb interaction rate above ``theta_max`` [1/s].
+
+        Returns
+        -------
+        None
+        """
+        rate = float(np.sum(contribution))
+        if rate <= 0:
+            return
+
+        lo = self._generation_window[0]
+        if self.process == 'coulomb':
+            name = '`coulomb_theta[0]`'
+            what = 'scattering angles'
+            hint = (" The log-uniform angular sampling makes a lower cut "
+                    "cheap: the statistics only degrade as "
+                    "log(theta_max/theta_min).")
+        else:
+            name = '`brems_energy_cut`'
+            what = 'photon energies'
+            hint = ""
+
+        near_lower = float(np.sum(contribution[x < 2*lo]))/rate
+        if near_lower > self._LOWER_CUT_WARN_FRACTION:
+            warn(f"{100*near_lower:.2g}% of the tracked loss rate comes from "
+                 f"events generated within a factor 2 of the lower cut "
+                 f"{name}={lo:.3g}. The cut lies inside the range of {what} "
+                 f"that cause losses, so the losses from below it are missing "
+                 f"and the lifetime is overestimated. Lower {name}, and check "
+                 f"that `BeamGasResult.cutoff_scan.lifetime_tracking` is flat "
+                 f"in its first rows.{hint}", stacklevel=3)
+
+        if rate_above_theta_max is not None:
+            above_upper = rate_above_theta_max/rate
+            if above_upper > self._UPPER_CUT_WARN_FRACTION:
+                warn(f"The Coulomb interaction rate above `coulomb_theta[1]`="
+                     f"{self.coulomb_theta[1]:.3g} rad, which is not "
+                     f"generated, amounts to {100*above_upper:.2g}% of the "
+                     f"tracked loss rate. Up to that much loss rate is "
+                     f"missing, and all of it if these events are always lost "
+                     f"(loss probability in the last `cutoff_scan` row: "
+                     f"{cutoff_scan.loss_probability[-1]:.2f}). Raise "
+                     f"`coulomb_theta[1]`, or add `rate_above_theta_max` to "
+                     f"the loss rate.", stacklevel=3)
+
     def local_rates(self, *, particles_by_element=None,
                     include_tracking=False):
         """

@@ -2,6 +2,8 @@
 # This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
+import warnings
+
 import numpy as np
 import pytest
 from scipy import constants as sc
@@ -704,6 +706,72 @@ class TestRun:
         c = make_study(toy_ring, seed=12, **kwargs).run(track=True, n_turns=10)
         assert a.rate_tracking == b.rate_tracking
         assert a.rate_tracking != c.rate_tracking
+
+    def test_statistical_error(self):
+        result = self.study.run(track=True, n_turns=20)
+        assert result.rate_tracking_error > 0
+        assert result.rate_tracking_error < result.rate_tracking
+        assert np.isclose(
+            result.lifetime_tracking_error/result.lifetime_tracking,
+            result.rate_tracking_error/result.rate_tracking)
+        assert self.study.run().rate_tracking_error is None
+
+    def test_cutoff_scan(self):
+        result = self.study.run(track=True, n_turns=20, keep_particles=True)
+        scan = result.cutoff_scan
+        assert np.isclose(scan.cut[0], 8e-3)
+        assert np.all(np.diff(scan.cut) > 0)
+        # The first row is the study itself: no collimators, so every lost
+        # particle is a generated primary
+        assert np.isclose(scan.rate_tracking[0], result.rate_tracking)
+        assert np.isclose(scan.rate_tracking_error[0],
+                          result.rate_tracking_error)
+        assert scan.num_events.sum() == len(result.interaction_log.theta)
+        assert scan.num_lost.sum() == len(result.lost_particles.state)
+        # Raising the cut can only remove losses
+        assert np.all(np.diff(scan.rate_tracking) <= 0)
+        assert np.all(np.diff(scan.lifetime_tracking) >= 0)
+        assert np.all((scan.loss_probability[scan.num_events > 0] >= 0)
+                      & (scan.loss_probability[scan.num_events > 0] <= 1))
+        # The rate above a cut is the lost weight generated above it
+        lost_ids = set()
+        log = result.interaction_log
+        for nn, pp in result.particles_by_element.items():
+            ids = pp.particle_id[(pp.particle_id >= 0) & (pp.state <= 0)]
+            lost_ids |= {(nn, ii) for ii in ids}
+        lost = np.array([(nn, ii) in lost_ids
+                         for nn, ii in zip(log.name, log.particle_id)])
+        for ii in (0, len(scan.cut)//2, len(scan.cut) - 1):
+            above = log.theta >= scan.cut[ii]
+            assert np.isclose(scan.rate_tracking[ii],
+                              log.weight[above & lost].sum())
+
+    def test_warns_when_the_window_truncates_the_losses(self):
+        # The toy ring loses particles well below 8 mrad and virtually all
+        # of them above 20 mrad, so both cuts of this window bias the result
+        with pytest.warns(UserWarning) as record:
+            result = self.study.run(track=True, n_turns=20)
+        messages = [str(ww.message) for ww in record]
+        assert any('lower cut `coulomb_theta[0]`' in mm for mm in messages)
+        assert any('above `coulomb_theta[1]`' in mm for mm in messages)
+        assert result.rate_above_theta_max > 0.01*result.rate_tracking
+
+    def test_no_truncation_warning_for_a_wide_window(self, toy_ring):
+        study = make_study(toy_ring, process='coulomb',
+                           coulomb_theta=(1e-7, 1.0),
+                           n_scattering_events=200)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error', message='.*coulomb_theta.*')
+            result = study.run(track=True, n_turns=20)
+        assert result.rate_above_theta_max < 1e-3*result.rate_tracking
+
+    def test_brems_cutoff_scan(self, toy_ring):
+        study = make_study(toy_ring, n_scattering_events=200)
+        result = study.run(track=True, n_turns=5)
+        assert np.isclose(result.cutoff_scan.cut[0], 1e6)
+        assert np.isclose(result.cutoff_scan.rate_tracking[0],
+                          result.rate_tracking)
+        assert result.rate_above_theta_max is None
 
     def test_raises_on_inconsistent_run_arguments(self):
         with pytest.raises(ValueError):
