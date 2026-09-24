@@ -134,9 +134,14 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 beamgas = line.xcoll.beamgas_configure(
     gas_density=gas_density,
     process='coulomb',
-    # Only the large angles can drive a particle into the aperture; restricting
-    # the generated range is the main variance-reduction knob of the study.
-    coulomb_theta=(8e-3, 20e-3),
+    # Losses from angles outside this window are missing from the result, so
+    # it must extend well below the smallest angle that causes a loss (here
+    # ~3.5 mrad) and well above the angle beyond which every particle is lost
+    # (here ~20 mrad). The angles are sampled log-uniformly with importance
+    # weights, so a wide window only costs statistics as
+    # log(theta_max/theta_min). BeamGasResult.cutoff_scan and
+    # rate_above_theta_max show whether the window is wide enough.
+    coulomb_theta=(1e-6, 0.3),
     # process='brems',
     # brems_energy_cut=1e6,
     nemitt_x=nemitt_x,
@@ -160,7 +165,14 @@ result = beamgas.run(
 
 print(f'Beam-gas interaction rate: {result.rate_scattering*1e-3:.3f} kHz')
 print(f'Beam-gas loss rate:        {result.rate_tracking*1e-3:.3f} kHz')
-print(f'Beam-gas lifetime:         {result.lifetime_tracking/60:.2f} min')
+print(f'Beam-gas lifetime:         {result.lifetime_tracking/60:.2f} '
+      f'+- {result.lifetime_tracking_error/60:.2f} min')
+
+# Lifetime that a lower cut `cut` would have given: it must be flat in the
+# first rows, otherwise coulomb_theta[0] is too high
+print(result.cutoff_scan)
+print(f'Interaction rate above theta_max: '
+      f'{result.rate_above_theta_max/result.rate_tracking:.1e} of the loss rate')
 
 ######################################################
 # Optional: refine loss locations
