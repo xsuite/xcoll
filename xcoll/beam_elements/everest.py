@@ -198,6 +198,10 @@ class EverestCrystal(BaseCrystal):
         # CPU numerics are untouched; idempotent and never lowers the limit.
         set_crystal_stack_limit(self._context)
 
+    def move(self, _context=None, _buffer=None, _offset=None):
+        super().move(_context=_context, _buffer=_buffer, _offset=_offset)
+        set_crystal_stack_limit(self._context)
+
 
     @property
     def material(self):
