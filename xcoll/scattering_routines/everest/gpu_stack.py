@@ -56,14 +56,15 @@ def set_crystal_stack_limit(context, nbytes=CRYSTAL_STACK_LIMIT_BYTES):
     """
     if not isinstance(context, xo.ContextCupy):
         return None
-
-    try:
-        import cupy as cp
-    except Exception:  # pragma: no cover - cupy is present on a Cupy context
-        return None
+    import cupy as cp
 
     # The live device limit already encodes the process high-water mark (we
     # never lower it), so it alone makes the call idempotent / never-lowering.
+    # TODO: This works fine on a single GPU, but on multi-GPU systems the limit
+    # is per-device, so we should check that the current device is the one the
+    # context is using. This needs to be provided by xobjects:
+    #    Currently, ContextCupy itself does not retain a clean immutable
+    #    device_id; its constructor just calls Device(device).use()
     current = cp.cuda.runtime.deviceGetLimit(_CUDA_LIMIT_STACK_SIZE)
     target = max(nbytes, current)
 
