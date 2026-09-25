@@ -36,8 +36,12 @@ def _material_in_context(material, context):
     """
     if material is None or context is None:
         return material
+    if material._xobject._buffer.context is context:
+        # Context already matches
+        return material
     if isinstance(material._xobject._buffer.context, xo.ContextCpu) \
     and isinstance(context, xo.ContextCpu):
+        # Not the same context, but both are CPU contexts: no need to copy
         return material
     # `HybridClass.copy` rebuilds the xobject in the target context while
     # carrying over the python-side state (names, frozen flag, ...), and leaves
