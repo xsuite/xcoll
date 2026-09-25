@@ -36,9 +36,8 @@ def test_transfer_line(test_context):
     line.xcoll.scattering.enable()   # Re-enable scattering
     line.track(part)
     tt_mon = line.get_table().rows.match(element_type='EmittanceMonitor')
-    nparray = test_context.nparray_from_context_array
-    nemitt_x = np.array([nparray(line[name].nemitt_x) for name in tt_mon.name])
-    nemitt_y = np.array([nparray(line[name].nemitt_y) for name in tt_mon.name])
+    nemitt_x = np.array([line[name].nemitt_x for name in tt_mon.name])
+    nemitt_y = np.array([line[name].nemitt_y for name in tt_mon.name])
     assert np.allclose(nemitt_x[0:2],  7.65e-6, atol=1e-7)
     assert np.allclose(nemitt_x[2:4], 10.75e-6, atol=1e-7)
     assert np.allclose(nemitt_x[4:6], 15.68e-6, atol=1e-7)
