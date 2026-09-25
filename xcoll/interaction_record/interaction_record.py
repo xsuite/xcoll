@@ -91,6 +91,11 @@ class InteractionRecord(xt.BeamElement):
 
         # Get context and buffer with correct capacity
         _context = kwargs.get('_context')
+        if _context is None:
+            if line is not None and line.tracker is not None:
+                _context = line.tracker._context
+        if _context is None:
+            _context = elements[0]._context
         capacity = 728 + 8*num_rows*len(recorded_columns)
         if getattr(line, 'tracker', None) is None \
         or getattr(line.tracker, 'io_buffer', None) is None:
@@ -188,7 +193,8 @@ class InteractionRecord(xt.BeamElement):
 
     @property
     def interaction_type(self):
-        return np.array([interaction_names[inter] for inter in self._inter])
+        inter = self._context.nparray_from_context_array(self._inter)
+        return np.array([interaction_names[int(ii)] for ii in inter])
 
     def to_pandas(self, frame=None):
         if frame is None:
