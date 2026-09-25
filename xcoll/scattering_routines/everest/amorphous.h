@@ -112,6 +112,7 @@ double Amorphous(EverestData RESTRICT everest, MaterialData RESTRICT material,
                  double length, int8_t allow_VI);
 
 
+GPUFUN
 double volume_interaction(EverestData RESTRICT everest, MaterialData RESTRICT material,
                           LocalParticle* part, CrystalGeometry RESTRICT cg, double pc,
                           double length, int8_t transition) {
@@ -143,7 +144,7 @@ double volume_interaction(EverestData RESTRICT everest, MaterialData RESTRICT ma
     return pc;
 }
 
-// GPUFUN
+GPUFUN
 double Amorphous(EverestData RESTRICT everest, MaterialData RESTRICT material,
            LocalParticle* part, CrystalGeometry RESTRICT cg, double pc, double length, int8_t allow_VI) {
 

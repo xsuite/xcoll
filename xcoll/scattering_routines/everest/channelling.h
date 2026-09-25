@@ -141,6 +141,7 @@ void channel_transport(EverestData RESTRICT everest, MaterialData RESTRICT mater
 }
 
 
+GPUFUN
 double do_crystal(EverestData RESTRICT everest, MaterialData RESTRICT material,
                   LocalParticle* part, CrystalGeometry RESTRICT cg, double pc, double length) {
     calculate_initial_angle(everest, part, cg);
@@ -175,6 +176,8 @@ double do_crystal(EverestData RESTRICT everest, MaterialData RESTRICT material,
     return pc;
 }
 
+
+GPUFUN
 double Channel(EverestData RESTRICT everest, MaterialData RESTRICT material,
                LocalParticle* part, CrystalGeometry RESTRICT cg, double pc, double length) {
     if (LocalParticle_get_state(part) < 1) {
