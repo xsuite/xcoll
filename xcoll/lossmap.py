@@ -408,6 +408,9 @@ class LossMap:
 
         # Use a copy of the particles to keep the original particles unchanged
         part = part.copy(_context=xo.ContextCpu())
+        if weights is not None:
+            if not isinstance(weights, np.ndarray):
+                weights = np.array(weights)
 
         # # Check that collimators have been tracked
         # tt_geant4 = tt.rows.match(element_type='Geant4Collimator|Geant4Crystal')
