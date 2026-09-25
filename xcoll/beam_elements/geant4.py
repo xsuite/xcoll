@@ -22,13 +22,13 @@ class Geant4Collimator(BaseCollimator):
     }
 
     isthick = True
+    needs_cpu = True    # TODO: adapt track.py to work with particles on GPU context
     allow_track = True
     iscollective = True
     behaves_like_drift = True
     allow_rot_and_shift = False
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
-    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCollimator, Geant4Engine]
 
@@ -150,11 +150,11 @@ class Geant4CollimatorTip(Geant4Collimator):
     }
 
     isthick = True
+    needs_cpu = True
     allow_track = True
     iscollective = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
-    allow_no_prebuilt_kernel = True
 
     _depends_on = [*Geant4Collimator._depends_on]
 
@@ -200,7 +200,7 @@ class Geant4CollimatorTip(Geant4Collimator):
 
 class Geant4Crystal(BaseCrystal):
 
-    allow_no_prebuilt_kernel = True
+    needs_cpu = True
 
     def __init__(self, **kwargs):
         import xcoll as xc

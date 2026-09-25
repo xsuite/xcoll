@@ -27,12 +27,12 @@ class FlukaCollimator(BaseCollimator):
     }
 
     isthick = True
+    needs_cpu = True
     allow_track = True
     iscollective = True
     behaves_like_drift = True
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
-    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCollimator, FlukaEngine]
 
@@ -398,12 +398,12 @@ class FlukaCrystal(BaseCrystal):
     }
 
     isthick = True
+    needs_cpu = True    # TODO: adapt track.py to work with particles on GPU context
     allow_track = True
     iscollective = True
     behaves_like_drift = True
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
-    allow_no_prebuilt_kernel = True
 
     _depends_on = [BaseCrystal, FlukaEngine]
 
