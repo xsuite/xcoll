@@ -417,13 +417,14 @@ class InteractionRecord(xt.BeamElement):
         if isinstance(collimator, str):
             collimator = self._collimator_id(collimator)
         nparr = self._context.nparray_from_context_array
-        mask = (self._inter[:n_rows] > 0) & (self.at_element[:n_rows] == collimator)
-        interaction_type = [
-            inter.tolist() if hasattr(inter, 'tolist') else inter
-            for inter in self._inter[:n_rows][mask]
-        ]
+        mask = (
+            (self._inter[:n_rows] > 0)
+            & (self.at_element[:n_rows] == collimator)
+        )
         if turn is not None:
-            mask = mask & (self.at_turn[:n_rows] == turn)
+            mask &= self.at_turn[:n_rows] == turn
+        interaction_type = nparr(self._inter[:n_rows][mask])
+        if turn is not None:
             df = pd.DataFrame({
                     'int':  [shortcuts[inter] for inter in interaction_type],
                     'pid':  nparr(self.particle_id_before[:n_rows][mask])
