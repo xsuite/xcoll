@@ -84,6 +84,15 @@ int8_t create_open_polygon(Segment* segments, double* s_poly, double* x_poly,
 GPUFUN
 int8_t create_crystal(Segment* segments, double R, double width, double length,
                              double jaw_U, double tilt_sin, double tilt_cos) {
+    if (fabs(R) < 1.e-12) {
+        // straight crystal - not yet implemented
+#ifdef XO_CONTEXT_CPU
+        printf("Straight crystal not yet implemented!");
+        fflush(stdout);
+#endif /* XO_CONTEXT_CPU */
+        return 1;
+    }
+
     // First corner is what defines the crystal position
     double A_s = 0;
     double A_x = jaw_U;
@@ -93,15 +102,7 @@ int8_t create_crystal(Segment* segments, double R, double width, double length,
     double R_short  = sgnR*(fabs(R) - width);
     double sin_a = length/fabs(R);
     double cos_a = sqrt(1 - length*length/R/R);
-    if (fabs(R) < 1.e-12) {
-        // straight crystal - not yet implemented
-#ifdef XO_CONTEXT_CPU
-        printf("Straight crystal not yet implemented!");
-        fflush(stdout);
-#endif /* XO_CONTEXT_CPU */
-        return 1;
-
-    } else if (R < 0) {
+    if (R < 0) {
         // This distinction is needed to keep the crystal at the same location when changing the bend direction
         double R_temp = R_short;
         R_short = R;

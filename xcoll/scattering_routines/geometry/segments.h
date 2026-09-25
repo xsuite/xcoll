@@ -202,7 +202,7 @@ void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double pa
             double t = atan2(x - R_x, new_s - R_s);
             if (reversed) {
                 // t2 < t1, so we are looking at the inverted region of angles
-                if (t1 >= t || t >= t2) {
+                if (t >= t1 || t <= t2) {
                     s[*n_hit] = new_s;
                     (*n_hit)++;
                 }
