@@ -36,7 +36,7 @@ int8_t Geant4CollimatorData_get_record_scatterings(Geant4CollimatorData el) {
 
 
 GPUFUN
-void Geant4Collimator_init_geometry(Geant4CollimatorData el, LocalParticle* part0),
+void Geant4Collimator_init_geometry(Geant4CollimatorData el, LocalParticle* part0,
                                     CollimatorGeometry RESTRICT cg) {
     // Dimensions
     cg->length = Geant4CollimatorData_get_length(el);

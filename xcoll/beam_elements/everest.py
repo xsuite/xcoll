@@ -202,6 +202,10 @@ class EverestCrystal(BaseCrystal):
         super().move(_context=_context, _buffer=_buffer, _offset=_offset)
         set_crystal_stack_limit(self._context)
 
+    def copy(self, _context=None, _buffer=None, _offset=None):
+        super().copy(_context=_context, _buffer=_buffer, _offset=_offset)
+        set_crystal_stack_limit(self._context)
+
 
     @property
     def material(self):
