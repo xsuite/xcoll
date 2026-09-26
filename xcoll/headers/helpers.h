@@ -243,14 +243,13 @@ extern "C++" {
 
     // For sort macros, need to overload for each memory space (global, local, private)
     // because OpenCL does not allow overloading on pointer types with different address spaces.
-    #define XC_DEFINE_OCL_ASC_SORT(T, suffix) do {                                  \
+    #define XC_DEFINE_OCL_ASC_SORT(T, suffix)                                       \
         GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__global T* a, __global T* b) {   \
             if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}                          \
         GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__local T* a, __local T* b) {     \
             if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}                          \
         GPUFUN void OCL_OVERLOAD xc_sort_pair_asc(__private T* a, __private T* b) { \
-            if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}                          \
-    } while(0)  // Do-while for scoping; allows trailing semicolon after macro usage
+            if (*b < *a) {T tmp = *a; *a = *b; *b = tmp;}}
     XC_DEFINE_OCL_ASC_SORT(int8_t, int8_t)
     XC_DEFINE_OCL_ASC_SORT(int16_t, int16_t)
     XC_DEFINE_OCL_ASC_SORT(int32_t, int32_t)
@@ -263,14 +262,13 @@ extern "C++" {
     XC_DEFINE_OCL_ASC_SORT(double, double)
     #define XC_ASORT(d, x, y) xc_sort_pair_asc(&(d)[(x)], &(d)[(y)])
 
-    #define XC_DEFINE_OCL_DESC_SORT(T, suffix) do {                                  \
+    #define XC_DEFINE_OCL_DESC_SORT(T, suffix)                                       \
         GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__global T* a, __global T* b) {   \
             if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}                           \
         GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__local T* a, __local T* b) {     \
             if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}                           \
         GPUFUN void OCL_OVERLOAD xc_sort_pair_desc(__private T* a, __private T* b) { \
-            if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}                           \
-    } while(0)  // Do-while for scoping; allows trailing semicolon after macro usage
+            if (*a < *b) {T tmp = *a; *a = *b; *b = tmp;}}
     XC_DEFINE_OCL_DESC_SORT(int8_t, int8_t)
     XC_DEFINE_OCL_DESC_SORT(int16_t, int16_t)
     XC_DEFINE_OCL_DESC_SORT(int32_t, int32_t)
