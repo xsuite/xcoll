@@ -12,6 +12,14 @@ from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
 
 
+def _assert_everest_context_supported(context):
+    if isinstance(context, xo.ContextPyopencl):
+        raise NotImplementedError(
+            "Everest scattering is not currently supported on "
+            "ContextPyopencl. CPU and ContextCupy are supported."
+        )
+
+
 class EverestBlock(BaseBlock):
     _xofields = {**BaseBlock._xofields,
         '_material':        Material,
@@ -57,6 +65,24 @@ class EverestBlock(BaseBlock):
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
+        # TODO: remove once xobjects PR #187 is merged
+        _assert_everest_context_supported(self._context)
+
+    # TODO: remove once xobjects PR #187 is merged
+    def move(self, _context=None, _buffer=None, _offset=None):
+        super().move(_context=_context, _buffer=_buffer, _offset=_offset)
+        _assert_everest_context_supported(self._context)
+
+    # TODO: remove once xobjects PR #187 is merged
+    def copy(self, _context=None, _buffer=None, _offset=None):
+        new = super().copy(_context=_context, _buffer=_buffer, _offset=_offset)
+        _assert_everest_context_supported(new._context)
+        return new
+
+    # TODO: add once xobjects PR #187 is merged
+    # def _on_context_change(self, old_context, new_context):
+    #     super()._on_context_change(old_context, new_context)
+    #     _assert_everest_context_supported(new_context)
 
 
     @property
@@ -121,6 +147,24 @@ class EverestCollimator(BaseCollimator):
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
+        # TODO: remove once xobjects PR #187 is merged
+        _assert_everest_context_supported(self._context)
+
+    # TODO: remove once xobjects PR #187 is merged
+    def move(self, _context=None, _buffer=None, _offset=None):
+        super().move(_context=_context, _buffer=_buffer, _offset=_offset)
+        _assert_everest_context_supported(self._context)
+
+    # TODO: remove once xobjects PR #187 is merged
+    def copy(self, _context=None, _buffer=None, _offset=None):
+        new = super().copy(_context=_context, _buffer=_buffer, _offset=_offset)
+        _assert_everest_context_supported(new._context)
+        return new
+
+    # TODO: add once xobjects PR #187 is merged
+    # def _on_context_change(self, old_context, new_context):
+    #     super()._on_context_change(old_context, new_context)
+    #     _assert_everest_context_supported(new_context)
 
     @property
     def material(self):
@@ -190,22 +234,28 @@ class EverestCrystal(BaseCrystal):
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
-        # The Everest crystal C kernels build large per-track structs on the
-        # CUDA stack (geometry + collimation data + scattering state) and
-        # recurse through the Amorphous/Channel/volume sub-segments, exceeding
-        # the 1024-byte CUDA default. Raise the per-thread device stack now if
-        # this element lives on a Cupy (GPU) context. No-op on CPU contexts, so
-        # CPU numerics are untouched; idempotent and never lowers the limit.
+        # TODO: remove once xobjects PR #187 is merged
+        _assert_everest_context_supported(self._context)
         set_crystal_stack_limit(self._context)
 
+    # TODO: remove once xobjects PR #187 is merged
     def move(self, _context=None, _buffer=None, _offset=None):
         super().move(_context=_context, _buffer=_buffer, _offset=_offset)
+        _assert_everest_context_supported(self._context)
         set_crystal_stack_limit(self._context)
 
+    # TODO: remove once xobjects PR #187 is merged
     def copy(self, _context=None, _buffer=None, _offset=None):
         new = super().copy(_context=_context, _buffer=_buffer, _offset=_offset)
+        _assert_everest_context_supported(new._context)
         set_crystal_stack_limit(new._context)
         return new
+
+    # TODO: add once xobjects PR #187 is merged
+    # def _on_context_change(self, old_context, new_context):
+    #     super()._on_context_change(old_context, new_context)
+    #     _assert_everest_context_supported(new_context)
+    #     set_crystal_stack_limit(new_context)
 
 
     @property

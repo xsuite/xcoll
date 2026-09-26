@@ -19,7 +19,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize("beam, plane", [
                             [1, 'H'],
                             [2, 'V'],
@@ -50,7 +50,7 @@ def test_impacts_from_line(beam, plane, test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_impacts_single_collimator(test_context):
     coll = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite,
                                 emittance=3.5e-6, _context=test_context)
@@ -74,7 +74,7 @@ def test_impacts_single_collimator(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize("R, side", [
                             [1, '+'],
                             [-1, '+'],

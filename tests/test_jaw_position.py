@@ -40,6 +40,8 @@ def test_positions(engine, jaw, angle, tilt, test_context):
     particle_ref = xt.Particles('proton', p0c=6.8e12, _context=test_context)
 
     if engine == "everest":
+        if isinstance(test_context, xo.ContextPyopencl):
+            pytest.skip("Everest not supported on PyOpenCL context.")
         num_part = 2_500_000
         capacity = None
         jaw_band = 5e-9
@@ -52,8 +54,6 @@ def test_positions(engine, jaw, angle, tilt, test_context):
                                     _context=test_context)
 
     elif engine == "fluka":
-        if not isinstance(test_context, xo.ContextCpu):
-            pytest.skip("FLUKA engine only works on CPU context.")
         num_part = 5000
         capacity = 2*num_part
         jaw_band = 5e-9

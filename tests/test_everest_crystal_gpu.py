@@ -45,7 +45,8 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-from xcoll.scattering_routines.everest import set_crystal_stack_limit
+from xobjects.test_helpers import for_all_test_contexts
+from xcoll.scattering_routines.everest import set_crystal_stack_limit, CRYSTAL_STACK_LIMIT_BYTES
 
 
 # ---------------------------------------------------------------------------
@@ -126,10 +127,6 @@ def _build_line(context):
 
 def _track_canonical(context):
     """Track the canonical fixed-seed bunch one turn; return a coord dict."""
-    # Re-assert the per-thread CUDA stack limit (no-op on CPU). EverestCrystal
-    # already raises it at construction; doing it here keeps the test
-    # self-contained.
-    set_crystal_stack_limit(context)
     line, particles = _build_line(context)
     px_in = np.asarray(
         context.nparray_from_context_array(particles.px),
@@ -169,6 +166,8 @@ def _fractions(coord_dict):
     }
 
 
+@pytest.mark.everest
+@for_all_test_contexts(excluding=("ContextCpu", "ContextPyopencl"))
 def test_everest_crystal_cpu_gpu_distribution_match():
     """EverestCrystal must produce the same distribution on CPU and GPU.
 
@@ -222,6 +221,7 @@ def test_everest_crystal_cpu_gpu_distribution_match():
           f"survival |delta| = {surv_delta:.5f}")
 
 
+@pytest.mark.everest
 def test_crystal_stack_limit_is_raised_on_gpu():
     """The CUDA per-thread stack must be raised above the 1024 B default.
 
@@ -246,3 +246,38 @@ def test_crystal_stack_limit_is_raised_on_gpu():
     again = set_crystal_stack_limit(context, nbytes=1024)
     assert again == cp.cuda.runtime.deviceGetLimit(0x00)
     assert again >= effective
+
+
+@pytest.mark.everest
+def test_crystal_stack_limit_after_move_to_gpu():
+    pytest.importorskip("cupy")
+    import cupy as cp
+
+    cpu = xo.ContextCpu()
+    gpu = xo.ContextCupy()
+
+    old_limit = cp.cuda.runtime.deviceGetLimit(0x00)
+
+    try:
+        cp.cuda.runtime.deviceSetLimit(0x00, 1024)
+
+        crystal = xc.EverestCrystal(
+            length=CRYSTAL_LENGTH,
+            material=xc.materials.Silicon,
+            bending_angle=CRYSTAL_BENDING_ANGLE,
+            width=CRYSTAL_WIDTH,
+            height=CRYSTAL_HEIGHT,
+            side="+",
+            _context=cpu,
+        )
+
+        assert cp.cuda.runtime.deviceGetLimit(0x00) == 1024
+
+        crystal.move(_context=gpu)
+
+        assert (
+            cp.cuda.runtime.deviceGetLimit(0x00)
+            >= CRYSTAL_STACK_LIMIT_BYTES
+        )
+    finally:
+        cp.cuda.runtime.deviceSetLimit(0x00, old_limit)

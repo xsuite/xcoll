@@ -22,7 +22,7 @@ def test_line_api_facade():
 
 
 @pytest.mark.xcother
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize('beam', [1, 2])
 def test_line_accessor(beam, test_context):
     # Structural edits on a full LHC line are intentionally performed on CPU.

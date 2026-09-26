@@ -335,7 +335,7 @@ def test_black_crystal(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_everest_block(test_context):
     # Test instantiation
     elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreComposite, _context=test_context)
@@ -356,7 +356,7 @@ def test_everest_block(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_everest(test_context):
     # Test instantiation
     elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreComposite, _context=test_context)
@@ -365,7 +365,7 @@ def test_everest(test_context):
 
 
 @pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_everest_crystal(test_context):
     # Test instantiation
     elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, side='-', _context=test_context)

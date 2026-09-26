@@ -9,6 +9,7 @@ import numpy as np
 from pathlib import Path
 
 import xtrack as xt
+import xobjects as xo
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -55,10 +56,14 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
             xc.geant4.engine.stop(clean=True)
         if not ignore_crystals:
             pytest.skip("Geant4 crystals not implemented yet")
-    else:
+    elif engine == "everest":
+        if isinstance(test_context, xo.ContextPyopencl):
+            pytest.skip("Everest not supported on PyOpenCL context.")
         npart *= 5
         num_turns = 5
         capacity = None
+    else:
+        raise ValueError(f"Unknown engine {engine}")
 
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']

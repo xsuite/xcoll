@@ -86,50 +86,49 @@ crystals_b2 = [
 ]
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_primaries(test_context):
     _track_collimator('tcp.c6l7.b1', _context=test_context)
     _track_collimator('tcp.c6r7.b2', _context=test_context)
 
-@pytest.mark.everest
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_materials_b1(test_context):
     for key, name in materials_b1.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_materials_b2(test_context):
     for key, name in materials_b2.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_angles_b1(test_context):
     for key, name in angles_b1.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_angles_b2(test_context):
     for key, name in angles_b2.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_lengths_b1(test_context):
     for key, name in lengths_b1.items():
         _track_collimator(name, _context=test_context, atolz=2e-11)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_lengths_b2(test_context):
     for key, name in lengths_b2.items():
         _track_collimator(name, _context=test_context, atolz=2e-11)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
 def test_crystals(test_context):
     for name in crystals_b1 + crystals_b2:

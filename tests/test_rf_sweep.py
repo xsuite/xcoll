@@ -18,7 +18,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+@for_all_test_contexts
 @pytest.mark.parametrize("sweep, beam", [[-300, 1], [300, 2], [3500, 3]],
                          ids=["DP pos LHC", "DP neg LHC", "DP neg SPS"])
 def test_rf_sweep(sweep, beam, test_context):
