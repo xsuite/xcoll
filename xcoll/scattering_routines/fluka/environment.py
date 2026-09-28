@@ -79,10 +79,12 @@ class FlukaInterface(BaseInterface):
                 if verbose:
                     print("Compiled FlukaIO successfully.")
             else:
+                stdout = cmd.stdout.decode('UTF-8').strip()
                 stderr = cmd.stderr.decode('UTF-8').strip()
                 os.chdir(cwd)
-                raise RuntimeError(f"Failed to compile FlukaIO!\nError given "
-                                   f"is:\n{stderr}")
+                raise RuntimeError(f"Failed to compile FlukaIO!\n"
+                                    f"Output given is:\n{stdout}\n\n"
+                                    f"Error given is:\n{stderr}")
             flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
             try:
                 flukaio_lib = [
@@ -144,7 +146,7 @@ class FlukaInterface(BaseInterface):
             stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to setup meson build!\n"
-                               f"Output given is:\n{stdout}"
+                               f"Output given is:\n{stdout}\n\n"
                                f"Error given is:\n{stderr}")
         cmd = run(["meson", "compile", "-C", "build"], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
@@ -156,7 +158,7 @@ class FlukaInterface(BaseInterface):
             stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to compile pyflukaf!\n"
-                               f"Output given is:\n{stdout}"
+                               f"Output given is:\n{stdout}\n\n"
                                f"Error given is:\n{stderr}")
         os.chdir(cwd)
         # Collect the compiled shared library
