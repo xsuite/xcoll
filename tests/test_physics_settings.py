@@ -312,6 +312,7 @@ def test_explicit_cut(attr, value):
         ("photon_lower_momentum_cut",   -1),
         ("electron_lower_momentum_cut", -1),
         ("relative_energy_cut",         -1),
+        ("relative_energy_cut",         0),
     ],
 )
 def test_invalid_cut(attr, value):
@@ -337,14 +338,14 @@ def test_low_cut_warning(attr, value):
     assert "very low" in engine.messages[0]
 
 
-def test_update_recomputes_defaults():
+def test_dynamic_defaults_follow_reference():
     engine, settings = make_settings("proton", 7e12)
     engine.particle_ref = xt.Particles("electron", p0c=5e12)
     _, reference = make_settings("electron", 5e12)
     assert snapshot(settings) == snapshot(reference)
 
 
-def test_update_preserves_explicit_settings():
+def test_explicit_settings_survive_reference_change():
     engine, settings = make_settings("proton", 7e12)
     settings.return_electrons = False
     settings.hadron_lower_momentum_cut = 123e9

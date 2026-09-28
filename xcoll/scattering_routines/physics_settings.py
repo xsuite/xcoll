@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from unicodedata import name
-
 import numpy as np
 from numbers import Number
 from contextlib import contextmanager
@@ -20,22 +18,54 @@ class PhysicsSettingsHelper:
     """
 
     # Prepend 'return_' to get the property name for the return flags
-    _return_flags = {'photons': [],
-                     'leptons': ['electrons', 'muons', 'tauons', 'neutrinos'],
-                     'baryons': ['protons', 'neutrons', 'other_baryons'],
-                     'mesons':  ['pions', 'kaons', 'other_mesons'],
-                     'ions':    []}
     _global_return_flags = ['all', 'all_charged', 'none']
-    _return_modifiers = ['neutral']
+    _return_flags = {
+        'photons': {
+            'photons': lambda self: self.ref_is_photon,
+        },
+        'leptons': {
+            'electrons': lambda self: self.ref_is_lepton,
+            'muons': lambda self: self.ref_is_lepton,
+            'tauons': lambda self: self.ref_is_lepton,
+            'neutrinos': lambda self: self.ref_is_lepton,
+        },
+        'baryons': {
+            'protons': lambda self: self.ref_is_baryon or self.ref_is_ion,
+            'neutrons': lambda self: self.ref_is_baryon or self.ref_is_ion,
+            'other_baryons': lambda self: self.ref_is_baryon,
+        },
+        'mesons': {
+            'pions': lambda self: self.ref_is_meson,
+            'kaons': lambda self: self.ref_is_meson,
+            'other_mesons': lambda self: self.ref_is_meson,
+        },
+        'ions': {
+            'ions': lambda self: self.ref_is_ion,
+        },
+    }
+    _return_modifiers = {
+        'neutral': lambda self: self.ref_is_neutral,
+    }
 
     # Append '_cut' to get the property name for cut definitions
-    _cut_definitions = ['hadron_lower_momentum', 'photon_lower_momentum',
-                        'electron_lower_momentum', 'relative_energy']
+    _cut_definitions = [
+        'hadron_lower_momentum',
+        'photon_lower_momentum',
+        'electron_lower_momentum',
+        'relative_energy'
+    ]
 
     # Prepend 'include_' to get the property name for the physics processes
-    _include_processes = ['showers', 'single_coulomb', 'multiple_coulomb',
-                          'ionisation_fluctuations', 'pair_production',
-                          'bremsstrahlung', 'elastic', 'inelastic']
+    _include_processes = {
+        'showers': True,
+        'single_coulomb': True,
+        'multiple_coulomb': True,
+        'ionisation_fluctuations': True,
+        'pair_production': True,
+        'bremsstrahlung': True,
+        'elastic': True,
+        'inelastic': True
+    }
 
 
     # ===========
@@ -188,24 +218,30 @@ class PhysicsSettingsHelper:
     @property
     def _leaf_flags(self):
         nested_flags  = [f"return_{mm}" for mm in self._return_modifiers]
-        nested_flags += [
-            f"return_{kkk}"
-            for kk, vv in self._return_flags.items()
-            for kkk in (vv or [kk])
-        ]
+        nested_flags += self._return_leaf_flags()
         nested_flags += [f"{cc}_cut" for cc in self._cut_definitions]
         nested_flags += [f"include_{pp}" for pp in self._include_processes]
         return nested_flags
 
+    @property
+    def _return_leaf_flags(self):
+        return [
+            f"return_{flag}"
+            for flags in self._return_flags.values()
+            for flag in flags
+        ]
+
     def _get_raw_settings(self):
+        veto = self._engine._physics_settings_veto_list
         return {
             name: getattr(self, f"_{name}")
             for name in self._leaf_flags
+            if name not in veto
         }
 
     def _set_raw_settings(self, settings):
         for name, value in settings.items():
-            setattr(self, name, value)
+            object.__setattr__(self, f"_{name}", value)
 
 
     # ==========================
@@ -227,10 +263,6 @@ class PhysicsSettingsHelper:
         return self.particle_ref.p0c[0]
 
     @property
-    def ref_is_lepton(self):
-        return pdg.is_lepton(self.ref_id)
-
-    @property
     def ref_is_proton(self):
         return pdg.is_proton(self.ref_id)
 
@@ -238,62 +270,53 @@ class PhysicsSettingsHelper:
     def ref_is_ion(self):
         return pdg.is_ion(self.ref_id)
 
+    @property
+    def ref_is_lepton(self):
+        return pdg.is_lepton(self.ref_id)
 
-    # =====================
-    # === Return groups ===
-    # =====================
+    @property
+    def ref_is_meson(self):
+        # TODO: Use pdg.is_meson() once it is implemented in xtrack
+        return bool(_is_meson(self.ref_id))
+
+    @property
+    def ref_is_baryon(self):
+        # TODO: Use pdg.is_baryon() once it is implemented in xtrack
+        return bool(_is_baryon(self.ref_id))
+
+    @property
+    def ref_is_photon(self):
+        # TODO: Use pdg.is_photon() once it is implemented in xtrack
+        return abs(self.ref_id) == 22
+
+    @property
+    def ref_is_neutral(self):
+        return abs(self.particle_ref.q0) < 1e-12
+
+
+    # ========================================
+    # === Return flags (non-autogenerated) ===
+    # ========================================
 
     @property
     def return_all(self):
         return (
-            self.return_neutral and
-            self.return_photons and
-            self.return_electrons and
-            self.return_muons and
-            self.return_tauons and
-            self.return_neutrinos and
-            self.return_protons and
-            self.return_neutrons and
-            self.return_other_baryons and
-            self.return_pions and
-            self.return_kaons and
-            self.return_other_mesons and
-            self.return_ions
+            self.return_neutral
+            and all(
+                getattr(self, flag)
+                for flag in self._return_leaf_flags
+            )
         )
 
     @return_all.setter
     def return_all(self, val):
-        if val is True:
-            self.return_neutral = True
-            self.return_photons = True
-            self.return_electrons = True
-            self.return_muons = True
-            self.return_tauons = True
-            self.return_neutrinos = True
-            self.return_protons = True
-            self.return_neutrons = True
-            self.return_other_baryons = True
-            self.return_pions = True
-            self.return_kaons = True
-            self.return_other_mesons = True
-            self.return_ions = True
-        elif val is None or val is False:
-            # Default settings
-            self.return_neutral = None
-            self.return_photons = None
-            self.return_electrons = None
-            self.return_muons = None
-            self.return_tauons = None
-            self.return_neutrinos = None
-            self.return_protons = None
-            self.return_neutrons = None
-            self.return_other_baryons = None
-            self.return_pions = None
-            self.return_kaons = None
-            self.return_other_mesons = None
-            self.return_ions = None
-        else:
+        if val is False:
+            val = None
+        elif val is not None and val is not True:
             self._error("`return_all` has to be a boolean!")
+        self.return_neutral = val
+        for flag in self._return_leaf_flags:
+            setattr(self, flag, val)
 
     @property
     def return_all_charged(self):
@@ -332,270 +355,24 @@ class PhysicsSettingsHelper:
     @property
     def return_none(self):
         return not (
-            self.return_neutral or
-            self.return_photons or
-            self.return_electrons or
-            self.return_muons or
-            self.return_tauons or
-            self.return_neutrinos or
-            self.return_protons or
-            self.return_neutrons or
-            self.return_other_baryons or
-            self.return_pions or
-            self.return_kaons or
-            self.return_other_mesons or
-            self.return_ions
+            self.return_neutral
+            or any(
+                getattr(self, flag)
+                for flag in self._return_leaf_flags
+            )
         )
 
     @return_none.setter
     def return_none(self, val):
-        if val is True:
-            self.return_neutral = False
-            self.return_photons = False
-            self.return_electrons = False
-            self.return_muons = False
-            self.return_tauons = False
-            self.return_neutrinos = False
-            self.return_protons = False
-            self.return_neutrons = False
-            self.return_other_baryons = False
-            self.return_pions = False
-            self.return_kaons = False
-            self.return_other_mesons = False
-            self.return_ions = False
-        elif val is None or val is False:
-            # Default settings
-            self.return_neutral = None
-            self.return_photons = None
-            self.return_electrons = None
-            self.return_muons = None
-            self.return_tauons = None
-            self.return_neutrinos = None
-            self.return_protons = None
-            self.return_neutrons = None
-            self.return_other_baryons = None
-            self.return_pions = None
-            self.return_kaons = None
-            self.return_other_mesons = None
-            self.return_ions = None
-        else:
+        if val is False:
+            val = None
+        elif val is True:
+            val = False
+        elif val is not None:
             self._error("`return_none` has to be a boolean!")
-
-    @property
-    def return_neutral(self):
-        if self._return_neutral is None:
-            return False
-        return self._return_neutral
-
-    @return_neutral.setter
-    def return_neutral(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_neutral` has to be a boolean!")
-        self._return_neutral = val
-
-    @property
-    def return_leptons(self):
-        ret = [getattr(self, f'return_{attr}')
-               for attr in self._return_flags['leptons']]
-        if all(ret):
-            return True
-        elif not any(ret):
-            return False
-        else:
-            return None
-
-    @return_leptons.setter
-    def return_leptons(self, val):
-        if not isinstance(val, bool) and val is not None:
-            self._error("`return_leptons` has to be a boolean!")
-        for attr in self._return_flags['leptons']:
-            setattr(self, f'return_{attr}', val)
-
-    @property
-    def return_mesons(self):
-        ret = [getattr(self, f'return_{attr}')
-               for attr in self._return_flags['mesons']]
-        if all(ret):
-            return True
-        elif not any(ret):
-            return False
-        else:
-            return None
-
-    @return_mesons.setter
-    def return_mesons(self, val):
-        if not isinstance(val, bool) and val is not None:
-            self._error("`return_mesons` has to be a boolean!")
-        for attr in self._return_flags['mesons']:
-            setattr(self, f'return_{attr}', val)
-
-    @property
-    def return_baryons(self):
-        ret = [getattr(self, f'return_{attr}')
-               for attr in self._return_flags['baryons']]
-        if all(ret):
-            return True
-        elif not any(ret):
-            return False
-        else:
-            return None
-
-    @return_baryons.setter
-    def return_baryons(self, val):
-        if not isinstance(val, bool) and val is not None:
-            self._error("`return_baryons` has to be a boolean!")
-        for attr in self._return_flags['baryons']:
-            setattr(self, f'return_{attr}', val)
-
-
-    # ==========================
-    # === Return individuals ===
-    # ==========================
-
-    @property
-    def return_photons(self):
-        if self._return_photons is None:
-            return self.return_neutral
-        return self._return_photons
-
-    @return_photons.setter
-    def return_photons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_photons` has to be a boolean!")
-        self._return_photons = val
-
-    @property
-    def return_electrons(self):
-        if self._return_electrons is None:
-            return self.ref_is_lepton
-        return self._return_electrons
-
-    @return_electrons.setter
-    def return_electrons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_electrons` has to be a boolean!")
-        self._return_electrons = val
-
-    @property
-    def return_muons(self):
-        if self._return_muons is None:
-            return self.ref_is_lepton
-        return self._return_muons
-
-    @return_muons.setter
-    def return_muons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_muons` has to be a boolean!")
-        self._return_muons = val
-
-    @property
-    def return_tauons(self):
-        if self._return_tauons is None:
-            return self.ref_is_lepton
-        return self._return_tauons
-
-    @return_tauons.setter
-    def return_tauons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_tauons` has to be a boolean!")
-        self._return_tauons = val
-
-    @property
-    def return_neutrinos(self):
-        if self._return_neutrinos is None:
-            return self.ref_is_lepton and self.return_neutral
-        return self._return_neutrinos
-
-    @return_neutrinos.setter
-    def return_neutrinos(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_neutrinos` has to be a boolean!")
-        self._return_neutrinos = val
-
-    @property
-    def return_protons(self):
-        if self._return_protons is None:
-            return self.ref_is_proton or self.ref_is_ion
-        return self._return_protons
-
-    @return_protons.setter
-    def return_protons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_protons` has to be a boolean!")
-        self._return_protons = val
-
-    @property
-    def return_neutrons(self):
-        if self._return_neutrons is None:
-            res = self.ref_is_proton or self.ref_is_ion
-            return res and self.return_neutral
-        return self._return_neutrons
-
-    @return_neutrons.setter
-    def return_neutrons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_neutrons` has to be a boolean!")
-        self._return_neutrons = val
-
-    @property
-    def return_other_baryons(self):
-        if self._return_other_baryons is None:
-            return False
-        return self._return_other_baryons
-
-    @return_other_baryons.setter
-    def return_other_baryons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_other_baryons` has to be a boolean!")
-        self._return_other_baryons = val
-
-    @property
-    def return_pions(self):
-        if self._return_pions is None:
-            return False
-        return self._return_pions
-
-    @return_pions.setter
-    def return_pions(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_pions` has to be a boolean!")
-        self._return_pions = val
-
-    @property
-    def return_kaons(self):
-        if self._return_kaons is None:
-            return False
-        return self._return_kaons
-
-    @return_kaons.setter
-    def return_kaons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_kaons` has to be a boolean!")
-        self._return_kaons = val
-
-    @property
-    def return_other_mesons(self):
-        if self._return_other_mesons is None:
-            return False
-        return self._return_other_mesons
-
-    @return_other_mesons.setter
-    def return_other_mesons(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_other_mesons` has to be a boolean!")
-        self._return_other_mesons = val
-
-    @property
-    def return_ions(self):
-        if self._return_ions is None:
-            return self.ref_is_ion
-        return self._return_ions
-
-    @return_ions.setter
-    def return_ions(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`return_ions` has to be a boolean!")
-        self._return_ions = val
+        self.return_neutral = val
+        for flag in self._return_leaf_flags:
+            setattr(self, flag, val)
 
 
     # =====================
@@ -678,117 +455,15 @@ class PhysicsSettingsHelper:
     @relative_energy_cut.setter
     def relative_energy_cut(self, val):
         if val is not None:
-            if not isinstance(val, Number) or val < 0:
+            if not isinstance(val, Number) or val <= 0:
                 self._error("`relative_energy_cut` has to be a "
-                            "non-negative number!")
-            elif val < 1.e6:
+                            "strictly positive number!")
+            elif val < 1.e-6:
                 self._print(
-                    f"Warning: Relative energy cut of {val/1.e6}MeV "
-                    "is very low and will result in very long computation "
-                    "times."
+                    f"Warning: Relative energy cut of {val} is very low and "
+                    "will result in very long computation times."
                 )
         self._relative_energy_cut = val
-
-
-    # ========================
-    # === Physics settings ===
-    # ========================
-
-    @property
-    def include_showers(self):
-        if self._include_showers is None:
-            return self.ref_is_lepton or self.return_all
-        return self._include_showers
-
-    @include_showers.setter
-    def include_showers(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_showers` has to be a boolean!")
-        self._include_showers = val
-
-    @property
-    def include_single_coulomb(self):
-        if self._include_single_coulomb is None:
-            return True
-        return self._include_single_coulomb
-
-    @include_single_coulomb.setter
-    def include_single_coulomb(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_single_coulomb` has to be a boolean!")
-        self._include_single_coulomb = val
-
-    @property
-    def include_multiple_coulomb(self):
-        if self._include_multiple_coulomb is None:
-            return True
-        return self._include_multiple_coulomb
-
-    @include_multiple_coulomb.setter
-    def include_multiple_coulomb(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_multiple_coulomb` has to be a boolean!")
-        self._include_multiple_coulomb = val
-
-    @property
-    def include_ionisation_fluctuations(self):
-        if self._include_ionisation_fluctuations is None:
-            return True
-        return self._include_ionisation_fluctuations
-
-    @include_ionisation_fluctuations.setter
-    def include_ionisation_fluctuations(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_ionisation_fluctuations` has to be a boolean!")
-        self._include_ionisation_fluctuations = val
-
-    @property
-    def include_pair_production(self):
-        if self._include_pair_production is None:
-            return True
-        return self._include_pair_production
-
-    @include_pair_production.setter
-    def include_pair_production(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_pair_production` has to be a boolean!")
-        self._include_pair_production = val
-
-    @property
-    def include_bremsstrahlung(self):
-        if self._include_bremsstrahlung is None:
-            return True
-        return self._include_bremsstrahlung
-
-    @include_bremsstrahlung.setter
-    def include_bremsstrahlung(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_bremsstrahlung` has to be a boolean!")
-        self._include_bremsstrahlung = val
-
-    @property
-    def include_elastic(self):
-        if self._include_elastic is None:
-            return True
-        return self._include_elastic
-
-    @include_elastic.setter
-    def include_elastic(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_elastic` has to be a boolean!")
-        self._include_elastic = val
-
-    @property
-    def include_inelastic(self):
-        if self._include_inelastic is None:
-            return True
-        return self._include_inelastic
-
-    @include_inelastic.setter
-    def include_inelastic(self, val):
-        if val is not None and not isinstance(val, bool):
-            self._error("`include_inelastic` has to be a boolean!")
-        self._include_inelastic = val
 
 
     # ======================
@@ -862,9 +537,9 @@ class PhysicsSettingsHelper:
         return mask_new
 
 
-    # ======================
+    # =======================
     # === Private Methods ===
-    # ======================
+    # =======================
 
     def __getattribute__(self, item):
         # Always use base lookup inside this method
@@ -945,3 +620,107 @@ class PhysicsSettingsHelper:
             yield
         finally:
             cls.__setattr__ = original_setattr
+
+
+# ========================
+# === Helper functions ===
+# ========================
+
+# TODO: Use pdg.is_meson() once it is implemented in xtrack
+def _is_meson(pdg_id):
+    pid = np.abs(np.asarray(pdg_id))
+    q1 = (pid // 100) % 10
+    q2 = (pid // 10) % 10
+    q3 = (pid // 1000) % 10
+    return (
+        (pid < 1_000_000_000)
+        & (q3 == 0)
+        & (q1 >= 1) & (q1 <= 6)
+        & (q2 >= 1) & (q2 <= 6)
+    )
+
+# TODO: Use pdg.is_baryon() once it is implemented in xtrack
+def _is_baryon(pdg_id):
+    pid = np.abs(np.asarray(pdg_id))
+    q1 = (pid // 1000) % 10
+    q2 = (pid // 100) % 10
+    q3 = (pid // 10) % 10
+    return (
+        (pid < 1_000_000_000)
+        & (q1 >= 1) & (q1 <= 6)
+        & (q2 >= 1) & (q2 <= 6)
+        & (q3 >= 1) & (q3 <= 6)
+    )
+
+
+# ====================================
+# === Auto-Generate Getter/Setters ===
+# ====================================
+
+def _make_bool_setting(name, default):
+    private_name = f"_{name}"
+    def getter(self):
+        value = getattr(self, private_name)
+        if value is None:
+            return default(self) if callable(default) else default
+        return value
+    def setter(self, value):
+        if value is not None and not isinstance(value, bool):
+            self._error(f"`{name}` has to be a boolean!")
+        object.__setattr__(self, private_name, value)
+    return property(getter, setter)
+
+def _make_group_property(group, children, prefix=""):
+    def getter(self):
+        values = [
+            getattr(self, f"{prefix}{child}")
+            for child in children
+        ]
+        if all(values):
+            return True
+        if not any(values):
+            return False
+        return None
+    def setter(self, value):
+        if value is not None and not isinstance(value, bool):
+            self._error(f"`{prefix}{group}` has to be a boolean!")
+        for child in children:
+            setattr(self, f"{prefix}{child}", value)
+    return property(getter, setter)
+
+
+for group, flags in PhysicsSettingsHelper._return_flags.items():
+    # Return individual flags for each particle type
+    for flag, default in flags.items():
+        name = f"return_{flag}"
+        setattr(
+            PhysicsSettingsHelper,
+            name,
+            _make_bool_setting(name, default),
+        )
+
+    # Return group flags for each particle group (e.g. return_baryons)
+    children = list(flags)
+    # For photons and ions, the group itself is already the leaf property.
+    if len(children) > 1:
+        setattr(
+            PhysicsSettingsHelper,
+            f"return_{group}",
+            _make_group_property(group, children, prefix="return_"),
+        )
+
+for modifier, default in PhysicsSettingsHelper._return_modifiers.items():
+    name = f"return_{modifier}"
+    setattr(
+        PhysicsSettingsHelper,
+        name,
+        _make_bool_setting(name, default),
+    )
+
+for modifier, default in PhysicsSettingsHelper._include_processes.items():
+    name = f"include_{modifier}"
+    setattr(
+        PhysicsSettingsHelper,
+        name,
+        _make_bool_setting(name, default),
+    )
