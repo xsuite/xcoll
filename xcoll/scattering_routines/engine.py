@@ -533,8 +533,11 @@ class BaseEngine(xo.HybridClass):
         self._reactivate_elements()
         self._reset_cwd(clean=clean)
         # Reset physics settings
-        self._physics_settings._set_raw_settings(self._old_physics_settings)
-        del self._old_physics_settings
+        if hasattr(self, '_old_physics_settings'):
+            self._physics_settings._set_raw_settings(
+                self._old_physics_settings
+            )
+            del self._old_physics_settings
         # Reset all other properties
         self_attributes = self.__dict__.copy()
         for kk, vv in self_attributes.items():
