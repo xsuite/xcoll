@@ -17,31 +17,96 @@ class PhysicsSettingsHelper:
     """Helper class to manage physics settings for scattering routines.
     """
 
-    # List of all return flags with their dynamic default setting.
-    # Prepend 'return_' to get the property name for the return flags.
+    # List of all return flags, sorted by family.
+    # Each family is a dictionary with the following possible keys:
+    # - 'default': a function that takes the PhysicsSettingsHelper instance
+    #               and returns a boolean indicating whether to return this
+    #               family by default (depending on the reference particle).
+    # - 'pdg_ids': a tuple of PDG IDs corresponding to this family.
+    # - 'neutral_pdg_ids': a tuple of PDG IDs corresponding to neutral
+    #                      particles in this family. Only use this if the
+    #                      family contains both charged and neutral particles.
+    # - 'selector': a function that takes a PDG ID and returns a boolean
+    #               indicating whether this PDG ID belongs to this family.
+    # The last three keys are used in the `mask_particle_return_types`` method
+    # to determine whether a particle with a given PDG ID should be returned.
+    #
+    # The user can set/unset these flags by prepending it with 'return_'.
+
     _global_return_flags = ['all', 'all_charged', 'none']
     _return_flags = {
         'photons': {
-            'photons': lambda self: self.ref_is_photon,
+            'photons': {
+                'default': lambda self: self.ref_is_photon,
+                'pdg_ids': (22,),
+            },
         },
         'leptons': {
-            'electrons': lambda self: self.ref_is_lepton,
-            'muons': lambda self: self.ref_is_lepton,
-            'tauons': lambda self: self.ref_is_lepton,
-            'neutrinos': lambda self: self.ref_is_lepton and self.return_neutral,
+            'electrons': {
+                'default': lambda self: self.ref_is_lepton,
+                'pdg_ids': (-11, 11),
+            },
+            'muons': {
+                'default': lambda self: self.ref_is_lepton,
+                'pdg_ids': (-13, 13),
+            },
+            'tauons': {
+                'default': lambda self: self.ref_is_lepton,
+                'pdg_ids': (-15, 15),
+            },
+            'neutrinos': {
+                'default': lambda self:
+                                self.ref_is_lepton and self.return_neutral,
+            },
         },
         'baryons': {
-            'protons': lambda self: self.ref_is_baryon or self.ref_is_ion,
-            'neutrons': lambda self: self.return_protons and self.return_neutral,
-            'other_baryons': lambda self: self.ref_is_baryon and not self.ref_is_nucleon,
+            'protons': {
+                'default': lambda self: self.ref_is_baryon or self.ref_is_ion,
+                'pdg_ids': (-2212, 2212),
+            },
+            'neutrons': {
+                'default': lambda self:
+                                self.return_protons and self.return_neutral,
+                'pdg_ids': (-2112, 2112),
+            },
+            'other_baryons': {
+                'default': lambda self:
+                                self.ref_is_baryon and not self.ref_is_nucleon,
+                'selector': lambda pdg_id: (
+                                pdg.is_baryon(pdg_id)
+                                & ~np.isin(np.abs(pdg_id), [2212, 2112])
+                            ),
+            },
         },
         'mesons': {
-            'pions': lambda self: self.ref_is_meson,
-            'kaons': lambda self: self.ref_is_meson and not self.ref_is_pion,
-            'other_mesons': lambda self: self.ref_is_meson and not self.ref_is_pion and not self.ref_is_kaon,
+            'pions': {
+                'default': lambda self: self.ref_is_meson,
+                'pdg_ids': (-211, 211),
+                'neutral_pdg_ids': (111,),
+            },
+            'kaons': {
+                'default': lambda self:
+                                self.ref_is_meson and not self.ref_is_pion,
+                'pdg_ids': (-321, 321),
+                'neutral_pdg_ids': (-311, 130, 310, 311),
+            },
+            'other_mesons': {
+                'default': lambda self:
+                                self.ref_is_meson
+                                and not self.ref_is_pion
+                                and not self.ref_is_kaon,
+                'selector': lambda pdg_id: (
+                                pdg.is_meson(pdg_id)
+                                & ~pdg.is_pion(pdg_id)
+                                & ~pdg.is_kaon(pdg_id)
+                            ),
+            },
         },
         'ions': {
-            'ions': lambda self: self.ref_is_ion,
+            'ions': {
+                'default': lambda self: self.ref_is_ion,
+                'selector': pdg.is_ion,
+            },
         },
     }
     _return_modifiers = {
@@ -74,7 +139,7 @@ class PhysicsSettingsHelper:
     }
 
     def __init__(self, engine):
-        with self.__class__._in_constructor(self):
+        with self._in_constructor():
             self._engine = engine
             self.reset()
 
@@ -86,7 +151,7 @@ class PhysicsSettingsHelper:
         all_flags += [
             flag
             for group, flags in self._return_flags.items()
-            for flag in flags
+            for flag in flags.keys()
             if flag != group
         ]
         result  = [f"return_{ff}" for ff in all_flags]
@@ -222,21 +287,33 @@ class PhysicsSettingsHelper:
             setattr(self, flag, val)
 
     def return_pdg_id(self, pdg_id):
+        if not hasattr(pdg_id, "__iter__") or isinstance(pdg_id, str):
+            pdg_id = [pdg_id]
         pdg_id = set(pdg_id)
-        self._pdg_ids_to_return.update(pdg_id)
-        self._pdg_ids_to_kill -= pdg_id
+        self._extra_pdg_ids_to_return.update(pdg_id)
+        self._extra_pdg_ids_to_kill -= pdg_id
 
     def dont_return_pdg_id(self, pdg_id):
+        if not hasattr(pdg_id, "__iter__") or isinstance(pdg_id, str):
+            pdg_id = [pdg_id]
         pdg_id = set(pdg_id)
-        self._pdg_ids_to_kill.update(pdg_id)
-        self._pdg_ids_to_return -= pdg_id
+        self._extra_pdg_ids_to_kill.update(pdg_id)
+        self._extra_pdg_ids_to_return -= pdg_id
 
     def pdg_id_is_returned(self, pdg_id):
         """Check if a particle with the given PDG ID should be returned."""
-        q_new = pdg.get_charge_from_pdg_id(pdg_id)
+        q_new = pdg.get_properties_from_pdg_id(pdg_id)[0]
         mask = self.mask_particle_return_types(pdg_id, q_new)
         return mask
 
+    def pdg_id_is_returned(self, pdg_id):
+        scalar = np.ndim(pdg_id) == 0
+        pdg_id = np.atleast_1d(np.asarray(pdg_id, dtype=np.int64))
+        q_new = pdg.get_properties_from_pdg_id(pdg_id)[0]
+        mask = self.mask_particle_return_types(pdg_id, q_new)
+        if scalar:
+            return bool(mask[0])
+        return mask
 
     # =====================
     # === Momentum cuts ===
@@ -346,11 +423,14 @@ class PhysicsSettingsHelper:
         ]:
             if flag not in self._engine._physics_settings_veto_list:
                 setattr(self, flag, None)
-        self._pdg_ids_to_return = set()
-        self._pdg_ids_to_kill = set()
+        self._extra_pdg_ids_to_return = set()
+        self._extra_pdg_ids_to_kill = set()
 
 
     def mask_particle_return_types(self, pdg_id, q_new):
+        pdg_id = np.asarray(pdg_id, dtype=np.int64)
+        q_new = np.asarray(q_new)
+
         if self.return_all:
             # Allow everything and exclude
             mask_new = np.ones_like(pdg_id, dtype=bool)
@@ -358,38 +438,49 @@ class PhysicsSettingsHelper:
             # Allow nothing and include
             mask_new = np.zeros_like(pdg_id, dtype=bool)
 
-        # General categories
-        is_ion = pdg.is_ion(pdg_id)
-        is_meson = pdg.is_meson(pdg_id)
-        is_baryon = pdg.is_baryon(pdg_id)
-        mask_new[is_ion] = self.return_ions
-        mask_new[is_meson] = self.return_other_mesons
-        mask_new[is_baryon] = self.return_other_baryons
+        # Families of particles
+        for flags in self._return_flags.values():
+            for flag, spec in flags.items():
+                selector = spec.get("selector", None)
+                if selector is not None:
+                    value = getattr(self, f"return_{flag}")
+                    mask_new[selector(pdg_id)] = value
 
+        # Neutral particles
         if not self.return_neutral:
             # General modifier, has to be before more specific return types,
             # as other neutral particles might have been specifically activated.
             mask_new[np.abs(q_new) < 1.e-12] = False
 
-        mask_new[np.abs(pdg_id) == 22] = self.return_photons
-        mask_new[np.abs(pdg_id) == 11] = self.return_electrons
-        mask_new[np.abs(pdg_id) == 12] = self.return_electrons and self.return_neutrinos
-        mask_new[np.abs(pdg_id) == 13] = self.return_muons
-        mask_new[np.abs(pdg_id) == 14] = self.return_muons and self.return_neutrinos
-        mask_new[np.abs(pdg_id) == 15] = self.return_tauons
-        mask_new[np.abs(pdg_id) == 16] = self.return_tauons and self.return_neutrinos
-        mask_new[np.abs(pdg_id) == 211] = self.return_pions
-        mask_new[np.abs(pdg_id) == 111] = self.return_pions and self.return_neutral
-        mask_new[np.abs(pdg_id) == 321] = self.return_kaons
-        mask_new[np.abs(pdg_id) == 130] = self.return_kaons and self.return_neutral
-        mask_new[np.abs(pdg_id) == 310] = self.return_kaons and self.return_neutral
-        mask_new[np.abs(pdg_id) == 311] = self.return_kaons and self.return_neutral
-        mask_new[np.abs(pdg_id) == 2212] = self.return_protons
-        mask_new[np.abs(pdg_id) == 2112] = self.return_neutrons
+        # Individual return types
+        for flags in self._return_flags.values():
+            for flag, spec in flags.items():
+                value = getattr(self, f"return_{flag}")
+                ids = spec.get("pdg_ids", ())
+                if ids:
+                    mask_new[np.isin(pdg_id, ids)] = value
 
-        for pp in self._pdg_ids_to_return:
+                neutral_ids = spec.get("neutral_pdg_ids", ())
+                if neutral_ids:
+                    mask_new[np.isin(pdg_id, neutral_ids)] = (
+                        value and self.return_neutral
+                    )
+
+        # Neutrinos are dealt with by lepton family
+        mask_new[np.abs(pdg_id) == 12] = (
+            self.return_neutrinos and self.return_electrons
+        )
+        mask_new[np.abs(pdg_id) == 14] = (
+            self.return_neutrinos and self.return_muons
+        )
+        mask_new[np.abs(pdg_id) == 16] = (
+            self.return_neutrinos and self.return_tauons
+        )
+
+        # Specific requested PDG IDs to return
+        for pp in self._extra_pdg_ids_to_return:
             mask_new[pdg_id == pp] = True
-        for pp in self._pdg_ids_to_kill:
+        for pp in self._extra_pdg_ids_to_kill:
             mask_new[pdg_id == pp] = False
 
         return mask_new
@@ -479,6 +570,30 @@ class PhysicsSettingsHelper:
                            dim=True, italic=True, colour='forest_green',
                            enabled=format)
             final_message += f"{title}\n{mess}\n"
+
+        # Extra PDG IDs to return/kill
+        if self._extra_pdg_ids_to_return or self._extra_pdg_ids_to_kill:
+            title = "PDG ID overrides:"
+            title = style(f"{title:25}", bold=True, colour='forest_green',
+                          enabled=format)
+            final_message += f"{title}\n"
+
+            if self._extra_pdg_ids_to_return:
+                values = ", ".join(
+                    _format_pdg_id(pp)
+                    for pp in sorted(self._extra_pdg_ids_to_return)
+                )
+                prefix = "├" if self._extra_pdg_ids_to_kill else "└"
+                final_message += f"  {prefix} return:         {values}\n"
+
+            if self._extra_pdg_ids_to_kill:
+                values = ", ".join(
+                    _format_pdg_id(pp)
+                    for pp in sorted(self._extra_pdg_ids_to_kill)
+                )
+                final_message += f"  └ don't return:   {values}\n"
+
+            final_message += "\n"
 
         # Physics processes
         mess = ''
@@ -574,7 +689,7 @@ class PhysicsSettingsHelper:
             # _engine does not exist yet during construction
             engine = None
 
-        if item.startswith("return_"):
+        if item.startswith("return_") and item != "return_pdg_id":
             # compute flags WITHOUT going through self.<property>
             global_flags     = obj_get(self, "_global_return_flags")
             return_flags     = obj_get(self, "_return_flags")
@@ -615,6 +730,10 @@ class PhysicsSettingsHelper:
 
 
     def __setattr__(self, name, value):
+        if self._being_constructed():
+            super().__setattr__(name, value)
+            return
+
         engine = self._engine
 
         if name in engine._physics_settings_veto_list:
@@ -633,17 +752,37 @@ class PhysicsSettingsHelper:
 
         super().__setattr__(name, value)
 
-    @classmethod
     @contextmanager
-    def _in_constructor(cls, self=None):
-        original_setattr = cls.__setattr__
-        def new_setattr(self, *args, **kwargs):
-            return super().__setattr__( *args, **kwargs)
-        cls.__setattr__ = new_setattr
+    def _in_constructor(self):
+        super().__setattr__("_constructing", True)
         try:
             yield
         finally:
-            cls.__setattr__ = original_setattr
+            super().__setattr__("_constructing", False)
+
+    def _being_constructed(self):
+        try:
+            constructing = super().__getattribute__("_constructing")
+        except AttributeError:
+            constructing = False
+        return constructing
+
+
+# ========================
+# === Helper functions ===
+# ========================
+
+def _format_pdg_id(pdg_id):
+    try:
+        name = pdg.get_name_from_pdg_id(
+            pdg_id,
+            long_name=False,
+            subscripts=False,
+        )
+    except ValueError:
+        return str(pdg_id)
+    else:
+        return f"{pdg_id} ({name})"
 
 
 # ====================================
@@ -684,8 +823,9 @@ def _make_group_property(group, children, prefix=""):
 
 for group, flags in PhysicsSettingsHelper._return_flags.items():
     # Return individual flags for each particle type
-    for flag, default in flags.items():
+    for flag, spec in flags.items():
         name = f"return_{flag}"
+        default = spec["default"]
         setattr(
             PhysicsSettingsHelper,
             name,

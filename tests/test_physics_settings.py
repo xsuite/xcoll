@@ -620,7 +620,7 @@ def test_all_ions_are_classified_as_ions():
     A = []
     Z = []
     for aa in range(2, 240):
-        for zz in range(1, min(aa, 95)):
+        for zz in range(1, min(aa - 1, 95) + 1):
             # Enforce Z < A (Z=A would mean no neutrons, which is not a valid ion)
             A.append(aa)
             Z.append(zz)
@@ -641,7 +641,7 @@ def test_ions_do_not_alias_mesons_or_baryons():
     A = []
     Z = []
     for aa in range(2, 240):
-        for zz in range(1, min(aa, 95) + 1):
+        for zz in range(1, min(aa - 1, 95) + 1):
             A.append(aa)
             Z.append(zz)
     A = np.array(A)
@@ -689,3 +689,66 @@ def test_unknown_setting(attr):
     assert engine.stop_calls == 1
 
 
+def test_individual_pdg_id_overrides():
+    _, settings = make_settings()
+
+    settings.return_none = True
+
+    # Scalar and iterable input should both work.
+    settings.return_pdg_id(411)
+    settings.return_pdg_id([-211, 421])
+
+    # Exact PDG IDs, including sign.
+    assert selected(settings) == {
+        "D+",
+        "pi-",
+        "D0",
+    }
+
+    assert settings.pdg_id_is_returned(411)
+    assert not settings.pdg_id_is_returned(-411)
+    assert settings.pdg_id_is_returned(-211)
+    assert settings.pdg_id_is_returned(421)
+
+    # Explicit return overrides return_neutral=False.
+    assert settings.return_neutral is False
+    assert settings.pdg_id_is_returned(421)
+
+    # Killing an explicit return moves it to the opposite override set.
+    settings.dont_return_pdg_id(-211)
+
+    assert not settings.pdg_id_is_returned(-211)
+    assert selected(settings) == {
+        "D+",
+        "D0",
+    }
+
+    # Last explicit instruction wins.
+    settings.return_pdg_id(-211)
+
+    assert settings.pdg_id_is_returned(-211)
+    assert selected(settings) == {
+        "D+",
+        "pi-",
+        "D0",
+    }
+
+
+def test_individual_pdg_id_kill_overrides_return_flag():
+    _, settings = make_settings()
+
+    settings.return_none = True
+    settings.return_neutral = True
+    settings.return_mesons = True
+
+    assert "pi+" in selected(settings)
+    assert "D0" in selected(settings)
+
+    settings.dont_return_pdg_id([211, 421])
+
+    assert "pi+" not in selected(settings)
+    assert "D0" not in selected(settings)
+
+    # Other members of those categories remain enabled.
+    assert "pi-" in selected(settings)
+    assert "D+" in selected(settings)
