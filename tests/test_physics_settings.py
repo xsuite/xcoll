@@ -71,16 +71,13 @@ EXPECTED_ALL_FLAGS = [
 ]
 
 
-class DummyEngine(BaseEngine):
+class DummyEngine:
     name = "dummy"
-    _element_classes = []
-
     def __init__(self, particle_ref, veto=()):
-        super().__init__()
-        self.particle_ref = particle_ref
         self._physics_settings_veto_list = list(veto)
         self.stop_calls = 0
         self.messages = []
+        self.particle_ref = particle_ref
 
     def stop(self, *args, **kwargs):
         self.stop_calls += 1
@@ -89,8 +86,8 @@ class DummyEngine(BaseEngine):
         self.messages.append(" ".join(str(arg) for arg in args))
 
 
-def make_settings(particle="proton", p0c=7e12, veto=()):
-    particle_ref = xt.Particles(particle, p0c=p0c)
+def make_settings(particle="proton", p0c=7e12, veto=(), mass=None):
+    particle_ref = xt.Particles(particle, p0c=p0c, mass0=mass)
     engine = DummyEngine(particle_ref, veto=veto)
     settings = PhysicsSettingsHelper(engine)
     return engine, settings
@@ -111,59 +108,193 @@ def test_all_flags():
 
 
 @pytest.mark.parametrize(
-    "particle,p0c,is_lepton,is_proton,is_ion,A",
+    "particle,p0c,mass,A,return_neutral,expected",
     [
-        ("proton",   7e12,    False, True,  False, None),
-        ("electron", 7e12,    True,  False, False, None),
-        ("Pu-239",   94*7e12, False, False, True,  239),
+        (
+            "proton", 7e12, None, None, None,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "proton", 7e12, None, None, True,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=True,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "proton", 7e12, None, None, False,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "neutron", 7e12, None, None, None,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=True,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "neutron", 7e12, None, None, True,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=True,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "neutron", 7e12, None, None, False,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "electron", 7e12, None, None, None,
+            dict(
+                neutral=False, photons=False, electrons=True, muons=True,
+                tauons=True, neutrinos=False, protons=False, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=True,
+            ),
+        ),
+        (
+            "electron", 7e12, None, None, True,
+            dict(
+                neutral=True, photons=False, electrons=True, muons=True,
+                tauons=True, neutrinos=True, protons=False, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=True,
+            ),
+        ),
+        (
+            "electron", 7e12, None, None, False,
+            dict(
+                neutral=False, photons=False, electrons=True, muons=True,
+                tauons=True, neutrinos=False, protons=False, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=True,
+            ),
+        ),
+        (
+            "Pu-239", 94 * 7e12, None, 239, None,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=True, showers=False,
+            ),
+        ),
+        (
+            "Pu-239", 94 * 7e12, None, 239, True,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=True,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=True, showers=False,
+            ),
+        ),
+        (
+            "Pu-239", 94 * 7e12, None, 239, False,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=False,
+                other_baryons=False, pions=False, kaons=False,
+                other_mesons=False, ions=True, showers=False,
+            ),
+        ),
+        (
+            "pion+", 7e12, None, None, None,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=False, neutrons=False,
+                other_baryons=False, pions=True, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "pion", 7e12, None, None, None,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=False, neutrons=False,
+                other_baryons=False, pions=True, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "kaon+", 7e12, None, None, None,
+            dict(
+                neutral=False, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=False, neutrons=False,
+                other_baryons=False, pions=True, kaons=True,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
+        (
+            "D", 7e12, 1869.62e6, None, None,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=False, neutrons=False,
+                other_baryons=False, pions=True, kaons=True,
+                other_mesons=True, ions=False, showers=False,
+            ),
+        ),
+        (
+            "lambda", 7e12, 1115.68e6, None, None,
+            dict(
+                neutral=True, photons=False, electrons=False, muons=False,
+                tauons=False, neutrinos=False, protons=True, neutrons=True,
+                other_baryons=True, pions=False, kaons=False,
+                other_mesons=False, ions=False, showers=False,
+            ),
+        ),
     ],
 )
-def test_defaults(particle, p0c, is_lepton, is_proton, is_ion, A):
-    _, settings = make_settings(particle, p0c)
+def test_defaults(particle, p0c, mass, A, return_neutral, expected):
+    _, settings = make_settings(particle, p0c, mass=mass)
+    settings.return_neutral = return_neutral
 
-    assert settings.return_neutral is False
-    assert settings.return_photons is False
-    assert settings.return_pions is False
-    assert settings.return_kaons is False
-    assert settings.return_other_mesons is False
-
-    assert settings.return_electrons is is_lepton
-    assert settings.return_muons is is_lepton
-    assert settings.return_tauons is is_lepton
-    assert settings.return_neutrinos is False
-
-    assert settings.return_protons is (is_proton or is_ion)
-    assert settings.return_neutrons is False
-    assert settings.return_other_baryons is False
-
-    assert settings.return_ions is is_ion
+    for flag, value in expected.items():
+        if flag == "showers":
+            assert settings.include_showers is value
+        else:
+            assert getattr(settings, f"return_{flag}") is value
 
     # Cuts
     expected_hadron_cut = p0c / 10
-    if is_ion:
+    if A is not None:
         expected_hadron_cut /= A
-
     assert np.isclose(
         settings.hadron_lower_momentum_cut,
         expected_hadron_cut,
     )
-
     assert np.isclose(
         settings.photon_lower_momentum_cut,
         p0c * 1e-3,
     )
-
-    expected_electron_cut = p0c / 10 if is_lepton else p0c * 1e-3
+    expected_electron_cut = p0c / 10 if particle=='electron' else p0c * 1e-3
     assert np.isclose(
         settings.electron_lower_momentum_cut,
         expected_electron_cut,
     )
-
     assert settings.relative_energy_cut == 0.1
 
     # Physics processes
-    assert settings.include_showers is is_lepton
-
     for process in INCLUDE_PROCESSES:
         if process != "showers":
             assert getattr(settings, f"include_{process}") is True
@@ -395,9 +526,10 @@ PARTICLES = [
     ("K_S",              310,            0),
     ("K0",               311,            0),
     # Generic mesons
-    ("rho+",             213,            1),
-    ("rho-",            -213,           -1),
-    ("rho0",             113,            0),
+    ("D+",                411,            1),
+    ("D-",               -411,           -1),
+    ("D0",                421,            0),
+    # Nucleons
     ("proton",          2212,            1),
     ("antiproton",     -2212,           -1),
     ("neutron",         2112,            0),
@@ -409,7 +541,8 @@ PARTICLES = [
     ("antilambda",     -3122,            0),
     ("C12",       1000060120,            6),
     ("anti-C12", -1000060120,           -6),
-    ("unknown",          999,            1),
+    ("undefined",          0,            0),
+    ("invalid_pdg",      999,            1),
 ]
 
 NAMES = np.array([pp[0] for pp in PARTICLES])
@@ -434,7 +567,7 @@ def selected(settings):
         ("neutrons", {"neutron", "antineutron"}),
         ("pions", {"pi+", "pi-"}),
         ("kaons", {"K+", "K-"}),
-        ("other_mesons", {"rho+", "rho-"}),
+        ("other_mesons", {"D+", "D-"}),
         ("other_baryons", {"sigma+", "antisigma"}),
         ("ions", {"C12", "anti-C12"}),
     ],
@@ -465,7 +598,7 @@ def test_mask_mesons_with_neutral():
     assert selected(settings) == {
         "pi+", "pi-", "pi0",
         "K+", "K-", "K_L", "K_S", "K0",
-        "rho+", "rho-", "rho0",
+        "D+", "D-", "D0",
     }
 
 
@@ -487,7 +620,8 @@ def test_all_ions_are_classified_as_ions():
     A = []
     Z = []
     for aa in range(2, 240):
-        for zz in range(1, min(aa, 95) + 1):
+        for zz in range(1, min(aa, 95)):
+            # Enforce Z < A (Z=A would mean no neutrons, which is not a valid ion)
             A.append(aa)
             Z.append(zz)
     A = np.array(A)
