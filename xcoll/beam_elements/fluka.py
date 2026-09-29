@@ -49,17 +49,17 @@ class FlukaCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
     _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
-    def __new__(cls, *args, **kwargs):
-        with cls._in_constructor():
-            self = super().__new__(cls, *args, **kwargs)
-        return self
+    # def __new__(cls, *args, **kwargs):
+    #     with cls._in_constructor():
+    #         self = super().__new__(cls, *args, **kwargs)
+    #     return self
 
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.fluka.engine.is_running():
             raise ValueError('Cannot create FlukaCollimator while engine is '
                              'running.')
-        with self.__class__._in_constructor(self):
+        with self._in_constructor():
             to_assign = {}
             generic = False
             if '_xobject' not in kwargs:
@@ -349,33 +349,30 @@ class FlukaCollimator(BaseCollimator):
             self._equivalent_drift.length = old_length
 
     def __setattr__(self, name, value):
+        if self._being_constructed():
+            super().__setattr__(name, value)
+            return
         import xcoll as xc
         if name not in self._allowed_fields_when_frozen \
         and xc.fluka.engine.is_running() is True:
             raise ValueError('Engine is running; FlukaCollimator is frozen.')
         super().__setattr__(name, value)
 
-    @classmethod
     @contextmanager
-    def _in_constructor(cls, self=None):
-        original_setattr = cls.__setattr__
-        if self is not None:
-            self._being_constructed_ = True
-        def new_setattr(self, *args, **kwargs):
-            return super().__setattr__( *args, **kwargs)
-        cls.__setattr__ = new_setattr
+    def _in_constructor(self):
+        super().__setattr__("_constructing", True)
         try:
             yield
         finally:
-            cls.__setattr__ = original_setattr
-            if self is not None:
-                self._being_constructed_ = False
+            super().__setattr__("_constructing", False)
 
     def _being_constructed(self):
-        if hasattr(self, '_being_constructed_'):
-            return self._being_constructed_
-        else:
-            return False
+        try:
+            constructing = super().__getattribute__("_constructing")
+        except AttributeError:
+            constructing = False
+        return constructing
+
 
     # ===================================================
     # ===   Hacks to use parent setters and getters   ===
@@ -419,17 +416,17 @@ class FlukaCrystal(BaseCrystal):
         _pkg_root.joinpath('beam_elements','elements_src','fluka_crystal.h')
     ]
 
-    def __new__(cls, *args, **kwargs):
-        with cls._in_constructor():
-            self = super().__new__(cls, *args, **kwargs)
-        return self
+    # def __new__(cls, *args, **kwargs):
+    #     with cls._in_constructor():
+    #         self = super().__new__(cls, *args, **kwargs)
+    #     return self
 
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.fluka.engine.is_running():
             raise ValueError('Cannot create FlukaCrystal while engine is '
                              'running.')
-        with self.__class__._in_constructor(self):
+        with self._in_constructor():
             to_assign = {}
             generic = False
             if '_xobject' not in kwargs:
@@ -654,6 +651,9 @@ class FlukaCrystal(BaseCrystal):
         return FlukaCollimator._drift(self, particles, length)
 
     def __setattr__(self, name, value):
+        if self._being_constructed():
+            super().__setattr__(name, value)
+            return
         import xcoll as xc
         if name not in self._allowed_fields_when_frozen \
         and xc.fluka.engine.is_running() is True:

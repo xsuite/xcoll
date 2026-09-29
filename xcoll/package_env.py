@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+from contextlib import contextmanager
 import os
 import sys
 import json
@@ -94,18 +95,17 @@ class BaseInterface:
         self._old_sys_path = None
         self._old_os_env = None
         self._temp_dir = None
-        self._in_constructor = True
-        for path in self._paths.keys():
-            setattr(self, f'_{path}', None)
-        for path in self._optional_paths.keys():
-            setattr(self, f'_{path}', None)
-        self._config_dir.mkdir(parents=True, exist_ok=True)
-        self._data_dir.mkdir(parents=True, exist_ok=True)
-        self._lib_dir.mkdir(parents=True, exist_ok=True)
-        self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
-        sys.path.append(self._lib_dir.as_posix())
-        self.load()
-        self._in_constructor = False
+        with self._in_constructor():
+            for path in self._paths.keys():
+                setattr(self, f'_{path}', None)
+            for path in self._optional_paths.keys():
+                setattr(self, f'_{path}', None)
+            self._config_dir.mkdir(parents=True, exist_ok=True)
+            self._data_dir.mkdir(parents=True, exist_ok=True)
+            self._lib_dir.mkdir(parents=True, exist_ok=True)
+            self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
+            sys.path.append(self._lib_dir.as_posix())
+            self.load()
 
     def __del__(self):
         self.restore_environment()
@@ -322,19 +322,19 @@ class BaseInterface:
         if key in self._paths.keys() or key in self._optional_paths.keys():
             if value:
                 value = FsPath(value)
-                if not self._in_constructor:
+                if not self._being_constructed():
                     self.brute_force_path(value)
             old_value = getattr(self, f'_{key}', None)
             if value != old_value:
                 super().__setattr__(f'_{key}', value)
-                if not self._in_constructor:
+                if not self._being_constructed():
                     self.save()
         elif key.startswith('_') and key[1:] in self._read_only_paths.keys():
             # Read-only attribute can only be set internally
             old_value = getattr(self, f'_{key}', None)
             if value != old_value:
                 super().__setattr__(key, value)
-                if not self._in_constructor:
+                if not self._being_constructed():
                     self.save()
         elif key in self._read_only_paths.keys():
             raise AttributeError(f"Attribute '{key}' of {self.__class__.__name__} "
@@ -454,3 +454,18 @@ class BaseInterface:
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
+
+    @contextmanager
+    def _in_constructor(self):
+        super().__setattr__("_constructing", True)
+        try:
+            yield
+        finally:
+            super().__setattr__("_constructing", False)
+
+    def _being_constructed(self):
+        try:
+            constructing = super().__getattribute__("_constructing")
+        except AttributeError:
+            constructing = False
+        return constructing

@@ -42,16 +42,16 @@ class Geant4Collimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
     _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
-    def __new__(cls, *args, **kwargs):
-        with cls._in_constructor():
-            self = super().__new__(cls, *args, **kwargs)
-        return self
+    # def __new__(cls, *args, **kwargs):
+    #     with cls._in_constructor():
+    #         self = super().__new__(cls, *args, **kwargs)
+    #     return self
 
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.geant4.engine.is_running():
             raise ValueError('Cannot create Geant4Collimator while engine is running.')
-        with self.__class__._in_constructor(self):
+        with self._in_constructor():
             to_assign = {}
             if '_xobject' not in kwargs:
                 kwargs.setdefault('geant4_id', ''.ljust(16))
@@ -115,33 +115,29 @@ class Geant4Collimator(BaseCollimator):
             self._equivalent_drift.length = old_length
 
     def __setattr__(self, name, value):
+        if self._being_constructed():
+            super().__setattr__(name, value)
+            return
         import xcoll as xc
         if name not in self._allowed_fields_when_frozen \
         and xc.geant4.engine.is_running():
             raise ValueError('Engine is running; Geant4Collimator is frozen.')
         super().__setattr__(name, value)
 
-    @classmethod
     @contextmanager
-    def _in_constructor(cls, self=None):
-        original_setattr = cls.__setattr__
-        if self is not None:
-            self._being_constructed_ = True
-        def new_setattr(self, *args, **kwargs):
-            return super().__setattr__( *args, **kwargs)
-        cls.__setattr__ = new_setattr
+    def _in_constructor(self):
+        super().__setattr__("_constructing", True)
         try:
             yield
         finally:
-            cls.__setattr__ = original_setattr
-            if self is not None:
-                self._being_constructed_ = False
+            super().__setattr__("_constructing", False)
 
     def _being_constructed(self):
-        if hasattr(self, '_being_constructed_'):
-            return self._being_constructed_
-        else:
-            return False
+        try:
+            constructing = super().__getattribute__("_constructing")
+        except AttributeError:
+            constructing = False
+        return constructing
 
 
 class Geant4CollimatorTip(Geant4Collimator):
@@ -168,16 +164,16 @@ class Geant4CollimatorTip(Geant4Collimator):
         _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
     ]
 
-    def __new__(cls, *args, **kwargs):
-        with cls._in_constructor():
-            self = super().__new__(cls, *args, **kwargs)
-        return self
+    # def __new__(cls, *args, **kwargs):
+    #     with cls._in_constructor():
+    #         self = super().__new__(cls, *args, **kwargs)
+    #     return self
 
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.geant4.engine.is_running():
             raise ValueError('Cannot create Geant4CollimatorTip while engine is running.')
-        with self.__class__._in_constructor():
+        with self._in_constructor():
             to_assign = {}
             if '_xobject' not in kwargs:
                 to_assign['tip_material'] = kwargs.pop('tip_material', None)

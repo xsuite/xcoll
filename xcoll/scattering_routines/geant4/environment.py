@@ -20,10 +20,8 @@ class Geant4Interface(BaseInterface):
 
     def __init__(self):
         super().__init__()
-        self._in_constructor = True
         self._geant4 = None
         self._bdsim = None
-        self._in_constructor = False
         self._geant4_sourced = False
         self._bdsim_sourced = False
         try:
