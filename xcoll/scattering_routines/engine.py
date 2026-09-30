@@ -244,6 +244,14 @@ class BaseEngine(xo.HybridClass):
     def reset_physics_settings(self):
         return self._physics_settings.reset()
 
+    def return_pdg_id(self, pdg_id):
+        return self._physics_settings.return_pdg_id(pdg_id)
+
+    def dont_return_pdg_id(self, pdg_id):
+        return self._physics_settings.dont_return_pdg_id(pdg_id)
+
+    def pdg_id_is_returned(self, pdg_id):
+        return self._physics_settings.pdg_id_is_returned(pdg_id)
 
     def start(self, *, clean=True, input_file=None, **kwargs):
         if not self.interface:
@@ -624,7 +632,8 @@ class BaseEngine(xo.HybridClass):
     def _assert_element(self, element):
         if not isinstance(element, self._element_classes):
             self.stop()
-            raise ValueError(f"Element {element.name} is not a "
+            name = element.name if hasattr(element, 'name') else str(element)
+            raise ValueError(f"Element {name} is not a "
                             + ", or a ".join([c.__name__ for c in self._element_classes])
                             + ".")
 
@@ -637,6 +646,8 @@ class BaseEngine(xo.HybridClass):
             if elements is None:
                 self.stop()
                 raise ValueError("Need to provide either `line` or `elements`.")
+            for ee in elements:
+                self._assert_element(ee)
             if names is None:
                 names = []
                 for ee in elements:
@@ -668,10 +679,11 @@ class BaseEngine(xo.HybridClass):
                 elements = [self.line.get(nn) for nn in names]
             else:
                 elements = [self.line.get(nn) for nn in names]
+            for ee in elements:
+                self._assert_element(ee)
         this_names = []
         this_elements = []
         for ee, name in zip(elements, names):
-            self._assert_element(ee)
             if ee.jaw is None:
                 self._print(f"Warning: Jaw not set for {name}. Ignoring.")
                 self._deactivate_element(ee)
@@ -691,7 +703,7 @@ class BaseEngine(xo.HybridClass):
         self._element_dict = dict(zip(this_names, this_elements))
 
     def _deactivate_element(self, el):
-        self._deactivated_elements[el.name] = [el, el.active or True]
+        self._deactivated_elements[el.name] = [el, el.active]
         if hasattr(el, 'active'):
             el.active = False
         self._remove_element(el)
