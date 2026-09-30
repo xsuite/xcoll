@@ -181,6 +181,13 @@ class FlukaEngine(BaseEngine):
         self._set_property('timeout_sec', kwargs)
         return kwargs
 
+
+    def _reset_engine_settings(self):
+        self.timeout_sec = None
+        self.minimum_free_length_fortran_array = None
+        self.relative_length_fortran_array = None
+
+
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
         input_file, kwargs = create_fluka_input(element_dict=self._element_dict, cwd=self.cwd,
@@ -396,6 +403,7 @@ class FlukaEngine(BaseEngine):
             return files_to_delete
         else:
             return []
+
 
     def _all_input_files(self, input_file):
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):

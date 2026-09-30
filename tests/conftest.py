@@ -41,12 +41,12 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
-def reset_engine_physics_settings():
-    xc.fluka.engine.reset_physics_settings()
-    xc.geant4.engine.reset_physics_settings()
+def reset_engines():
+    xc.fluka.engine.reset(clean=True)
+    xc.geant4.engine.reset(clean=True)
     yield
-    xc.fluka.engine.reset_physics_settings()
-    xc.geant4.engine.reset_physics_settings()
+    xc.fluka.engine.reset(clean=True)
+    xc.geant4.engine.reset(clean=True)
 
 
 @pytest.fixture

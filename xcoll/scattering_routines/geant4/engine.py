@@ -93,6 +93,11 @@ class Geant4Engine(BaseEngine):
         self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
+
+    def _reset_engine_settings(self):
+        self.reentry_protection_enabled = None
+
+
     def _pre_input(self, **kwargs):
         coll_id = 1
         for el in self._element_dict.values():
@@ -100,12 +105,14 @@ class Geant4Engine(BaseEngine):
             coll_id += 1
         return kwargs
 
+
     def _generate_input_file(self, **kwargs):
         input_file, kwargs = create_bdsim_config_file(element_dict=self._element_dict,
                                 particle_ref=self.particle_ref, verbose=self.verbose,
                                 cwd=self.cwd, **kwargs)
         # The only thing left in kwargs are parameters to start the engine
         return input_file, kwargs
+
 
     def _start_engine(self, **kwargs):
         from ...beam_elements import BaseCrystal, Geant4CollimatorTip
@@ -204,6 +211,7 @@ class Geant4Engine(BaseEngine):
     def _is_running(self):
         return self._g4link is not None
 
+
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is None or input_file is None:
             return []
@@ -216,6 +224,7 @@ class Geant4Engine(BaseEngine):
                            'engine.out', 'engine.err', 'root.out',
                            'root.err']
         return [cwd / f for f in files_to_delete]
+
 
     def _match_input_file(self):
         # Read the elements in the input file and compare to the elements in the engine,

@@ -249,6 +249,22 @@ class BaseEngine(xo.HybridClass):
     def pdg_id_is_returned(self, pdg_id):
         return self._physics_settings.pdg_id_is_returned(pdg_id)
 
+
+    def reset(self, *, clean=False):
+        # Stop any running backend and restore temporary start() overrides.
+        self.stop(clean=clean)
+        # Persistent BaseEngine configuration.
+        self.line = None
+        self.particle_ref = None
+        self.seed = None
+        self.verbose = False
+        self.reset_physics_settings()
+        # Cosmetic/internal counter, but useful to make generated names
+        # deterministic again.
+        self._element_index = 0
+        self._reset_engine_settings()
+
+
     def start(self, *, clean=True, input_file=None, **kwargs):
         if not self.interface:
             self.stop()
@@ -855,3 +871,6 @@ class BaseEngine(xo.HybridClass):
     def _pre_input(self, **kwargs):
         # Do some preparations before creating the input file if needed
         return kwargs
+
+    def _reset_engine_settings(self):
+        pass
