@@ -103,7 +103,7 @@ def test_engine_temporary_physics_settings():
     engine.start(elements=element, return_none=True, return_ions=True)
     assert engine.return_protons is False
     assert engine.return_ions is True
-    engine.stop()
+    engine.stop(clean=True)
     # Temporary start() settings must have disappeared.
     assert engine.return_protons is True
     assert engine.return_ions is False
@@ -117,7 +117,7 @@ def test_engine_persistent_physics_settings():
     engine.start(elements=element)
     assert engine.return_pions is True
     assert engine.return_protons is False
-    engine.stop()
+    engine.stop(clean=True)
     # Attribute settings persist.
     assert engine.return_pions is True
     assert engine.return_protons is False
@@ -156,7 +156,7 @@ def test_temporary_settings_preserve_dynamic_defaults():
     element = DummyElement()
     assert engine._physics_settings._return_protons is None
     engine.start(elements=element, return_none=True, return_ions=True)
-    engine.stop()
+    engine.stop(clean=True)
     assert engine._physics_settings._return_protons is None
     assert engine.return_protons is True
 
@@ -224,7 +224,7 @@ def test_start_with_single_element():
     engine.start(elements=element)
     assert engine.is_running()
     assert engine.element_dict == {"coll": element}
-    engine.stop()
+    engine.stop(clean=True)
 
 
 def test_element_gets_generated_name():
@@ -233,7 +233,7 @@ def test_element_gets_generated_name():
     engine.start(elements=element)
     assert element.name == "dummy_el_0"
     assert engine.element_dict == {"dummy_el_0": element}
-    engine.stop()
+    engine.stop(clean=True)
 
 
 def test_explicit_name():
@@ -242,7 +242,7 @@ def test_explicit_name():
     engine.start(elements=element, names="new")
     assert element.name == "new"
     assert engine.element_dict == {"new": element}
-    engine.stop()
+    engine.stop(clean=True)
 
 
 def test_names_length_mismatch():
@@ -278,7 +278,7 @@ def test_inactive_elements_are_ignored_and_restored():
     engine.start(elements=[active, inactive])
     assert engine.element_dict == {"active": active}
     assert inactive in engine.removed
-    engine.stop()
+    engine.stop(clean=True)
     assert inactive in engine.restored
     assert inactive.active is False
 
@@ -288,7 +288,7 @@ def test_element_without_jaw_is_ignored():
     bad = DummyElement(name="bad", jaw=None)
     engine.start(elements=[good, bad])
     assert engine.element_dict == {"good": good}
-    engine.stop()
+    engine.stop(clean=True)
 
 
 class DummyBeamElement(xt.BeamElement):
@@ -310,7 +310,7 @@ def test_start_from_line():
     line.particle_ref = xt.Particles("proton", p0c=7e12)
     engine.start(line=line)
     assert set(engine.element_dict) == {"a", "b"}
-    engine.stop()
+    engine.stop(clean=True)
 
 
 def test_start_from_line_selected_names():
@@ -321,6 +321,7 @@ def test_start_from_line_selected_names():
     line.particle_ref = xt.Particles("proton", p0c=7e12)
     engine.start(line=line, names=["b"])
     assert list(engine.element_dict) == ["b"]
+    engine.stop(clean=True)
 
 
 def test_line_and_elements_are_mutually_exclusive():
@@ -342,7 +343,7 @@ def test_particle_ref_taken_from_line():
     assert engine.particle_ref is None
     engine.start(line=line)
     assert engine.particle_ref.p0c[0] == 7e12
-    engine.stop()
+    engine.stop(clean=True)
     assert engine.particle_ref is None
 
 
@@ -356,7 +357,7 @@ def test_existing_engine_particle_ref_overrides_line_temporarily():
     engine.start(line=line)
     assert engine.particle_ref.p0c[0] == 6e12
     assert line.particle_ref.p0c[0] == 6e12
-    engine.stop()
+    engine.stop(clean=True)
     assert engine.particle_ref.p0c[0] == 6e12
     assert line.particle_ref.p0c[0] == 7e12
 
@@ -367,7 +368,7 @@ def test_temporary_particle_ref():
     temporary = xt.Particles("proton", p0c=6e12)
     engine.start(elements=DummyElement("coll"), particle_ref=temporary)
     assert engine.particle_ref.p0c[0] == 6e12
-    engine.stop()
+    engine.stop(clean=True)
     assert engine.particle_ref.p0c[0] == original.p0c[0]
 
 
@@ -377,7 +378,7 @@ def test_temporary_verbose():
     assert engine.verbose is False
     engine.start(elements=element, verbose=True)
     assert engine.verbose is True
-    engine.stop()
+    engine.stop(clean=True)
     assert engine.verbose is False
 
 
@@ -386,7 +387,7 @@ def test_temporary_seed_is_restored():
     engine.seed = 123
     engine.start(elements=DummyElement("coll"), seed=456)
     assert engine.seed == 456
-    engine.stop()
+    engine.stop(clean=True)
     assert engine.seed == 123
 
 
@@ -395,7 +396,7 @@ def test_seed_generated_if_missing():
     assert engine.seed is None
     engine.start(elements=DummyElement("coll"))
     assert engine.seed is not None
-    engine.stop()
+    engine.stop(clean=True)
     assert engine.seed is None
 
 
@@ -407,7 +408,7 @@ def test_start_and_stop():
     assert engine.is_running()
     assert engine._tracking_initialised is False
     assert engine.interface.assert_ready_calls == 1
-    engine.stop()
+    engine.stop(clean=True)
     assert not engine.is_running()
     assert engine.element_dict == {}
     assert engine.interface.restore_calls >= 1
@@ -420,14 +421,14 @@ def test_start_when_already_running_is_noop():
     first_kwargs = engine.started_kwargs
     engine.start(elements=element)
     assert engine.started_kwargs is first_kwargs
-    engine.stop()
+    engine.stop(clean=True)
 
 
 def test_backend_specific_kwargs_are_forwarded():
     engine = make_engine()
     engine.start(elements=DummyElement("coll"), custom_backend_option=123)
     assert engine.started_kwargs == {"custom_backend_option": 123}
-    engine.stop()
+    engine.stop(clean=True)
 
 
 class DummyFolderEngine(DummyEngine):
@@ -453,6 +454,7 @@ def test_existing_cwd_gets_unique_suffix(tmp_path):
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
     engine.start(elements=DummyElement("coll"), cwd=requested)
     assert engine.cwd.name == "run_0000"
+    engine.stop(clean=True)
 
 
 class DummyInputEngine(DummyEngine):
@@ -468,8 +470,15 @@ class DummyInputEngine(DummyEngine):
     def _match_input_file(self):
         self.match_calls = getattr(self, "match_calls", 0) + 1
 
-    def _get_input_files_to_clean(self, input_file=None, **kwargs):
-        return [input_file] if input_file is not None else []
+    def _get_input_files_to_clean(self, input_file=None, cwd=None, **kwargs):
+        if cwd is None:
+            return []
+        return [input_file, cwd / "auxiliary.in", cwd / "input_aux"]
+
+    def _get_output_files_to_clean(self, input_file=None, cwd=None, **kwargs):
+        if cwd is None:
+            return []
+        return [cwd / "dummy.out", cwd / "output_aux"]
 
     def _all_input_files(self, input_file=None):
         if input_file is None:
@@ -503,6 +512,7 @@ def test_start_with_existing_input_file(tmp_path):
         clean=False,
     )
     assert engine.input_file.read_text() == "custom"
+    engine.stop(clean=True)
 
 
 def test_missing_input_file():
@@ -539,7 +549,7 @@ def test_ready_to_track():
         _capacity=10,
     )
     assert engine.assert_ready_to_track_or_skip(coll, particles)
-    engine.stop()
+    engine.stop(clean=True)
 
 
 @pytest.mark.parametrize(
@@ -554,7 +564,6 @@ def test_ready_to_track():
 def test_ready_to_track_skip_element(kwargs):
     engine = make_engine()
     coll = DummyElement("coll", **kwargs)
-    engine.start(elements=coll)
     particles = xt.Particles(
         "proton",
         p0c=7e12,
@@ -575,6 +584,7 @@ def test_ready_to_track_skips_empty_particles():
         _capacity=10,
     )
     assert not engine.assert_ready_to_track_or_skip(coll, particles)
+    engine.stop(clean=True)
 
 
 def test_ready_to_track_requires_running_engine():
@@ -602,6 +612,7 @@ def test_ready_to_track_requires_secondary_capacity():
     )
     with pytest.raises(ValueError, match="capacity equal to size"):
         engine.assert_ready_to_track_or_skip(coll, particles)
+    engine.stop(clean=True)
 
 
 def test_ready_to_track_requires_pdg_ids():
@@ -617,6 +628,7 @@ def test_ready_to_track_requires_pdg_ids():
     particles.pdg_id = 0
     with pytest.raises(ValueError, match="pdg_id"):
         engine.assert_ready_to_track_or_skip(coll, particles)
+    engine.stop(clean=True)
 
 
 def test_engine_cleaning(tmp_path):
@@ -627,7 +639,34 @@ def test_engine_cleaning(tmp_path):
         cwd=tmp_path / "run",
         clean=False,
     )
+    cwd = engine.cwd
     input_file = engine.input_file
+    auxiliary_input = cwd / "auxiliary.in"
+    output_file = cwd / "dummy.out"
+    input_dir = cwd / "input_aux"
+    output_dir = cwd / "output_aux"
+    auxiliary_input.write_text("aux")
+    output_file.write_text("output")
+    input_dir.mkdir()
+    (input_dir / "foo").write_text("foo")
+    output_dir.mkdir()
+    (output_dir / "foo").write_text("foo")
+
+    # Default cleaning preserves the actual input file.
+    engine.clean(clean_all=False)
     assert input_file.exists()
-    engine.stop(clean=True)
+    assert not auxiliary_input.exists()
+    assert not output_file.exists()
+    assert not input_dir.exists()
+    assert not output_dir.exists()
+
+    # Recreate some auxiliary/output files.
+    auxiliary_input.write_text("aux")
+    output_file.write_text("output")
+
+    # clean_all also removes the actual input.
+    engine.clean(clean_all=True)
     assert not input_file.exists()
+    assert not auxiliary_input.exists()
+    assert not output_file.exists()
+    engine.stop(clean=True)

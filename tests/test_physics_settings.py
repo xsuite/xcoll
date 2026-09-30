@@ -499,8 +499,14 @@ def test_reset():
     settings.include_multiple_coulomb = False
     settings.include_elastic = False
     settings.include_inelastic = False
+    settings.return_pdg_id(411)
+    settings.dont_return_pdg_id(211)
     settings.reset()
     assert snapshot(settings) == snapshot(reference)
+    assert not settings.pdg_id_is_returned(411)
+    assert settings.pdg_id_is_returned(211) == reference.pdg_id_is_returned(211)
+    assert settings._extra_pdg_ids_to_return == set()
+    assert settings._extra_pdg_ids_to_kill == set()
 
 
 PARTICLES = [
@@ -752,3 +758,54 @@ def test_individual_pdg_id_kill_overrides_return_flag():
     # Other members of those categories remain enabled.
     assert "pi-" in selected(settings)
     assert "D+" in selected(settings)
+
+
+def test_pdg_id_is_returned_array():
+    _, settings = make_settings()
+    settings.return_none = True
+    settings.return_pdg_id([411, -211])
+    result = settings.pdg_id_is_returned(np.array([411, -411, 211, -211]))
+    assert isinstance(result, np.ndarray)
+    assert np.array_equal(result, [True, False, False, True])
+
+
+def test_neutrino_flavour_requires_corresponding_lepton_family():
+    _, settings = make_settings()
+    settings.return_none = True
+    settings.return_neutrinos = True
+    assert selected(settings) == set()
+    settings.return_electrons = True
+    assert selected(settings) == {
+        "electron",
+        "positron",
+        "nu_e",
+        "anti_nu_e",
+    }
+    settings.return_muons = True
+    assert selected(settings) == {
+        "electron",
+        "positron",
+        "nu_e",
+        "anti_nu_e",
+        "muon-",
+        "muon+",
+        "nu_mu",
+        "anti_nu_mu",
+    }
+
+
+@pytest.mark.parametrize(
+    "attr",
+    [
+        "return_all",
+        "return_neutral",
+        "return_electrons",
+        "return_mesons",
+        "include_elastic",
+    ],
+)
+def test_boolean_settings_reject_non_bool(attr):
+    engine, settings = make_settings()
+    with pytest.raises(ValueError):
+        setattr(settings, attr, 1)
+    assert engine.stop_calls == 1

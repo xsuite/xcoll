@@ -302,7 +302,7 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
     else:
         physics_kwargs["return_all"] = True
     xc_engine.start(elements=coll, clean=True, verbose=True, **physics_kwargs)
-    particle_ref = xc.fluka.engine.particle_ref   # Might have been changed by the engine
+    particle_ref = xc_engine.particle_ref   # Might have been changed by the engine
 
     if hit:
         part, part_init = _init_particles(num_part, particle_ref=particle_ref, capacity=capacity, ref_mass=ref_mass, **kwargs)
