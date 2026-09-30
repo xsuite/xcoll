@@ -4,6 +4,7 @@
 # ######################################### #
 
 import pytest
+import numpy as np
 
 import xobjects as xo
 import xtrack as xt
@@ -182,6 +183,29 @@ def test_particle_ref():
     assert engine.particle_ref.p0c[0] == 7e12
     del engine.particle_ref
     assert engine.particle_ref is None
+
+
+def test_temporary_particle_ref_is_updated_and_restored():
+    engine = make_engine()
+    original_engine_ref = engine.particle_ref.copy()
+    temporary = xt.Particles("proton", p0c=6e12, mass0=900e6)
+    temporary_before = temporary.copy()
+
+    # Pretend that the external code uses a different proton mass.
+    engine._masses = {2212: 938.2720813e6}
+    engine.start(elements=DummyElement("coll"), particle_ref=temporary)
+    # Engine was normalised.
+    assert np.isclose(engine.particle_ref.mass0, 938.2720813e6)
+    # Caller-owned object was normalised as well.
+    assert np.isclose(temporary.mass0, 938.2720813e6)
+    engine.stop(clean=True)
+
+    # Persistent engine reference restored.
+    assert np.isclose(engine.particle_ref.p0c[0], original_engine_ref.p0c[0])
+    assert np.isclose(engine.particle_ref.mass0, original_engine_ref.mass0)
+    # Caller-owned temporary reference restored in place.
+    assert np.isclose(temporary.p0c[0], temporary_before.p0c[0])
+    assert np.isclose(temporary.mass0, temporary_before.mass0)
 
 
 def test_particle_ref_validation():
@@ -629,6 +653,61 @@ def test_ready_to_track_requires_pdg_ids():
     with pytest.raises(ValueError, match="pdg_id"):
         engine.assert_ready_to_track_or_skip(coll, particles)
     engine.stop(clean=True)
+
+
+def test_ready_to_track_rejects_mass_mismatch():
+    engine = make_engine()
+    coll = DummyElement("coll")
+    engine.start(elements=coll)
+    particles = xt.Particles(
+        p0c=7e12,
+        mass0=0.9 * engine.particle_ref.mass0,
+        q0=engine.particle_ref.q0,
+        pdg_id=2212,
+        x=[0, 0],
+        _capacity=10,
+    )
+    with pytest.raises(ValueError, match="reference mass"):
+        engine.assert_ready_to_track_or_skip(coll, particles)
+
+
+def test_ready_to_track_rejects_charge_mismatch():
+    engine = make_engine()
+    coll = DummyElement("coll")
+    engine.start(elements=coll)
+    particles = xt.Particles(
+        p0c=7e12,
+        mass0=engine.particle_ref.mass0,
+        q0=2,
+        pdg_id=2212,
+        x=[0, 0],
+        _capacity=10,
+    )
+    with pytest.raises(ValueError, match="reference charge"):
+        engine.assert_ready_to_track_or_skip(coll, particles)
+
+
+def test_ready_to_track_resynchronises_known_mass():
+    engine = make_engine()
+    coll = DummyElement("coll")
+    engine.start(elements=coll)
+    old_mass = engine.particle_ref.mass0
+    new_mass = old_mass * 1.001
+    engine._masses = {2212: new_mass}
+    # Mimic the situation after the backend has corrected its
+    # reference-particle mass.
+    engine.particle_ref.mass0 = new_mass
+    engine.particle_ref._update_refs(p0c=engine.particle_ref.p0c[0])
+    particles = xt.Particles(
+        p0c=7e12,
+        mass0=old_mass,
+        q0=1,
+        pdg_id=2212,
+        x=[0, 0],
+        _capacity=10,
+    )
+    assert engine.assert_ready_to_track_or_skip(coll, particles)
+    assert np.isclose(particles.mass0, new_mass)
 
 
 def test_engine_cleaning(tmp_path):
