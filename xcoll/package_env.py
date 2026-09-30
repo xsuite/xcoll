@@ -99,7 +99,9 @@ class BaseInterface:
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._lib_dir.mkdir(parents=True, exist_ok=True)
         self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
-        sys.path.append(self._lib_dir.as_posix())
+        lib_dir = self._lib_dir.as_posix()
+        if lib_dir not in sys.path:
+            sys.path.append(lib_dir)
         self.load()
 
     def __del__(self):

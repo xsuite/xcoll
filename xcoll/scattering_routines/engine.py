@@ -545,6 +545,14 @@ class BaseEngine(xo.HybridClass):
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
+        # Restore caller-owned temporary particle_ref in place.
+        if hasattr(self, '_temporary_particle_ref'):
+            _overwrite_particles(
+                self._temporary_particle_ref,
+                self._temporary_particle_ref_snapshot,
+            )
+            del self._temporary_particle_ref
+            del self._temporary_particle_ref_snapshot
         # Reset particle_ref in the line
         if hasattr(self, '_old_line_particle_ref'):
             self.line.particle_ref = self._old_line_particle_ref
@@ -585,7 +593,15 @@ class BaseEngine(xo.HybridClass):
     def _use_particle_ref(self, particle_ref=None, keep_p0c_constant=True):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
         if particle_ref is not None:
-            self._old_particle_ref = self.particle_ref
+            # Snapshot the persistent engine reference.
+            current_ref = self.particle_ref
+            self._old_particle_ref = (
+                None if current_ref is None else current_ref.copy()
+            )
+            # Keep the user-owned object itself, plus a snapshot of its original state.
+            self._temporary_particle_ref = particle_ref
+            self._temporary_particle_ref_snapshot = particle_ref.copy()
+            # The engine gets its own working copy through the xofield assignment.
             self.particle_ref = particle_ref
         elif self.particle_ref is None:
             if self.line is None or not hasattr(self.line, 'particle_ref') \
@@ -593,7 +609,7 @@ class BaseEngine(xo.HybridClass):
                 self.stop()
                 raise ValueError("Need to provide either a line with a reference "
                                + "particle, or `particle_ref`.")
-            self._old_particle_ref = self.particle_ref
+            self._old_particle_ref = None
             self.particle_ref = self.line.particle_ref
         self._print(f"Using {pdg.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
                   + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
@@ -604,12 +620,16 @@ class BaseEngine(xo.HybridClass):
                 new_mass = self._masses[abs(pdg_id)]
                 if abs(mass-new_mass)/mass > 1.e-12:
                     old_energy0 = self.particle_ref.energy0[0]
-                    self.particle_ref.mass0  = new_mass
+                    self.particle_ref.mass0 = new_mass
                     if keep_p0c_constant:
                         self.particle_ref._update_refs(p0c=self.particle_ref.p0c[0])
                     else:
                         self.particle_ref._update_refs(energy0=old_energy0)
-                    assert np.isclose(self.particle_ref.energy0[0]**2, self.particle_ref.p0c[0]**2 + self.particle_ref.mass0**2)
+                    assert np.isclose(
+                        self.particle_ref.energy0[0]**2,
+                        self.particle_ref.p0c[0]**2
+                        + self.particle_ref.mass0**2
+                    )
                     assert np.isclose(self.particle_ref.mass0, new_mass)
                     self._print(f"Warning: given mass of {mass} eV for "
                             + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from {self.name} "
@@ -622,6 +642,13 @@ class BaseEngine(xo.HybridClass):
                         + f"by {self.name}, differences in energy might be observed.\nOnce "
                         + f"the {self.name} reference mass is known, contact the devs to "
                         + f"input it in the code.")
+        # If start(particle_ref=...) was used, propagate *all* normalisations
+        # back into the caller-owned reference object.
+        if hasattr(self, '_temporary_particle_ref'):
+            _overwrite_particles(
+                self._temporary_particle_ref,
+                self.particle_ref,
+            )
 
     def _sync_line_particle_ref(self):
         if self.line is None:
@@ -874,3 +901,11 @@ class BaseEngine(xo.HybridClass):
 
     def _reset_engine_settings(self):
         pass
+
+
+def _overwrite_particles(target, source):
+    """Overwrite all Xobject data in `target` with a copy of `source`.
+    The Python identity of `target` is preserved.
+    """
+    source_copy = source.copy(_context=target._buffer.context)
+    target._reinit_from_xobject(source_copy._xobject)
