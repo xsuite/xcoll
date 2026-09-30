@@ -278,49 +278,44 @@ def test_negative_pions(engine, proton_ref, hit):
 def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=True,
          return_type=None, ref_mass=None, **kwargs):
     if engine == "fluka":
-        if xc.fluka.engine.is_running():
-            xc.fluka.engine.stop(clean=True)
-        coll = xc.FlukaCollimator(length=0.4, material='MoGr')
-        coll.jaw = 0.002
-        xc.fluka.engine.particle_ref = particle_ref
-        xc.fluka.engine.relative_length_fortran_array = 20
-        if return_type is not None:
-            xc.fluka.engine.return_none = True
-            setattr(xc.fluka.engine, f'return_{return_type}', True)
-        else:
-            xc.fluka.engine.return_all = True
-        xc.fluka.engine.start(elements=coll, clean=True, verbose=True)
-        particle_ref = xc.fluka.engine.particle_ref
-
+        xc_engine = xc.fluka.engine
     elif engine == "geant4":
-        if xc.geant4.engine.is_running():
-            xc.geant4.engine.stop(clean=True)
+        xc_engine = xc.geant4.engine
+
+    if xc_engine.is_running():
+        xc_engine.stop(clean=True)
+
+    if engine == "fluka":
+        coll = xc.FlukaCollimator(length=0.4, material='MoGr')
+    elif engine == "geant4":
         coll = xc.Geant4Collimator(length=0.4, material='MoGr')
-        coll.jaw = 0.002
-        xc.geant4.engine.particle_ref = particle_ref
-        if return_type is not None:
-            xc.geant4.engine.return_none = True
-            setattr(xc.geant4.engine, f'return_{return_type}', True)
-        else:
-            xc.geant4.engine.return_all = True
-        xc.geant4.engine.start(elements=coll, clean=True, verbose=True)
-        particle_ref = xc.geant4.engine.particle_ref
+    coll.jaw = 0.002
+
+    xc_engine.particle_ref = particle_ref
+    if engine == "fluka":
+        xc_engine.relative_length_fortran_array = 20
+
+    physics_kwargs = {}
+    if return_type is not None:
+        physics_kwargs["return_none"] = True
+        physics_kwargs[f"return_{return_type}"] = True
+    else:
+        physics_kwargs["return_all"] = True
+    xc_engine.start(elements=coll, clean=True, verbose=True, **physics_kwargs)
+    particle_ref = xc.fluka.engine.particle_ref   # Might have been changed by the engine
 
     if hit:
         part, part_init = _init_particles(num_part, particle_ref=particle_ref, capacity=capacity, ref_mass=ref_mass, **kwargs)
     else:
         part, part_init = _init_particles(num_part, particle_ref=particle_ref, x=0, px=0, capacity=capacity, ref_mass=ref_mass, **kwargs)
 
+    xc_engine.physics_settings()
     print(f"Tracking {part._num_active_particles} {pdg.get_name_from_pdg_id(part.pdg_id[0])}"
          + "s...     ", flush=True)
     start = time.time()
-    if engine == "fluka":  xc.fluka.engine.physics_settings()
-    if engine == "geant4": xc.geant4.engine.physics_settings()
     coll.track(part)
     print(f"Done in {round(time.time()-start, 3)}s.", flush=True)
-
-    if engine == 'fluka':    xc.fluka.engine.stop(clean=True)
-    elif engine == 'geant4': xc.geant4.engine.stop(clean=True)
+    xc_engine.stop(clean=True)
 
     if do_assert:
         E_ref = part_init.energy[0]

@@ -8,6 +8,9 @@ import shutil
 from pathlib import Path
 from _common_api import check_skip
 
+import xcoll as xc
+
+
 @pytest.fixture(scope="session")
 def running_with_xdist(worker_id):
     return worker_id != "master"
@@ -35,6 +38,15 @@ def pytest_collection_modifyitems(config, items):
     items.sort(
         key=lambda item: item.get_closest_marker("longtest") is None
     )
+
+
+@pytest.fixture(autouse=True)
+def reset_engine_physics_settings():
+    xc.fluka.engine.reset_physics_settings()
+    xc.geant4.engine.reset_physics_settings()
+    yield
+    xc.fluka.engine.reset_physics_settings()
+    xc.geant4.engine.reset_physics_settings()
 
 
 @pytest.fixture

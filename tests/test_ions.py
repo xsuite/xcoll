@@ -46,9 +46,12 @@ def test_ions(engine):
         xc_engine.stop(clean=True)
 
     xc_engine.particle_ref = particle_ref
-    xc_engine.return_none = True
-    xc_engine.return_ions = True
-    xc_engine.start(elements=coll, seed=seed)
+    xc_engine.start(
+        elements=coll,
+        seed=seed,
+        return_none=True,
+        return_ions=True,
+    )
     part = xp.build_particles(x=np.ones(num_part)*2*coll.jaw_L,
                                 particle_ref=xc_engine.particle_ref,
                                 _capacity=capacity)
