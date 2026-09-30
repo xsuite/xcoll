@@ -58,6 +58,7 @@ class PhysicsSettingsHelper:
             'neutrinos': {
                 'default': lambda self:
                                 self.ref_is_lepton and self.return_neutral,
+                'pdg_ids': (-16, -14, -12, 12, 14, 16),
             },
         },
         'baryons': {
@@ -498,6 +499,7 @@ class PhysicsSettingsHelper:
         self._engine.stop()
         raise error_class(mess)
 
+
     def _str(self, format):
         final_message = ''
         veto = self._engine._physics_settings_veto_list
@@ -628,6 +630,7 @@ class PhysicsSettingsHelper:
 
         return final_message
 
+
     @property
     def _leaf_flags(self):
         nested_flags  = [f"return_{mm}" for mm in self._return_modifiers]
@@ -662,6 +665,7 @@ class PhysicsSettingsHelper:
             in self._neutral_only_return_flags
         ]
 
+
     def _get_raw_settings(self):
         veto = self._engine._physics_settings_veto_list
         return {
@@ -673,6 +677,53 @@ class PhysicsSettingsHelper:
     def _set_raw_settings(self, settings):
         for name, value in settings.items():
             object.__setattr__(self, f"_{name}", value)
+
+
+    def _pdg_id_matches_return_flag(self, pdg_id, flag):
+        """Return whether PDG ID(s) belong to a leaf return category.
+
+        This describes particle classification only; it is independent of the
+        current value of the corresponding return flag.
+        """
+        scalar = np.ndim(pdg_id) == 0
+        pdg_id = np.atleast_1d(np.asarray(pdg_id, dtype=np.int64))
+        spec = None
+
+        for flags in self._return_flags.values():
+            if flag in flags:
+                spec = flags[flag]
+                break
+        if spec is None:
+            raise ValueError(f"Unknown return flag '{flag}'.")
+        mask = np.zeros(pdg_id.shape, dtype=bool)
+        ids = spec.get("pdg_ids", ())
+        if ids:
+            mask |= np.isin(pdg_id, ids)
+        neutral_ids = spec.get("neutral_pdg_ids", ())
+        if neutral_ids:
+            mask |= np.isin(pdg_id, neutral_ids)
+        selector = spec.get("selector")
+        if selector is not None:
+            mask |= selector(pdg_id)
+        if scalar:
+            return bool(mask[0])
+        return mask
+
+
+    def _return_flag_is_requested(self, flag):
+        """Whether a backend needs to make this particle category available.
+
+        This includes both the regular return flag and explicit PDG-ID returns.
+        """
+        if getattr(self, f"return_{flag}"):
+            return True
+        if not self._extra_pdg_ids_to_return:
+            return False
+        pdg_ids = np.asarray(
+            list(self._extra_pdg_ids_to_return),
+            dtype=np.int64,
+        )
+        return bool(np.any(self._pdg_id_matches_return_flag(pdg_ids, flag)))
 
 
     def __getattribute__(self, item):

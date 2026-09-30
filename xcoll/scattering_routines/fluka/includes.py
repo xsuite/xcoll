@@ -6,11 +6,22 @@
 from math import sqrt
 
 import xtrack as xt
-from xtrack.particles.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, is_ion
+from xtrack.particles.pdg import (
+    get_name_from_pdg_id,
+    get_properties_from_pdg_id,
+    is_ion,
+)
 
 from .environment import format_fluka_float
 from .prototype import FlukaAssembly
+from .reference_names import fluka_names_meta
 from ...xaux import FsPath
+
+
+_FLUKA_PDG_IDS = {
+    value["value"]: value["pdg_id"]
+    for value in fluka_names_meta.values()
+}
 
 
 def _is_ion(pdg_id):
@@ -343,53 +354,186 @@ LOW-PWXS          -1
 
 def _scoring_include_file(*, verbose, return_list, get_touches=False, use_crystals=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
-    all_charged = 'USRBDX' if return_list.return_all_charged else '*USRBDX'
-    all_particles = 'USRBDX' if return_list.return_all else '*USRBDX'
-    neutral = return_list.return_neutral
-    allow = not return_list.return_all_charged and not return_list.return_all
-    photons = 'USRBDX' if return_list.return_photons and allow else '*USRBDX'
-    electrons = 'USRBDX' if return_list.return_electrons and allow else '*USRBDX'
-    muons = 'USRBDX' if return_list.return_muons and allow else '*USRBDX'
-    tauons = 'USRBDX' if return_list.return_tauons and allow else '*USRBDX'
-    neutrinos = 'USRBDX' if return_list.return_neutrinos and allow else '*USRBDX'
-    protons = 'USRBDX' if return_list.return_protons and allow else '*USRBDX'
-    neutrons = 'USRBDX' if return_list.return_neutrons and allow else '*USRBDX'
-    baryons = 'USRBDX' if return_list.return_other_baryons and allow else '*USRBDX'
-    neutral_baryons = 'USRBDX' if return_list.return_other_baryons and neutral and allow else '*USRBDX'
-    pions = 'USRBDX' if return_list.return_pions and allow else '*USRBDX'
-    neutral_pions = 'USRBDX' if return_list.return_pions and neutral and allow else '*USRBDX'
-    kaons = 'USRBDX' if return_list.return_kaons and allow else '*USRBDX'
-    neutral_kaons = 'USRBDX' if return_list.return_kaons and neutral and allow else '*USRBDX'
-    mesons = 'USRBDX' if return_list.return_other_mesons and allow else '*USRBDX'
-    neutral_mesons = 'USRBDX' if return_list.return_other_mesons and neutral and allow else '*USRBDX'
-    ions = 'USRBDX' if return_list.return_ions and allow else '*USRBDX'
+
+    return_all = return_list.return_all
+    return_all_charged = return_list.return_all_charged
+    all_particles = 'USRBDX' if return_all else '*USRBDX'
+    all_charged = 'USRBDX' if return_all_charged else '*USRBDX'
+
+    def score_particle(fluka_name):
+        if return_all:
+            # ALL-PART already returns it.
+            return "*USRBDX"
+        pdg_id = _FLUKA_PDG_IDS[fluka_name]
+        if return_all_charged:
+            # ALL-CHAR already returns charged particles.
+            charge = get_properties_from_pdg_id(pdg_id)[0]
+            if abs(charge) > 1.e-12:
+                return "*USRBDX"
+        if return_list.pdg_id_is_returned(pdg_id):
+            return "USRBDX" 
+        else:
+            return "*USRBDX"
+
+    # Photon-like FLUKA particles all map onto the Xsuite photon category.
+    photon = score_particle("PHOTON")
+    electron = score_particle("ELECTRON")
+    positron = score_particle("POSITRON")
+    muon_plus = score_particle("MUON+")
+    muon_minus = score_particle("MUON-")
+    tau_plus = score_particle("TAU+")
+    tau_minus = score_particle("TAU-")
+    nu_e = score_particle("NEUTRIE")
+    anti_nu_e = score_particle("ANEUTRIE")
+    nu_mu = score_particle("NEUTRIM")
+    anti_nu_mu = score_particle("ANEUTRIM")
+    nu_tau = score_particle("NEUTRIT")
+    anti_nu_tau = score_particle("ANEUTRIT")
+    pion_plus = score_particle("PION+")
+    pion_minus = score_particle("PION-")
+    pion_zero = score_particle("PIZERO")
+    kaon_plus = score_particle("KAON+")
+    kaon_minus = score_particle("KAON-")
+    kaon_zero = score_particle("KAONZERO")
+    anti_kaon_zero = score_particle("AKAONZER")
+    kaon_long = score_particle("KAONLONG")
+    kaon_short = score_particle("KAONSHRT")
+    proton = score_particle("PROTON")
+    antiproton = score_particle("APROTON")
+    neutron = score_particle("NEUTRON")
+    antineutron = score_particle("ANEUTRON")
+    deuteron = score_particle("DEUTERON")
+    triton = score_particle("TRITON")
+    helium3 = score_particle("3-HELIUM")
+    helium4 = score_particle("4-HELIUM")
+
+    # HEAVYION is a FLUKA class rather than one concrete PDG ID.
+    heavy_ions = (
+        "USRBDX"
+        if (
+            not return_all
+            and not return_all_charged
+            and return_list._return_flag_is_requested("ions")
+        )
+        else "*USRBDX"
+    )
+    _LIGHT_ION_PDG_IDS = {
+        _FLUKA_PDG_IDS["DEUTERON"],
+        _FLUKA_PDG_IDS["TRITON"],
+        _FLUKA_PDG_IDS["3-HELIUM"],
+        _FLUKA_PDG_IDS["4-HELIUM"],
+    }
+
+    explicit_heavy_ion = any(
+        is_ion(pp) and pp not in _LIGHT_ION_PDG_IDS
+        for pp in return_list._extra_pdg_ids_to_return
+    )
+
+    heavy_ions = (
+        "USRBDX"
+        if (
+            not return_list.return_all
+            and not return_list.return_all_charged
+            and (
+                return_list.return_ions
+                or explicit_heavy_ion
+            )
+        )
+        else "*USRBDX"
+    )
+
+    lambda_ = score_particle("LAMBDA")
+    anti_lambda = score_particle("ALAMBDA")
+    lambda_c = score_particle("LAMBDAC+")
+    anti_lambda_c = score_particle("ALAMBDC-")
+    sigma_minus = score_particle("SIGMA-")
+    sigma_plus = score_particle("SIGMA+")
+    sigma_zero = score_particle("SIGMAZER")
+    anti_sigma_zero = score_particle("ASIGMAZE")
+    anti_sigma_minus = score_particle("ASIGMA-")
+    anti_sigma_plus = score_particle("ASIGMA+")
+    xi_minus = score_particle("XSI-")
+    anti_xi_plus = score_particle("AXSI+")
+    xi_zero = score_particle("XSIZERO")
+    anti_xi_zero = score_particle("AXSIZERO")
+    xi_c_plus = score_particle("XSIC+")
+    anti_xi_c_minus = score_particle("AXSIC-")
+    xi_c_zero = score_particle("XSIC0")
+    anti_xi_c_zero = score_particle("AXSIC0")
+    xi_cp_plus = score_particle("XSIPC+")
+    anti_xi_cp_minus = score_particle("AXSIPC-")
+    xi_cp_zero = score_particle("XSIPC0")
+    anti_xi_cp_zero = score_particle("AXSIPC0")
+    omega_minus = score_particle("OMEGA-")
+    anti_omega_plus = score_particle("AOMEGA+")
+    omega_c_zero = score_particle("OMEGAC0")
+    anti_omega_c_zero = score_particle("AOMEGAC0")
+    d_plus = score_particle("D+")
+    d_minus = score_particle("D-")
+    d_zero = score_particle("D0")
+    anti_d_zero = score_particle("D0BAR")
+    ds_plus = score_particle("DS+")
+    ds_minus = score_particle("DS-")
+
     crystal = 'USRICALL' if use_crystals else '*USRICALL'
     touches = 'USERDUMP' if get_touches else '*USERDUMP'
+
     if verbose:
-        print(f"Scoring include file created with:")
-        if all_particles[0] != '*':
-            print(f"  - Return all particles: True")
-        elif all_charged[0] != '*':
-            print(f"  - Return all charged particles: True")
+        print("Scoring include file created with:")
+        if return_list.return_all:
+            print("  - Particle scoring: all particles")
+        elif return_list.return_all_charged:
+            print("  - Particle scoring: all charged particles")
+            if return_list._extra_pdg_ids_to_return:
+                neutral_explicit = [
+                    pp
+                    for pp in sorted(return_list._extra_pdg_ids_to_return)
+                    if abs(get_properties_from_pdg_id(pp)[0]) < 1.e-12
+                ]
+                if neutral_explicit:
+                    print(
+                        "  - Additional explicitly requested neutral PDG IDs: "
+                        + ", ".join(str(pp) for pp in neutral_explicit)
+                    )
         else:
-            print(f"  - Return photons: {photons[0] != '*'}\n"
-                + f"  - Return electrons: {electrons[0] != '*'}\n"
-                + f"  - Return muons: {muons[0] != '*'}\n"
-                + f"  - Return tauons: {tauons[0] != '*'}\n"
-                + f"  - Return neutrinos: {neutrinos[0] != '*'}\n"
-                + f"  - Return protons: {protons[0] != '*'}\n"
-                + f"  - Return neutrons: {neutrons[0] != '*'}\n"
-                + f"  - Return other baryons: {baryons[0] != '*'}\n"
-                + f"  - Return neutral baryons: {neutral_baryons[0] != '*'}\n"
-                + f"  - Return pions: {pions[0] != '*'}\n"
-                + f"  - Return neutral pions: {neutral_pions[0] != '*'}\n"
-                + f"  - Return kaons: {kaons[0] != '*'}\n"
-                + f"  - Return neutral kaons: {neutral_kaons[0] != '*'}\n"
-                + f"  - Return other mesons: {mesons[0] != '*'}\n"
-                + f"  - Return neutral mesons: {neutral_mesons[0] != '*'}\n"
-                + f"  - Return ions: {ions[0] != '*'}\n")
-        print(f"  - Use crystals: {crystal[0] != '*'}")
-        print(f"  - Get touches map: {touches[0] != '*'}")
+            enabled = [
+                flag
+                for flag in return_list._return_leaf_flags
+                if getattr(return_list, flag)
+            ]
+            print("  - Particle scoring: selected particle types")
+            if enabled:
+                print(
+                    "  - Enabled return types: "
+                    + ", ".join(
+                        ff.removeprefix("return_")
+                        for ff in enabled
+                    )
+                )
+
+            if return_list._extra_pdg_ids_to_return:
+                print(
+                    "  - Explicitly returned PDG IDs: "
+                    + ", ".join(
+                        str(pp)
+                        for pp in sorted(
+                            return_list._extra_pdg_ids_to_return
+                        )
+                    )
+                )
+
+            if return_list._extra_pdg_ids_to_kill:
+                print(
+                    "  - Explicitly excluded PDG IDs: "
+                    + ", ".join(
+                        str(pp)
+                        for pp in sorted(
+                            return_list._extra_pdg_ids_to_kill
+                        )
+                    )
+                )
+        print(f"  - Use crystals: {use_crystals}")
+        print(f"  - Get touches map: {get_touches}")
 
     template = f"""\
 * New way to give back particles to Icosim via fluscw.f routine (no more usrmed)
@@ -398,71 +542,71 @@ USERWEIG                             3.0
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
 {all_charged}          99.0  ALL-CHAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {all_particles}          99.0  ALL-PART     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{photons}          99.0    PHOTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{photons}          99.0  OPTIPHOT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{photons}          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{electrons}          99.0  ELECTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{electrons}          99.0  POSITRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{muons}          99.0     MUON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{muons}          99.0     MUON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{tauons}          99.0      TAU+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{tauons}          99.0      TAU-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0   NEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0  ANEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0   NEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0  ANEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0   NEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0  ANEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{pions}          99.0     PION+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{pions}          99.0     PION-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_pions}          99.0    PIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{kaons}          99.0     KAON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{kaons}          99.0     KAON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  KAONZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  AKAONZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrons}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  DEUTERON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0    TRITON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  3-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  4-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0    LAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   ALAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0  LAMBDAC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0  ALAMBDC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    SIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    SIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  SIGMAZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  ASIGMAZE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   ASIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   ASIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0      XSI-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0     AXSI+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   XSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  AXSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0     XSIC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    AXSIC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0     XSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0    AXSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    XSIPC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   AXSIPC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0    XSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   AXSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    OMEGA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   AOMEGA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   OMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  AOMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0        D+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0        D-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_mesons}          99.0        D0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_mesons}          99.0     D0BAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0       DS+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0       DS-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{photon}          99.0    PHOTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{photon}          99.0  OPTIPHOT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{photon}          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{electron}          99.0  ELECTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{positron}          99.0  POSITRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{muon_plus}          99.0     MUON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{muon_minus}          99.0     MUON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{tau_plus}          99.0      TAU+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{tau_minus}          99.0      TAU-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{nu_e}          99.0   NEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_nu_e}          99.0  ANEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{nu_mu}          99.0   NEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_nu_mu}          99.0  ANEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{nu_tau}          99.0   NEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_nu_tau}          99.0  ANEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{pion_plus}          99.0     PION+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{pion_minus}          99.0     PION-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{pion_zero}          99.0    PIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaon_plus}          99.0     KAON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaon_minus}          99.0     KAON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaon_zero}          99.0  KAONZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_kaon_zero}          99.0  AKAONZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaon_long}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaon_short}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{proton}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{antiproton}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutron}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{antineutron}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{deuteron}          99.0  DEUTERON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{triton}          99.0    TRITON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{helium3}          99.0  3-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{helium4}          99.0  4-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{heavy_ions}          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{lambda_}          99.0    LAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_lambda}          99.0   ALAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{lambda_c}          99.0  LAMBDAC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_lambda_c}          99.0  ALAMBDC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{sigma_minus}          99.0    SIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{sigma_plus}          99.0    SIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{sigma_zero}          99.0  SIGMAZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_sigma_zero}          99.0  ASIGMAZE     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_sigma_minus}          99.0   ASIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_sigma_plus}          99.0   ASIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{xi_minus}          99.0      XSI-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_xi_plus}          99.0     AXSI+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{xi_zero}          99.0   XSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_xi_zero}          99.0  AXSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{xi_c_plus}          99.0     XSIC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_xi_c_minus}          99.0    AXSIC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{xi_c_zero}          99.0     XSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_xi_c_zero}          99.0    AXSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{xi_cp_plus}          99.0    XSIPC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_xi_cp_minus}          99.0   AXSIPC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{xi_cp_zero}          99.0    XSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_xi_cp_zero}          99.0   AXSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{omega_minus}          99.0    OMEGA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_omega_plus}          99.0   AOMEGA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{omega_c_zero}          99.0   OMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_omega_c_zero}          99.0  AOMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{d_plus}          99.0        D+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{d_minus}          99.0        D-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{d_zero}          99.0        D0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{anti_d_zero}          99.0     D0BAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{ds_plus}          99.0       DS+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{ds_minus}          99.0       DS-     -42.0   VAROUND  TRANSF_D          BACK2ICO
 *
 * Get back touches
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
