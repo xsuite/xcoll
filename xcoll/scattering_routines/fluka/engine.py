@@ -12,14 +12,10 @@ from subprocess import run, PIPE, Popen
 import xobjects as xo
 import xtrack.particles.pdg as pdg
 
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
-
 from .environment import format_fluka_float
 from .reference_masses import fluka_masses_src
 from ..engine import BaseEngine
+from ...xaux import FsPath
 
 
 network_file = "network.nfo"

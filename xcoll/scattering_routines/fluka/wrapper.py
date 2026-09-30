@@ -4,11 +4,8 @@
 # ######################################### #
 
 import io
+
 import xtrack as xt
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 from .reference_masses import fluka_masses_meta
 from .reference_names import fluka_names_meta
@@ -16,6 +13,7 @@ from .prototype import FlukaPrototypeAccessor, FlukaAssemblyAccessor
 from .engine import FlukaEngine
 from .environment import FlukaInterface
 from ..wrapper import BaseWrapper
+from ...xaux import FsPath
 
 
 class FlukaWrapper(BaseWrapper):

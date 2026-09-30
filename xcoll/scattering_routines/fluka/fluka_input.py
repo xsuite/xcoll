@@ -9,18 +9,16 @@ import numpy as np
 from subprocess import run, PIPE
 from contextlib import redirect_stdout
 
-from ...beam_elements import FlukaCrystal
-from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from .prototype import FlukaPrototype
 from .includes import get_include_files
+from ...beam_elements import FlukaCrystal
+from ...beam_elements.base import OPEN_GAP, OPEN_JAW
+from ...xaux import FsPath
 
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
+
 
 def _stop_and_error(old_cwd, error):
     if old_cwd is not None:
@@ -28,6 +26,7 @@ def _stop_and_error(old_cwd, error):
     import xcoll as xc
     xc.fluka.engine.stop()
     raise error
+
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                        verbose=True, cwd=None, **kwargs):
@@ -215,6 +214,7 @@ def _fluka_builder(collimator_dict, fedb):
     xc.fluka.interface.restore_environment()
 
     return input_file, coll_dict
+
 
 def _expand_fluka_input(input_file, verbose, old_cwd):
     import xcoll as xc

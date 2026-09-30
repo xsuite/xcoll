@@ -15,12 +15,7 @@ from subprocess import run, PIPE
 #     user_data_path = None
 
 from .general import _pkg_root
-from .xaux import track_construction
-
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from .xaux import FsPath
+from .xaux import track_construction, FsPath
 
 
 # Xcoll paths can be set via environment variables:

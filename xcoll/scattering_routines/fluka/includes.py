@@ -7,14 +7,10 @@ from math import sqrt
 
 import xtrack as xt
 from xtrack.particles.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, is_ion
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 from .environment import format_fluka_float
-from .prototype import FlukaPrototype, FlukaAssembly
-from ...general import _pkg_root
+from .prototype import FlukaAssembly
+from ...xaux import FsPath
 
 
 def _is_ion(pdg_id):

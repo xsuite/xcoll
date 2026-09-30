@@ -17,11 +17,7 @@ from .physics_settings import PhysicsSettingsHelper
 from ..materials import Material
 from ..interaction_record import InteractionRecord
 from ..compare import deep_equal
-try:
-    # TODO: once xaux is in Xsuite keep only this
-    from xaux import FsPath, ranID
-except (ImportError, ModuleNotFoundError):
-    from ..xaux import FsPath, ranID
+from ..xaux import FsPath, ranID
 
 
 class BaseEngine(xo.HybridClass):

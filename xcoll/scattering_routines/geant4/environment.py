@@ -9,10 +9,7 @@ from subprocess import run
 
 from ...package_env import BaseInterface
 from ...general import _pkg_root
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
+from ...xaux import FsPath
 
 
 class Geant4Interface(BaseInterface):

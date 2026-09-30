@@ -8,17 +8,13 @@ import sys
 from math import floor, log10
 from subprocess import run, PIPE
 
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
-
 from ...package_env import BaseInterface
 from ...general import _pkg_root
+from ...xaux import FsPath
 
 
-_FORTRAN_SRC   = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').resolve()
-_FEDB_TEMPLATE = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
+_FORTRAN_SRC   = (_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').resolve()
+_FEDB_TEMPLATE = (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
 class FlukaInterface(BaseInterface):
