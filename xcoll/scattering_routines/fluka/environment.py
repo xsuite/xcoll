@@ -10,7 +10,7 @@ from subprocess import run, PIPE
 
 from ...package_env import BaseInterface
 from ...general import _pkg_root
-from ...xaux import FsPath, track_construction
+from ...xaux import FsPath, track_construction, temporary_cwd
 
 
 _FORTRAN_SRC   = (_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').resolve()
@@ -50,129 +50,123 @@ class FlukaInterface(BaseInterface):
         self.assert_gcc_installed(verbose=verbose)
         self.assert_gfortran_installed(verbose=verbose)
         cwd = FsPath.cwd()
-        self.store_environment()
 
-        # Get FlukaIO
-        if flukaio_lib is None:
-            # Check the provided FlukaIO path
-            if flukaio_path is None:
-                raise ValueError("FlukaIO path must be provided!")
-            flukaio_path = FsPath(flukaio_path).resolve()
-            if not flukaio_path.exists():
-                raise FileNotFoundError(f"Could not find FlukaIO path {flukaio_path}!")
-            self.brute_force_path(flukaio_path)
-            # Copy the FlukaIO files to a temporary directory and compile it
-            dest = (self.temp_dir / 'flukaio').resolve()
+        with self.preserve_environment():
+            # Get FlukaIO
+            if flukaio_lib is None:
+                # Check the provided FlukaIO path
+                if flukaio_path is None:
+                    raise ValueError("FlukaIO path must be provided!")
+                flukaio_path = FsPath(flukaio_path).resolve()
+                if not flukaio_path.exists():
+                    raise FileNotFoundError(f"Could not find FlukaIO path {flukaio_path}!")
+                self.brute_force_path(flukaio_path)
+                # Copy the FlukaIO files to a temporary directory and compile it
+                dest = (self.temp_dir / 'flukaio').resolve()
+                dest.mkdir(parents=True, exist_ok=True)
+                for path in flukaio_path.glob('*'):
+                    if path.name == '.git' or path.name == 'docs' or path.name == 'tests' \
+                    or path.name == 'samples':
+                        continue
+                    else:
+                        path.copy_to(dest, method='mount')
+                with temporary_cwd(dest):
+                    cmd = run(['make', 'clean'], stdout=PIPE, stderr=PIPE)
+                    cmd = run(['make', 'libs', 'BUILD64=Y'], stdout=PIPE, stderr=PIPE)
+                    if cmd.returncode == 0:
+                        if verbose:
+                            print("Compiled FlukaIO successfully.")
+                    else:
+                        stdout = cmd.stdout.decode('UTF-8').strip()
+                        stderr = cmd.stderr.decode('UTF-8').strip()
+                        raise RuntimeError(f"Failed to compile FlukaIO!\n"
+                                            f"Output given is:\n{stdout}\n\n"
+                                            f"Error given is:\n{stderr}")
+                flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
+                try:
+                    flukaio_lib = [
+                        fff #for ext in ['a', 'so', 'dylib', 'so.*']
+                        for ll in ['lib', 'll']
+                        for bb in ['64', '']
+                        for fff in (dest  / 'lib').glob(f'{ll}flukaio{bb}.a',
+                                                        case_sensitive=False)
+                    ]
+                except TypeError:
+                    # Fallback; case_sensitive is not available in Python < 3.12
+                    flukaio_lib = [
+                        fff #for ext in ['a', 'so', 'dylib', 'so.*']
+                        for ll in ['lib', 'll']
+                        for bb in ['64', '']
+                        for fff in (dest  / 'lib').glob(f'{ll}FlukaIO{bb}.a')
+                    ]
+                if len(flukaio_lib) == 0:
+                    raise FileNotFoundError(f"Failed compiling FlukaIO library!\n"
+                                            f"File not found in {dest / 'lib'}!")
+                elif len(flukaio_lib) > 1:
+                    raise RuntimeError(
+                                f"Compiled into multiple FlukaIO libraries!"
+                                + f"\nFiles found in {dest / 'lib'}:\n"
+                                + "\n".join([f.as_posix() for f in flukaio_lib]))
+                flukaio_lib = flukaio_lib[0]
+            flukaio_lib = FsPath(flukaio_lib).resolve()
+            if not flukaio_lib.exists():
+                raise FileNotFoundError(f"Could not find FlukaIO library {flukaio_lib}!")
+
+            # Install the FlukaIO library so the xobjects FLUKA kernel can link -lflukaio
+            libname = flukaio_lib.name.replace('64', '').lower()
+            flukaio_lib.copy_to(self.lib_dir / libname, method='mount')
+            if verbose:
+                print(f"Installed FlukaIO archive in {self.lib_dir / libname}.")
+
+            # Copy the FORTRAN source files to the temporary directory and compile it
+            dest = (self.temp_dir / 'FORTRAN_src').resolve()
             dest.mkdir(parents=True, exist_ok=True)
-            for path in flukaio_path.glob('*'):
-                if path.name == '.git' or path.name == 'docs' or path.name == 'tests' \
-                or path.name == 'samples':
-                    continue
+            flukaio_lib.copy_to(dest / 'libFlukaIO.a', method='mount') # Hard-coded name because FORTRAN_src expects it
+            for path in _FORTRAN_SRC.glob('*'):
+                path.copy_to(dest, method='mount')
+            with temporary_cwd(dest):
+                cmd = run(['python', '-m', 'numpy.f2py', '-m', 'pyflukaf', 'pyfluka.f90',
+                        '--quiet'], stdout=PIPE, stderr=PIPE)
+                if cmd.returncode == 0:
+                    if verbose:
+                        print("Created numpy FORTRAN headers.")
                 else:
-                    path.copy_to(dest, method='mount')
-            os.chdir(dest)
-            cmd = run(['make', 'clean'], stdout=PIPE, stderr=PIPE)
-            cmd = run(['make', 'libs', 'BUILD64=Y'], stdout=PIPE, stderr=PIPE)
-            if cmd.returncode == 0:
-                if verbose:
-                    print("Compiled FlukaIO successfully.")
-            else:
-                stdout = cmd.stdout.decode('UTF-8').strip()
-                stderr = cmd.stderr.decode('UTF-8').strip()
-                os.chdir(cwd)
-                raise RuntimeError(f"Failed to compile FlukaIO!\n"
+                    stderr = cmd.stderr.decode('UTF-8').strip()
+                    raise RuntimeError(f"Failed to create numpy FORTRAN headers!\nError given is:\n{stderr}")
+                cmd = run(['meson', 'setup', 'build'], stdout=PIPE, stderr=PIPE)
+                if cmd.returncode == 0:
+                    if verbose:
+                        print("Setup meson build successfully.")
+                else:
+                    stdout = cmd.stdout.decode('UTF-8').strip()
+                    stderr = cmd.stderr.decode('UTF-8').strip()
+                    raise RuntimeError(f"Failed to setup meson build!\n"
                                     f"Output given is:\n{stdout}\n\n"
                                     f"Error given is:\n{stderr}")
-            flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
-            try:
-                flukaio_lib = [
-                    fff #for ext in ['a', 'so', 'dylib', 'so.*']
-                    for ll in ['lib', 'll']
-                    for bb in ['64', '']
-                    for fff in (dest  / 'lib').glob(f'{ll}flukaio{bb}.a',
-                                                    case_sensitive=False)
-                ]
-            except TypeError:
-                # Fallback; case_sensitive is not available in Python < 3.12
-                flukaio_lib = [
-                    fff #for ext in ['a', 'so', 'dylib', 'so.*']
-                    for ll in ['lib', 'll']
-                    for bb in ['64', '']
-                    for fff in (dest  / 'lib').glob(f'{ll}FlukaIO{bb}.a')
-                ]
-            if len(flukaio_lib) == 0:
-                raise FileNotFoundError(f"Failed compiling FlukaIO library!\n"
-                                        f"File not found in {dest / 'lib'}!")
-            elif len(flukaio_lib) > 1:
-                raise RuntimeError(
-                              f"Compiled into multiple FlukaIO libraries!"
-                            + f"\nFiles found in {dest / 'lib'}:\n"
-                            + "\n".join([f.as_posix() for f in flukaio_lib]))
-            flukaio_lib = flukaio_lib[0]
-        flukaio_lib = FsPath(flukaio_lib).resolve()
-        if not flukaio_lib.exists():
-            raise FileNotFoundError(f"Could not find FlukaIO library {flukaio_lib}!")
-
-        # Install the FlukaIO library so the xobjects FLUKA kernel can link -lflukaio
-        libname = flukaio_lib.name.replace('64', '').lower()
-        flukaio_lib.copy_to(self.lib_dir / libname, method='mount')
-        if verbose:
-            print(f"Installed FlukaIO archive in {self.lib_dir / libname}.")
-
-        # Copy the FORTRAN source files to the temporary directory and compile it
-        dest = (self.temp_dir / 'FORTRAN_src').resolve()
-        dest.mkdir(parents=True, exist_ok=True)
-        flukaio_lib.copy_to(dest / 'libFlukaIO.a', method='mount') # Hard-coded name because FORTRAN_src expects it
-        for path in _FORTRAN_SRC.glob('*'):
-            path.copy_to(dest, method='mount')
-        os.chdir(dest)
-        cmd = run(['python', '-m', 'numpy.f2py', '-m', 'pyflukaf', 'pyfluka.f90',
-                   '--quiet'], stdout=PIPE, stderr=PIPE)
-        if cmd.returncode == 0:
+                cmd = run(["meson", "compile", "-C", "build"], stdout=PIPE, stderr=PIPE)
+                if cmd.returncode == 0:
+                    if verbose:
+                        print(cmd.stdout.decode('UTF-8').strip())
+                        print("Compiled pyflukaf successfully.")
+                else:
+                    stdout = cmd.stdout.decode('UTF-8').strip()
+                    stderr = cmd.stderr.decode('UTF-8').strip()
+                    raise RuntimeError(f"Failed to compile pyflukaf!\n"
+                                    f"Output given is:\n{stdout}\n\n"
+                                    f"Error given is:\n{stderr}")
+            # Collect the compiled shared library
+            so = list((dest / 'build').glob('pyflukaf.*so'))
+            if len(so) > 1:
+                raise RuntimeError(f"Compiled into multiple pyflukaf shared libraries!")
+            if len(so) == 0:
+                raise RuntimeError(f"Failed pyFLUKA compilation! No shared library"
+                                f" found in {dest / 'build'}!")
+            so = so[0]
+            so.move_to(self.lib_dir / so.name)
             if verbose:
-                print("Created numpy FORTRAN headers.")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip()
-            os.chdir(cwd)
-            raise RuntimeError(f"Failed to create numpy FORTRAN headers!\nError given is:\n{stderr}")
-        cmd = run(['meson', 'setup', 'build'], stdout=PIPE, stderr=PIPE)
-        if cmd.returncode == 0:
-            if verbose:
-                print("Setup meson build successfully.")
-        else:
-            stdout = cmd.stdout.decode('UTF-8').strip()
-            stderr = cmd.stderr.decode('UTF-8').strip()
-            os.chdir(cwd)
-            raise RuntimeError(f"Failed to setup meson build!\n"
-                               f"Output given is:\n{stdout}\n\n"
-                               f"Error given is:\n{stderr}")
-        cmd = run(["meson", "compile", "-C", "build"], stdout=PIPE, stderr=PIPE)
-        if cmd.returncode == 0:
-            if verbose:
-                print(cmd.stdout.decode('UTF-8').strip())
-                print("Compiled pyflukaf successfully.")
-        else:
-            stdout = cmd.stdout.decode('UTF-8').strip()
-            stderr = cmd.stderr.decode('UTF-8').strip()
-            os.chdir(cwd)
-            raise RuntimeError(f"Failed to compile pyflukaf!\n"
-                               f"Output given is:\n{stdout}\n\n"
-                               f"Error given is:\n{stderr}")
-        os.chdir(cwd)
-        # Collect the compiled shared library
-        so = list((dest / 'build').glob('pyflukaf.*so'))
-        if len(so) > 1:
-            raise RuntimeError(f"Compiled into multiple pyflukaf shared libraries!")
-        if len(so) == 0:
-            raise RuntimeError(f"Failed pyFLUKA compilation! No shared library"
-                               f" found in {dest / 'build'}!")
-        so = so[0]
-        so.move_to(self.lib_dir / so.name)
-        if verbose:
-            print(f"Created pyFLUKA shared library in {self.lib_dir / so.name}.")
-        # Clean up the temporary directory
-        self.temp_dir = None
-        self.restore_environment()
+                print(f"Created pyFLUKA shared library in {self.lib_dir / so.name}.")
+            # Clean up the temporary directory
+            self.temp_dir = None
 
 
     def import_fedb(self, fedb_path, verbose=False, overwrite=False):
@@ -239,7 +233,6 @@ class FlukaInterface(BaseInterface):
         self.brute_force_path('flair')
 
     def set_fedb_environment(self, fedb=None):
-        self.store_environment()
         if fedb is None:
             fedb = self.fedb
         if not fedb is False:

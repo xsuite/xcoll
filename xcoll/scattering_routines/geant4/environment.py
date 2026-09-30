@@ -9,7 +9,7 @@ from subprocess import run
 
 from ...package_env import BaseInterface
 from ...general import _pkg_root
-from ...xaux import FsPath, track_construction
+from ...xaux import FsPath, track_construction, temporary_cwd
 
 
 @track_construction
@@ -92,39 +92,36 @@ class Geant4Interface(BaseInterface):
                 continue
             else:
                 FsPath(path).copy_to(dest, method='mount')
-        cwd = FsPath.cwd()
-        os.chdir(dest)
-        self._adapt_source_to_bdsim_version(bdsim_version, verbose)
+        with temporary_cwd(dest):
+            self._adapt_source_to_bdsim_version(bdsim_version, verbose)
 
-        # Configure
-        ctab = '    '
-        cmd = run(['cmake', '-S', '.', '-B', 'build'], capture_output=True)
-        if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip()
-            os.chdir(cwd)
-            raise RuntimeError(f"Failed to build Xcoll-BDSIM interface!\nError given is:\n{stderr}")
-        if verbose_compile_output:
-            print()
-            print("CMake: Configuring")
-            print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
-            if cmd.stderr:
-                print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
-            print()
+            # Configure
+            ctab = '    '
+            cmd = run(['cmake', '-S', '.', '-B', 'build'], capture_output=True)
+            if cmd.returncode != 0:
+                stderr = cmd.stderr.decode('UTF-8').strip()
+                raise RuntimeError(f"Failed to build Xcoll-BDSIM interface!\nError given is:\n{stderr}")
+            if verbose_compile_output:
+                print()
+                print("CMake: Configuring")
+                print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+                if cmd.stderr:
+                    print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+                print()
 
-        # Build
-        cmd = run(['cmake', '--build', 'build'], capture_output=True)
-        if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip()
-            os.chdir(cwd)
-            raise RuntimeError(f"Failed to compile Xcoll-BDSIM interface!\nError given is:\n{stderr}")
-        if verbose_compile_output:
-            print("CMake: Building")
-            print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
-            if cmd.stderr:
-                print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
-            print()
-        if verbose:
-            print("Compiled Xcoll-BDSIM interface successfully.")
+            # Build
+            cmd = run(['cmake', '--build', 'build'], capture_output=True)
+            if cmd.returncode != 0:
+                stderr = cmd.stderr.decode('UTF-8').strip()
+                raise RuntimeError(f"Failed to compile Xcoll-BDSIM interface!\nError given is:\n{stderr}")
+            if verbose_compile_output:
+                print("CMake: Building")
+                print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+                if cmd.stderr:
+                    print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+                print()
+            if verbose:
+                print("Compiled Xcoll-BDSIM interface successfully.")
 
         # Collect the compiled shared library
         so = list((dest / 'build').glob('g4interface.*so'))
@@ -132,14 +129,14 @@ class Geant4Interface(BaseInterface):
             raise RuntimeError(f"Compiled into multiple g4interface shared libraries!")
         if len(so) == 0:
             raise RuntimeError(f"Failed Xcoll-BDSIM compilation! No shared "
-                               f"library found in {dest / 'build'}!")
+                            f"library found in {dest / 'build'}!")
         so = FsPath(so[0])
         so.move_to(self.lib_dir / so.name)
         if verbose:
             print(f"Created Xcoll-BDSIM shared library in {self.lib_dir / so.name}.")
         # Clean up the temporary directory
         self.temp_dir = None
-        os.chdir(cwd)
+
 
     def assert_geant4_installed(self):
         if self.geant4 is None:

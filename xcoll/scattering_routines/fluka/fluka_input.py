@@ -13,68 +13,52 @@ from .prototype import FlukaPrototype
 from .includes import get_include_files
 from ...beam_elements import FlukaCrystal
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
-from ...xaux import FsPath
+from ...xaux import FsPath, temporary_cwd
 
 
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
 
-def _stop_and_error(old_cwd, error):
-    if old_cwd is not None:
-        os.chdir(old_cwd)
-    import xcoll as xc
-    xc.fluka.engine.stop()
-    raise error
-
-
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                        verbose=True, cwd=None, **kwargs):
     import xcoll as xc
-    old_cwd = None
-    if cwd is not None:
-        old_cwd = FsPath.cwd()
-        os.chdir(cwd)
-    assemblies = []
-    for nn, ee in element_dict.items():
-        if isinstance(ee, FlukaCrystal):
-            if not ee.assembly.is_crystal:
-                _stop_and_error(old_cwd, ValueError(f"Collimator {nn} has a crystal element but its assembly is not a crystal!"))
-        assemblies.append(ee.assembly)
-    try:
+    with temporary_cwd(cwd):
+        assemblies = []
+        for nn, ee in element_dict.items():
+            if isinstance(ee, FlukaCrystal):
+                if not ee.assembly.is_crystal:
+                    raise ValueError(f"Collimator {nn} has a crystal element "
+                                     "but its assembly is not a crystal!")
+            assemblies.append(ee.assembly)
         kwargs['assemblies'] = assemblies
         for assm in assemblies:
             if assm.material is not None:
-                if assm.material.fluka_name is None or assm.material.fluka_name.startswith('XCOLL'):
+                if assm.material.fluka_name is None \
+                or assm.material.fluka_name.startswith('XCOLL'):
                     assm.material._generate_fluka_code()
         fedb = xc.fluka.interface.create_temp_fedb(assemblies)
         _create_prototypes_file(element_dict, prototypes_file)
         _, kwargs = get_include_files(particle_ref, verbose=verbose, **kwargs)
-    except Exception as e:
-        _stop_and_error(old_cwd, e)
 
-    # Call FLUKA_builder
-    try:
+        # Call FLUKA_builder
         collimator_dict = _element_dict_to_fluka(element_dict)
         input_file, fluka_dict = _fluka_builder(collimator_dict, fedb=fedb)
-    except Exception as e:
-        _stop_and_error(old_cwd, e)
-    input_file = FsPath(input_file).resolve()
-    insertion_file = (input_file.parent / 'insertion.txt').resolve()
-    if not input_file.exists() or not insertion_file.exists():
-        _stop_and_error(old_cwd, FileNotFoundError("LineBuilder did not create the expected output files!"))
+        input_file = FsPath(input_file).resolve()
+        insertion_file = (input_file.parent / 'insertion.txt').resolve()
+        if not input_file.exists() or not insertion_file.exists():
+            raise FileNotFoundError("LineBuilder did not create the expected "
+                                    "output files!")
 
-    # Expand using include files
-    _expand_fluka_input(input_file, verbose, old_cwd)
+        # Expand using include files
+        _expand_fluka_input(input_file, verbose)
 
-    try:
-        _write_xcoll_header_to_fluka_input(input_file, fluka_dict, element_dict, verbose)
-    except Exception as e:
-        _stop_and_error(old_cwd, e)
-    if cwd is not None:
-        os.chdir(old_cwd)
+        _write_xcoll_header_to_fluka_input(input_file, fluka_dict,
+                                           element_dict, verbose)
+
     if verbose:
         print(f"Created FLUKA input file {input_file}.")
+
     return [input_file, insertion_file], kwargs
 
 
@@ -187,58 +171,52 @@ def _element_dict_to_fluka(element_dict, dump=False):
 
 def _fluka_builder(collimator_dict, fedb):
     import xcoll as xc
-    # Save system state
-    xc.fluka.interface.set_fedb_environment(fedb)
-    file_path = xc.fluka.interface.linebuilder / "src" / "FLUKA_builder.py"
-    if file_path.exists():
-        try:
-            import FLUKA_builder as fb
-        except ImportError as e:
-            raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
-    else:
-        raise EnvironmentError(f"FLUKA_builder.py not found at: {file_path.as_posix()}")
-    collimatorList = fb.CollimatorList()
-    collimatorList.acquireCollxsuite(collimator_dict)
+    with xc.fluka.interface.preserve_environment():
+        xc.fluka.interface.set_fedb_environment(fedb)
+        file_path = xc.fluka.interface.linebuilder / "src" / "FLUKA_builder.py"
+        if file_path.exists():
+            try:
+                import FLUKA_builder as fb
+            except ImportError as e:
+                raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
+        else:
+            raise EnvironmentError(f"FLUKA_builder.py not found at: {file_path.as_posix()}")
+        collimatorList = fb.CollimatorList()
+        collimatorList.acquireCollxsuite(collimator_dict)
 
-    args_fb = fb.args_fluka_builder()
-    args_fb.collimatorList = collimatorList
-    args_fb.geometrical_emittance = None
-    args_fb.prototype_file = 'prototypes.lbp'
-    args_fb.output_name = 'fluka_input'
-    args_fb.fedb_u_path = fedb.as_posix()
-    with open('linebuilder.log', 'w') as f:
-        with redirect_stdout(f):
-            input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
-
-    # Restore system state
-    xc.fluka.interface.restore_environment()
+        args_fb = fb.args_fluka_builder()
+        args_fb.collimatorList = collimatorList
+        args_fb.geometrical_emittance = None
+        args_fb.prototype_file = 'prototypes.lbp'
+        args_fb.output_name = 'fluka_input'
+        args_fb.fedb_u_path = fedb.as_posix()
+        with open('linebuilder.log', 'w') as f:
+            with redirect_stdout(f):
+                input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     return input_file, coll_dict
 
 
-def _expand_fluka_input(input_file, verbose, old_cwd):
+def _expand_fluka_input(input_file, verbose):
     import xcoll as xc
-    # Save system state
-    xc.fluka.interface.set_fedb_environment(fedb=False)
+    with xc.fluka.interface.preserve_environment():
+        xc.fluka.interface.set_fedb_environment(fedb=False)
 
-    file_path = xc.fluka.interface.linebuilder / "tools" / "expand.py"
-    cmd = run(['python', file_path.as_posix(), input_file.name],
-              cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
-    if cmd.returncode == 0:
-        if verbose:
-            print("Expanded include files.")
-    else:
-        stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-        _stop_and_error(old_cwd, RuntimeError(f"Could not expand include files!\nError given is:\n{stderr}"))
+        file_path = xc.fluka.interface.linebuilder / "tools" / "expand.py"
+        cmd = run(['python', file_path.as_posix(), input_file.name],
+                  cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            if verbose:
+                print("Expanded include files.")
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            raise RuntimeError(f"Could not expand include files!\nError given is:\n{stderr}")
 
-    new_input_file = input_file.parent / f'{input_file.stem}_exp.inp'
-    if not new_input_file.exists():
-        _stop_and_error(old_cwd, FileNotFoundError("expand.py did not create the expected expanded input file!"))
-    input_file.rename(input_file.parent / f'{input_file.stem}_orig.inp')
-    new_input_file.rename(input_file)
-
-    # Restore system state
-    xc.fluka.interface.restore_environment()
+        new_input_file = input_file.parent / f'{input_file.stem}_exp.inp'
+        if not new_input_file.exists():
+            raise FileNotFoundError("expand.py did not create the expected expanded input file!")
+        input_file.rename(input_file.parent / f'{input_file.stem}_orig.inp')
+        new_input_file.rename(input_file)
 
 
 def _write_xcoll_header_to_fluka_input(input_file, fluka_dict, element_dict, verbose):

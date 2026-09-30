@@ -4,16 +4,21 @@
 # ######################################### #
 
 import pytest
+from functools import cache
+
 try:
     import rpyc
 except ImportError as e:
     rpyc = None
 import xcoll as xc
 
-if xc.geant4.interface.ready:
-    old_bdsim = xc.geant4.interface.bdsim_older_than(compare_version='1.7.7.develop')  # No unstable particles returned in older BDSIM
-else:
-    old_bdsim = True
+@cache
+def is_old_bdsim():
+    # No unstable particles returned in older BDSIM
+    interface = xc.geant4.interface
+    if not interface.ready:
+        return True
+    return interface.bdsim_older_than(compare_version="1.7.7.develop")
 
 engine_params = [
     pytest.param("fluka", marks=pytest.mark.fluka),
@@ -36,6 +41,9 @@ def check_skip(engine):
         if rpyc is None:
             pytest.skip("rpyc not installed")
 
+@cache
 def check_skip_old_bdsim(engine, check_old_bdsim=True):
-    if engine == "geant4" and check_old_bdsim and old_bdsim:
-        pytest.skip("Old BDSIM version detected; skipping tests needing new version")
+    if engine == "geant4" and check_old_bdsim and is_old_bdsim():
+        pytest.skip("Old BDSIM version detected; "
+                    "skipping tests needing new version")
+

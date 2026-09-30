@@ -4,6 +4,7 @@
 # ######################################### #
 
 from math import sqrt
+from warnings import warn
 
 import xtrack as xt
 from xtrack.particles.pdg import (
@@ -368,8 +369,10 @@ USERWEIG                             3.0
 """
 
     return_all = return_list.return_all
+    return_all_charged = return_list.return_all_charged
     explicit_return = return_list._extra_pdg_ids_to_return
     covered_ids = set(_FLUKA_PDG_IDS.values())
+
     uncovered_explicit = [pid for pid in explicit_return
                           if pid not in covered_ids and not is_ion(pid)]
     if len(uncovered_explicit) > 0:
@@ -380,109 +383,78 @@ USERWEIG                             3.0
                 "they are produced in the simulation."
         )
         return_all = True
-    if verbose:
-        print("Scoring include file created with:")
 
-    if return_all:
+    # Find explicitly requested particles for which there is no dedicated FLUKA
+    # scorer. Ions are handled through HEAVYION. Charged particles are also
+    # already covered when ALL-CHAR is active.
+    uncovered_explicit = []
+    for pdg_id in explicit_return:
+        if is_ion(pdg_id):
+            continue
+        if pdg_id in covered_ids:
+            continue
+        if return_all_charged:
+            charge = get_properties_from_pdg_id(pdg_id)[0]
+            if abs(charge) > 1.e-12:
+                continue
+        uncovered_explicit.append(pdg_id)
+    fallback_to_all = len(uncovered_explicit) > 0
+    score_all = return_all or fallback_to_all
+
+    if fallback_to_all:
+        warn("The following explicitly requested PDG IDs do not have "
+            "dedicated FLUKA scoring cards: "
+            + ", ".join(str(pid) for pid in sorted(uncovered_explicit))
+            + ". Falling back to ALL-PART scoring; the normal "
+              "PhysicsSettingsHelper mask will filter the returned "
+              "particles afterwards.", RuntimeWarning, stacklevel=2)
+
+    if score_all:
         template += f"""\
 USRBDX          99.0  ALL-PART     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
-        print("  - Particle scoring: all particles")
 
     else:
-        return_all_charged = return_list.return_all_charged
         if return_all_charged:
             template += f"""\
 USRBDX          99.0  ALL-CHAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
 
-        def score_particle(fluka_name):
-            pdg_id = _FLUKA_PDG_IDS[fluka_name]
+        for fluka_name, pdg_id in _FLUKA_PDG_IDS.items():
+            # Charged particles are already covered by ALL-CHAR.
             if return_all_charged:
-                # ALL-CHAR already returns charged particles.
                 charge = get_properties_from_pdg_id(pdg_id)[0]
                 if abs(charge) > 1.e-12:
-                    return False
-            if return_list.pdg_id_is_returned(pdg_id):
-                return True
-            else:
-                return False
-
-        for fluka_name in _FLUKA_PDG_IDS.keys():
-            if score_particle(fluka_name):
-                template += f"""\
+                    continue
+            # Do not score if not requested
+            if not return_list.pdg_id_is_returned(pdg_id):
+                continue
+            # Score
+            template += f"""\
 USRBDX          99.0{fluka_name:>10}     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
-                if fluka_name == "PHOTON":
-                    template += f"""\
+            # FLUKA has two additional photon-like scorers:
+            if fluka_name == "PHOTON":
+                template += f"""\
 USRBDX          99.0  OPTIPHOT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 USRBDX          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
 
         # HEAVYION is a FLUKA class rather than one concrete PDG ID.
-        _LIGHT_ION_PDG_IDS = {
+        light_ion_pdg_ids = {
             _FLUKA_PDG_IDS["DEUTERON"],
             _FLUKA_PDG_IDS["TRITON"],
             _FLUKA_PDG_IDS["3-HELIUM"],
             _FLUKA_PDG_IDS["4-HELIUM"],
         }
         explicit_heavy_ion = any(
-            is_ion(pp) and pp not in _LIGHT_ION_PDG_IDS
-            for pp in return_list._extra_pdg_ids_to_return
+            is_ion(pdg_id) and pdg_id not in light_ion_pdg_ids
+            for pdg_id in return_list._extra_pdg_ids_to_return
         )
         if not return_all_charged and (return_list.return_ions or explicit_heavy_ion):
             template += f"""\
 USRBDX          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
-
-    if return_all_charged:
-        print("  - Particle scoring: all charged particles")
-        if return_list._extra_pdg_ids_to_return:
-            neutral_explicit = [
-                pp
-                for pp in sorted(return_list._extra_pdg_ids_to_return)
-                if abs(get_properties_from_pdg_id(pp)[0]) < 1.e-12
-            ]
-            if neutral_explicit:
-                print(
-                    "  - Additional explicitly requested neutral PDG IDs: "
-                    + ", ".join(str(pp) for pp in neutral_explicit)
-                )
-    else:
-        enabled = [
-            flag
-            for flag in return_list._return_leaf_flags
-            if getattr(return_list, flag)
-        ]
-        print("  - Particle scoring: selected particle types")
-        if enabled:
-            print(
-                "  - Enabled return types: "
-                + ", ".join(
-                    ff.removeprefix("return_")
-                    for ff in enabled
-                )
-            )
-        if return_list._extra_pdg_ids_to_return:
-            print(
-                "  - Explicitly returned PDG IDs: "
-                + ", ".join(
-                    str(pp)
-                    for pp in sorted(
-                        return_list._extra_pdg_ids_to_return
-                    )
-                )
-            )
-        if return_list._extra_pdg_ids_to_kill:
-            print(
-                "  - Explicitly excluded PDG IDs: "
-                + ", ".join(
-                    str(pp)
-                    for pp in sorted(
-                        return_list._extra_pdg_ids_to_kill
-                    )
-                )
-            )
 
     if use_crystals:
         template += f"""*
@@ -497,8 +469,49 @@ USRICALL        50.0                                                  CRYSTAL
 USERDUMP       100.0
 """
 
-    print(f"  - Use crystals: {'ON' if use_crystals else 'OFF'}")
-    print(f"  - Get touches: {'ON' if get_touches else 'OFF'}")
+    if verbose:
+        print("Scoring include file created with:")
+        if score_all:
+            if fallback_to_all and not return_all:
+                print("  - Particle scoring: all particles "
+                      "(fallback for explicitly requested PDG IDs)")
+            else:
+                print("  - Particle scoring: all particles")
+        elif return_all_charged:
+            print("  - Particle scoring: all charged particles")
+            neutral_explicit = [
+                pdg_id for pdg_id in sorted(explicit_return)
+                if abs(get_properties_from_pdg_id(pdg_id)[0]) < 1.e-12
+            ]
+            if neutral_explicit:
+                print("  - Additional explicitly requested neutral PDG IDs: "
+                    + ", ".join(str(pdg_id) for pdg_id in neutral_explicit))
+        else:
+            enabled = [flag for flag in return_list._return_leaf_flags
+                       if getattr(return_list, flag)]
+            print("  - Particle scoring: selected particle types")
+            if enabled:
+                print("  - Enabled return types: "
+                    + ", ".join(flag.removeprefix("return_")
+                                for flag in enabled)
+                )
+            if explicit_return:
+                print("  - Explicitly returned PDG IDs: "
+                    + ", ".join(str(pdg_id)
+                                for pdg_id in sorted(explicit_return))
+                )
+            if return_list._extra_pdg_ids_to_kill:
+                print("  - Explicitly excluded PDG IDs: "
+                    + ", ".join(
+                        str(pdg_id)
+                        for pdg_id
+                        in sorted(
+                            return_list._extra_pdg_ids_to_kill
+                        )
+                    )
+                )
+        print(f"  - Use crystals: {'ON' if use_crystals else 'OFF'}")
+        print(f"  - Get touches:  {'ON' if get_touches else 'OFF'}")
 
     with filename.open('w') as fp:
         fp.write(template)

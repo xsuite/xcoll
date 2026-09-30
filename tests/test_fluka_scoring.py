@@ -123,35 +123,23 @@ def _generate_scoring(tmp_path, monkeypatch, settings, *, touches=False, crystal
     return path.read_text()
 
 
-def _usrbdx_line(text, particle):
-    """Return the unique USRBDX line for a concrete FLUKA particle."""
-    lines = [
-        line
+def _active_usrbdx_particles(text):
+    particles = [
+        line.split()[2]
         for line in text.splitlines()
-        if "USRBDX" in line
-        and line.split()[2] == particle
+        if line.lstrip().startswith("USRBDX")
     ]
-    assert len(lines) == 1, (
-        f"Expected one USRBDX line for {particle}, "
-        f"found {len(lines)}:\n{lines}"
+    assert len(particles) == len(set(particles)), (
+        "Duplicate USRBDX scorers found:\n"
+        + "\n".join(particles)
     )
-    return lines[0]
-
+    return set(particles)
 
 def _scorer_is_enabled(text, particle):
-    line = _usrbdx_line(text, particle)
-    return not line.lstrip().startswith("*USRBDX")
-
+    return particle in _active_usrbdx_particles(text)
 
 def _global_scorer_is_enabled(text, particle):
-    lines = [
-        line
-        for line in text.splitlines()
-        if "USRBDX" in line
-        and particle in line.split()
-    ]
-    assert len(lines) == 1
-    return not lines[0].lstrip().startswith("*USRBDX")
+    return _scorer_is_enabled(text, particle)
 
 
 def test_scoring_matches_physics_settings(tmp_path, monkeypatch, settings):
@@ -372,22 +360,35 @@ def test_explicit_heavy_ion_enables_heavyion(tmp_path, monkeypatch, settings):
     assert not _scorer_is_enabled(text, "4-HELIUM")
 
 
+@pytest.mark.parametrize(
+    "pdg_id,fluka_name",
+    [
+        (1000010020, "DEUTERON"),
+        (1000010030, "TRITON"),
+        (1000020030, "3-HELIUM"),
+        (1000020040, "4-HELIUM"),
+    ],
+)
 def test_explicit_light_ion_only_enables_its_card(
     tmp_path,
     monkeypatch,
     settings,
+    pdg_id,
+    fluka_name
 ):
     settings.return_none = True
-    settings.return_pdg_id(1000010020)  # deuteron
-    text = _generate_scoring(
-        tmp_path,
-        monkeypatch,
-        settings,
-    )
-    assert _scorer_is_enabled(text, "DEUTERON")
-    assert not _scorer_is_enabled(text, "TRITON")
-    assert not _scorer_is_enabled(text, "3-HELIUM")
-    assert not _scorer_is_enabled(text, "4-HELIUM")
+    settings.return_pdg_id(pdg_id)
+    text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _scorer_is_enabled(text, fluka_name)
+    if fluka_name != "DEUTERON":
+        assert not _scorer_is_enabled(text, "DEUTERON")
+    if fluka_name != "TRITON":
+        assert not _scorer_is_enabled(text, "TRITON")
+    if fluka_name != "3-HELIUM":
+        assert not _scorer_is_enabled(text, "3-HELIUM")
+    if fluka_name != "4-HELIUM":
+        assert not _scorer_is_enabled(text, "4-HELIUM")
+    assert not _scorer_is_enabled(text, "HEAVYION")
 
 
 def test_touches_scoring(tmp_path, monkeypatch, settings):
@@ -409,12 +410,7 @@ def test_touches_scoring(tmp_path, monkeypatch, settings):
 
 def test_crystal_scoring(tmp_path, monkeypatch, settings):
     settings.return_none = True
-    text = _generate_scoring(
-        tmp_path,
-        monkeypatch,
-        settings,
-        crystals=True,
-    )
+    text = _generate_scoring(tmp_path, monkeypatch, settings, crystals=True)
     line = next(
         line
         for line in text.splitlines()
@@ -422,3 +418,74 @@ def test_crystal_scoring(tmp_path, monkeypatch, settings):
         and "USRICALL" in line
     )
     assert not line.lstrip().startswith("*USRICALL")
+
+
+def test_photon_scoring_includes_fluka_aliases(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    settings.return_none = True
+    settings.return_photons = True
+    text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _active_usrbdx_particles(text) == {"PHOTON", "OPTIPHOT", "RAY"}
+
+
+def test_return_all_with_explicit_kill_still_uses_all_part(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    settings.return_all = True
+    settings.dont_return_pdg_id(411)
+    text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _active_usrbdx_particles(text) == {"ALL-PART"}
+    # Filtering happens after FLUKA returns the particle.
+    assert not settings.pdg_id_is_returned(411)
+
+
+def test_return_all_charged_with_explicit_kill_still_uses_all_char(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    settings.return_all_charged = True
+    settings.dont_return_pdg_id(411)
+    text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _active_usrbdx_particles(text) == {"ALL-CHAR"}
+    assert not settings.pdg_id_is_returned(411)
+
+
+def test_unrepresented_explicit_pdg_falls_back_to_all_part(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    # J/psi is a valid neutral PDG particle but has no dedicated
+    # scorer in the Xcoll FLUKA scoring table.
+    pdg_id = 443
+    assert pdg_id not in FLUKA_NAME_TO_PDG.values()
+    settings.return_none = True
+    settings.return_pdg_id(pdg_id)
+    with pytest.warns(RuntimeWarning, match="443"):
+        text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _active_usrbdx_particles(text) == {"ALL-PART"}
+    # The fallback is only a FLUKA implementation detail; it must not
+    # modify the user's physics settings.
+    assert not settings.return_all
+    assert settings.pdg_id_is_returned(pdg_id)
+
+
+def test_unrepresented_charged_pdg_is_covered_by_all_char(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    # B+ is charged and not represented by a dedicated scorer.
+    pdg_id = 521
+    assert pdg_id not in FLUKA_NAME_TO_PDG.values()
+    settings.return_all_charged = True
+    settings.return_pdg_id(pdg_id)
+    text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _active_usrbdx_particles(text) == {"ALL-CHAR"}
+    assert settings.pdg_id_is_returned(pdg_id)

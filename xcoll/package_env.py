@@ -8,6 +8,7 @@ import sys
 import json
 import tempfile
 from subprocess import run, PIPE
+from contextlib import contextmanager
 # try:
 #     from platformdirs import user_config_path, user_data_path
 # except (ImportError, ModuleNotFoundError):
@@ -88,8 +89,6 @@ class BaseInterface:
     _read_only_paths = {}
 
     def __init__(self, *args, **kwargs):
-        self._old_sys_path = None
-        self._old_os_env = None
         self._temp_dir = None
         for path in self._paths.keys():
             setattr(self, f'_{path}', None)
@@ -105,7 +104,6 @@ class BaseInterface:
         self.load()
 
     def __del__(self):
-        self.restore_environment()
         if self._temp_dir:
             self._temp_dir.cleanup()
 
@@ -144,11 +142,6 @@ class BaseInterface:
                     res.append(f"    {path:<20} None (read-only)")
                 else:
                     res.append(f"    {path:<20} {value.as_posix()} (read-only)")
-            if self._old_sys_path and self._old_os_env:
-                res.append("")
-                res.append("Custom environment stored:")
-                res.append(f"    sys.path: {self._old_sys_path}")
-                res.append(f"    os.environ: {self._old_os_env}")
         return "\n".join(res)
 
     @property
@@ -268,18 +261,16 @@ class BaseInterface:
         for key, value in data['read_only_paths'].items():
             setattr(self, f'_{key}', FsPath(value) if value else None)
 
-    def store_environment(self):
-        self._old_sys_path = sys.path.copy()
-        self._old_os_env = os.environ.copy()
-
-    def restore_environment(self):
-        if self._old_sys_path is not None:
-            sys.path[:] = self._old_sys_path
-            self._old_sys_path = None
-        if self._old_os_env is not None:
+    @contextmanager
+    def preserve_environment(self):
+        old_sys_path = sys.path.copy()
+        old_os_env = os.environ.copy()
+        try:
+            yield self
+        finally:
+            sys.path[:] = old_sys_path
             os.environ.clear()
-            os.environ.update(self._old_os_env)
-            self._old_os_env = None
+            os.environ.update(old_os_env)
 
     def brute_force_path(self, path):
         if path is None:

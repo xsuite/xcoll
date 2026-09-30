@@ -279,59 +279,72 @@ class BaseEngine(xo.HybridClass):
         if self.verbose:
             print("", flush=True)
 
-        kwargs = self._pre_start(**kwargs)
+        try:
+            kwargs = self._pre_start(**kwargs)
 
-        # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
-        self._tracking_initialised = False
+            # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
+            self._tracking_initialised = False
 
-        # Resolve input file path before defining cwd
-        if input_file is not None:
-            if self._multiple_input_files:
-                if isinstance(input_file, (str, Path)):
-                    input_file = [input_file]
-                elif not hasattr(input_file, "__iter__"):
-                    self.stop()
-                    raise ValueError(
-                        "`input_file` has to be a path or an iterable of paths!"
-                    )
-                input_file = [
-                    FsPath(f).expanduser().resolve()
-                    for f in input_file
-                ]
-                for f in input_file:
-                    if not f.exists():
+            # Resolve input file path before defining cwd
+            if input_file is not None:
+                if self._multiple_input_files:
+                    if isinstance(input_file, (str, Path)):
+                        input_file = [input_file]
+                    elif not hasattr(input_file, "__iter__"):
                         self.stop()
                         raise ValueError(
-                            f"Input file {f} does not exist!"
+                            "`input_file` has to be a path or an iterable of paths!"
                         )
-            else:
-                if not isinstance(input_file, (str, Path)):
-                    self.stop()
-                    raise ValueError(
-                        "`input_file` has to be a string or Path!"
-                    )
-                input_file = FsPath(input_file).expanduser().resolve()
-                if not input_file.exists():
-                    self.stop()
-                    raise ValueError(
-                        f"Input file {input_file} does not exist!"
-                    )
+                    input_file = [
+                        FsPath(f).expanduser().resolve()
+                        for f in input_file
+                    ]
+                    for f in input_file:
+                        if not f.exists():
+                            self.stop()
+                            raise ValueError(
+                                f"Input file {f} does not exist!"
+                            )
+                else:
+                    if not isinstance(input_file, (str, Path)):
+                        self.stop()
+                        raise ValueError(
+                            "`input_file` has to be a string or Path!"
+                        )
+                    input_file = FsPath(input_file).expanduser().resolve()
+                    if not input_file.exists():
+                        self.stop()
+                        raise ValueError(
+                            f"Input file {input_file} does not exist!"
+                        )
 
-        # Set all engine properties that have a setter (this will remove these properties from the kwargs)
-        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
-        kwargs = self._set_engine_properties(**kwargs)
+            # Set all engine properties that have a setter (this will remove these properties from the kwargs)
+            self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
+            try:
+                kwargs = self._set_engine_properties(**kwargs)
 
-        # Do some preparations before creating the input file if needed
-        kwargs = self._pre_input(**kwargs)
+                # Do some preparations before creating the input file if needed
+                kwargs = self._pre_input(**kwargs)
 
-        # Create input file if needed (this will remove the kwargs relevant to the input file and physics)
-        kwargs = self._use_input_file(input_file, **kwargs)
-        if clean:
-            self.clean_input_files(clean_all=False)
-        self._starting_or_stopping = False
+                # Create input file if needed (this will remove the kwargs relevant to the input file and physics)
+                kwargs = self._use_input_file(input_file, **kwargs)
+                if clean:
+                    self.clean_input_files(clean_all=False)
+            finally:
+                self._starting_or_stopping = False
 
-        # Start the engine in the ChildEngine
-        self._start_engine(**kwargs)
+            # Start the engine in the ChildEngine
+            self._start_engine(**kwargs)
+
+        except BaseException as error:
+            try:
+                self.stop(clean=clean)
+            except BaseException as cleanup_error:
+                error.add_note(
+                    "Engine cleanup after failed start also failed: "
+                    f"{cleanup_error!r}"
+                )
+            raise
 
         # Done starting
         if self.verbose:
@@ -339,16 +352,21 @@ class BaseEngine(xo.HybridClass):
         else:
             print(f"Done.", flush=True)
 
+
     def stop(self, clean=False, **kwargs):
-        kwargs = self._stop_engine(**kwargs)
-        if clean:
-            self.clean(clean_all=True, **kwargs)
-        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
-        self._restore_engine_properties(clean=clean)
-        self._starting_or_stopping = False
-        self._warning_given = False
-        self._tracking_initialised = False
-        self.interface.restore_environment()
+        try:
+            kwargs = self._stop_engine(**kwargs)
+            if clean:
+                self.clean(clean_all=True, **kwargs)
+        finally:
+            try:
+                self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
+                self._restore_engine_properties(clean=clean)
+            finally:
+                self._starting_or_stopping = False
+                self._warning_given = False
+                self._tracking_initialised = False
+
 
     def is_running(self):
         if hasattr(self, '_starting_or_stopping') and self._starting_or_stopping:
@@ -362,10 +380,9 @@ class BaseEngine(xo.HybridClass):
     def generate_input_file(self, *, clean=True, filename=None, **kwargs):
         '''This method manually generates an input file without starting the engine'''
         if not self._uses_input_file:
-            self.stop()
             raise ValueError(f"{self.__class__.__name__} does not use input files!")
+
         if self._element_dict:
-            self.stop()
             raise ValueError("Elements already assigned to engine (cannot regenerate input "
                            + "file after starting engine)!")
 
@@ -376,41 +393,50 @@ class BaseEngine(xo.HybridClass):
                 + "Generating temporary folder instead.")
             kwargs.pop('cwd')
         self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
-        kwargs = self._set_engine_properties(**kwargs)
+        try:
+            kwargs = self._set_engine_properties(**kwargs)
 
-        # Do some preparations before creating the input file if needed
-        kwargs = self._pre_input(**kwargs)
+            # Do some preparations before creating the input file if needed
+            kwargs = self._pre_input(**kwargs)
 
-        # Create input file
-        input_file, _ = self._generate_input_file(**kwargs)
-        if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
-            # Some engines might create multiple input files (like Fluka)
-            input_file = [input_file]
+            # Create input file
+            input_file, _ = self._generate_input_file(**kwargs)
+            if not hasattr(input_file, '__iter__') or isinstance(input_file, (str, Path)):
+                # Some engines might create multiple input files (like Fluka)
+                input_file = [input_file]
 
-        # Move input file to desired location
-        if filename is None:
-            if input_file[0].parent != FsPath.cwd():
-                new_input_file = [input_file[0].rename(Path.cwd() / input_file[0].name)]
+            input_file = [FsPath(path) for path in input_file]
+
+            # Move input file to desired location
+            if filename is None:
+                if input_file[0].parent != FsPath.cwd():
+                    new_input_file = [input_file[0].rename(Path.cwd() / input_file[0].name)]
+                else:
+                    new_input_file = [input_file[0]]
             else:
-                new_input_file = [input_file[0]]
-        else:
-            new_input_file = [input_file[0].rename(filename)]
-        for file in input_file[1:]:
-            if file.parent != new_input_file[0].parent:
-                new_input_file.append(file.rename(new_input_file[0].parent / file.name))
-            else:
-                new_input_file.append(file)
+                new_input_file = [input_file[0].rename(filename)]
+            for file in input_file[1:]:
+                if file.parent != new_input_file[0].parent:
+                    new_input_file.append(file.rename(new_input_file[0].parent / file.name))
+                else:
+                    new_input_file.append(file)
 
-        # Clean up
-        if clean:
-            if input_file[0].parent == new_input_file[0].parent:
-                self.clean_input_files(clean_all=False, input_file=input_file)
-            else:
-                self.clean_input_files(clean_all=True, input_file=input_file)
-        self._restore_engine_properties(clean=clean)
-        self._starting_or_stopping = False
+            # Clean up
+            if clean:
+                if input_file[0].parent == new_input_file[0].parent:
+                    self.clean_input_files(clean_all=False, input_file=input_file)
+                else:
+                    self.clean_input_files(clean_all=True, input_file=input_file)
 
-        return new_input_file if self._multiple_input_files else new_input_file[0]
+            if self._multiple_input_files:
+                return new_input_file
+            return new_input_file[0]
+
+        finally:
+            try:
+                self._restore_engine_properties(clean=clean)
+            finally:
+                self._starting_or_stopping = False
 
 
     def assert_particle_ref(self):
@@ -607,29 +633,40 @@ class BaseEngine(xo.HybridClass):
             self.seed = seed
         self._print(f"Using seed {self.seed}.")
 
+    def _resolve_particle_ref(self, particle_ref):
+        if isinstance(particle_ref, xt.line.LineParticleRef):
+            particle_ref = particle_ref._resolved
+        return particle_ref
+
     def _use_particle_ref(self, particle_ref=None, keep_p0c_constant=True):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
+        source_ref = None
         if particle_ref is not None:
             # Snapshot the persistent engine reference.
             current_ref = self.particle_ref
             self._old_particle_ref = (
-                None if current_ref is None else current_ref.copy()
+                 None if current_ref is None else current_ref.copy()
             )
-            # Keep the user-owned object itself, plus a snapshot of its original state.
-            self._temporary_particle_ref = particle_ref
-            self._temporary_particle_ref_snapshot = particle_ref.copy()
-            # The engine gets its own working copy through the xofield assignment.
-            self.particle_ref = particle_ref
+            source_ref = self._resolve_particle_ref(particle_ref)
         elif self.particle_ref is None:
             if self.line is None or not hasattr(self.line, 'particle_ref') \
             or self.line.particle_ref is None:
-                self.stop()
                 raise ValueError("Need to provide either a line with a reference "
                                + "particle, or `particle_ref`.")
             self._old_particle_ref = None
-            self.particle_ref = self.line.particle_ref
+            source_ref = self._resolve_particle_ref(self.line.particle_ref)
+
+        # If the reference originates outside the engine, snapshot the
+        # external object itself. It is updated while the engine is running
+        # and restored in place when the engine stops.
+        if source_ref is not None:
+            self._temporary_particle_ref = source_ref
+            self._temporary_particle_ref_snapshot = source_ref.copy()
+            self.particle_ref = source_ref
+
         self._print(f"Using {pdg.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
                   + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
+
         if self._masses is not None:
             mass = self.particle_ref.mass0
             pdg_id = self.particle_ref.pdg_id[0]
@@ -659,9 +696,10 @@ class BaseEngine(xo.HybridClass):
                         + f"by {self.name}, differences in energy might be observed.\nOnce "
                         + f"the {self.name} reference mass is known, contact the devs to "
                         + f"input it in the code.")
-        # If start(particle_ref=...) was used, propagate *all* normalisations
-        # back into the caller-owned reference object.
-        if hasattr(self, '_temporary_particle_ref'):
+
+        # Propagate all backend normalisations back into the external
+        # source while the engine is running.
+        if hasattr(self, "_temporary_particle_ref"):
             _overwrite_particles(
                 self._temporary_particle_ref,
                 self.particle_ref,
@@ -670,15 +708,17 @@ class BaseEngine(xo.HybridClass):
     def _sync_line_particle_ref(self):
         if self.line is None:
             return
-        if self.line.particle_ref is not None \
-        and not deep_equal(self.line.particle_ref.to_dict(),
-                                     self.particle_ref.to_dict()):
-            self._print("Found different reference particle in line. Temporarily overwritten.")
-            val = self.line.particle_ref
-            if isinstance(val, xt.line.LineParticleRef):
-                val = val._resolved
-            self._old_line_particle_ref = val
+        if self.line.particle_ref is None:
+            return
+        line_ref = self._resolve_particle_ref(self.line.particle_ref)
+        if not deep_equal(line_ref.to_dict(), self.particle_ref.to_dict()):
+            self._print("Found different reference particle in line. "
+                        "Temporarily overwritten.")
+            # Preserve the exact Xtrack binding. This can be a Particles
+            # object or a named particle reference.
+            self._old_line_particle_ref = self.line._particle_ref
             self.line.particle_ref = self.particle_ref
+
 
     def _get_new_element_name(self):
         name = f"{self.name}_el_{self._element_index}"
@@ -700,31 +740,37 @@ class BaseEngine(xo.HybridClass):
             names = [names]
         if self.line is None:
             if elements is None:
-                self.stop()
                 raise ValueError("Need to provide either `line` or `elements`.")
             for ee in elements:
                 self._assert_element(ee)
+            explicit_names = names is not None
             if names is None:
                 names = []
                 for ee in elements:
                     if hasattr(ee, 'name') and ee.name:
                         names.append(ee.name)
                     else:
-                        name = self._get_new_element_name()
-                        names.append(name)
-                        ee.name = name
-            elif len(names) == len(elements):
-                for ee, name in zip(elements, names):
-                    if hasattr(ee, 'name'):
-                        if ee.name != name:
-                            self._print(f"Warning: Element name {ee.name} changed to {name}.")
-                            ee.name = name
-            else:
-                self.stop()
-                raise ValueError("Length of `elements` and `names` doesn't match.")
+                        names.append(self._get_new_element_name())
+            elif len(names) != len(elements):
+                raise ValueError(
+                    "Length of `elements` and `names` doesn't match."
+                )
+            # Validate before changing element names or active state.
+            if len(set(names)) != len(names):
+                raise ValueError(
+                    f"Duplicate names found in {self.name} elements: "
+                    f"{names}. Please provide unique names for each "
+                    "element."
+                )
+            # Only now mutate element names.
+            for element, name in zip(elements, names):
+                if hasattr(element, "name"):
+                    if explicit_names and element.name != name:
+                        self._print(f"Warning: Element name "
+                                    f"{element.name} changed to {name}.")
+                    element.name = name
         else:
             if elements is not None:
-                self.stop()
                 raise ValueError("Cannot provide both `line` and `elements`.")
             if names is None:
                 tt = self.line.get_table()
@@ -737,6 +783,14 @@ class BaseEngine(xo.HybridClass):
                 elements = [self.line.get(nn) for nn in names]
             for ee in elements:
                 self._assert_element(ee)
+            # Still before deactivation or other mutation.
+            if len(set(names)) != len(names):
+                raise ValueError(
+                    f"Duplicate names found in {self.name} elements: "
+                    f"{names}. Please provide unique names for each "
+                    "element."
+                )
+
         this_names = []
         this_elements = []
         for ee, name in zip(elements, names):
@@ -750,12 +804,7 @@ class BaseEngine(xo.HybridClass):
                 this_names.append(name)
                 this_elements.append(ee)
         if len(this_elements) == 0:
-            self.stop()
             raise ValueError(f"No active {self.name} elements found!")
-        if len(set(this_names)) != len(this_names):
-            self.stop()
-            raise ValueError(f"Duplicate names found in {self.name} elements: {this_names}. "
-                           + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
 
     def _deactivate_element(self, el):
@@ -771,6 +820,7 @@ class BaseEngine(xo.HybridClass):
             self._restore_element(ee)
             if hasattr(ee, 'active'):
                 ee.active = was_active
+
 
     def _set_cwd(self, cwd=None):
         if self._uses_run_folder:

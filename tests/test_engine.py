@@ -17,13 +17,9 @@ class DummyInterface:
 
     def __init__(self):
         self.assert_ready_calls = 0
-        self.restore_calls = 0
 
     def assert_environment_ready(self):
         self.assert_ready_calls += 1
-
-    def restore_environment(self):
-        self.restore_calls += 1
 
 
 class DummyElement:
@@ -435,7 +431,6 @@ def test_start_and_stop():
     engine.stop(clean=True)
     assert not engine.is_running()
     assert engine.element_dict == {}
-    assert engine.interface.restore_calls >= 1
 
 
 def test_start_when_already_running_is_noop():
@@ -751,3 +746,306 @@ def test_engine_cleaning(tmp_path):
     assert not auxiliary_input.exists()
     assert not output_file.exists()
     engine.stop(clean=True)
+
+
+class DummyMultiInputEngine(DummyInputEngine):
+    _multiple_input_files = True
+
+    def _generate_input_file(self, **kwargs):
+        first = self.cwd / "dummy.in"
+        second = self.cwd / "dummy_aux.in"
+        first.write_text("generated primary")
+        second.write_text("generated auxiliary")
+        return [first, second], kwargs
+
+    def _all_input_files(self, input_file=None):
+        if input_file is None:
+            input_file = self.input_file
+        if not isinstance(input_file, (list, tuple)):
+            input_file = [input_file]
+        return list(input_file)
+
+
+def test_start_with_multiple_input_files(tmp_path):
+    first = tmp_path / "first.in"
+    second = tmp_path / "second.in"
+    first.write_text("first")
+    second.write_text("second")
+
+    engine = DummyMultiInputEngine()
+    engine.particle_ref = xt.Particles("proton", p0c=7e12)
+
+    engine.start(
+        elements=DummyElement("coll"),
+        input_file=[first, second],
+        cwd=tmp_path / "run",
+        clean=False,
+    )
+
+    assert isinstance(engine.input_file, list)
+    assert len(engine.input_file) == 2
+    assert [path.name for path in engine.input_file] == [
+        "first.in",
+        "second.in",
+    ]
+    assert engine.input_file[0].read_text() == "first"
+    assert engine.input_file[1].read_text() == "second"
+
+    engine.stop(clean=True)
+
+
+def test_start_multi_input_accepts_single_path(tmp_path):
+    source = tmp_path / "input.in"
+    source.write_text("single")
+
+    engine = DummyMultiInputEngine()
+    engine.particle_ref = xt.Particles("proton", p0c=7e12)
+
+    engine.start(
+        elements=DummyElement("coll"),
+        input_file=source,
+        cwd=tmp_path / "run",
+        clean=False,
+    )
+
+    assert isinstance(engine.input_file, list)
+    assert len(engine.input_file) == 1
+    assert engine.input_file[0].read_text() == "single"
+
+    engine.stop(clean=True)
+
+
+def test_generate_multiple_input_files(tmp_path):
+    engine = DummyMultiInputEngine()
+    engine.particle_ref = xt.Particles("proton", p0c=7e12)
+
+    paths = engine.generate_input_file(
+        elements=DummyElement("coll"),
+        cwd=tmp_path / "run",
+        filename=tmp_path / "saved.in",
+    )
+
+    assert isinstance(paths, list)
+    assert len(paths) == 2
+    assert paths[0] == tmp_path / "saved.in"
+    assert paths[0].read_text() == "generated primary"
+    assert paths[1].parent == tmp_path
+    assert paths[1].read_text() == "generated auxiliary"
+
+    assert not engine.is_running()
+    assert engine.element_dict == {}
+
+
+class DummyResetEngine(DummyEngine):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.backend_setting = 123
+
+    def _reset_engine_settings(self):
+        self.backend_setting = 0
+
+
+def test_engine_reset():
+    engine = DummyResetEngine()
+
+    line = xt.Line()
+    engine.line = line
+    engine.particle_ref = xt.Particles("proton", p0c=7e12)
+    engine.seed = 12345
+    engine.verbose = True
+    engine.return_none = True
+    engine.return_pions = True
+    engine.return_pdg_id(411)
+    engine._element_index = 17
+
+    engine.reset(clean=True)
+
+    assert engine.line is None
+    assert engine.particle_ref is None
+    assert engine.seed is None
+    assert engine.verbose is False
+    assert engine.backend_setting == 0
+
+    assert not engine._physics_settings._extra_pdg_ids_to_return
+    assert not engine._physics_settings._extra_pdg_ids_to_kill
+
+    # The name generator is intentionally process-lifetime state.
+    assert engine._element_index == 17
+
+
+def test_ready_to_track_requires_compiled_interface():
+    engine = make_engine()
+    coll = DummyElement("coll")
+    engine.start(elements=coll)
+
+    engine.interface.compiled = False
+
+    particles = xt.Particles(
+        "proton",
+        p0c=7e12,
+        x=[0, 0],
+        _capacity=10,
+    )
+
+    with pytest.raises(RuntimeError, match="interface not compiled"):
+        engine.assert_ready_to_track_or_skip(coll, particles)
+
+    assert not engine.is_running()
+
+
+class FaultInjectionEngine(DummyEngine):
+    def __init__(self, fail_at, **kwargs):
+        self.fail_at = fail_at
+        super().__init__(**kwargs)
+
+    def _pre_start(self, **kwargs):
+        if self.fail_at == "pre_start":
+            raise RuntimeError("Injected failure in _pre_start")
+        return kwargs
+
+    def _pre_input(self, **kwargs):
+        if self.fail_at == "pre_input":
+            raise RuntimeError("Injected failure in _pre_input")
+        return kwargs
+
+    def _start_engine(self, **kwargs):
+        if self.fail_at == "start":
+            # Deliberately mimic a partially started backend.
+            self._running = True
+            raise RuntimeError("Injected failure in _start_engine")
+        return super()._start_engine(**kwargs)
+
+
+class FaultInjectionInputEngine(DummyInputEngine):
+    def _generate_input_file(self, **kwargs):
+        raise RuntimeError("Injected failure in _generate_input_file")
+
+
+@pytest.mark.parametrize("fail_at", ["pre_input", "start"])
+def test_failed_start_restores_temporary_state(fail_at):
+    engine = FaultInjectionEngine(fail_at)
+
+    persistent_ref = xt.Particles("proton", p0c=7e12)
+    engine.particle_ref = persistent_ref
+    engine.seed = 123
+
+    temporary_ref = xt.Particles(
+        "proton",
+        p0c=6e12,
+        mass0=900e6,
+    )
+    temporary_before = temporary_ref.copy()
+
+    engine._masses = {
+        2212: 938.2720813e6,
+    }
+
+    engine.return_none = True
+    engine.return_pions = True
+
+    with pytest.raises(RuntimeError, match="Injected failure"):
+        engine.start(
+            elements=DummyElement("coll"),
+            particle_ref=temporary_ref,
+            seed=456,
+            verbose=True,
+            return_none=True,
+            return_ions=True,
+        )
+
+    assert not engine.is_running()
+    assert engine.seed == 123
+    assert engine.verbose is False
+    assert engine.element_dict == {}
+
+    assert np.isclose(engine.particle_ref.p0c[0], persistent_ref.p0c[0])
+
+    assert np.isclose(
+        temporary_ref.p0c[0],
+        temporary_before.p0c[0],
+    )
+    assert np.isclose(
+        temporary_ref.mass0,
+        temporary_before.mass0,
+    )
+
+    # Persistent physics settings restored.
+    assert engine.return_pions is True
+    assert engine.return_ions is False
+
+
+def test_failed_generate_input_file_restores_state(tmp_path):
+    engine = FaultInjectionInputEngine()
+    engine.particle_ref = xt.Particles("proton", p0c=7e12)
+    engine.seed = 123
+
+    with pytest.raises(
+        RuntimeError,
+        match="Injected failure in _generate_input_file",
+    ):
+        engine.generate_input_file(
+            elements=DummyElement("coll"),
+            cwd=tmp_path / "run",
+            seed=456,
+            verbose=True,
+            return_none=True,
+            return_ions=True,
+        )
+
+    assert engine.seed == 123
+    assert engine.verbose is False
+    assert engine.cwd is None
+    assert engine.element_dict == {}
+    assert not engine.is_running()
+
+
+def test_line_particle_ref_is_updated_and_restored():
+    engine = DummyLineEngine()
+    element = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
+    line = xt.Line(elements=[element], element_names=["coll"])
+    line.particle_ref = xt.Particles("proton", p0c=7e12, mass0=900e6)
+    original_ref = line.particle_ref._resolved
+    original_snapshot = original_ref.copy()
+    engine._masses = {2212: 938.2720813e6}
+    engine.start(line=line)
+    assert np.isclose(engine.particle_ref.mass0, 938.2720813e6)
+    assert np.isclose(line.particle_ref.mass0, 938.2720813e6)
+    engine.stop(clean=True)
+    assert engine.particle_ref is None
+    assert np.isclose(original_ref.mass0, original_snapshot.mass0)
+    assert np.isclose(original_ref.p0c[0], original_snapshot.p0c[0])
+
+
+class FailingLineEngine(DummyLineEngine):
+    def _start_engine(self, **kwargs):
+        self._running = True
+        raise RuntimeError(
+            "Injected start failure"
+        )
+
+
+def test_line_particle_ref_restored_after_failed_start():
+    engine = FailingLineEngine()
+    element = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
+    line = xt.Line(elements=[element], element_names=["coll"])
+    line.particle_ref = xt.Particles("proton", p0c=7e12, mass0=900e6)
+    original_ref = line.particle_ref._resolved
+    snapshot = original_ref.copy()
+    engine._masses = {2212: 938.2720813e6}
+    with pytest.raises(RuntimeError, match="Injected start failure"):
+        engine.start(line=line)
+    assert not engine.is_running()
+    assert engine.particle_ref is None
+    assert np.isclose(original_ref.mass0, snapshot.mass0)
+    assert np.isclose(original_ref.p0c[0], snapshot.p0c[0])
+
+
+def test_duplicate_names_checked_before_deactivation():
+    engine = make_engine()
+    active = DummyElement(name="same", active=True)
+    inactive = DummyElement(name="same", active=False)
+    with pytest.raises(ValueError, match="Duplicate names"):
+        engine.start(elements=[active, inactive])
+    # Duplicate validation happened before element mutation.
+    assert inactive not in engine.removed
+    assert inactive.active is False
