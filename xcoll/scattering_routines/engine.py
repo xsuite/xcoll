@@ -67,7 +67,6 @@ class BaseEngine(xo.HybridClass):
                 + f"(did you compile?).\n{self.name.capitalize()} elements can be installed "
                 + f"but are not trackable.", flush=True)
             self._warning_given = True
-        self.stop()
         if error:
             raise error
 
@@ -112,7 +111,6 @@ class BaseEngine(xo.HybridClass):
     @line.setter
     def line(self, val):
         if not val is None and not isinstance(val, xt.Line):
-            self.stop()
             raise ValueError("`line` has to be an xt.Line object!")
         self._line = val
 
@@ -137,22 +135,18 @@ class BaseEngine(xo.HybridClass):
             if isinstance(val, xt.line.LineParticleRef):
                 val = val._resolved
             if not isinstance(val, xt.Particles):
-                self.stop()
                 raise ValueError("`particle_ref` has to be an xt.Particles object!")
             if val._capacity > 1:
-                self.stop()
                 raise ValueError("`particle_ref` has to be a single particle!")
             pdg_id = val.pdg_id[0]
             if pdg_id == 0:
                 if self._only_protons:
                     pdg_id = pdg.get_pdg_id_from_name('proton')
                 else:
-                    self.stop()
                     raise ValueError(f"{self.__class__.__name__} allows the use of particles "
                                    + f"different than protons. Hence, `particle_ref` "
                                    + f"needs to have a valid pdg_id.")
             elif self._only_protons and pdg_id != pdg.get_pdg_id_from_name('proton'):
-                self.stop()
                 raise ValueError("{self.__class__.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
@@ -173,7 +167,6 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = 0
         if not isinstance(val, Number) or val < 0:
-            self.stop()
             raise ValueError("`seed` has to be a positive integer!")
         val = int(val)
         if self._int32:
@@ -291,7 +284,6 @@ class BaseEngine(xo.HybridClass):
                     if isinstance(input_file, (str, Path)):
                         input_file = [input_file]
                     elif not hasattr(input_file, "__iter__"):
-                        self.stop()
                         raise ValueError(
                             "`input_file` has to be a path or an iterable of paths!"
                         )
@@ -301,19 +293,17 @@ class BaseEngine(xo.HybridClass):
                     ]
                     for f in input_file:
                         if not f.exists():
-                            self.stop()
+
                             raise ValueError(
                                 f"Input file {f} does not exist!"
                             )
                 else:
                     if not isinstance(input_file, (str, Path)):
-                        self.stop()
                         raise ValueError(
                             "`input_file` has to be a string or Path!"
                         )
                     input_file = FsPath(input_file).expanduser().resolve()
                     if not input_file.exists():
-                        self.stop()
                         raise ValueError(
                             f"Input file {input_file} does not exist!"
                         )
@@ -441,7 +431,6 @@ class BaseEngine(xo.HybridClass):
 
     def assert_particle_ref(self):
         if self.particle_ref is None:
-            self.stop()
             raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
     def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[], keep_p0c_constant=True):
@@ -464,16 +453,13 @@ class BaseEngine(xo.HybridClass):
         if npart == 0:
             return False
         if not isinstance(particles._buffer.context, xo.ContextCpu):
-            self.stop()
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
         if not self.interface.compiled:
-            self.stop()
             raise RuntimeError(f"{self.__class__.__name__} interface not compiled! "
                                 + f"Please compile the interface before tracking.")
 
         if not self.is_running():
-            self.stop()
             raise RuntimeError(f"{self.__class__.__name__} not yet running!\nPlease do this "
                              + f"first, by calling xcoll.{self.__class__.__name__}.start().")
 
@@ -498,24 +484,20 @@ class BaseEngine(xo.HybridClass):
                           + f"from reference mass in engine. Overwritten by the latter.")
             else:
                 # The reference particle in the engine was changed unintentionally
-                self.stop()
                 raise ValueError(f"Error in reference mass of `particles`: not in sync with "
                             + f"{self.name} reference particle!\nRebuild the particles object "
                             + f"using the {self.__class__.__name__} reference particle.")
         if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
-            self.stop()
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
                            + f"using the {self.__class__.__name__} reference particle.")
         if not self._only_protons:
             if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
-                self.stop()
                 raise ValueError("Some particles are missing the pdg_id!")
             if particles._num_active_particles + particles._num_lost_particles == particles._capacity \
             and not np.any(particles.particle_id != particles.parent_particle_id):
                 # Only raise this error at the start, e.g. when no secondaries are present yet.
                 # It will get caught later during tracking, which will provide a more logical error.
-                self.stop()
                 raise ValueError("Particles capacity equal to size! Please provide extra capacity "
                                + "for secondaries.")
         return True
@@ -727,7 +709,6 @@ class BaseEngine(xo.HybridClass):
 
     def _assert_element(self, element):
         if not isinstance(element, self._element_classes):
-            self.stop()
             name = element.name if hasattr(element, 'name') else str(element)
             raise ValueError(f"Element {name} is not a "
                             + ", or a ".join([c.__name__ for c in self._element_classes])
@@ -833,7 +814,6 @@ class BaseEngine(xo.HybridClass):
                     while (cwd.parent / f'{cwd.name}_{i:0>4}').exists():
                         i += 1
                         if i > 9999:
-                            self.stop()
                             raise ValueError(f"Too many folders with the same "
                                            + f"name {cwd}!")
                     cwd = cwd.parent / f'{cwd.name}_{i:0>4}'
@@ -866,11 +846,9 @@ class BaseEngine(xo.HybridClass):
             new_files = []
             for file in input_file:
                 if not file.exists():
-                    self.stop()
                     raise ValueError(f"Input file {file.as_posix()} not found!")
                 if file.parent != self.cwd and self._uses_run_folder:
                     if self.cwd is None:
-                        self.stop()
                         raise ValueError("Cannot copy input file to working directory: "
                                        + "working directory not set!")
                     file.copy_to(self.cwd, method='mount')

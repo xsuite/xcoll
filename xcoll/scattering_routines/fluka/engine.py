@@ -76,7 +76,6 @@ class FlukaEngine(BaseEngine):
         if val is None or val == 0:
             val = 50
         elif not isinstance(val, Number) or val <= 0:
-            self.stop()
             raise ValueError("`minimum_free_length_fortran_array` has to be a "
                              "strictly positive integer!")
         self._minimum_free_length_fortran_array = int(val)
@@ -93,7 +92,6 @@ class FlukaEngine(BaseEngine):
         if val is None:
             val = 0
         elif not isinstance(val, Number) or val <= 1:
-            self.stop()
             raise ValueError("`relative_length_fortran_array` has to be a "
                              "positive integer larger than 1!")
         self._relative_length_fortran_array = int(val)
@@ -111,7 +109,6 @@ class FlukaEngine(BaseEngine):
         if val is None:
             val = 36000
         if not isinstance(val, Number) or val <= 60:
-            self.stop()
             raise ValueError("`timeout_sec` has to be a positive integer "
                              "larger than 60!")
         self._timeout_sec = val
@@ -156,6 +153,7 @@ class FlukaEngine(BaseEngine):
             try:
                 from pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
             except (ModuleNotFoundError, ImportError) as error:
+                self.stop()
                 self._warn(error)
             self._print(f"Setting max_particle_id to {max_particle_id}, "
                       + f"and reference particle to {name} with mass {m0} MeV "
@@ -421,13 +419,13 @@ class FlukaEngine(BaseEngine):
 
     def _init_fortran(self, fortran_debug_level=0):
         if self.cwd is None:
-            self.stop()
             raise RuntimeError("FLUKA engine needs a working directory to init Fortran!")
         try:
             from pyflukaf import pyfluka_init
             pyfluka_init(debug_level=fortran_debug_level,
                          cwd_path=self.cwd.as_posix())
         except (ModuleNotFoundError, ImportError) as error:
+            self.stop()
             self._warn(error)
 
 
@@ -437,7 +435,6 @@ class FlukaEngine(BaseEngine):
         if cmd.returncode == 0:
             host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
-            self.stop()
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
         # Check if the hostname has a valid IP address
@@ -467,7 +464,6 @@ class FlukaEngine(BaseEngine):
         self.server_pid = self._server_process.pid
         sleep(1)
         if not self.is_running():
-            self.stop()
             raise RuntimeError(f"Could not start fluka server! See logfile {log}.")
         i = 0
         while True:
@@ -482,7 +478,6 @@ class FlukaEngine(BaseEngine):
                     self._network_port = int(lines[1].strip())
                     break
                 if self._server_process.poll() is not None:
-                    self.stop()
                     raise RuntimeError("The flukaserver died. Please check the FLUKA output.")
         self._print(f"Started fluka server on network port {self.network_port}. "
                   + f"Connecting (timeout: {self.timeout_sec})...   ", end='')
@@ -491,6 +486,7 @@ class FlukaEngine(BaseEngine):
             pyfluka_connect(self.timeout_sec)
             self._flukaio_connected = True
         except (ModuleNotFoundError, ImportError) as error:
+            self.stop()
             self._warn(error)
         self._print(f"Done.")
 
@@ -528,14 +524,12 @@ class FlukaEngine(BaseEngine):
             return
 
         elif not hasattr(touches, '__iter__') or isinstance(touches, str):
-            self.stop()
             raise NotImplementedError("Only True/False or a list of collimator names "
                                     + "is allowed for `touches` for now.")
         else:
             # Check max particle ID limit to prevent FLUKA crash
             # line 169: /eos/project-f/flukafiles/fluka-coupling/fluka_coupling/fluka/mgdraw.f
             if self.max_particle_id >= 100_000:
-                self.stop()
                 raise ValueError(f"max(particle_id) = {self.max_particle_id:,}\n"
                     "The MPPBUN FLUKA variable has a hardcoded limit of 100k.\n"
                     "This is related to the limit of impacts treated by FLUKA.\n"
@@ -547,7 +541,6 @@ class FlukaEngine(BaseEngine):
                 fid.write(f'{len(touches)}\n')
                 for touch in touches:
                     if touch not in self._element_dict:
-                        self.stop()
                         raise ValueError(f"Collimator {touch} not in collimator dict, "
                                         + "but asked to write FLUKA touches!")
                     else:

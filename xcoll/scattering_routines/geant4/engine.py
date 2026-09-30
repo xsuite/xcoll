@@ -79,7 +79,6 @@ class Geant4Engine(BaseEngine):
             else:
                 val = True
         elif not isinstance(val, bool):
-            self.stop()
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
@@ -121,7 +120,7 @@ class Geant4Engine(BaseEngine):
         try:
             from g4interface import XtrackInterface
         except (ModuleNotFoundError, ImportError) as error:
-            self.stop(clean=True)
+            self.stop()
             self._warn(error)
             return
 
@@ -232,7 +231,6 @@ class Geant4Engine(BaseEngine):
         input_dict = get_collimators_from_input_file(self.input_file)
         for name in input_dict:
             if name not in self._element_dict:
-                self.stop()
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
             from ...beam_elements import Geant4CollimatorTip
@@ -253,17 +251,14 @@ class Geant4Engine(BaseEngine):
                 ee.angle = input_dict[name]['angle']
             if ee.material.geant4_name != input_dict[name]['material'] \
             and ee.material.name != input_dict[name]['material']:
-                self.stop()
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
             if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
                 if not isinstance(ee, Geant4CollimatorTip):
-                    self.stop()
                     raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
                                     + "in the line, but it has tip material in the input file!")
                 if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
-                    self.stop()
                     raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
                                     + "but it has no tip material in the input file!")
                 if ee.tip_material.geant4_name != input_dict[name]['tip_material']:
