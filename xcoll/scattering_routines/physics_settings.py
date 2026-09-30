@@ -5,14 +5,15 @@
 
 import numpy as np
 from numbers import Number
-from contextlib import contextmanager
 
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
 from ..pretty_print import style
+from ..xaux import track_construction, super_if_being_constructed
 
 
+@track_construction
 class PhysicsSettingsHelper:
     """Helper class to manage physics settings for scattering routines.
     """
@@ -139,9 +140,8 @@ class PhysicsSettingsHelper:
     }
 
     def __init__(self, engine):
-        with self._in_constructor():
-            self._engine = engine
-            self.reset()
+        self._engine = engine
+        self.reset()
 
     @property
     def all_flags(self):
@@ -289,22 +289,16 @@ class PhysicsSettingsHelper:
     def return_pdg_id(self, pdg_id):
         if not hasattr(pdg_id, "__iter__") or isinstance(pdg_id, str):
             pdg_id = [pdg_id]
-        pdg_id = set(pdg_id)
+        pdg_id = set([int(pid) for pid in pdg_id])
         self._extra_pdg_ids_to_return.update(pdg_id)
         self._extra_pdg_ids_to_kill -= pdg_id
 
     def dont_return_pdg_id(self, pdg_id):
         if not hasattr(pdg_id, "__iter__") or isinstance(pdg_id, str):
             pdg_id = [pdg_id]
-        pdg_id = set(pdg_id)
+        pdg_id = set([int(pid) for pid in pdg_id])
         self._extra_pdg_ids_to_kill.update(pdg_id)
         self._extra_pdg_ids_to_return -= pdg_id
-
-    def pdg_id_is_returned(self, pdg_id):
-        """Check if a particle with the given PDG ID should be returned."""
-        q_new = pdg.get_properties_from_pdg_id(pdg_id)[0]
-        mask = self.mask_particle_return_types(pdg_id, q_new)
-        return mask
 
     def pdg_id_is_returned(self, pdg_id):
         scalar = np.ndim(pdg_id) == 0
@@ -314,6 +308,7 @@ class PhysicsSettingsHelper:
         if scalar:
             return bool(mask[0])
         return mask
+
 
     # =====================
     # === Momentum cuts ===
@@ -729,11 +724,8 @@ class PhysicsSettingsHelper:
         return obj_get(self, item)
 
 
+    @super_if_being_constructed
     def __setattr__(self, name, value):
-        if self._being_constructed():
-            super().__setattr__(name, value)
-            return
-
         engine = self._engine
 
         if name in engine._physics_settings_veto_list:
@@ -751,21 +743,6 @@ class PhysicsSettingsHelper:
             )
 
         super().__setattr__(name, value)
-
-    @contextmanager
-    def _in_constructor(self):
-        super().__setattr__("_constructing", True)
-        try:
-            yield
-        finally:
-            super().__setattr__("_constructing", False)
-
-    def _being_constructed(self):
-        try:
-            constructing = super().__getattribute__("_constructing")
-        except AttributeError:
-            constructing = False
-        return constructing
 
 
 # ========================

@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from contextlib import contextmanager
 import os
 import sys
 import json
@@ -16,6 +15,7 @@ from subprocess import run, PIPE
 #     user_data_path = None
 
 from .general import _pkg_root
+from .xaux import track_construction
 
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
@@ -83,6 +83,7 @@ _data_dir = _select_directory('data')
 _lib_dir = _select_directory('lib')
 
 
+@track_construction
 class BaseInterface:
     _config_dir = _config_dir
     _data_dir = _data_dir
@@ -95,17 +96,16 @@ class BaseInterface:
         self._old_sys_path = None
         self._old_os_env = None
         self._temp_dir = None
-        with self._in_constructor():
-            for path in self._paths.keys():
-                setattr(self, f'_{path}', None)
-            for path in self._optional_paths.keys():
-                setattr(self, f'_{path}', None)
-            self._config_dir.mkdir(parents=True, exist_ok=True)
-            self._data_dir.mkdir(parents=True, exist_ok=True)
-            self._lib_dir.mkdir(parents=True, exist_ok=True)
-            self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
-            sys.path.append(self._lib_dir.as_posix())
-            self.load()
+        for path in self._paths.keys():
+            setattr(self, f'_{path}', None)
+        for path in self._optional_paths.keys():
+            setattr(self, f'_{path}', None)
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._lib_dir.mkdir(parents=True, exist_ok=True)
+        self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
+        sys.path.append(self._lib_dir.as_posix())
+        self.load()
 
     def __del__(self):
         self.restore_environment()
@@ -454,18 +454,3 @@ class BaseInterface:
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
-
-    @contextmanager
-    def _in_constructor(self):
-        super().__setattr__("_constructing", True)
-        try:
-            yield
-        finally:
-            super().__setattr__("_constructing", False)
-
-    def _being_constructed(self):
-        try:
-            constructing = super().__getattribute__("_constructing")
-        except AttributeError:
-            constructing = False
-        return constructing

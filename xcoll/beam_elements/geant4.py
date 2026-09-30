@@ -3,17 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from contextlib import contextmanager
-
 import xobjects as xo
 import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
+from ..xaux import track_construction, super_if_being_constructed
 from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core, track_post
 from ..materials import _DEFAULT_MATERIAL, _resolve_material
 
 
+@track_construction
 class Geant4Collimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
         'geant4_id': xo.String,
@@ -42,30 +42,24 @@ class Geant4Collimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
     _allowed_fields_when_frozen = BaseCollimator._allowed_fields_when_frozen
 
-    # def __new__(cls, *args, **kwargs):
-    #     with cls._in_constructor():
-    #         self = super().__new__(cls, *args, **kwargs)
-    #     return self
-
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.geant4.engine.is_running():
             raise ValueError('Cannot create Geant4Collimator while engine is running.')
-        with self._in_constructor():
-            to_assign = {}
-            if '_xobject' not in kwargs:
-                kwargs.setdefault('geant4_id', ''.ljust(16))
-                to_assign['name'] = xc.geant4.engine._get_new_element_name()
-                to_assign['material'] = kwargs.pop('material', None)
-                kwargs['_material'] = _DEFAULT_MATERIAL
-            super().__init__(**kwargs)
-            for key, val in to_assign.items():
-                setattr(self, key, val)
-            if not hasattr(self, '_equivalent_drift'):
-                self._equivalent_drift = xt.Drift(length=self.length)
-                self._equivalent_drift.model = 'exact'
-            self.length_front = 250e-9
-            self.length_back = -250e-9
+        to_assign = {}
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('geant4_id', ''.ljust(16))
+            to_assign['name'] = xc.geant4.engine._get_new_element_name()
+            to_assign['material'] = kwargs.pop('material', None)
+            kwargs['_material'] = _DEFAULT_MATERIAL
+        super().__init__(**kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+        if not hasattr(self, '_equivalent_drift'):
+            self._equivalent_drift = xt.Drift(length=self.length)
+            self._equivalent_drift.model = 'exact'
+        self.length_front = 250e-9
+        self.length_back = -250e-9
 
     @property
     def angle(self):
@@ -114,32 +108,16 @@ class Geant4Collimator(BaseCollimator):
         if length != self.length:
             self._equivalent_drift.length = old_length
 
+    @super_if_being_constructed
     def __setattr__(self, name, value):
-        if self._being_constructed():
-            super().__setattr__(name, value)
-            return
         import xcoll as xc
         if name not in self._allowed_fields_when_frozen \
         and xc.geant4.engine.is_running():
             raise ValueError('Engine is running; Geant4Collimator is frozen.')
         super().__setattr__(name, value)
 
-    @contextmanager
-    def _in_constructor(self):
-        super().__setattr__("_constructing", True)
-        try:
-            yield
-        finally:
-            super().__setattr__("_constructing", False)
 
-    def _being_constructed(self):
-        try:
-            constructing = super().__getattribute__("_constructing")
-        except AttributeError:
-            constructing = False
-        return constructing
-
-
+@track_construction
 class Geant4CollimatorTip(Geant4Collimator):
     _xofields = Geant4Collimator._xofields | {
         'tip_thickness': xo.Float64
@@ -164,23 +142,17 @@ class Geant4CollimatorTip(Geant4Collimator):
         _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
     ]
 
-    # def __new__(cls, *args, **kwargs):
-    #     with cls._in_constructor():
-    #         self = super().__new__(cls, *args, **kwargs)
-    #     return self
-
     def __init__(self, **kwargs):
         import xcoll as xc
         if xc.geant4.engine.is_running():
             raise ValueError('Cannot create Geant4CollimatorTip while engine is running.')
-        with self._in_constructor():
-            to_assign = {}
-            if '_xobject' not in kwargs:
-                to_assign['tip_material'] = kwargs.pop('tip_material', None)
-                kwargs['_tip_material'] = _DEFAULT_MATERIAL
-            super().__init__(**kwargs)
-            for key, val in to_assign.items():
-                setattr(self, key, val)
+        to_assign = {}
+        if '_xobject' not in kwargs:
+            to_assign['tip_material'] = kwargs.pop('tip_material', None)
+            kwargs['_tip_material'] = _DEFAULT_MATERIAL
+        super().__init__(**kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
     @property
     def tip_material(self):
@@ -194,6 +166,7 @@ class Geant4CollimatorTip(Geant4Collimator):
             self._tip_material = tip_material
 
 
+@track_construction
 class Geant4Crystal(BaseCrystal):
 
     allow_no_prebuilt_kernel = True
