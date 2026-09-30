@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2025.                 #
+# Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
 import os
@@ -277,10 +277,11 @@ class BaseInterface:
 
     def restore_environment(self):
         if self._old_sys_path:
-            sys.path = self._old_sys_path
+            sys.path[:] = self._old_sys_path
             self._old_sys_path = None
         if self._old_os_env:
-            os.environ = self._old_os_env
+            os.environ.clear()
+            os.environ.update(self._old_os_env)
             self._old_os_env = None
 
     def brute_force_path(self, path):
@@ -343,9 +344,10 @@ class BaseInterface:
             super().__setattr__(key, value)
 
     def __delattr__(self, item):
-        if item in self._paths.keys() or item in self._optional_paths.keys():
-            self.__setattr__(self, f'_{item}', None)
-            self.save()
+        if item in self._paths or item in self._optional_paths:
+            setattr(self, item, None)
+        else:
+            super().__delattr__(item)
 
     def assert_environment_ready(self):
         if not self.initialised:
