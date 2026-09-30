@@ -40,6 +40,7 @@ _manually_add_material_to_db(Carbon175,            'Carbon175',                 
 _manually_add_material_to_db(Carbon180,            'Carbon180',                              fluka_name='CC_1_80')
 _manually_add_material_to_db(Carbon185,            'Carbon185',                              fluka_name='CC_1_85')
 _manually_add_material_to_db(Diamond,              'Diamond')
+_manually_add_material_to_db(Graphite,             'Graphite')
 _manually_add_material_to_db(GraphiteR4550,        'GraphiteR4550',                          fluka_name='GRAR4550')
 _manually_add_material_to_db(CarbonFibreComposite, 'CarbonFibreComposite', short_name='CFC', fluka_name='AC150GPH')
 

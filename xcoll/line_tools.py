@@ -506,10 +506,12 @@ class XcollCollimatorAPI(XcollLineAccessor):
             return aper1, aper2
 
     def prepare_space(self, name, *, s_start, s_end, table=None,
-                      s_tol=1.e-6, to_remove=[]):
+                      s_tol=1.e-6, to_remove=None):
         if table is None:
             table = self.line.get_table()
         tt = table.rows[s_start-s_tol:s_end+s_tol:'s']
+        if to_remove is None:
+            to_remove = []
         for el_name, el_type in zip(tt.name[:-1], tt.element_type[:-1]):
             if (el_type in ('Marker', 'Device', 'ThickSliceDevice')
                 or el_type.startswith('Drift')):

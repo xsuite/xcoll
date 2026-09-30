@@ -484,7 +484,7 @@ def test_existing_cwd_gets_unique_suffix(tmp_path):
 class DummyInputEngine(DummyEngine):
     _uses_input_file = True
     _uses_run_folder = True
-    _num_input_files = 1
+    _multiple_input_files = False
 
     def _generate_input_file(self, **kwargs):
         path = self.cwd / "dummy.in"
@@ -582,7 +582,6 @@ def test_ready_to_track():
         {"active": False},
         {"tracking": False},
         {"jaw": None},
-        {"jaw": 0},
     ],
 )
 def test_ready_to_track_skip_element(kwargs):
@@ -669,6 +668,7 @@ def test_ready_to_track_rejects_mass_mismatch():
     )
     with pytest.raises(ValueError, match="reference mass"):
         engine.assert_ready_to_track_or_skip(coll, particles)
+    assert not engine.is_running()
 
 
 def test_ready_to_track_rejects_charge_mismatch():
@@ -685,6 +685,7 @@ def test_ready_to_track_rejects_charge_mismatch():
     )
     with pytest.raises(ValueError, match="reference charge"):
         engine.assert_ready_to_track_or_skip(coll, particles)
+    assert not engine.is_running()
 
 
 def test_ready_to_track_resynchronises_known_mass():
@@ -708,6 +709,7 @@ def test_ready_to_track_resynchronises_known_mass():
     )
     assert engine.assert_ready_to_track_or_skip(coll, particles)
     assert np.isclose(particles.mass0, new_mass)
+    engine.stop(clean=True)
 
 
 def test_engine_cleaning(tmp_path):

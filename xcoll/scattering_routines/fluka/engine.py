@@ -35,8 +35,8 @@ class FlukaEngine(BaseEngine):
 
     _int32 = True
     _uses_input_file = True
-    _num_input_files = 3
     _uses_run_folder = True
+    _multiple_input_files = True
     _physics_settings_veto_list = ['relative_energy_cut']
 
     _depends_on = [BaseEngine]
@@ -408,6 +408,7 @@ class FlukaEngine(BaseEngine):
     def _all_input_files(self, input_file):
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
             input_file = [input_file]
+        input_file = list(input_file)  # Make a copy to avoid modifying the original list
         for ff in ['insertion.txt','relcol.dat']:
             if ff not in [fff.name for fff in input_file]:
                 input_file.append(input_file[0].parent / ff)

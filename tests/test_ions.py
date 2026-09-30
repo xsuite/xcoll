@@ -15,8 +15,6 @@ import xtrack.particles.pdg as pdg
 import xtrack.particles.masses as xpm
 from  xcoll import constants as xcc
 
-from xobjects.test_helpers import for_all_test_contexts
-
 from _common_api import engine_params
 
 
@@ -24,6 +22,7 @@ path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('Pu-239', p0c=94*7.0e12)
 
 
+@pytest.mark.longtest
 @pytest.mark.parametrize("engine", engine_params)
 def test_ions(engine):
     num_part = 2000
@@ -73,7 +72,7 @@ def test_ions(engine):
     _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_ids)
     assert np.all(A >= 2)
     assert np.all(Z >= 1)
-    assert np.all(A >= Z)
+    assert np.all(A > Z)
 
     # Check masses
     A_from_mass = np.rint(part.mass[mask_children] / xpm.U_MASS_EV).astype(int)

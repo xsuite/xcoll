@@ -30,8 +30,8 @@ class BaseEngine(xo.HybridClass):
     _only_protons = False
     _element_classes = None
     _uses_input_file = False
-    _num_input_files = 1
     _uses_run_folder = False
+    _multiple_input_files = False
     _physics_settings_veto_list = []
 
     _depends_on = [Material, InteractionRecord, xt.RandomUniform,
@@ -259,9 +259,6 @@ class BaseEngine(xo.HybridClass):
         self.seed = None
         self.verbose = False
         self.reset_physics_settings()
-        # Cosmetic/internal counter, but useful to make generated names
-        # deterministic again.
-        self._element_index = 0
         self._reset_engine_settings()
 
 
@@ -288,21 +285,37 @@ class BaseEngine(xo.HybridClass):
         self._tracking_initialised = False
 
         # Resolve input file path before defining cwd
-        if input_file:
-            if not isinstance(input_file, (str,Path)):
-                self.stop()
-                raise ValueError("`input_file` has to be a string or Path!")
-            if self._num_input_files > 1:
-                input_file = [FsPath(f).expanduser().resolve() for f in input_file]
+        if input_file is not None:
+            if self._multiple_input_files:
+                if isinstance(input_file, (str, Path)):
+                    input_file = [input_file]
+                elif not hasattr(input_file, "__iter__"):
+                    self.stop()
+                    raise ValueError(
+                        "`input_file` has to be a path or an iterable of paths!"
+                    )
+                input_file = [
+                    FsPath(f).expanduser().resolve()
+                    for f in input_file
+                ]
                 for f in input_file:
                     if not f.exists():
                         self.stop()
-                        raise ValueError(f"Input file {f} does not exist!")
+                        raise ValueError(
+                            f"Input file {f} does not exist!"
+                        )
             else:
+                if not isinstance(input_file, (str, Path)):
+                    self.stop()
+                    raise ValueError(
+                        "`input_file` has to be a string or Path!"
+                    )
                 input_file = FsPath(input_file).expanduser().resolve()
                 if not input_file.exists():
                     self.stop()
-                    raise ValueError(f"Input file {input_file} does not exist!")
+                    raise ValueError(
+                        f"Input file {input_file} does not exist!"
+                    )
 
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
         self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
@@ -397,7 +410,7 @@ class BaseEngine(xo.HybridClass):
         self._restore_engine_properties(clean=clean)
         self._starting_or_stopping = False
 
-        return new_input_file[0] if self._num_input_files==1 else new_input_file
+        return new_input_file if self._multiple_input_files else new_input_file[0]
 
 
     def assert_particle_ref(self):
@@ -413,8 +426,12 @@ class BaseEngine(xo.HybridClass):
         for attr in _necessary_attributes:
             if not hasattr(coll, attr) or not getattr(coll, attr):
                 missing_attributes = True
-
-        if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
+        if (
+            not coll.active
+            or not coll._tracking
+            or coll.jaw is None
+            or missing_attributes
+        ):
             return False
 
         npart = particles._num_active_particles
@@ -810,7 +827,7 @@ class BaseEngine(xo.HybridClass):
                     new_files.append(self.cwd / file.name)
                 else:
                     new_files.append(file)
-            self._input_file = new_files[0] if self._num_input_files==1 else new_files
+            self._input_file = new_files if self._multiple_input_files else new_files[0]
             self._match_input_file()
         return kwargs
 
@@ -878,7 +895,7 @@ class BaseEngine(xo.HybridClass):
 
     def _all_input_files(self, input_file=None):
         if self._uses_input_file:
-            if self._num_input_files == 1:
+            if not self._multiple_input_files:
                 return [self._input_file]
             else:
                 raise NotImplementedError(f"Need to implement `_all_input_files` for "

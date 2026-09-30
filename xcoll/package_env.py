@@ -273,10 +273,10 @@ class BaseInterface:
         self._old_os_env = os.environ.copy()
 
     def restore_environment(self):
-        if self._old_sys_path:
+        if self._old_sys_path is not None:
             sys.path[:] = self._old_sys_path
             self._old_sys_path = None
-        if self._old_os_env:
+        if self._old_os_env is not None:
             os.environ.clear()
             os.environ.update(self._old_os_env)
             self._old_os_env = None
@@ -295,6 +295,9 @@ class BaseInterface:
             num_parents = self._read_only_paths[path]
             path = getattr(self, path)
         path = FsPath(path).resolve()
+        if num_parents is None:
+            # No brute-force required for this path
+            return
         if num_parents > 0:
             path = path.parents[num_parents-1]
         if not path.exists():
@@ -415,7 +418,6 @@ class BaseInterface:
         _, version = self.assert_installed(gcc, program_name='CC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
-            self._gcc_installed = False
             raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
 
     def assert_gxx_installed(self, minimum_version=9, verbose=False):
@@ -423,7 +425,6 @@ class BaseInterface:
         _, version = self.assert_installed(gxx, program_name='CXX', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
-            self._gxx_installed = False
             raise RuntimeError(f"Need gxx {minimum_version} or higher, but found gxx {version}!")
 
     def assert_gfortran_installed(self, minimum_version=9, verbose=False):
@@ -431,7 +432,6 @@ class BaseInterface:
         _, version = self.assert_installed(gfortran, program_name='FC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
-            self._gfortran_installed = False
             raise RuntimeError(f"Need gfortran {minimum_version} or higher, but found gfortran {version}!")
 
     def whoami(self):

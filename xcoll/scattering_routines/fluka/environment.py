@@ -10,13 +10,14 @@ from subprocess import run, PIPE
 
 from ...package_env import BaseInterface
 from ...general import _pkg_root
-from ...xaux import FsPath
+from ...xaux import FsPath, track_construction
 
 
 _FORTRAN_SRC   = (_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').resolve()
 _FEDB_TEMPLATE = (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
+@track_construction
 class FlukaInterface(BaseInterface):
     # The paths to be set. The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
     _paths = {'fluka': 2, 'flukaserver': 1, 'linebuilder': 0}
@@ -27,6 +28,7 @@ class FlukaInterface(BaseInterface):
         super().__init__()
         # Initialize the FEDB
         self._init_fedb()
+        self.save()
 
     @property
     def fedb(self):

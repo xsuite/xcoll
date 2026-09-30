@@ -9,9 +9,10 @@ from subprocess import run
 
 from ...package_env import BaseInterface
 from ...general import _pkg_root
-from ...xaux import FsPath
+from ...xaux import FsPath, track_construction
 
 
+@track_construction
 class Geant4Interface(BaseInterface):
     _read_only_paths = {'bdsim': 0, 'geant4': 0}
 
@@ -41,6 +42,7 @@ class Geant4Interface(BaseInterface):
                 if path.exists():
                     self._bdsim = path
                     self._bdsim_sourced = True
+        self.save()
 
     @property
     def compiled(self):

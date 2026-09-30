@@ -148,9 +148,7 @@ class FlukaCollimator(BaseCollimator):
         material = _resolve_material(material, ref='fluka',
                                         allow_none=False)
         if self.material != material:
-            self.assembly = create_generic_assembly(length=self.length,
-                            material=material, side=self.side,
-                            width=self.width, height=self.height)
+            self._rebuild_generic_assembly(material=material)
 
     @property
     def height(self):
@@ -163,9 +161,7 @@ class FlukaCollimator(BaseCollimator):
         if self.assembly.fedb_series != 'generic':
             raise ValueError('Cannot change height of non-generic '
                                 'assembly!')
-        self.assembly = create_generic_assembly(length=self.length,
-                        material=self.material, side=self.side,
-                        width=self.width, height=height)
+        self._rebuild_generic_assembly(height=height)
 
     @property
     def width(self):
@@ -178,9 +174,7 @@ class FlukaCollimator(BaseCollimator):
         if self.assembly.fedb_series != 'generic':
             raise ValueError('Cannot change width of non-generic '
                                 'assembly!')
-        self.assembly = create_generic_assembly(length=self.length,
-                        material=self.material, side=self.side,
-                        width=width, height=self.height)
+        self._rebuild_generic_assembly(width=width)
     @property
     def side(self):
         if self.assembly is not None:
@@ -192,9 +186,7 @@ class FlukaCollimator(BaseCollimator):
         if self.assembly.fedb_series != 'generic':
             raise ValueError('Cannot change side of non-generic assembly!')
         side = self._get_side_from_input(side)
-        self.assembly = create_generic_assembly(material=self.material,
-                        side=side, length=self.length, width=self.width,
-                        height=self.height)
+        self._rebuild_generic_assembly(side=side)
 
     @property
     def tip_thickness(self):
@@ -210,10 +202,7 @@ class FlukaCollimator(BaseCollimator):
         if self.tip_material is None and tip_thickness is not None:
             raise ValueError('Cannot set tip_thickness without '
                                 'tip_material!')
-        self.assembly = create_generic_assembly(material=self.material,
-                    side=self.side, length=self.length, width=self.width,
-                    height=self.height, tip_thickness=tip_thickness,
-                    tip_material=self.tip_material)
+        self._rebuild_generic_assembly(tip_thickness=tip_thickness)
 
     @property
     def tip_material(self):
@@ -232,10 +221,8 @@ class FlukaCollimator(BaseCollimator):
         tip_material = _resolve_material(tip_material, ref='fluka',
                                             allow_none=False)
         if self.tip_material != tip_material:
-            self.assembly = create_generic_assembly(material=self.material,
-                    side=self.side, length=self.length, width=self.width,
-                    height=self.height, tip_thickness=self.tip_thickness,
-                    tip_material=tip_material)
+            self._rebuild_generic_assembly(tip_material=tip_material)
+
 
     @property
     def assembly(self):
@@ -281,6 +268,7 @@ class FlukaCollimator(BaseCollimator):
             if self.assembly.side is not None:
                 self._get_side_from_input(self.assembly.side)
 
+
     @property
     def record_impacts(self):
         return BaseBlock.record_impacts.fget(self)
@@ -317,6 +305,7 @@ class FlukaCollimator(BaseCollimator):
         else:
             return BaseBlock.record_scatterings.fset(self, val)
 
+
     def enable_scattering(self):
         import xcoll as xc
         xc.fluka.interface.assert_environment_ready()
@@ -346,6 +335,21 @@ class FlukaCollimator(BaseCollimator):
         self._equivalent_drift.track(particles)
         if length != self.length:
             self._equivalent_drift.length = old_length
+
+
+    def _rebuild_generic_assembly(self, **overrides):
+        kwargs = dict(
+            length=self.length,
+            material=self.material,
+            side=self.side,
+            width=self.width,
+            height=self.height,
+            tip_thickness=self.tip_thickness,
+            tip_material=self.tip_material,
+        )
+        kwargs.update(overrides)
+        self.assembly = create_generic_assembly(**kwargs)
+
 
     @super_if_being_constructed
     def __setattr__(self, name, value):
@@ -497,11 +501,7 @@ class FlukaCrystal(BaseCrystal):
         material = _resolve_material(material, ref='fluka',
                                         allow_none=False)
         if self.material != material:
-            self.assembly = create_generic_assembly(is_crystal=True,
-                            length=self.length, material=material,
-                            side=self.side, width=self.width,
-                            height=self.height,
-                            bending_radius=self.bending_radius)
+            self._rebuild_generic_assembly(material=material)
 
     @property
     def height(self):
@@ -513,10 +513,7 @@ class FlukaCrystal(BaseCrystal):
         if self.assembly.fedb_series != 'generic':
             raise ValueError('Cannot change height of non-generic '
                                 'assembly!')
-        self.assembly = create_generic_assembly(is_crystal=True,
-                        length=self.length, material=self.material,
-                        side=self.side, width=self.width, height=height,
-                        bending_radius=self.bending_radius)
+        self._rebuild_generic_assembly(height=height)
 
     @property
     def width(self):
@@ -528,10 +525,7 @@ class FlukaCrystal(BaseCrystal):
         if self.assembly.fedb_series != 'generic':
             raise ValueError('Cannot change width of non-generic '
                                 'assembly!')
-        self.assembly = create_generic_assembly(is_crystal=True,
-                        length=self.length, material=self.material,
-                        side=self.side, width=width, height=self.height,
-                        bending_radius=self.bending_radius)
+        self._rebuild_generic_assembly(width=width)
 
     @property
     def side(self):
@@ -545,10 +539,7 @@ class FlukaCrystal(BaseCrystal):
             raise ValueError('Cannot change side of non-generic '
                                 'assembly!')
         side = self._get_side_from_input(side)
-        self.assembly = create_generic_assembly(is_crystal=True,
-                        length=self.length, material=self.material,
-                        side=side, width=self.width, height=self.height,
-                        bending_radius=self.bending_radius)
+        self._rebuild_generic_assembly(side=side)
 
     @property
     def bending_radius(self):
@@ -562,11 +553,7 @@ class FlukaCrystal(BaseCrystal):
             raise ValueError('Cannot change bending radius of non-generic '
                                 'assembly!')
         self._get_bending_angle_from_radius(bending_radius) # To set internal fields correctly
-        self.assembly = create_generic_assembly(is_crystal=True,
-                        length=self.length, material=self.material,
-                        side=self.side, width=self.width,
-                        height=self.height,
-                        bending_radius=bending_radius)
+        self._rebuild_generic_assembly(bending_radius=bending_radius)
 
     @property
     def bending_angle(self):
@@ -586,9 +573,9 @@ class FlukaCrystal(BaseCrystal):
 
     @assembly.setter
     def assembly(self, assembly):
+        if assembly and not assembly.is_crystal:
+            raise ValueError('Assembly is not a crystal assembly!')
         FlukaCollimator.assembly.fset(self, assembly)
-        if self.assembly and not self.assembly.is_crystal:
-            raise ValueError('Assigned assembly is not a crystal assembly!')
 
     @property
     def record_impacts(self):
@@ -626,6 +613,21 @@ class FlukaCrystal(BaseCrystal):
 
     def _drift(self, particles, length=None):
         return FlukaCollimator._drift(self, particles, length)
+
+
+    def _rebuild_generic_assembly(self, **overrides):
+        kwargs = dict(
+            is_crystal=True,
+            length=self.length,
+            material=self.material,
+            side=self.side,
+            width=self.width,
+            height=self.height,
+            bending_radius=self.bending_radius,
+        )
+        kwargs.update(overrides)
+        self.assembly = create_generic_assembly(**kwargs)
+
 
     @super_if_being_constructed
     def __setattr__(self, name, value):

@@ -671,6 +671,7 @@ def test_crystal_material_creation():
     # TODO
     pass
 
+
 @pytest.mark.xcother
 def test_adapt():
     mat = Material(A=12.01, Z=6, density=2.265, name='AdaptMAT')
@@ -697,6 +698,7 @@ def test_adapt():
     with pytest.raises(ValueError, match="Cannot adapt A inplace"):
         adapted.adapt(inplace=True, A=13.0)
 
+
 @pytest.mark.xcother
 def test_db():
     # Create a material that is not in the database
@@ -720,3 +722,11 @@ def test_db():
     assert this_mat_geant4 in mdb.values()
     assert this_mat_geant4 not in mdb.fluka.values()
     assert this_mat_geant4 in mdb.geant4.values()
+
+
+@pytest.mark.xcother
+def test_carbon_values():
+    assert xc.materials.Carbon.excitation_energy == 78
+    assert xc.materials.Graphite.excitation_energy == 81
+    assert xc.materials.Diamond.excitation_energy == 88.5
+    assert xc.materials.CarbonFibreComposite.excitation_energy == 81

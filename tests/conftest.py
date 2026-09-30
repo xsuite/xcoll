@@ -42,11 +42,13 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True)
 def reset_engines():
-    xc.fluka.engine.reset(clean=True)
-    xc.geant4.engine.reset(clean=True)
+    for wrapper in (xc.fluka, xc.geant4):
+        if wrapper._engine is not None:
+            wrapper._engine.reset(clean=True)
     yield
-    xc.fluka.engine.reset(clean=True)
-    xc.geant4.engine.reset(clean=True)
+    for wrapper in (xc.fluka, xc.geant4):
+        if wrapper._engine is not None:
+            wrapper._engine.reset(clean=True)
 
 
 @pytest.fixture
