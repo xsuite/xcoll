@@ -373,39 +373,60 @@ USERWEIG                             3.0
     explicit_return = return_list._extra_pdg_ids_to_return
     covered_ids = set(_FLUKA_PDG_IDS.values())
 
-    uncovered_explicit = [pid for pid in explicit_return
-                          if pid not in covered_ids and not is_ion(pid)]
-    if len(uncovered_explicit) > 0:
-        print("WARNING: The following explicitly requested PDG IDs are not "
-              "covered by the FLUKA scoring include file:\n"
-              + ", ".join(str(pid) for pid in uncovered_explicit)
-              + "Changed to return_all=True to ensure they are returned, if "
-                "they are produced in the simulation."
-        )
-        return_all = True
-
     # Find explicitly requested particles for which there is no dedicated FLUKA
     # scorer. Ions are handled through HEAVYION. Charged particles are also
     # already covered when ALL-CHAR is active.
     uncovered_explicit = []
-    for pdg_id in explicit_return:
-        if is_ion(pdg_id):
-            continue
-        if pdg_id in covered_ids:
-            continue
-        if return_all_charged:
-            charge = get_properties_from_pdg_id(pdg_id)[0]
-            if abs(charge) > 1.e-12:
+    uncovered_explicit_charged = []
+    uncovered_explicit_neutral = []
+    if not return_all:
+        for pdg_id in explicit_return:
+            if is_ion(pdg_id):
                 continue
-        uncovered_explicit.append(pdg_id)
+            if pdg_id in covered_ids:
+                continue
+            try:
+                charge = get_properties_from_pdg_id(pdg_id)[0]
+            except ValueError:
+                uncovered_explicit.append(pdg_id)
+            else:
+                if abs(charge) > 1.e-12:
+                    if return_all_charged:
+                        continue
+                    uncovered_explicit_charged.append(pdg_id)
+                else:
+                    uncovered_explicit_neutral.append(pdg_id)
+    fallback_to_all_charged = len(uncovered_explicit_charged) > 0
+    fallback_to_all_neutral = len(uncovered_explicit_neutral) > 0
     fallback_to_all = len(uncovered_explicit) > 0
+    fallback_to_all |= fallback_to_all_charged and fallback_to_all_neutral
     score_all = return_all or fallback_to_all
+    score_all_charged = return_all_charged or fallback_to_all_charged
+    score_all_neutral = fallback_to_all_neutral
 
     if fallback_to_all:
+        pids  = uncovered_explicit + uncovered_explicit_charged
+        pids += uncovered_explicit_neutral
         warn("The following explicitly requested PDG IDs do not have "
             "dedicated FLUKA scoring cards: "
-            + ", ".join(str(pid) for pid in sorted(uncovered_explicit))
+            + ", ".join(str(pid) for pid in sorted(pids))
             + ". Falling back to ALL-PART scoring; the normal "
+              "PhysicsSettingsHelper mask will filter the returned "
+              "particles afterwards.", RuntimeWarning, stacklevel=2)
+    elif fallback_to_all_charged:
+        pids = uncovered_explicit_charged
+        warn("The following explicitly requested PDG IDs do not have "
+            "dedicated FLUKA scoring cards: "
+            + ", ".join(str(pid) for pid in sorted(pids))
+            + ". Falling back to ALL-CHAR scoring; the normal "
+              "PhysicsSettingsHelper mask will filter the returned "
+              "particles afterwards.", RuntimeWarning, stacklevel=2)
+    elif fallback_to_all_neutral:
+        pids = uncovered_explicit_neutral
+        warn("The following explicitly requested PDG IDs do not have "
+            "dedicated FLUKA scoring cards: "
+            + ", ".join(str(pid) for pid in sorted(pids))
+            + ". Falling back to ALL-NEUT scoring; the normal "
               "PhysicsSettingsHelper mask will filter the returned "
               "particles afterwards.", RuntimeWarning, stacklevel=2)
 
@@ -415,14 +436,18 @@ USRBDX          99.0  ALL-PART     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
 
     else:
-        if return_all_charged:
+        if score_all_charged:
             template += f"""\
 USRBDX          99.0  ALL-CHAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+        if score_all_neutral:
+            template += f"""\
+USRBDX          99.0  ALL-NEUT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
 
         for fluka_name, pdg_id in _FLUKA_PDG_IDS.items():
             # Charged particles are already covered by ALL-CHAR.
-            if return_all_charged:
+            if score_all_charged:
                 charge = get_properties_from_pdg_id(pdg_id)[0]
                 if abs(charge) > 1.e-12:
                     continue
@@ -451,7 +476,7 @@ USRBDX          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
             is_ion(pdg_id) and pdg_id not in light_ion_pdg_ids
             for pdg_id in return_list._extra_pdg_ids_to_return
         )
-        if not return_all_charged and (return_list.return_ions or explicit_heavy_ion):
+        if not score_all_charged and (return_list.return_ions or explicit_heavy_ion):
             template += f"""\
 USRBDX          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """

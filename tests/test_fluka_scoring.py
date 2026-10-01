@@ -456,36 +456,30 @@ def test_return_all_charged_with_explicit_kill_still_uses_all_char(
     assert not settings.pdg_id_is_returned(411)
 
 
+@pytest.mark.parametrize(
+    "pdg_id,score",
+    [
+        (2114, "ALL-NEUT"),   # Delta0 is known to Xtrack
+        (2224, "ALL-CHAR"),   # Delta++ is known to Xtrack
+        (521,  "ALL-PART"),   # B+ is unknown to Xtrack (so we cannot deduce the charge)
+    ],
+)
 def test_unrepresented_explicit_pdg_falls_back_to_all_part(
     tmp_path,
     monkeypatch,
     settings,
+    pdg_id,
+    score
 ):
-    # J/psi is a valid neutral PDG particle but has no dedicated
-    # scorer in the Xcoll FLUKA scoring table.
-    pdg_id = 443
     assert pdg_id not in FLUKA_NAME_TO_PDG.values()
     settings.return_none = True
     settings.return_pdg_id(pdg_id)
-    with pytest.warns(RuntimeWarning, match="443"):
+    with pytest.warns(RuntimeWarning, match=str(pdg_id)):
         text = _generate_scoring(tmp_path, monkeypatch, settings)
-    assert _active_usrbdx_particles(text) == {"ALL-PART"}
-    # The fallback is only a FLUKA implementation detail; it must not
-    # modify the user's physics settings.
+    assert _active_usrbdx_particles(text) == {score}
     assert not settings.return_all
-    assert settings.pdg_id_is_returned(pdg_id)
-
-
-def test_unrepresented_charged_pdg_is_covered_by_all_char(
-    tmp_path,
-    monkeypatch,
-    settings,
-):
-    # B+ is charged and not represented by a dedicated scorer.
-    pdg_id = 521
-    assert pdg_id not in FLUKA_NAME_TO_PDG.values()
-    settings.return_all_charged = True
-    settings.return_pdg_id(pdg_id)
-    text = _generate_scoring(tmp_path, monkeypatch, settings)
-    assert _active_usrbdx_particles(text) == {"ALL-CHAR"}
-    assert settings.pdg_id_is_returned(pdg_id)
+    assert not settings.return_all_charged
+    try:
+        assert settings.pdg_id_is_returned(pdg_id)
+    except ValueError:
+        assert settings.pdg_id_is_returned(pdg_id, 1)

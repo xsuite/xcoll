@@ -301,10 +301,15 @@ class PhysicsSettingsHelper:
         self._extra_pdg_ids_to_kill.update(pdg_id)
         self._extra_pdg_ids_to_return -= pdg_id
 
-    def pdg_id_is_returned(self, pdg_id):
+    def pdg_id_is_returned(self, pdg_id, q_new=None):
         scalar = np.ndim(pdg_id) == 0
         pdg_id = np.atleast_1d(np.asarray(pdg_id, dtype=np.int64))
-        q_new = pdg.get_properties_from_pdg_id(pdg_id)[0]
+        if q_new is None:
+            try:
+                q_new = pdg.get_properties_from_pdg_id(pdg_id)[0]
+            except ValueError:
+                raise ValueError(f"Could not get charge for PDG ID {pdg_id}. "
+                                 f"Please provide `q_new` explicitly.")
         mask = self.mask_particle_return_types(pdg_id, q_new)
         if scalar:
             return bool(mask[0])
