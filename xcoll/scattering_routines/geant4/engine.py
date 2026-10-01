@@ -79,7 +79,6 @@ class Geant4Engine(BaseEngine):
             else:
                 val = True
         elif not isinstance(val, bool):
-            self.stop()
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
@@ -93,12 +92,18 @@ class Geant4Engine(BaseEngine):
         self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
+
+    def _reset_engine_settings(self):
+        self.reentry_protection_enabled = None
+
+
     def _pre_input(self, **kwargs):
         coll_id = 1
         for el in self._element_dict.values():
             el.geant4_id = f'XcollG4.{coll_id}'  # TODO: will be provided by new BDSIM interface
             coll_id += 1
         return kwargs
+
 
     def _generate_input_file(self, **kwargs):
         input_file, kwargs = create_bdsim_config_file(element_dict=self._element_dict,
@@ -107,6 +112,7 @@ class Geant4Engine(BaseEngine):
         # The only thing left in kwargs are parameters to start the engine
         return input_file, kwargs
 
+
     def _start_engine(self, **kwargs):
         from ...beam_elements import BaseCrystal, Geant4CollimatorTip
 
@@ -114,7 +120,7 @@ class Geant4Engine(BaseEngine):
         try:
             from g4interface import XtrackInterface
         except (ModuleNotFoundError, ImportError) as error:
-            self.stop(clean=True)
+            self.stop()
             self._warn(error)
             return
 
@@ -204,6 +210,7 @@ class Geant4Engine(BaseEngine):
     def _is_running(self):
         return self._g4link is not None
 
+
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is None or input_file is None:
             return []
@@ -217,13 +224,13 @@ class Geant4Engine(BaseEngine):
                            'root.err']
         return [cwd / f for f in files_to_delete]
 
+
     def _match_input_file(self):
         # Read the elements in the input file and compare to the elements in the engine,
         # overwriting parameters where necessary
         input_dict = get_collimators_from_input_file(self.input_file)
         for name in input_dict:
             if name not in self._element_dict:
-                self.stop()
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
             from ...beam_elements import Geant4CollimatorTip
@@ -244,17 +251,14 @@ class Geant4Engine(BaseEngine):
                 ee.angle = input_dict[name]['angle']
             if ee.material.geant4_name != input_dict[name]['material'] \
             and ee.material.name != input_dict[name]['material']:
-                self.stop()
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
             if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
                 if not isinstance(ee, Geant4CollimatorTip):
-                    self.stop()
                     raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
                                     + "in the line, but it has tip material in the input file!")
                 if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
-                    self.stop()
                     raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
                                     + "but it has no tip material in the input file!")
                 if ee.tip_material.geant4_name != input_dict[name]['tip_material']:

@@ -17,11 +17,7 @@ from .physics_settings import PhysicsSettingsHelper
 from ..materials import Material
 from ..interaction_record import InteractionRecord
 from ..compare import deep_equal
-try:
-    # TODO: once xaux is in Xsuite keep only this
-    from xaux import FsPath, ranID
-except (ImportError, ModuleNotFoundError):
-    from ..xaux import FsPath, ranID
+from ..xaux import FsPath, ranID
 
 
 class BaseEngine(xo.HybridClass):
@@ -34,8 +30,8 @@ class BaseEngine(xo.HybridClass):
     _only_protons = False
     _element_classes = None
     _uses_input_file = False
-    _num_input_files = 1
     _uses_run_folder = False
+    _multiple_input_files = False
     _physics_settings_veto_list = []
 
     _depends_on = [Material, InteractionRecord, xt.RandomUniform,
@@ -71,7 +67,6 @@ class BaseEngine(xo.HybridClass):
                 + f"(did you compile?).\n{self.name.capitalize()} elements can be installed "
                 + f"but are not trackable.", flush=True)
             self._warning_given = True
-        self.stop()
         if error:
             raise error
 
@@ -116,7 +111,6 @@ class BaseEngine(xo.HybridClass):
     @line.setter
     def line(self, val):
         if not val is None and not isinstance(val, xt.Line):
-            self.stop()
             raise ValueError("`line` has to be an xt.Line object!")
         self._line = val
 
@@ -141,26 +135,21 @@ class BaseEngine(xo.HybridClass):
             if isinstance(val, xt.line.LineParticleRef):
                 val = val._resolved
             if not isinstance(val, xt.Particles):
-                self.stop()
                 raise ValueError("`particle_ref` has to be an xt.Particles object!")
             if val._capacity > 1:
-                self.stop()
                 raise ValueError("`particle_ref` has to be a single particle!")
             pdg_id = val.pdg_id[0]
             if pdg_id == 0:
                 if self._only_protons:
                     pdg_id = pdg.get_pdg_id_from_name('proton')
                 else:
-                    self.stop()
                     raise ValueError(f"{self.__class__.__name__} allows the use of particles "
                                    + f"different than protons. Hence, `particle_ref` "
                                    + f"needs to have a valid pdg_id.")
             elif self._only_protons and pdg_id != pdg.get_pdg_id_from_name('proton'):
-                self.stop()
                 raise ValueError("{self.__class__.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
-        self._physics_settings.update()
 
     @particle_ref.deleter
     def particle_ref(self):
@@ -178,7 +167,6 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = 0
         if not isinstance(val, Number) or val < 0:
-            self.stop()
             raise ValueError("`seed` has to be a positive integer!")
         val = int(val)
         if self._int32:
@@ -223,12 +211,15 @@ class BaseEngine(xo.HybridClass):
         return self.relative_capacity
 
     def __getattr__(self, name):
-        if name != '_physics_settings' and hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
+        if name != '_physics_settings' and hasattr(self, '_physics_settings') \
+        and name in self._physics_settings.all_flags:
             return getattr(self._physics_settings, name)
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        raise AttributeError(f"'{self.__class__.__name__}' object has no "
+                             f"attribute '{name}'")
 
     def __setattr__(self, name, value):
-        if hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
+        if hasattr(self, '_physics_settings') \
+        and name in self._physics_settings.all_flags:
             return setattr(self._physics_settings, name, value)
         return super().__setattr__(name, value)
 
@@ -241,6 +232,27 @@ class BaseEngine(xo.HybridClass):
 
     def reset_physics_settings(self):
         return self._physics_settings.reset()
+
+    def return_pdg_id(self, pdg_id):
+        return self._physics_settings.return_pdg_id(pdg_id)
+
+    def dont_return_pdg_id(self, pdg_id):
+        return self._physics_settings.dont_return_pdg_id(pdg_id)
+
+    def pdg_id_is_returned(self, pdg_id):
+        return self._physics_settings.pdg_id_is_returned(pdg_id)
+
+
+    def reset(self, *, clean=False):
+        # Stop any running backend and restore temporary start() overrides.
+        self.stop(clean=clean)
+        # Persistent BaseEngine configuration.
+        self.line = None
+        self.particle_ref = None
+        self.seed = None
+        self.verbose = False
+        self.reset_physics_settings()
+        self._reset_engine_settings()
 
 
     def start(self, *, clean=True, input_file=None, **kwargs):
@@ -260,43 +272,69 @@ class BaseEngine(xo.HybridClass):
         if self.verbose:
             print("", flush=True)
 
-        kwargs = self._pre_start(**kwargs)
+        try:
+            kwargs = self._pre_start(**kwargs)
 
-        # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
-        self._tracking_initialised = False
+            # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
+            self._tracking_initialised = False
 
-        # Resolve input file path before defining cwd
-        if input_file:
-            if not isinstance(input_file, (str,Path)):
+            # Resolve input file path before defining cwd
+            if input_file is not None:
+                if self._multiple_input_files:
+                    if isinstance(input_file, (str, Path)):
+                        input_file = [input_file]
+                    elif not hasattr(input_file, "__iter__"):
+                        raise ValueError(
+                            "`input_file` has to be a path or an iterable of paths!"
+                        )
+                    input_file = [
+                        FsPath(f).expanduser().resolve()
+                        for f in input_file
+                    ]
+                    for f in input_file:
+                        if not f.exists():
+
+                            raise ValueError(
+                                f"Input file {f} does not exist!"
+                            )
+                else:
+                    if not isinstance(input_file, (str, Path)):
+                        raise ValueError(
+                            "`input_file` has to be a string or Path!"
+                        )
+                    input_file = FsPath(input_file).expanduser().resolve()
+                    if not input_file.exists():
+                        raise ValueError(
+                            f"Input file {input_file} does not exist!"
+                        )
+
+            # Set all engine properties that have a setter (this will remove these properties from the kwargs)
+            self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
+            try:
+                kwargs = self._set_engine_properties(**kwargs)
+
+                # Do some preparations before creating the input file if needed
+                kwargs = self._pre_input(**kwargs)
+
+                # Create input file if needed (this will remove the kwargs relevant to the input file and physics)
+                kwargs = self._use_input_file(input_file, **kwargs)
+                if clean:
+                    self.clean_input_files(clean_all=False)
+            finally:
+                self._starting_or_stopping = False
+
+            # Start the engine in the ChildEngine
+            self._start_engine(**kwargs)
+
+        except BaseException as error:
+            try:
                 self.stop()
-                raise ValueError("`input_file` has to be a string or Path!")
-            if self._num_input_files > 1:
-                input_file = [FsPath(f).expanduser().resolve() for f in input_file]
-                for f in input_file:
-                    if not f.exists():
-                        self.stop()
-                        raise ValueError(f"Input file {f} does not exist!")
-            else:
-                input_file = FsPath(input_file).expanduser().resolve()
-                if not input_file.exists():
-                    self.stop()
-                    raise ValueError(f"Input file {input_file} does not exist!")
-
-        # Set all engine properties that have a setter (this will remove these properties from the kwargs)
-        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
-        kwargs = self._set_engine_properties(**kwargs)
-
-        # Do some preparations before creating the input file if needed
-        kwargs = self._pre_input(**kwargs)
-
-        # Create input file if needed (this will remove the kwargs relevant to the input file and physics)
-        kwargs = self._use_input_file(input_file, **kwargs)
-        if clean:
-            self.clean_input_files(clean_all=False)
-        self._starting_or_stopping = False
-
-        # Start the engine in the ChildEngine
-        self._start_engine(**kwargs)
+            except BaseException as cleanup_error:
+                error.add_note(
+                    "Engine cleanup after failed start also failed: "
+                    f"{cleanup_error!r}"
+                )
+            raise
 
         # Done starting
         if self.verbose:
@@ -304,16 +342,21 @@ class BaseEngine(xo.HybridClass):
         else:
             print(f"Done.", flush=True)
 
+
     def stop(self, clean=False, **kwargs):
-        kwargs = self._stop_engine(**kwargs)
-        if clean:
-            self.clean(clean_all=True, **kwargs)
-        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
-        self._restore_engine_properties(clean=clean)
-        self._starting_or_stopping = False
-        self._warning_given = False
-        self._tracking_initialised = False
-        self.interface.restore_environment()
+        try:
+            kwargs = self._stop_engine(**kwargs)
+            if clean:
+                self.clean(clean_all=True, **kwargs)
+        finally:
+            try:
+                self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
+                self._restore_engine_properties(clean=clean)
+            finally:
+                self._starting_or_stopping = False
+                self._warning_given = False
+                self._tracking_initialised = False
+
 
     def is_running(self):
         if hasattr(self, '_starting_or_stopping') and self._starting_or_stopping:
@@ -327,10 +370,9 @@ class BaseEngine(xo.HybridClass):
     def generate_input_file(self, *, clean=True, filename=None, **kwargs):
         '''This method manually generates an input file without starting the engine'''
         if not self._uses_input_file:
-            self.stop()
             raise ValueError(f"{self.__class__.__name__} does not use input files!")
+
         if self._element_dict:
-            self.stop()
             raise ValueError("Elements already assigned to engine (cannot regenerate input "
                            + "file after starting engine)!")
 
@@ -341,46 +383,54 @@ class BaseEngine(xo.HybridClass):
                 + "Generating temporary folder instead.")
             kwargs.pop('cwd')
         self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
-        kwargs = self._set_engine_properties(**kwargs)
+        try:
+            kwargs = self._set_engine_properties(**kwargs)
 
-        # Do some preparations before creating the input file if needed
-        kwargs = self._pre_input(**kwargs)
+            # Do some preparations before creating the input file if needed
+            kwargs = self._pre_input(**kwargs)
 
-        # Create input file
-        input_file, _ = self._generate_input_file(**kwargs)
-        if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
-            # Some engines might create multiple input files (like Fluka)
-            input_file = [input_file]
+            # Create input file
+            input_file, _ = self._generate_input_file(**kwargs)
+            if not hasattr(input_file, '__iter__') or isinstance(input_file, (str, Path)):
+                # Some engines might create multiple input files (like Fluka)
+                input_file = [input_file]
 
-        # Move input file to desired location
-        if filename is None:
-            if input_file[0].parent != FsPath.cwd():
-                new_input_file = [input_file[0].rename(Path.cwd() / input_file[0].name)]
+            input_file = [FsPath(path) for path in input_file]
+
+            # Move input file to desired location
+            if filename is None:
+                if input_file[0].parent != FsPath.cwd():
+                    new_input_file = [input_file[0].rename(Path.cwd() / input_file[0].name)]
+                else:
+                    new_input_file = [input_file[0]]
             else:
-                new_input_file = [input_file[0]]
-        else:
-            new_input_file = [input_file[0].rename(filename)]
-        for file in input_file[1:]:
-            if file.parent != new_input_file[0].parent:
-                new_input_file.append(file.rename(new_input_file[0].parent / file.name))
-            else:
-                new_input_file.append(file)
+                new_input_file = [input_file[0].rename(filename)]
+            for file in input_file[1:]:
+                if file.parent != new_input_file[0].parent:
+                    new_input_file.append(file.rename(new_input_file[0].parent / file.name))
+                else:
+                    new_input_file.append(file)
 
-        # Clean up
-        if clean:
-            if input_file[0].parent == new_input_file[0].parent:
-                self.clean_input_files(clean_all=False, input_file=input_file)
-            else:
-                self.clean_input_files(clean_all=True, input_file=input_file)
-        self._restore_engine_properties(clean=clean)
-        self._starting_or_stopping = False
+            # Clean up
+            if clean:
+                if input_file[0].parent == new_input_file[0].parent:
+                    self.clean_input_files(clean_all=False, input_file=input_file)
+                else:
+                    self.clean_input_files(clean_all=True, input_file=input_file)
 
-        return new_input_file[0] if self._num_input_files==1 else new_input_file
+            if self._multiple_input_files:
+                return new_input_file
+            return new_input_file[0]
+
+        finally:
+            try:
+                self._restore_engine_properties(clean=clean)
+            finally:
+                self._starting_or_stopping = False
 
 
     def assert_particle_ref(self):
         if self.particle_ref is None:
-            self.stop()
             raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
     def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[], keep_p0c_constant=True):
@@ -391,8 +441,12 @@ class BaseEngine(xo.HybridClass):
         for attr in _necessary_attributes:
             if not hasattr(coll, attr) or not getattr(coll, attr):
                 missing_attributes = True
-
-        if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
+        if (
+            not coll.active
+            or not coll._tracking
+            or coll.jaw is None
+            or missing_attributes
+        ):
             return False
 
         npart = particles._num_active_particles
@@ -514,12 +568,23 @@ class BaseEngine(xo.HybridClass):
         self._sync_line_particle_ref()
         self._get_elements(kwargs.pop('elements', None), kwargs.pop('names', None))
         self._set_cwd(kwargs.pop('cwd', None))
-        # Now we can set the rest of the properties
+        # We store all physics settings raw to avoid losing dynamic defaults
+        self._old_physics_settings = self._physics_settings._get_raw_settings()
         for ff in self._physics_settings.all_flags:
-            self._set_property(ff, kwargs)
+            if ff in kwargs:
+                val = kwargs.pop(ff)
+                setattr(self, ff, val)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
+        # Restore caller-owned temporary particle_ref in place.
+        if hasattr(self, '_temporary_particle_ref'):
+            _overwrite_particles(
+                self._temporary_particle_ref,
+                self._temporary_particle_ref_snapshot,
+            )
+            del self._temporary_particle_ref
+            del self._temporary_particle_ref_snapshot
         # Reset particle_ref in the line
         if hasattr(self, '_old_line_particle_ref'):
             self.line.particle_ref = self._old_line_particle_ref
@@ -527,6 +592,12 @@ class BaseEngine(xo.HybridClass):
         # The following properties have a specific logic
         self._reactivate_elements()
         self._reset_cwd(clean=clean)
+        # Reset physics settings
+        if hasattr(self, '_old_physics_settings'):
+            self._physics_settings._set_raw_settings(
+                self._old_physics_settings
+            )
+            del self._old_physics_settings
         # Reset all other properties
         self_attributes = self.__dict__.copy()
         for kk, vv in self_attributes.items():
@@ -551,21 +622,40 @@ class BaseEngine(xo.HybridClass):
             self.seed = seed
         self._print(f"Using seed {self.seed}.")
 
+    def _resolve_particle_ref(self, particle_ref):
+        if isinstance(particle_ref, xt.line.LineParticleRef):
+            particle_ref = particle_ref._resolved
+        return particle_ref
+
     def _use_particle_ref(self, particle_ref=None, keep_p0c_constant=True):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
+        source_ref = None
         if particle_ref is not None:
-            self._old_particle_ref = self.particle_ref
-            self.particle_ref = particle_ref
+            # Snapshot the persistent engine reference.
+            current_ref = self.particle_ref
+            self._old_particle_ref = (
+                 None if current_ref is None else current_ref.copy()
+            )
+            source_ref = self._resolve_particle_ref(particle_ref)
         elif self.particle_ref is None:
             if self.line is None or not hasattr(self.line, 'particle_ref') \
             or self.line.particle_ref is None:
-                self.stop()
                 raise ValueError("Need to provide either a line with a reference "
                                + "particle, or `particle_ref`.")
-            self._old_particle_ref = self.particle_ref
-            self.particle_ref = self.line.particle_ref
+            self._old_particle_ref = None
+            source_ref = self._resolve_particle_ref(self.line.particle_ref)
+
+        # If the reference originates outside the engine, snapshot the
+        # external object itself. It is updated while the engine is running
+        # and restored in place when the engine stops.
+        if source_ref is not None:
+            self._temporary_particle_ref = source_ref
+            self._temporary_particle_ref_snapshot = source_ref.copy()
+            self.particle_ref = source_ref
+
         self._print(f"Using {pdg.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
                   + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
+
         if self._masses is not None:
             mass = self.particle_ref.mass0
             pdg_id = self.particle_ref.pdg_id[0]
@@ -573,12 +663,16 @@ class BaseEngine(xo.HybridClass):
                 new_mass = self._masses[abs(pdg_id)]
                 if abs(mass-new_mass)/mass > 1.e-12:
                     old_energy0 = self.particle_ref.energy0[0]
-                    self.particle_ref.mass0  = new_mass
+                    self.particle_ref.mass0 = new_mass
                     if keep_p0c_constant:
                         self.particle_ref._update_refs(p0c=self.particle_ref.p0c[0])
                     else:
                         self.particle_ref._update_refs(energy0=old_energy0)
-                    assert np.isclose(self.particle_ref.energy0[0]**2, self.particle_ref.p0c[0]**2 + self.particle_ref.mass0**2)
+                    assert np.isclose(
+                        self.particle_ref.energy0[0]**2,
+                        self.particle_ref.p0c[0]**2
+                        + self.particle_ref.mass0**2
+                    )
                     assert np.isclose(self.particle_ref.mass0, new_mass)
                     self._print(f"Warning: given mass of {mass} eV for "
                             + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from {self.name} "
@@ -592,18 +686,28 @@ class BaseEngine(xo.HybridClass):
                         + f"the {self.name} reference mass is known, contact the devs to "
                         + f"input it in the code.")
 
+        # Propagate all backend normalisations back into the external
+        # source while the engine is running.
+        if hasattr(self, "_temporary_particle_ref"):
+            _overwrite_particles(
+                self._temporary_particle_ref,
+                self.particle_ref,
+            )
+
     def _sync_line_particle_ref(self):
         if self.line is None:
             return
-        if self.line.particle_ref is not None \
-        and not deep_equal(self.line.particle_ref.to_dict(),
-                                     self.particle_ref.to_dict()):
-            self._print("Found different reference particle in line. Temporarily overwritten.")
-            val = self.line.particle_ref
-            if isinstance(val, xt.line.LineParticleRef):
-                val = val._resolved
-            self._old_line_particle_ref = val
+        if self.line.particle_ref is None:
+            return
+        line_ref = self._resolve_particle_ref(self.line.particle_ref)
+        if not deep_equal(line_ref.to_dict(), self.particle_ref.to_dict()):
+            self._print("Found different reference particle in line. "
+                        "Temporarily overwritten.")
+            # Preserve the exact Xtrack binding. This can be a Particles
+            # object or a named particle reference.
+            self._old_line_particle_ref = self.line._particle_ref
             self.line.particle_ref = self.particle_ref
+
 
     def _get_new_element_name(self):
         name = f"{self.name}_el_{self._element_index}"
@@ -612,8 +716,8 @@ class BaseEngine(xo.HybridClass):
 
     def _assert_element(self, element):
         if not isinstance(element, self._element_classes):
-            self.stop()
-            raise ValueError(f"Element {element.name} is not a "
+            name = element.name if hasattr(element, 'name') else str(element)
+            raise ValueError(f"Element {name} is not a "
                             + ", or a ".join([c.__name__ for c in self._element_classes])
                             + ".")
 
@@ -624,29 +728,37 @@ class BaseEngine(xo.HybridClass):
             names = [names]
         if self.line is None:
             if elements is None:
-                self.stop()
                 raise ValueError("Need to provide either `line` or `elements`.")
+            for ee in elements:
+                self._assert_element(ee)
+            explicit_names = names is not None
             if names is None:
                 names = []
                 for ee in elements:
                     if hasattr(ee, 'name') and ee.name:
                         names.append(ee.name)
                     else:
-                        name = self._get_new_element_name()
-                        names.append(name)
-                        ee.name = name
-            elif len(names) == len(elements):
-                for ee, name in zip(elements, names):
-                    if hasattr(ee, 'name'):
-                        if ee.name != name:
-                            self._print(f"Warning: Element name {ee.name} changed to {name}.")
-                            ee.name = name
-            else:
-                self.stop()
-                raise ValueError("Length of `elements` and `names` doesn't match.")
+                        names.append(self._get_new_element_name())
+            elif len(names) != len(elements):
+                raise ValueError(
+                    "Length of `elements` and `names` doesn't match."
+                )
+            # Validate before changing element names or active state.
+            if len(set(names)) != len(names):
+                raise ValueError(
+                    f"Duplicate names found in {self.name} elements: "
+                    f"{names}. Please provide unique names for each "
+                    "element."
+                )
+            # Only now mutate element names.
+            for element, name in zip(elements, names):
+                if hasattr(element, "name"):
+                    if explicit_names and element.name != name:
+                        self._print(f"Warning: Element name "
+                                    f"{element.name} changed to {name}.")
+                    element.name = name
         else:
             if elements is not None:
-                self.stop()
                 raise ValueError("Cannot provide both `line` and `elements`.")
             if names is None:
                 tt = self.line.get_table()
@@ -657,10 +769,19 @@ class BaseEngine(xo.HybridClass):
                 elements = [self.line.get(nn) for nn in names]
             else:
                 elements = [self.line.get(nn) for nn in names]
+            for ee in elements:
+                self._assert_element(ee)
+            # Still before deactivation or other mutation.
+            if len(set(names)) != len(names):
+                raise ValueError(
+                    f"Duplicate names found in {self.name} elements: "
+                    f"{names}. Please provide unique names for each "
+                    "element."
+                )
+
         this_names = []
         this_elements = []
         for ee, name in zip(elements, names):
-            self._assert_element(ee)
             if ee.jaw is None:
                 self._print(f"Warning: Jaw not set for {name}. Ignoring.")
                 self._deactivate_element(ee)
@@ -671,16 +792,11 @@ class BaseEngine(xo.HybridClass):
                 this_names.append(name)
                 this_elements.append(ee)
         if len(this_elements) == 0:
-            self.stop()
             raise ValueError(f"No active {self.name} elements found!")
-        if len(set(this_names)) != len(this_names):
-            self.stop()
-            raise ValueError(f"Duplicate names found in {self.name} elements: {this_names}. "
-                           + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
 
     def _deactivate_element(self, el):
-        self._deactivated_elements[el.name] = [el, el.active or True]
+        self._deactivated_elements[el.name] = [el, el.active]
         if hasattr(el, 'active'):
             el.active = False
         self._remove_element(el)
@@ -693,6 +809,7 @@ class BaseEngine(xo.HybridClass):
             if hasattr(ee, 'active'):
                 ee.active = was_active
 
+
     def _set_cwd(self, cwd=None):
         if self._uses_run_folder:
             if cwd is not None:
@@ -704,7 +821,6 @@ class BaseEngine(xo.HybridClass):
                     while (cwd.parent / f'{cwd.name}_{i:0>4}').exists():
                         i += 1
                         if i > 9999:
-                            self.stop()
                             raise ValueError(f"Too many folders with the same "
                                            + f"name {cwd}!")
                     cwd = cwd.parent / f'{cwd.name}_{i:0>4}'
@@ -737,18 +853,16 @@ class BaseEngine(xo.HybridClass):
             new_files = []
             for file in input_file:
                 if not file.exists():
-                    self.stop()
                     raise ValueError(f"Input file {file.as_posix()} not found!")
                 if file.parent != self.cwd and self._uses_run_folder:
                     if self.cwd is None:
-                        self.stop()
                         raise ValueError("Cannot copy input file to working directory: "
                                        + "working directory not set!")
                     file.copy_to(self.cwd, method='mount')
                     new_files.append(self.cwd / file.name)
                 else:
                     new_files.append(file)
-            self._input_file = new_files[0] if self._num_input_files==1 else new_files
+            self._input_file = new_files if self._multiple_input_files else new_files[0]
             self._match_input_file()
         return kwargs
 
@@ -775,50 +889,6 @@ class BaseEngine(xo.HybridClass):
         else:
             kwargs['cwd'] = FsPath.cwd()
         return kwargs
-
-
-    def _mask_particle_return_types(self, pdg_id, q_new):
-        if self.return_all:
-            # Allow everything and exclude
-            mask_new = np.ones_like(pdg_id, dtype=bool)
-        else:
-            # Allow nothing and include
-            mask_new = np.zeros_like(pdg_id, dtype=bool)
-
-        # General categories
-        mask_new[pdg_id > 1000000000] = self.return_ions
-        # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
-        mask_new[(pdg_id > 0) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
-                              & (pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
-        mask_new[(pdg_id < 0) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
-                              & (-pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
-        # PDG ID of baryons: from XXX. where X != 0 and . is any digit
-        mask_new[(pdg_id > 1000) & (pdg_id < 9000) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
-                                 & (pdg_id // 1000 % 10 != 0)] = self.return_other_baryons    # PDG ID of from XX0X is a diquark
-        mask_new[(pdg_id < -1000) & (pdg_id > -9000) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
-                                  & (-pdg_id // 1000 % 10 != 0)] = self.return_other_baryons
-
-        if not self.return_neutral:
-            # General modifier, has to be before more specific return types,
-            # as other neutral particles might have been specifically activated.
-            mask_new[np.abs(q_new) < 1.e-12] = False
-
-        mask_new[pdg_id == 22] = self.return_photons
-        mask_new[(pdg_id == 11) | (pdg_id == -11)] = self.return_electrons
-        mask_new[(pdg_id == 12) | (pdg_id == -12)] = self.return_electrons and self.return_neutrinos
-        mask_new[(pdg_id == 13) | (pdg_id == -13)] = self.return_muons
-        mask_new[(pdg_id == 14) | (pdg_id == -14)] = self.return_muons and self.return_neutrinos
-        mask_new[(pdg_id == 15) | (pdg_id == -15)] = self.return_tauons
-        mask_new[(pdg_id == 16) | (pdg_id == -16)] = self.return_tauons and self.return_neutrinos
-        mask_new[(pdg_id == 211) | (pdg_id == -211)] = self.return_pions
-        mask_new[(pdg_id == 111)] = self.return_pions and self.return_neutral
-        mask_new[(pdg_id == 321) | (pdg_id == -321)] = self.return_kaons
-        mask_new[(pdg_id == 130) | (pdg_id == -130)] = self.return_kaons and self.return_neutral
-        mask_new[(pdg_id == 310) | (pdg_id == -310)] = self.return_kaons and self.return_neutral
-        mask_new[(pdg_id == 311) | (pdg_id == -311)] = self.return_kaons and self.return_neutral
-        mask_new[(pdg_id == 2212) | (pdg_id == -2212)] = self.return_protons
-        mask_new[(pdg_id == 2112) | (pdg_id == -2112)] = self.return_neutrons
-        return mask_new
 
 
     # =================================================
@@ -860,7 +930,7 @@ class BaseEngine(xo.HybridClass):
 
     def _all_input_files(self, input_file=None):
         if self._uses_input_file:
-            if self._num_input_files == 1:
+            if not self._multiple_input_files:
                 return [self._input_file]
             else:
                 raise NotImplementedError(f"Need to implement `_all_input_files` for "
@@ -880,3 +950,14 @@ class BaseEngine(xo.HybridClass):
     def _pre_input(self, **kwargs):
         # Do some preparations before creating the input file if needed
         return kwargs
+
+    def _reset_engine_settings(self):
+        pass
+
+
+def _overwrite_particles(target, source):
+    """Overwrite all Xobject data in `target` with a copy of `source`.
+    The Python identity of `target` is preserved.
+    """
+    source_copy = source.copy(_context=target._buffer.context)
+    target._reinit_from_xobject(source_copy._xobject)

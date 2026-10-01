@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2025.                 #
+# Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
 import os
@@ -8,6 +8,7 @@ import sys
 import json
 import tempfile
 from subprocess import run, PIPE
+from contextlib import contextmanager
 # try:
 #     from platformdirs import user_config_path, user_data_path
 # except (ImportError, ModuleNotFoundError):
@@ -15,11 +16,7 @@ from subprocess import run, PIPE
 #     user_data_path = None
 
 from .general import _pkg_root
-
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from .xaux import FsPath
+from .xaux import track_construction, FsPath
 
 
 # Xcoll paths can be set via environment variables:
@@ -82,6 +79,7 @@ _data_dir = _select_directory('data')
 _lib_dir = _select_directory('lib')
 
 
+@track_construction
 class BaseInterface:
     _config_dir = _config_dir
     _data_dir = _data_dir
@@ -91,10 +89,7 @@ class BaseInterface:
     _read_only_paths = {}
 
     def __init__(self, *args, **kwargs):
-        self._old_sys_path = None
-        self._old_os_env = None
         self._temp_dir = None
-        self._in_constructor = True
         for path in self._paths.keys():
             setattr(self, f'_{path}', None)
         for path in self._optional_paths.keys():
@@ -103,12 +98,12 @@ class BaseInterface:
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._lib_dir.mkdir(parents=True, exist_ok=True)
         self._config_file = self._config_dir / f'{self.__class__.__name__[:-9].lower()}.config.json'
-        sys.path.append(self._lib_dir.as_posix())
+        lib_dir = self._lib_dir.as_posix()
+        if lib_dir not in sys.path:
+            sys.path.append(lib_dir)
         self.load()
-        self._in_constructor = False
 
     def __del__(self):
-        self.restore_environment()
         if self._temp_dir:
             self._temp_dir.cleanup()
 
@@ -147,11 +142,6 @@ class BaseInterface:
                     res.append(f"    {path:<20} None (read-only)")
                 else:
                     res.append(f"    {path:<20} {value.as_posix()} (read-only)")
-            if self._old_sys_path and self._old_os_env:
-                res.append("")
-                res.append("Custom environment stored:")
-                res.append(f"    sys.path: {self._old_sys_path}")
-                res.append(f"    os.environ: {self._old_os_env}")
         return "\n".join(res)
 
     @property
@@ -271,17 +261,16 @@ class BaseInterface:
         for key, value in data['read_only_paths'].items():
             setattr(self, f'_{key}', FsPath(value) if value else None)
 
-    def store_environment(self):
-        self._old_sys_path = sys.path.copy()
-        self._old_os_env = os.environ.copy()
-
-    def restore_environment(self):
-        if self._old_sys_path:
-            sys.path = self._old_sys_path
-            self._old_sys_path = None
-        if self._old_os_env:
-            os.environ = self._old_os_env
-            self._old_os_env = None
+    @contextmanager
+    def preserve_environment(self):
+        old_sys_path = sys.path.copy()
+        old_os_env = os.environ.copy()
+        try:
+            yield self
+        finally:
+            sys.path[:] = old_sys_path
+            os.environ.clear()
+            os.environ.update(old_os_env)
 
     def brute_force_path(self, path):
         if path is None:
@@ -297,6 +286,9 @@ class BaseInterface:
             num_parents = self._read_only_paths[path]
             path = getattr(self, path)
         path = FsPath(path).resolve()
+        if num_parents is None:
+            # No brute-force required for this path
+            return
         if num_parents > 0:
             path = path.parents[num_parents-1]
         if not path.exists():
@@ -322,19 +314,19 @@ class BaseInterface:
         if key in self._paths.keys() or key in self._optional_paths.keys():
             if value:
                 value = FsPath(value)
-                if not self._in_constructor:
+                if not self._being_constructed():
                     self.brute_force_path(value)
             old_value = getattr(self, f'_{key}', None)
             if value != old_value:
                 super().__setattr__(f'_{key}', value)
-                if not self._in_constructor:
+                if not self._being_constructed():
                     self.save()
         elif key.startswith('_') and key[1:] in self._read_only_paths.keys():
             # Read-only attribute can only be set internally
             old_value = getattr(self, f'_{key}', None)
             if value != old_value:
                 super().__setattr__(key, value)
-                if not self._in_constructor:
+                if not self._being_constructed():
                     self.save()
         elif key in self._read_only_paths.keys():
             raise AttributeError(f"Attribute '{key}' of {self.__class__.__name__} "
@@ -343,9 +335,10 @@ class BaseInterface:
             super().__setattr__(key, value)
 
     def __delattr__(self, item):
-        if item in self._paths.keys() or item in self._optional_paths.keys():
-            self.__setattr__(self, f'_{item}', None)
-            self.save()
+        if item in self._paths or item in self._optional_paths:
+            setattr(self, item, None)
+        else:
+            super().__delattr__(item)
 
     def assert_environment_ready(self):
         if not self.initialised:
@@ -416,7 +409,6 @@ class BaseInterface:
         _, version = self.assert_installed(gcc, program_name='CC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
-            self._gcc_installed = False
             raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
 
     def assert_gxx_installed(self, minimum_version=9, verbose=False):
@@ -424,7 +416,6 @@ class BaseInterface:
         _, version = self.assert_installed(gxx, program_name='CXX', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
-            self._gxx_installed = False
             raise RuntimeError(f"Need gxx {minimum_version} or higher, but found gxx {version}!")
 
     def assert_gfortran_installed(self, minimum_version=9, verbose=False):
@@ -432,7 +423,6 @@ class BaseInterface:
         _, version = self.assert_installed(gfortran, program_name='FC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
-            self._gfortran_installed = False
             raise RuntimeError(f"Need gfortran {minimum_version} or higher, but found gfortran {version}!")
 
     def whoami(self):

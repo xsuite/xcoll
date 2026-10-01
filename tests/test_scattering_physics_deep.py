@@ -15,9 +15,10 @@ import xtrack as xt
 import xcoll as xc
 import xcoll.constants as xcc
 
-from _common_api import old_bdsim, engine_params
+from _common_api import is_old_bdsim, engine_params
 
 
+@pytest.mark.longtest
 @pytest.mark.fluka
 def test_ionisation_loss():
     if xc.fluka.engine.is_running():
@@ -142,6 +143,7 @@ def test_ionisation_loss():
     assert num_outliers_lower_200 < 256 # Expect 200 outliers
 
 
+@pytest.mark.longtest
 @pytest.mark.parametrize("engine", engine_params)
 @pytest.mark.parametrize("log_impacts, mark_scattered_particles", [
                             [False, False],
@@ -252,7 +254,7 @@ def test_deep_physics_check(engine, log_impacts, mark_scattered_particles, runni
     if xcc.VIRTUAL_ENERGY_SEC not in part_mid.state:
         raise ValueError("No secondary virtual energy particles created. Choose a different seed.")
     if xcc.MASSLESS_OR_NEUTRAL not in part_mid.state:
-        if old_bdsim:
+        if is_old_bdsim():
             warn("No massless or neutral particles created.")
         else:
             raise ValueError("No massless or neutral particles created. Choose a different seed.")

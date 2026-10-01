@@ -165,7 +165,8 @@ def track_core(coll, part):
                 spin_z_part=data['spin_z']
     )
     if ret_code < 0:
-        raise RuntimeError(f'FLUKA tracking failed with error code: {ret_code}. Aborting tracking')
+        raise RuntimeError(f'FLUKA tracking (running in {xc.fluka.engine.cwd}) '
+                           f'failed with error code: {ret_code}. Aborting tracking')
 
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
@@ -230,7 +231,7 @@ def track_core(coll, part):
     # ================
     q_new = data['q'][:npart]
     pdg_id = data['pdg_id'][:npart]
-    mask_new &= xc.fluka.engine._mask_particle_return_types(pdg_id, q_new)
+    mask_new &= xc.fluka.engine._physics_settings.mask_particle_return_types(pdg_id, q_new)
 
     if np.any(mask_new):
         # Check that there is enough room in the particles object
@@ -318,7 +319,7 @@ def track_core(coll, part):
         # from the accumulated ionisation loss (as it is accounted for by the child)
         mask_parent_survived = (part.state==1) & (E_children > 0)
         if np.any(mask_parent_survived):
-            if np.any(E_diff[mask_parent_survived] - E_children[mask_parent_survived]) < -precision:
+            if np.any(E_diff[mask_parent_survived] - E_children[mask_parent_survived] < -precision):
                 raise ValueError(f"FLUKA returned children with a surviving parent, however, there "
                                + f"was a larger energy loss than the children energy!")
             coll._acc_ionisation_loss -= np.sum(E_children[mask_parent_survived]*part.weight[mask_parent_survived])

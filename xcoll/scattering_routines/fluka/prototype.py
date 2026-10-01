@@ -5,18 +5,13 @@
 
 import json
 import time
-import numpy as np
 
 import xobjects as xo
-
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 from .environment import format_fluka_float
 from ...beam_elements.base import BaseCollimator
 from ...materials import Material
+from ...xaux import FsPath
 
 
 class FlukaPrototype:
