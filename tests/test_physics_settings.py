@@ -809,3 +809,12 @@ def test_boolean_settings_reject_non_bool(attr):
     with pytest.raises(ValueError):
         setattr(settings, attr, 1)
     assert engine.stop_calls == 1
+
+
+def test_pdg_id_is_returned_does_not_resolve_explicit_unknown_ids():
+    _, settings = make_settings()
+    settings.return_none = True
+    settings.return_pions = True
+    settings.return_pdg_id(443)
+    result = settings.pdg_id_is_returned(np.array([443, 211, 321]))
+    assert np.array_equal(result, [True, True, False])

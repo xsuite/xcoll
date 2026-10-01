@@ -464,7 +464,7 @@ def test_return_all_charged_with_explicit_kill_still_uses_all_char(
         (521,  "ALL-PART"),   # B+ is unknown to Xtrack (so we cannot deduce the charge)
     ],
 )
-def test_unrepresented_explicit_pdg_falls_back_to_all_part(
+def test_unrepresented_explicit_pdg_uses_broad_scorer(
     tmp_path,
     monkeypatch,
     settings,
@@ -480,3 +480,37 @@ def test_unrepresented_explicit_pdg_falls_back_to_all_part(
     assert not settings.return_all
     assert not settings.return_all_charged
     assert settings.pdg_id_is_returned(pdg_id)
+
+
+def test_return_all_charged_plus_unrepresented_neutral_uses_all_part(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    settings.return_all_charged = True
+    settings.return_pdg_id(2114)  # Δ0
+
+    with pytest.warns(RuntimeWarning, match="2114"):
+        text = _generate_scoring(tmp_path, monkeypatch, settings)
+    assert _active_usrbdx_particles(text) == {"ALL-PART"}
+
+
+def test_all_neut_suppresses_dedicated_neutral_scorers(
+    tmp_path,
+    monkeypatch,
+    settings,
+):
+    settings.return_none = True
+    # Requests PIZERO through normal settings.
+    settings.return_pions = True
+    settings.return_neutral = True
+    # Forces ALL-NEUT because Δ0 has no dedicated FLUKA card.
+    settings.return_pdg_id(2114)
+    with pytest.warns(RuntimeWarning, match="2114"):
+        text = _generate_scoring(tmp_path, monkeypatch, settings)
+    scorers = _active_usrbdx_particles(text)
+    assert "ALL-NEUT" in scorers
+    assert "PIZERO" not in scorers
+    # Charged pions still need their explicit scorers.
+    assert "PION+" in scorers
+    assert "PION-" in scorers

@@ -55,7 +55,7 @@ def test_elemental_material_creation():
     assert np.isclose(mat._ZA_mean, 0.4995836802664446)
     assert np.isclose(mat._Z2_eff, 36.0)
     assert np.isclose(mat.radiation_length, 0.18849567315806856)
-    assert np.isclose(mat.excitation_energy, 81.0)
+    assert np.isclose(mat.excitation_energy, 78.0)
     assert mat._radiation_length_set_manually is False
     assert mat._excitation_energy_set_manually is False
     assert mat.nuclear_radius is None
@@ -86,7 +86,7 @@ def test_elemental_material_creation():
         '_atoms_per_volume': np.float64(1.1357326245961699e+29),
         '_num_nucleons_eff': np.float64(3.704356404188558),
         '_radiation_length': np.float64(0.18849567315806856),
-        '_excitation_energy': np.float64(81.0),
+        '_excitation_energy': np.float64(78.0),
         '_nuclear_radius': np.float64(-1.0),
         '_nuclear_elastic_slope': np.float64(-1.0),
         '_cross_section': [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
@@ -123,7 +123,7 @@ def test_elemental_material_creation():
     assert np.isclose(mat._Z2_eff, 36)
     assert np.isclose(mat.density, 2.265)
     assert np.isclose(mat.radiation_length, 0.18849567315806856)
-    assert np.isclose(mat.excitation_energy, 81.0)
+    assert np.isclose(mat.excitation_energy, 78.0)
     assert np.isclose(mat.electron_density, 3.0085632439633638e+23)
     assert np.isclose(mat.plasma_energy, 30.652924826509626)
     assert np.isclose(mat.atoms_per_volume, 1.1357326245961699e+29)
@@ -383,7 +383,7 @@ def test_compound_material_creation():
     assert np.isclose(mat._ZA_mean, 0.5643708350517702)
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
     assert np.isclose(mat.radiation_length, 0.5183349281307253)
-    assert np.isclose(mat.excitation_energy, 61.02615629345832)
+    assert np.isclose(mat.excitation_energy, 59.97236969353444)
     assert mat._radiation_length_set_manually is False
     assert mat._excitation_energy_set_manually is False
     assert mat.nuclear_radius is None
@@ -415,7 +415,7 @@ def test_compound_material_creation():
         '_atoms_per_volume': np.float64(1.0319692250715231e+28),
         '_num_nucleons_eff': np.float64(2.357350095109508),
         '_radiation_length': np.float64(0.5183349281307253),
-        '_excitation_energy': np.float64(61.02615629345832),
+        '_excitation_energy': np.float64(59.97236969353444),
         '_nuclear_radius': np.float64(-1.0),
         '_nuclear_elastic_slope': np.float64(-1.0),
         '_cross_section': [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
@@ -436,7 +436,7 @@ def test_compound_material_creation():
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
     assert mat.radiation_length is None
     assert np.isclose(mat._radiation_length, -1)
-    assert np.isclose(mat.excitation_energy, 61.02615629345832)
+    assert np.isclose(mat.excitation_energy, 59.97236969353444)
     assert mat.plasma_energy is None
     assert mat.atoms_per_volume is None
     assert np.isclose(mat._atoms_per_volume, -1)
@@ -452,7 +452,7 @@ def test_compound_material_creation():
     assert np.isclose(mat._ZA_mean, 0.5643708350517702)
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
     assert np.isclose(mat.radiation_length, 0.5183349281307253)
-    assert np.isclose(mat.excitation_energy, 61.02615629345832)
+    assert np.isclose(mat.excitation_energy, 59.97236969353444)
     assert np.isclose(mat.electron_density, 3.398720609520502e+23)
     assert np.isclose(mat.plasma_energy, 19.23438440668927)
     assert np.isclose(mat.atoms_per_volume, 1.0319692250715231e+28)
@@ -469,7 +469,7 @@ def test_compound_material_creation():
     assert np.isclose(mat._ZA_mean, 0.5643708350517702)
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
     assert np.isclose(mat.radiation_length, 0.09417710218936735)
-    assert np.isclose(mat.excitation_energy, 61.02615629345832)
+    assert np.isclose(mat.excitation_energy, 59.97236969353444)
     assert np.isclose(mat.electron_density, 3.398720609520502e+23)
     assert np.isclose(mat.plasma_energy, 45.12434045076062)
     assert np.isclose(mat.atoms_per_volume, 5.679785018602531e+28)
@@ -486,7 +486,7 @@ def test_compound_material_creation():
     assert np.isclose(mat._ZA_mean, 0.5643708350517702)
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
     assert np.isclose(mat.radiation_length, 0.5)
-    assert np.isclose(mat.excitation_energy, 61.02615629345832)
+    assert np.isclose(mat.excitation_energy, 59.97236969353444)
     assert np.isclose(mat.electron_density, 3.398720609520502e+23)
     assert np.isclose(mat.plasma_energy, 45.12434045076062)
     assert np.isclose(mat.atoms_per_volume, 5.679785018602531e+28)
@@ -543,7 +543,7 @@ def test_compound_material_creation():
     assert np.isclose(mat._ZA_mean, 0.5643708350517702)
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
     assert np.isclose(mat.radiation_length, 0.09417710218936735)
-    assert np.isclose(mat.excitation_energy, 61.02615629345832)
+    assert np.isclose(mat.excitation_energy, 59.97236969353444)
     assert np.isclose(mat.electron_density, 3.398720609520502e+23)
     assert np.isclose(mat.plasma_energy, 45.12434045076062)
     assert np.isclose(mat.atoms_per_volume, 5.679785018602531e+28)
@@ -595,7 +595,7 @@ def test_mixture_material_creation():
     assert np.isclose(mat._ZA_mean, 0.5027459683349229)
     assert np.isclose(mat._Z2_eff, 93.86563197810295)
     assert np.isclose(mat.radiation_length, 0.11306709197802262)
-    assert np.isclose(mat.excitation_energy, 121.74338267324313)
+    assert np.isclose(mat.excitation_energy, 121.73881740418065)
     assert mat._radiation_length_set_manually is False
     assert mat._excitation_energy_set_manually is False
     assert mat.nuclear_radius is None
@@ -627,7 +627,7 @@ def test_mixture_material_creation():
         '_atoms_per_volume': np.float64(8.319954934083074e+28),
         '_num_nucleons_eff': np.float64(3.9008141200039312),
         '_radiation_length': np.float64(0.11306709197802262),
-        '_excitation_energy': np.float64(121.74338267324313),
+        '_excitation_energy': np.float64(121.73881740418065),
         '_nuclear_radius': np.float64(-1.0),
         '_nuclear_elastic_slope': np.float64(-1.0),
         '_cross_section': [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
@@ -729,4 +729,4 @@ def test_carbon_values():
     assert xc.materials.Carbon.excitation_energy == 78
     assert xc.materials.Graphite.excitation_energy == 81
     assert xc.materials.Diamond.excitation_energy == 88.5
-    assert xc.materials.CarbonFibreComposite.excitation_energy == 81
+    assert xc.materials.CarbonFibreComposite.excitation_energy == 78
