@@ -530,9 +530,9 @@ contains
         mass(j) = zero
         qq  (j) = 1
         pdg_id(j) = 0
-        spinx = zero
-        spiny = zero
-        spinz = zero
+        spinx(j) = zero
+        spiny(j) = zero
+        spinz(j) = zero
     end do
 
     ! Wait until end of turn (Synchronize)
