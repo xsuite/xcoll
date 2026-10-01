@@ -22,11 +22,11 @@ Carbon180 = Carbon.adapt(density=1.80)
 Carbon185 = Carbon.adapt(density=1.85)
 Diamond   = Carbon.adapt(density=3.52, excitation_energy=88.5)
 Graphite  = Carbon.adapt(density=2.25, excitation_energy=81.0)  # Modern recommendation for rho and I (ICRU-90, NIST, 2016)
-GraphiteR4550 = Carbon.adapt(density=1.83, excitation_energy=78.0)
-CarbonFibreComposite = Graphite.adapt(density=1.67, nuclear_radius=0.25, nuclear_elastic_slope=70.0,
-                                      cross_section=[0.337, 0.232, 0, 0, 0, 0.0076e-2], hcut=0.02,
-                                      crystal_plane_distance=0.63e-7, crystal_potential=21.0,
-                                      eta=0.9, nuclear_collision_length=1.e-12)
+GraphiteR4550 = Carbon.adapt(density=1.83)  # excitation_energy=78.0 by default
+CarbonFibreComposite = Carbon.adapt(density=1.67, nuclear_radius=0.25, nuclear_elastic_slope=70.0,
+                                    cross_section=[0.337, 0.232, 0, 0, 0, 0.0076e-2], hcut=0.02,
+                                    crystal_plane_distance=0.63e-7, crystal_potential=21.0,
+                                    eta=0.9, nuclear_collision_length=1.e-12)
 
 # Metadata for database
 # =====================
