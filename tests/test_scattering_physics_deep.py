@@ -18,6 +18,7 @@ import xcoll.constants as xcc
 from _common_api import is_old_bdsim, engine_params
 
 
+@pytest.mark.longtest
 @pytest.mark.fluka
 def test_ionisation_loss():
     if xc.fluka.engine.is_running():
@@ -142,6 +143,7 @@ def test_ionisation_loss():
     assert num_outliers_lower_200 < 256 # Expect 200 outliers
 
 
+@pytest.mark.longtest
 @pytest.mark.parametrize("engine", engine_params)
 @pytest.mark.parametrize("log_impacts, mark_scattered_particles", [
                             [False, False],

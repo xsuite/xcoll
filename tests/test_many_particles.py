@@ -133,6 +133,7 @@ def test_protons(engine, hit):
     _run(engine, 500, 10000, xt.Particles('proton', p0c=6.8e12), hit)
 
 
+@pytest.mark.longtest
 @pytest.mark.parametrize("engine", engine_params)
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @retry()
