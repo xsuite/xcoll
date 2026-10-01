@@ -319,7 +319,7 @@ def track_core(coll, part):
         # from the accumulated ionisation loss (as it is accounted for by the child)
         mask_parent_survived = (part.state==1) & (E_children > 0)
         if np.any(mask_parent_survived):
-            if np.any(E_diff[mask_parent_survived] - E_children[mask_parent_survived]) < -precision:
+            if np.any(E_diff[mask_parent_survived] - E_children[mask_parent_survived] < -precision):
                 raise ValueError(f"FLUKA returned children with a surviving parent, however, there "
                                + f"was a larger energy loss than the children energy!")
             coll._acc_ionisation_loss -= np.sum(E_children[mask_parent_survived]*part.weight[mask_parent_survived])

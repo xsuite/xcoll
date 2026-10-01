@@ -328,7 +328,7 @@ class BaseEngine(xo.HybridClass):
 
         except BaseException as error:
             try:
-                self.stop(clean=clean)
+                self.stop()
             except BaseException as cleanup_error:
                 error.add_note(
                     "Engine cleanup after failed start also failed: "

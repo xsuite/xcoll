@@ -396,15 +396,16 @@ USERWEIG                             3.0
                     uncovered_explicit_charged.append(pdg_id)
                 else:
                     uncovered_explicit_neutral.append(pdg_id)
-    fallback_to_all_charged = len(uncovered_explicit_charged) > 0
-    fallback_to_all_neutral = len(uncovered_explicit_neutral) > 0
-    fallback_to_all = len(uncovered_explicit) > 0
-    fallback_to_all |= fallback_to_all_charged and fallback_to_all_neutral
-    score_all = return_all or fallback_to_all
-    score_all_charged = return_all_charged or fallback_to_all_charged
-    score_all_neutral = fallback_to_all_neutral
+    need_all_charged = return_all_charged or bool(uncovered_explicit_charged)
+    need_all_neutral = bool(uncovered_explicit_neutral)
+    need_all_unknown = bool(uncovered_explicit)
 
-    if fallback_to_all:
+    score_all  = return_all or need_all_unknown
+    score_all |= need_all_charged and need_all_neutral
+    score_all_charged = not score_all and need_all_charged
+    score_all_neutral = not score_all and need_all_neutral
+
+    if score_all and not return_all:
         pids  = uncovered_explicit + uncovered_explicit_charged
         pids += uncovered_explicit_neutral
         warn("The following explicitly requested PDG IDs do not have "
@@ -413,7 +414,7 @@ USERWEIG                             3.0
             + ". Falling back to ALL-PART scoring; the normal "
               "PhysicsSettingsHelper mask will filter the returned "
               "particles afterwards.", RuntimeWarning, stacklevel=2)
-    elif fallback_to_all_charged:
+    elif uncovered_explicit_charged:
         pids = uncovered_explicit_charged
         warn("The following explicitly requested PDG IDs do not have "
             "dedicated FLUKA scoring cards: "
@@ -421,7 +422,7 @@ USERWEIG                             3.0
             + ". Falling back to ALL-CHAR scoring; the normal "
               "PhysicsSettingsHelper mask will filter the returned "
               "particles afterwards.", RuntimeWarning, stacklevel=2)
-    elif fallback_to_all_neutral:
+    elif uncovered_explicit_neutral:
         pids = uncovered_explicit_neutral
         warn("The following explicitly requested PDG IDs do not have "
             "dedicated FLUKA scoring cards: "
@@ -446,11 +447,13 @@ USRBDX          99.0  ALL-NEUT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 """
 
         for fluka_name, pdg_id in _FLUKA_PDG_IDS.items():
-            # Charged particles are already covered by ALL-CHAR.
-            if score_all_charged:
-                charge = get_properties_from_pdg_id(pdg_id)[0]
-                if abs(charge) > 1.e-12:
-                    continue
+            charge = get_properties_from_pdg_id(pdg_id)[0]
+            is_neutral = abs(charge) < 1.e-12
+            # Already covered by a broad scorer.
+            if score_all_charged and not is_neutral:
+                continue
+            if score_all_neutral and is_neutral:
+                continue
             # Do not score if not requested
             if not return_list.pdg_id_is_returned(pdg_id):
                 continue
@@ -497,20 +500,27 @@ USERDUMP       100.0
     if verbose:
         print("Scoring include file created with:")
         if score_all:
-            if fallback_to_all and not return_all:
+            if not return_all:
                 print("  - Particle scoring: all particles "
                       "(fallback for explicitly requested PDG IDs)")
             else:
                 print("  - Particle scoring: all particles")
-        elif return_all_charged:
-            print("  - Particle scoring: all charged particles")
-            neutral_explicit = [
-                pdg_id for pdg_id in sorted(explicit_return)
-                if abs(get_properties_from_pdg_id(pdg_id)[0]) < 1.e-12
-            ]
-            if neutral_explicit:
-                print("  - Additional explicitly requested neutral PDG IDs: "
-                    + ", ".join(str(pdg_id) for pdg_id in neutral_explicit))
+        elif score_all_charged:
+            if not return_all_charged:
+                print("  - Particle scoring: all charged particles "
+                      "(fallback for explicitly requested PDG IDs)")
+            else:
+                print("  - Particle scoring: all charged particles")
+                neutral_explicit = [
+                    pdg_id for pdg_id in sorted(explicit_return)
+                    if abs(get_properties_from_pdg_id(pdg_id)[0]) < 1.e-12
+                ]
+                if neutral_explicit:
+                    print("  - Additional explicitly requested neutral PDG IDs: "
+                        + ", ".join(str(pdg_id) for pdg_id in neutral_explicit))
+        elif score_all_neutral:
+            print("  - Particle scoring: all neutral particles "
+                "(fallback for explicitly requested PDG IDs)")
         else:
             enabled = [flag for flag in return_list._return_leaf_flags
                        if getattr(return_list, flag)]

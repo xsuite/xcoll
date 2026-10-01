@@ -302,38 +302,6 @@ class PhysicsSettingsHelper:
         self._extra_pdg_ids_to_return -= pdg_id
 
 
-    def pdg_id_is_returned(self, pdg_id, q_new=None):
-        scalar = np.ndim(pdg_id) == 0
-        pdg_id = np.atleast_1d(np.asarray(pdg_id, dtype=np.int64))
-        result = np.zeros(pdg_id.shape, dtype=bool)
-
-        explicit_return = np.isin(pdg_id, list(self._extra_pdg_ids_to_return))
-        explicit_kill = np.isin(pdg_id, list(self._extra_pdg_ids_to_kill))
-        # Exact overrides have highest priority and do not require
-        # Xtrack to know anything else about the PDG ID.
-        result[explicit_return] = True
-        result[explicit_kill] = False
-
-        unresolved = ~(explicit_return| explicit_kill)
-        if np.any(unresolved):
-            if q_new is None:
-                try:
-                    q_new = pdg.get_properties_from_pdg_id(pdg_id)[0]
-                except ValueError:
-                    raise ValueError(f"Could not get charge for some PDG IDs. "
-                                     f"Please provide `q_new` explicitly.")
-            result[unresolved] = (
-                self.mask_particle_return_types(
-                    pdg_id[unresolved],
-                    q_new[unresolved],
-                )
-            )
-
-        if scalar:
-            return bool(result[0])
-        return result
-
-
     # =====================
     # === Momentum cuts ===
     # =====================
@@ -444,6 +412,40 @@ class PhysicsSettingsHelper:
                 setattr(self, flag, None)
         self._extra_pdg_ids_to_return = set()
         self._extra_pdg_ids_to_kill = set()
+
+
+    def pdg_id_is_returned(self, pdg_id, q=None):
+        scalar = np.ndim(pdg_id) == 0
+        pdg_id = np.atleast_1d(np.asarray(pdg_id, dtype=np.int64))
+        result = np.zeros(pdg_id.shape, dtype=bool)
+
+        explicit_return = np.isin(pdg_id, list(self._extra_pdg_ids_to_return))
+        explicit_kill = np.isin(pdg_id, list(self._extra_pdg_ids_to_kill))
+        # Exact overrides have highest priority and do not require
+        # Xtrack to know anything else about the PDG ID.
+        result[explicit_return] = True
+        result[explicit_kill] = False
+
+        unresolved = ~(explicit_return| explicit_kill)
+        if np.any(unresolved):
+            pids_un = pdg_id[unresolved]
+            if q is None:
+                try:
+                    q_un = pdg.get_properties_from_pdg_id(pids_un)[0]
+                except ValueError:
+                    raise ValueError(f"Could not get charge for some PDG IDs. "
+                                     f"Please provide `q` explicitly.")
+            else:
+                q = np.atleast_1d(np.asarray(q))
+                if q.shape != pdg_id.shape:
+                    raise ValueError("`q` must have the same shape "
+                                     "as `pdg_id`.")
+                q_un = q[unresolved]
+            result[unresolved] = self.mask_particle_return_types(pids_un, q_un)
+
+        if scalar:
+            return bool(result[0])
+        return result
 
 
     def mask_particle_return_types(self, pdg_id, q_new):
