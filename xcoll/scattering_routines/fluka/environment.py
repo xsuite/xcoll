@@ -313,7 +313,7 @@ class FlukaInterface(BaseInterface):
         return file_path
 
     def __setattr__(self, key, value):
-        if key == 'linebuilder':
+        if key == 'linebuilder' and value is not None:
             value = self._resolve_linebuilder_path(value)
         super().__setattr__(key, value)
 
