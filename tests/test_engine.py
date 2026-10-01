@@ -492,7 +492,11 @@ class DummyInputEngine(DummyEngine):
     def _get_input_files_to_clean(self, input_file=None, cwd=None, **kwargs):
         if cwd is None:
             return []
-        return [input_file, cwd / "auxiliary.in", cwd / "input_aux"]
+        return [
+            *self._all_input_files(input_file),
+            cwd / "auxiliary.in",
+            cwd / "input_aux",
+        ]
 
     def _get_output_files_to_clean(self, input_file=None, cwd=None, **kwargs):
         if cwd is None:

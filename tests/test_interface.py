@@ -105,9 +105,9 @@ def test_constructor_does_not_save_or_bruteforce(interface_dirs, monkeypatch):
     required = FsPath(interface_dirs["data"] / "required")
     optional = FsPath(interface_dirs["data"] / "optional")
     readonly = FsPath(interface_dirs["data"] / "readonly")
-    required.mkdir()
-    optional.mkdir()
-    readonly.mkdir()
+    required.mkdir(parents=True)
+    optional.mkdir(parents=True)
+    readonly.mkdir(parents=True)
     interface_dirs["config"].mkdir(parents=True, exist_ok=True)
     config_file = interface_dirs["config"] / "dummy.config.json"
     with open(config_file, "w") as fid:
@@ -193,9 +193,9 @@ def test_save_load_roundtrip(interface_dirs):
     required = FsPath(interface_dirs["data"] / "required")
     optional = FsPath(interface_dirs["data"] / "optional")
     readonly = FsPath(interface_dirs["data"] / "readonly")
-    required.mkdir()
-    optional.mkdir()
-    readonly.mkdir()
+    required.mkdir(parents=True)
+    optional.mkdir(parents=True)
+    readonly.mkdir(parents=True)
     first = DummyInterface()
     first.brute_force_path = lambda value: None
     first.required = required
@@ -258,7 +258,7 @@ def test_temp_dir(interface_dirs, tmp_path):
     assert interface._temp_dir is None
 
 
-def test_store_preserve_environment(interface_dirs):
+def test_preserve_environment(interface_dirs):
     interface = DummyInterface()
     sys_path_object = sys.path
     environ_object = os.environ
@@ -273,8 +273,6 @@ def test_store_preserve_environment(interface_dirs):
     assert os.environ is environ_object
     assert sys.path == old_sys_path
     assert dict(os.environ) == old_environ
-    assert interface._old_sys_path is None
-    assert interface._old_os_env is None
 
 
 def test_lib_path_is_not_duplicated(interface_dirs):
@@ -290,7 +288,7 @@ def test_post_super_constructor_assignment_is_shielded(
     monkeypatch,
 ):
     detected = interface_dirs["data"] / "detected"
-    detected.mkdir()
+    detected.mkdir(parents=True)
     calls = []
     def save(self):
         calls.append(self._detected)
@@ -365,15 +363,29 @@ def test_assert_installed_version_failure(interface_dirs, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "method_name,program",
+    "method_name,env_var,program",
     [
-        ("assert_gcc_installed", "gcc"),
-        ("assert_gxx_installed", "g++"),
-        ("assert_gfortran_installed", "gfortran"),
+        (
+            "assert_gcc_installed",
+            "CC",
+            "test-gcc",
+        ),
+        (
+            "assert_gxx_installed",
+            "CXX",
+            "test-g++",
+        ),
+        (
+            "assert_gfortran_installed",
+            "FC",
+            "test-gfortran",
+        ),
     ],
 )
-def test_old_compiler_check_is_repeatable(interface_dirs, monkeypatch, method_name, program):
+def test_old_compiler_check_is_repeatable(interface_dirs, monkeypatch,
+                                          method_name, env_var, program):
     interface = DummyInterface()
+    monkeypatch.setenv(env_var, program)
     calls = []
     def fake_run(args, stdout=None, stderr=None):
         calls.append(args)

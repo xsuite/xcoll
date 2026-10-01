@@ -453,13 +453,16 @@ class BaseEngine(xo.HybridClass):
         if npart == 0:
             return False
         if not isinstance(particles._buffer.context, xo.ContextCpu):
+            self.stop()
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
         if not self.interface.compiled:
+            self.stop()
             raise RuntimeError(f"{self.__class__.__name__} interface not compiled! "
                                 + f"Please compile the interface before tracking.")
 
         if not self.is_running():
+            self.stop()
             raise RuntimeError(f"{self.__class__.__name__} not yet running!\nPlease do this "
                              + f"first, by calling xcoll.{self.__class__.__name__}.start().")
 
@@ -484,20 +487,24 @@ class BaseEngine(xo.HybridClass):
                           + f"from reference mass in engine. Overwritten by the latter.")
             else:
                 # The reference particle in the engine was changed unintentionally
+                self.stop()
                 raise ValueError(f"Error in reference mass of `particles`: not in sync with "
                             + f"{self.name} reference particle!\nRebuild the particles object "
                             + f"using the {self.__class__.__name__} reference particle.")
         if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
+            self.stop()
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
                            + f"using the {self.__class__.__name__} reference particle.")
         if not self._only_protons:
             if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
+                self.stop()
                 raise ValueError("Some particles are missing the pdg_id!")
             if particles._num_active_particles + particles._num_lost_particles == particles._capacity \
             and not np.any(particles.particle_id != particles.parent_particle_id):
                 # Only raise this error at the start, e.g. when no secondaries are present yet.
                 # It will get caught later during tracking, which will provide a more logical error.
+                self.stop()
                 raise ValueError("Particles capacity equal to size! Please provide extra capacity "
                                + "for secondaries.")
         return True
