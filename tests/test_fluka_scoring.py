@@ -479,7 +479,4 @@ def test_unrepresented_explicit_pdg_falls_back_to_all_part(
     assert _active_usrbdx_particles(text) == {score}
     assert not settings.return_all
     assert not settings.return_all_charged
-    try:
-        assert settings.pdg_id_is_returned(pdg_id)
-    except ValueError:
-        assert settings.pdg_id_is_returned(pdg_id, 1)
+    assert settings.pdg_id_is_returned(pdg_id)
