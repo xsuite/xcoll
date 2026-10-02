@@ -15,6 +15,7 @@ DEFAULT_XCOLL_ELEMENTS = [
     xc.EverestCollimator,
     xc.EverestCrystal,
     xc.BlowUp,
+    xc.BeamGasScattering,
     # xc.ParticleStatsMonitor,
     xc.EmittanceMonitor,
 ]

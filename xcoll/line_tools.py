@@ -11,6 +11,7 @@ import xtrack as xt
 
 from .beam_elements import (element_classes, collimator_classes, block_classes,
                             crystal_classes)
+from .beamgas.study import BeamGasStudy
 
 
 def _iterable(obj):
@@ -55,6 +56,56 @@ class XcollLineAPI:
             Xcoll collimator API bound to this line.
         """
         return self._collimators
+
+    def beamgas_configure(self, *, gas_density, process='brems',
+                          elements=None, twiss=None, verbose=True, **kwargs):
+        """
+        Configure the beam-gas scattering elements in the line.
+
+        Convenience wrapper that builds a :class:`xcoll.BeamGasStudy` for this
+        line and initialises it, so that the returned study is ready for
+        :meth:`xcoll.BeamGasStudy.local_rates`,
+        :meth:`xcoll.BeamGasStudy.generate_particles` or
+        :meth:`xcoll.BeamGasStudy.run`. Equivalent to constructing the study
+        directly and calling ``initialise_beamgas()`` on it.
+
+        Parameters
+        ----------
+        gas_density : xtrack.Table
+            Residual-gas density profile, with a column ``s`` and one column
+            per gas species named after its chemical symbol, holding the
+            *atomic* density [atoms/m^3].
+        process : {'brems', 'coulomb'}, optional
+            Beam-gas process to simulate. Default ``'brems'``.
+        elements : str, sequence of str, or None, optional
+            Beam-gas scattering elements included in the study. If ``None``,
+            all :class:`xcoll.BeamGasScattering` elements in the line are used.
+        twiss : xtrack.TwissTable or None, optional
+            Twiss table used for the local optics. If ``None``, it is computed
+            during initialisation.
+        verbose : bool, optional
+            If ``True`` (default), print one line per initialised element.
+        **kwargs
+            Remaining keyword arguments of :class:`xcoll.BeamGasStudy`, such as
+            ``nemitt_x``, ``nemitt_y``, ``sigma_z``, ``sigma_delta``,
+            ``bunch_intensity``, ``n_scattering_events``, ``brems_energy_cut``,
+            ``coulomb_theta`` and ``seed``.
+
+        Returns
+        -------
+        study : xcoll.BeamGasStudy
+            Configured and initialised beam-gas study.
+        """
+        study = BeamGasStudy(
+            line=self.line,
+            gas_density=gas_density,
+            process=process,
+            elements=elements,
+            twiss=twiss,
+            **kwargs,
+        )
+        study.initialise_beamgas(verbose=verbose)
+        return study
 
 
 class XcollLineAccessor:
