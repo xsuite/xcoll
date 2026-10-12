@@ -124,6 +124,22 @@ class Geant4Engine(BaseEngine):
             self._warn(error)
             return
 
+        # An interface built against a BDSIM without the tip taper (bdsim-collaboration/bdsim#228), or
+        # an older build of it, would silently drop these settings: a flat jaw in a
+        # 2 m wide box instead of the requested geometry
+        if not getattr(XtrackInterface, 'supportsTipTaper', lambda: False)():
+            for el in self._element_dict.values():
+                if isinstance(el, Geant4CollimatorTip) and any(
+                        getattr(el, field) != 0
+                        for field in ('taper_angle', 'jaw_depth', 'taper_depth', 'jaw_width')):
+                    self.stop(clean=True)
+                    raise RuntimeError(
+                        f"Geant4CollimatorTip {el.name} uses taper_angle, jaw_depth, taper_depth "
+                        f"or jaw_width, which the compiled Xcoll-BDSIM interface does not support! "
+                        f"This needs a BDSIM that includes bdsim-collaboration/bdsim#228 "
+                        f"(https://github.com/bdsim-collaboration/bdsim/pull/228), and the "
+                        f"interface to be compiled against it: xc.geant4.interface.compile().")
+
         if self.reentry_protection_enabled:
             ### remove this part after geant4 bug fixed
             try:
