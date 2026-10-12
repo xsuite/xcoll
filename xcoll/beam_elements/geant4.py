@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
 import xobjects as xo
 import xtrack as xt
 
@@ -120,7 +121,16 @@ class Geant4Collimator(BaseCollimator):
 @track_construction
 class Geant4CollimatorTip(Geant4Collimator):
     _xofields = Geant4Collimator._xofields | {
-        'tip_thickness': xo.Float64
+        'tip_thickness': xo.Float64,
+        'taper_angle': xo.Float64,  # rad; 0 (default) means a flat (untapered) jaw, as before. With a
+                                    # taper, length is that of the flat jaw face at the beam, and the
+                                    # jaws are longer than the element (see taper_extension)
+        'jaw_depth': xo.Float64,    # m, transverse depth of each jaw from its edge; 0 (default)
+                                    # means a 2 m wide Geant4 box, as before
+        'taper_depth': xo.Float64,  # m, depth from the jaw edge where the taper ends, the jaw keeping
+                                    # a constant length beyond it; 0 (default) tapers the whole jaw
+        'jaw_width': xo.Float64     # m, full width of each jaw across its plane of motion; 0 (default)
+                                    # means BDSIM's default of 12 mm
     }
 
     isthick = True
@@ -150,6 +160,16 @@ class Geant4CollimatorTip(Geant4Collimator):
         if '_xobject' not in kwargs:
             to_assign['tip_material'] = kwargs.pop('tip_material', None)
             kwargs['_tip_material'] = _DEFAULT_MATERIAL
+            taper_angle_deg = kwargs.pop('taper_angle_deg', None)
+            taper_angle_rad = kwargs.pop('taper_angle_rad', None)
+            if taper_angle_deg is not None and taper_angle_rad is not None:
+                raise ValueError("Use only one of `taper_angle_deg` or "
+                                + "`taper_angle_rad`, not both.")
+            elif taper_angle_deg is not None:
+                kwargs['taper_angle'] = np.deg2rad(taper_angle_deg)
+            elif taper_angle_rad is not None:
+                kwargs['taper_angle'] = taper_angle_rad
+            kwargs.setdefault('taper_angle', 0)
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
@@ -164,6 +184,24 @@ class Geant4CollimatorTip(Geant4Collimator):
         tip_material = _resolve_material(tip_material, ref='geant4')
         if self.tip_material != tip_material:
             self._tip_material = tip_material
+
+    @property
+    def taper_extension(self):
+        """How far a tapered jaw extends beyond each end of the element [m].
+
+        The element length is that of the flat jaw face at the beam; from there
+        each jaw grows with depth, up to length + 2*depth/tan(taper_angle) where
+        the taper ends (taper_depth, or jaw_depth if not set or smaller), and
+        keeps that length beyond. Geant4 tracks through that full length,
+        centred on the element, so the lattice should leave this much room on
+        either side.
+        """
+        if self.taper_angle <= 0:
+            return 0.
+        depth = self.jaw_depth
+        if self.taper_depth > 0 and (depth <= 0 or self.taper_depth < depth):
+            depth = self.taper_depth
+        return depth / np.tan(self.taper_angle)
 
 
 @track_construction

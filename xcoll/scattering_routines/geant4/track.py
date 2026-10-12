@@ -43,6 +43,15 @@ def track_post(coll, particles):
                          f"should not happen.")
 
 
+def _drift_exact(x, y, zeta, px, py, delta, rvv, length):
+    # Same as xtrack's exact drift (drift_exact.h), on plain arrays
+    opd = 1 + delta
+    one_over_pz = 1/np.sqrt(opd*opd - px*px - py*py)
+    return (x + px*one_over_pz*length,
+            y + py*one_over_pz*length,
+            zeta + (1 - opd*one_over_pz/rvv)*length)
+
+
 def track_core(coll, part):
     import xcoll as xc
     xc.geant4.engine._g4link.clearData() # Clear the old data - bunch particles and hits
@@ -79,6 +88,14 @@ def track_core(coll, part):
     weight = part.weight[send_to_geant4]
     pdgid  = part.pdg_id[send_to_geant4]
     pid    = part.particle_id[send_to_geant4]
+
+    # A tapered jaw is longer than the element, and Geant4 tracks through all
+    # of it: start the particles at its front face, upstream of the element
+    # (only those sent, so the ones that died keep their position).
+    extension = getattr(coll, 'taper_extension', 0.)
+    if extension > 0:
+        x, y, zeta = _drift_exact(x, y, zeta, part.px[send_to_geant4], part.py[send_to_geant4],
+                                  part.delta[send_to_geant4], part.rvv[send_to_geant4], -extension)
 
     if xc.geant4.engine.reentry_protection_enabled:
         ### remove this part after geant4 bug fixed
@@ -139,6 +156,12 @@ def track_core(coll, part):
     part.y[idx_alive]    = products['y'][idx_returned_alive]
     part.py[idx_alive]   = products['yp'][idx_returned_alive] / rpp   # Director cosine back to py
     part.zeta[idx_alive] = products['zeta'][idx_returned_alive]
+    if extension > 0:
+        # Back from the end of the tapered jaw to the end of the element
+        part.x[idx_alive], part.y[idx_alive], part.zeta[idx_alive] = _drift_exact(
+                part.x[idx_alive], part.y[idx_alive], part.zeta[idx_alive],
+                part.px[idx_alive], part.py[idx_alive], part.delta[idx_alive],
+                part.rvv[idx_alive], -extension)
 
     # Add new particles created in Geant4
     q_new = products['q'][num_sent:]
@@ -219,6 +242,10 @@ def track_core(coll, part):
                 pdg_id = products['pdg_id'][idx_new],
                 weight = products['weight'][idx_new]
         )
+        if extension > 0:
+            new_part.x[:], new_part.y[:], new_part.zeta[:] = _drift_exact(
+                    new_part.x, new_part.y, new_part.zeta, new_part.px, new_part.py,
+                    new_part.delta, new_part.rvv, -extension)
 
         # Correct the deposited energy of parent particles: not everything was lost there.
         E_children = np.bincount(idx_parents, weights=new_part.energy, minlength=part._capacity)
