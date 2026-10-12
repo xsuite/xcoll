@@ -37,7 +37,8 @@ PYBIND11_MODULE(g4interface, m) {
                  "num_sent"_a,
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             .def("clearData", &XtrackInterface::clearData)
-            .def("getReferenceMass", &XtrackInterface::getReferenceMass);
+            .def("getReferenceMass", &XtrackInterface::getReferenceMass)
+            .def_static("supportsTipTaper", &XtrackInterface::supportsTipTaper);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
