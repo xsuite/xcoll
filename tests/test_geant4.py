@@ -19,6 +19,12 @@ path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
+def _bdsim_supports_tip_taper():
+    # Tapered tips need a BDSIM including bdsim-collaboration/bdsim#228, and the interface compiled against it
+    from g4interface import XtrackInterface
+    return getattr(XtrackInterface, 'supportsTipTaper', lambda: False)()
+
+
 @pytest.mark.geant4
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
@@ -155,6 +161,8 @@ def test_black_absorbers(test_context):
 
 @pytest.mark.geant4
 def test_geant4_tip_taper():
+    if not _bdsim_supports_tip_taper():
+        pytest.skip("BDSIM interface built without tip taper support (bdsim-collaboration/bdsim#228)")
     # SuperKEKB-type jaw, as in its engineering drawing and in SAD: a 10 mm long
     # flat face at the beam, a 12 degree taper over the first 37 mm of depth (up
     # to 358 mm long), then 88 mm more of jaw at that length. The element is
@@ -222,6 +230,8 @@ def test_geant4_tip_taper():
 
 @pytest.mark.geant4
 def test_geant4_tip_jaw_width():
+    if not _bdsim_supports_tip_taper():
+        pytest.skip("BDSIM interface built without tip taper support (bdsim-collaboration/bdsim#228)")
     # The jaws are jaw_width wide across their plane of motion (BDSIM's default is
     # 12 mm). Hits further off-centre than half of that miss the jaw in Geant4.
     # A 20 mm wide jaw is used, so that hits at 8 mm only stop if it is passed on.
@@ -253,3 +263,53 @@ def test_geant4_tip_jaw_width():
     assert outside == n_part
 
     xc.geant4.engine.stop(clean=True)
+
+
+@pytest.mark.geant4
+def test_geant4_tip_taper_unsupported(monkeypatch):
+    # An interface built without tip taper support must refuse a tapered tip, rather
+    # than silently tracking through a flat jaw in a 2 m wide box
+    from g4interface import XtrackInterface
+    monkeypatch.setattr(XtrackInterface, 'supportsTipTaper', staticmethod(lambda: False),
+                        raising=False)
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop()
+
+    kwargs = dict(length=0.010, jaw=0.008, material=xc.materials.Copper,
+                  tip_material=xc.materials.Tungsten, tip_thickness=0.005)
+    xc.geant4.engine.particle_ref = particle_ref
+    for extra in [dict(taper_angle_deg=12, taper_depth=0.037), dict(jaw_depth=0.125),
+                  dict(jaw_width=0.02)]:
+        with pytest.raises(RuntimeError, match="bdsim#228"):
+            xc.geant4.engine.start(elements=xc.Geant4CollimatorTip(**kwargs, **extra), seed=1993)
+        assert not xc.geant4.engine.is_running()
+
+    # A tip without any of these is fine
+    xc.geant4.engine.start(elements=xc.Geant4CollimatorTip(**kwargs), seed=1993)
+    assert xc.geant4.engine.is_running()
+    xc.geant4.engine.stop(clean=True)
+
+
+def test_bdsim_source_gates(monkeypatch):
+    # The markers in the interface source select lines by BDSIM version and by what
+    # BDSIM provides (tip_taper), without needing BDSIM to be installed
+    from xcoll.scattering_routines.geant4.environment import Geant4Interface
+    src = '\n'.join([
+        "always",
+        "since_177  // BDSIM >= 1.7.7.develop",
+        "call(a);   // BDSIM >= 1.7.7.develop BDSIM without tip_taper",
+        "call(a,    // BDSIM with tip_taper",
+        "b);        // BDSIM with tip_taper",
+    ])
+
+    def filtered(version, taper):
+        monkeypatch.setattr(Geant4Interface, 'bdsim_has_feature',
+                            lambda self, feature: taper)
+        lines, _ = xc.geant4.interface._filter_version_gated_lines(src, version)
+        return [line.split()[0] for line in lines]
+
+    assert filtered('1.7.6', False) == ['always']
+    assert filtered('1.7.7.develop', False) == ['always', 'since_177', 'call(a);']
+    # 1.8.0.develop before and after bdsim-collaboration/bdsim#228: same version, different features
+    assert filtered('1.8.0.develop', False) == ['always', 'since_177', 'call(a);']
+    assert filtered('1.8.0.develop', True) == ['always', 'since_177', 'call(a,', 'b);']
