@@ -98,6 +98,165 @@ def _cross_section(process, Z, p0c, q0, window):
     return calculator, calculator.compute_xsec()
 
 
+def _stream(seed, name, replica):
+    """
+    Random-number generator of a marker and replica.
+
+    The stream is derived from the configured ``seed`` with
+    :class:`numpy.random.SeedSequence`, keyed by the name of the marker and
+    by the replica index. The stream of a marker therefore does not depend on
+    which other markers or replicas are generated, nor on the order of the
+    generation: independent jobs reproduce the particles of a single one.
+
+    Parameters
+    ----------
+    seed : int
+        Seed configured on the marker.
+    name : str
+        Name of the marker.
+    replica : int
+        Index of the replica.
+
+    Returns
+    -------
+    rng : numpy.random.Generator
+        Random-number generator of the stream.
+    """
+    return np.random.default_rng(np.random.SeedSequence(
+        entropy=int(seed), spawn_key=(int(replica), *name.encode())))
+
+
+def _check_configured(name, marker, particle_ref):
+    """
+    Check that a marker is configured for the reference particle of the line.
+    """
+    if not marker.p0c > 0:
+        raise ValueError(
+            f"BeamGasMarker '{name}' is not configured: call "
+            "`line.xcoll.beamgas.configure(...)` first.")
+    p0c = particle_ref.p0c[0]
+    if abs(marker.p0c - p0c) > 1e-10 * p0c:
+        raise ValueError(
+            f"BeamGasMarker '{name}' is configured for p0c = "
+            f"{marker.p0c:.10g} eV, but the reference particle of the line "
+            f"has p0c = {p0c:.10g} eV: configure the markers again.")
+
+
+def _generate_marker(name, marker, *, particle_ref, q0, at_element, s, rng,
+                     weight_scale=1.0):
+    """
+    Generate the beam-gas-scattered particles of a marker.
+
+    Parameters
+    ----------
+    name : str
+        Name of the marker.
+    marker : BeamGasMarker
+        Configured marker.
+    particle_ref : xtrack.Particles
+        Reference particle, defining the species of the particles.
+    q0 : float
+        Charge of the beam particles.
+    at_element : int
+        Index of the marker in the line.
+    s : float
+        Position of the marker in the line [m].
+    rng : numpy.random.Generator
+        Random-number generator.
+    weight_scale : float, optional
+        Factor applied to the weights of the particles.
+
+    Returns
+    -------
+    particles : xtrack.Particles
+        Particles that have undergone one beam-gas interaction, with a
+        capacity of four times their number to leave room for secondaries.
+    log : xtrack.Table
+        Record of the interactions, one row per particle: ``name``, ``s``,
+        ``particle_id``, ``gas``, ``theta``, ``photon_energy`` and
+        ``weight``.
+    """
+    n = int(marker.n_scattering_events)
+    if n <= 0:
+        raise ValueError(
+            f"BeamGasMarker '{name}': `n_scattering_events` must be positive "
+            "to generate beam-gas-scattered particles.")
+
+    process = marker.process
+    if process == 'brems':
+        window = (float(marker.brems_energy_cut),)
+    else:
+        window = (float(marker.coulomb_theta_min),
+                  float(marker.coulomb_theta_max))
+    densities = marker.atomic_densities
+    species = list(densities)
+    models = {kk: _cross_section(process, atomic_number_from_symbol(kk),
+                                 float(marker.p0c), q0, window)
+              for kk in species}
+    contributions = np.array([densities[kk] * models[kk][1]
+                              for kk in species])
+    if contributions.sum() <= 0:
+        raise ValueError(
+            f"No beam-gas interactions possible at marker '{name}': all the "
+            "gas densities are zero.")
+
+    x, px, y, py, zeta, delta = marker._generate_primaries(n, rng)
+
+    # Assign a gas species to each event, proportionally to its
+    # contribution to the local interaction rate
+    i_species = rng.choice(len(species), size=n,
+                           p=contributions / contributions.sum())
+
+    weight = np.empty(n)
+    theta = np.empty(n)
+    photon_energy = np.empty(n)
+    # NOTE: an object array (and not a fixed-width unicode array) is used
+    # on purpose: `xtrack.view.View`, which wraps the elements accessed
+    # through `line[name]`, corrupts numpy unicode arrays on conversion.
+    gas = np.empty(n, dtype=object)
+
+    for ii, kk in enumerate(species):
+        mask = i_species == ii
+        if not mask.any():
+            continue
+        sample = models[kk][0].sample_deflections(
+            px[mask], py[mask], delta[mask], rng)
+        px[mask] = sample.px
+        py[mask] = sample.py
+        delta[mask] = sample.delta
+        weight[mask] = sample.weight
+        theta[mask] = sample.theta
+        photon_energy[mask] = sample.photon_energy
+        gas[mask] = kk
+
+    # Normalise the weights to the interaction rate of the section
+    weight *= marker.interaction_rate / n * weight_scale
+
+    # Leave room for the secondaries that collimators may produce
+    particles = xt.Particles(
+        _capacity=4*n,
+        p0c=marker.p0c,
+        mass0=particle_ref.mass0,
+        q0=particle_ref.q0,
+        pdg_id=particle_ref.pdg_id,
+        x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+        weight=weight,
+        s=s,
+    )
+    particles.at_element = at_element
+
+    log = xt.Table({
+        'name': np.full(n, name, dtype=object),
+        's': np.full(n, float(s)),
+        'particle_id': particles.particle_id[:n].copy(),
+        'gas': gas,
+        'theta': theta,
+        'photon_energy': photon_energy,
+        'weight': weight,
+    })
+    return particles, log
+
+
 def _resolve_seed(seed):
     """
     Seed of the beam-gas random streams: drawn if ``None``.
@@ -579,6 +738,108 @@ class BeamGasGenerator:
                 atomic_densities=atomic_densities,
                 seed=seed,
             )
+
+    def generate(self, at=None, *, replica=0, n_replicas=1, seed=None,
+                 return_log=False):
+        """
+        Generate beam-gas-scattered particles at the markers.
+
+        At each marker, ``n_scattering_events`` particles are drawn from the
+        local matched Gaussian beam and each of them interacts once with the
+        residual gas, on a species drawn according to its contribution to the
+        local interaction rate. The weights of the particles of a marker sum
+        to the interaction rate of its section [1/s], divided by
+        ``n_replicas``.
+
+        The particles of a marker are tracked from the marker itself, e.g.
+        ``line.track(part, ele_start=name, ele_stop=name, num_turns=...)``,
+        and the samples of different markers or replicas, generated in the
+        same or in different jobs, can then be merged with
+        :meth:`xtrack.Particles.merge` and given to :meth:`analyse`.
+
+        Parameters
+        ----------
+        at : str, sequence of str, or None, optional
+            Markers at which particles are generated. If ``None`` (default),
+            all the markers of the line.
+        replica : int, optional
+            Index of the replica: replicas of a marker are independent
+            samples of the same section, e.g. generated in different jobs.
+            Default ``0``.
+        n_replicas : int, optional
+            Number of replicas of each marker that are merged. The weights are
+            divided by it, so that the merged replicas represent the
+            interaction rate once. Default ``1``.
+        seed : int or None, optional
+            Seed of the random-number streams. If ``None`` (default), the seed
+            stored on each marker by :meth:`configure`. Each marker and
+            replica has its own stream, derived from the seed, the name of the
+            marker and the replica: the particles of a marker do not depend on
+            the other markers that are generated, nor on the order.
+        return_log : bool, optional
+            If ``True``, also return the record of the interactions, needed by
+            :meth:`analyse` for the per-event diagnostics. The record of the
+            last generation is also kept, in memory, as the ``scatter_log`` of
+            each marker.
+
+        Returns
+        -------
+        particles : xtrack.Particles or dict
+            If ``at`` is a string, the particles generated at that marker.
+            Otherwise, a mapping ``{name: xtrack.Particles}`` in line order.
+        log : xtrack.Table or dict
+            Only if ``return_log`` is ``True``: the record of the
+            interactions, one row per particle, with columns ``name``, ``s``,
+            ``particle_id``, ``gas``, ``theta`` [rad], ``photon_energy`` [eV]
+            and ``weight`` [1/s]; or a mapping ``{name: xtrack.Table}``.
+            ``particle_id`` identifies the particle in the sample of its
+            marker, and survives tracking.
+        """
+        line = self.line
+        names = self._markers(at)
+
+        if (isinstance(n_replicas, (bool, np.bool_))
+                or not isinstance(n_replicas, (int, np.integer))
+                or n_replicas < 1):
+            raise ValueError("`n_replicas` must be a positive integer.")
+        if (isinstance(replica, (bool, np.bool_))
+                or not isinstance(replica, (int, np.integer))
+                or not 0 <= replica < n_replicas):
+            raise ValueError(
+                f"`replica` must be an integer in [0, n_replicas) "
+                f"(got {replica} with n_replicas={n_replicas}).")
+        if seed is not None:
+            seed = _resolve_seed(seed)
+
+        particle_ref = line.particle_ref
+        q0 = _lepton_charge(particle_ref)
+        markers = {nn: line.element_dict[nn] for nn in names}
+        for nn, marker in markers.items():
+            _check_configured(nn, marker, particle_ref)
+
+        tab = line.get_table()
+        element_index = {nn: ii for ii, nn in enumerate(line.element_names)}
+
+        particles, logs = {}, {}
+        for nn in names:
+            marker = markers[nn]
+            particles[nn], logs[nn] = _generate_marker(
+                nn, marker,
+                particle_ref=particle_ref,
+                q0=q0,
+                at_element=element_index[nn],
+                s=tab['s', nn],
+                rng=_stream(marker.seed if seed is None else seed,
+                            nn, replica),
+                weight_scale=1.0 / n_replicas,
+            )
+            marker.scatter_log = logs[nn]
+
+        if isinstance(at, str):
+            particles, logs = particles[at], logs[at]
+        if return_log:
+            return particles, logs
+        return particles
 
     def _check_sections_cover_line(self):
         """

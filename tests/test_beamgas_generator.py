@@ -361,3 +361,139 @@ def test_configure_checks_its_arguments(ring):
     no_markers = _ring()
     with pytest.raises(ValueError, match='install_markers'):
         _configure(no_markers)
+
+
+COORDINATES = ('x', 'px', 'y', 'py', 'zeta', 'delta', 'weight', 's',
+               'at_element', 'particle_id')
+
+
+def _assert_same_particles(part, other):
+    alive, alive_other = part.state > 0, other.state > 0
+    assert np.sum(alive) == np.sum(alive_other) > 0
+    for nn in COORDINATES:
+        np.testing.assert_array_equal(
+            getattr(part, nn)[alive], getattr(other, nn)[alive_other],
+            err_msg=f'{nn} differs')
+
+
+def test_generate_at_one_or_several_markers(ring):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    bg = line.xcoll.beamgas
+    names = bg.marker_names
+
+    assert isinstance(bg.generate(at=names[1]), xt.Particles)
+    assert list(bg.generate(at=[names[3], names[1]])) == [names[1], names[3]]
+    particles, logs = bg.generate(return_log=True)
+    assert list(particles) == list(logs) == names
+    part, log = bg.generate(at=names[1], return_log=True)
+    assert isinstance(log, xt.Table)
+    assert line[names[1]].scatter_log is not None
+
+
+@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+def test_generated_particles(ring, process):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1], process=process,
+               coulomb_theta=(1e-6, 0.3))
+    bg = line.xcoll.beamgas
+    ref = line.particle_ref
+
+    tab = line.get_table()
+    for nn in bg.marker_names:
+        part, log = bg.generate(at=nn, return_log=True)
+        alive = part.state > 0
+        assert np.sum(alive) == 200
+        assert np.all(part.s[alive] == tab['s', nn])
+        assert np.all(part.at_element[alive]
+                      == line.element_names.index(nn))
+        assert part.q0 == ref.q0 and part.mass0 == ref.mass0
+        assert np.all(part.pdg_id[alive] == ref.pdg_id[0])
+        # The weights carry the interaction rate of the section: exactly for
+        # bremsstrahlung, on average for the importance-sampled Coulomb angles
+        if process == 'brems':
+            assert np.sum(part.weight[alive]) == pytest.approx(
+                line[nn].interaction_rate, rel=1e-12)
+        # One interaction per particle, on the gas species of the profile
+        np.testing.assert_array_equal(np.sort(log.particle_id),
+                                      np.sort(part.particle_id[alive]))
+        assert set(log.gas) <= {'N', 'H'}
+        assert np.all(log.name == nn)
+        if process == 'coulomb':
+            assert np.all((log.theta >= 1e-6) & (log.theta <= 0.3))
+        else:
+            assert np.all(log.photon_energy >= 1e6)
+
+
+def test_generation_does_not_depend_on_the_other_markers(ring):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    bg = line.xcoll.beamgas
+    names = bg.marker_names
+
+    single_job = bg.generate()
+    for nn in reversed(names):
+        _assert_same_particles(bg.generate(at=nn), single_job[nn])
+    for nn, part in bg.generate(at=names[::-2]).items():
+        _assert_same_particles(part, single_job[nn])
+
+
+def test_replicas(ring):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    bg = line.xcoll.beamgas
+    nn = bg.marker_names[2]
+
+    one = bg.generate(at=nn)
+    first = bg.generate(at=nn, replica=0, n_replicas=3)
+    replicas = [first] + [bg.generate(at=nn, replica=rr, n_replicas=3)
+                          for rr in (1, 2)]
+
+    # The same stream, weights divided by the number of replicas
+    alive = one.state > 0
+    np.testing.assert_array_equal(first.x[first.state > 0], one.x[alive])
+    np.testing.assert_array_equal(
+        first.weight[first.state > 0], one.weight[alive] * (1 / 3))
+    # Independent samples, which together carry the rate once
+    assert not np.array_equal(replicas[1].x[:10], replicas[2].x[:10])
+    total = sum(np.sum(pp.weight[pp.state > 0]) for pp in replicas)
+    assert total == pytest.approx(line[nn].interaction_rate, rel=1e-12)
+
+
+@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+def test_generation_from_a_reloaded_line(ring, tmp_path, process):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1], process=process)
+    names = line.xcoll.beamgas.marker_names
+    expected = line.xcoll.beamgas.generate(at=names[1:4])
+
+    line.to_json(tmp_path / 'line.json')
+    line.env['ring'] = line
+    line.env.to_json(tmp_path / 'env.json')
+    for loaded in (xt.load(tmp_path / 'line.json'),
+                   xt.load(tmp_path / 'env.json').lines['ring']):
+        reloaded = loaded.xcoll.beamgas.generate(at=names[1:4])
+        for nn, part in expected.items():
+            _assert_same_particles(reloaded[nn], part)
+
+
+def test_generate_checks_its_arguments(ring):
+    line = _ring_with_markers()
+    bg = line.xcoll.beamgas
+    nn = bg.marker_names[1]
+    with pytest.raises(ValueError, match='not configured'):
+        bg.generate(at=nn)
+
+    _configure(line, twiss=ring[1])
+    with pytest.raises(ValueError, match='replica'):
+        bg.generate(at=nn, replica=2, n_replicas=2)
+    with pytest.raises(ValueError, match='n_replicas'):
+        bg.generate(at=nn, n_replicas=0)
+
+    line[nn].atomic_densities = {'N': 0.0}
+    with pytest.raises(ValueError, match='gas densities are zero'):
+        bg.generate(at=nn)
+
+    line.set_particle_ref('electron', p0c=2e9)
+    with pytest.raises(ValueError, match='configure the markers again'):
+        bg.generate(at=nn)
