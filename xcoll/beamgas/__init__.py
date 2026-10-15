@@ -5,4 +5,5 @@
 
 from .cross_sections import (ElementData, BremsstrahlungCalculator,
                              CoulombScatteringCalculator, ScatteringSample)
+from .generator import BeamGasGenerator
 from .study import BeamGasResult, BeamGasStudy

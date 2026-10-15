@@ -18,7 +18,7 @@ from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
 from .particles_tree import ParticlesTree
-from .beamgas import BeamGasResult, BeamGasStudy
+from .beamgas import BeamGasGenerator, BeamGasResult, BeamGasStudy
 from .line_tools import XcollLineAPI
 from .environment_tools import XcollEnvironmentAPI
 
