@@ -56,6 +56,22 @@ class XcollLineAPI:
         """
         return self._collimators
 
+    @property
+    def beamgas(self):
+        """
+        Beam-gas scattering simulation of the line.
+
+        Returns
+        -------
+        beamgas : xcoll.BeamGasGenerator
+            Generator bound to the line, to install and configure the
+            beam-gas markers, generate the scattered particles and analyse
+            them.
+        """
+        from .beamgas.generator import BeamGasGenerator
+
+        return BeamGasGenerator(self.line)
+
 
 class XcollLineAccessor:
     _typename = 'element'
