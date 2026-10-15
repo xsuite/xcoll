@@ -757,6 +757,9 @@ def test_run_tracks_the_particles(ring):
 def test_run_checks_its_arguments(ring):
     with pytest.raises(ValueError, match='n_turns'):
         ring[0].xcoll.beamgas.run(n_turns=0)
+    for n_replicas in (0, 1.5, True):
+        with pytest.raises(ValueError, match='n_replicas'):
+            ring[0].xcoll.beamgas.run(n_turns=1, n_replicas=n_replicas)
 
 
 def _assert_same_tracked_particles(part, other):
