@@ -4,6 +4,7 @@
 # ######################################### #
 
 from functools import lru_cache
+from warnings import warn
 
 import numpy as np
 from scipy import constants as sc
@@ -13,15 +14,26 @@ from xtrack.particles import pdg
 
 from ..beam_elements.beamgas import (BeamGasMarker, _resolve_process,
                                      _resolve_n_scattering_events)
-from .cross_sections import (BremsstrahlungCalculator,
+from .analysis import (BeamGasResult, _cutoff_scan, _event_losses, _lost,
+                       _sample_sums, _tracked)
+from .cross_sections import (ELECTRON_MASS_EV, BremsstrahlungCalculator,
                              CoulombScatteringCalculator,
-                             atomic_number_from_symbol)
+                             _energy_from_momentum, atomic_number_from_symbol)
 
 PDG_ID_ELECTRON = 11
 PDG_ID_POSITRON = -11
 
 # Tolerance on the position of the last marker, at the end of the line [m]
 _S_TOL = 1e-6
+
+# Resolution of BeamGasResult.cutoff_scan
+_CUTOFF_SCAN_BINS_PER_DECADE = 10
+# Warn when more than this fraction of the loss rate comes from events
+# within a factor two of the lower cut
+_LOWER_CUT_WARN_FRACTION = 1e-3
+# Warn when the Coulomb interaction rate above theta_max exceeds this
+# fraction of the loss rate
+_UPPER_CUT_WARN_FRACTION = 1e-2
 
 
 def _lepton_charge(particle_ref):
@@ -255,6 +267,88 @@ def _generate_marker(name, marker, *, particle_ref, q0, at_element, s, rng,
         'weight': weight,
     })
     return particles, log
+
+
+def _log_table(name, replica, log):
+    """
+    Columns of the record of the interactions of a sample.
+    """
+    particle_id = np.asarray(log['particle_id'], dtype=np.int64)
+    n = len(particle_id)
+    return {
+        'name': np.full(n, name, dtype=object),
+        'replica': np.full(n, replica),
+        's': np.asarray(log['s'], dtype=float),
+        'particle_id': particle_id,
+        'gas': np.asarray(log['gas'], dtype=object),
+        'theta': np.asarray(log['theta'], dtype=float),
+        'photon_energy': np.asarray(log['photon_energy'], dtype=float),
+        'weight': np.asarray(log['weight'], dtype=float),
+    }
+
+
+def _warn_on_truncation(process, window, x, contribution, cutoff_scan,
+                        rate_above_theta_max):
+    """
+    Warn when the generation window visibly truncates the loss rate.
+
+    Parameters
+    ----------
+    process : {'brems', 'coulomb'}
+        Beam-gas process.
+    window : tuple of float
+        Range of the generation variable.
+    x : ndarray
+        Generation variable of each event.
+    contribution : ndarray
+        Loss-rate contribution of each event, i.e. its weight if lost and
+        zero otherwise [1/s].
+    cutoff_scan : xtrack.Table
+        Cutoff scan of the events.
+    rate_above_theta_max : float or None
+        Coulomb interaction rate above ``theta_max`` [1/s].
+
+    Returns
+    -------
+    None
+    """
+    rate = float(np.sum(contribution))
+    if rate <= 0:
+        return
+
+    lo = window[0]
+    if process == 'coulomb':
+        name = '`coulomb_theta[0]`'
+        what = 'scattering angles'
+        hint = (" The log-uniform angular sampling makes a lower cut "
+                "cheap: the statistics only degrade as "
+                "log(theta_max/theta_min).")
+    else:
+        name = '`brems_energy_cut`'
+        what = 'photon energies'
+        hint = ""
+
+    near_lower = float(np.sum(contribution[x < 2*lo])) / rate
+    if near_lower > _LOWER_CUT_WARN_FRACTION:
+        warn(f"{100*near_lower:.2g}% of the tracked loss rate comes from "
+             f"events generated within a factor 2 of the lower cut "
+             f"{name}={lo:.3g}. The cut lies inside the range of {what} that "
+             f"cause losses, so the losses from below it are missing and the "
+             f"lifetime is overestimated. Lower {name}, and check that "
+             f"`BeamGasResult.cutoff_scan.lifetime_tracking` is flat in its "
+             f"first rows.{hint}", stacklevel=3)
+
+    if rate_above_theta_max is not None:
+        above_upper = rate_above_theta_max / rate
+        if above_upper > _UPPER_CUT_WARN_FRACTION:
+            warn(f"The Coulomb interaction rate above `coulomb_theta[1]`="
+                 f"{window[1]:.3g} rad, which is not generated, amounts to "
+                 f"{100*above_upper:.2g}% of the tracked loss rate. Up to that "
+                 f"much loss rate is missing, and all of it if these events "
+                 f"are always lost (loss probability in the last "
+                 f"`cutoff_scan` row: {cutoff_scan.loss_probability[-1]:.2f}). "
+                 f"Raise `coulomb_theta[1]`, or add `rate_above_theta_max` to "
+                 f"the loss rate.", stacklevel=3)
 
 
 def _resolve_seed(seed):
@@ -840,6 +934,239 @@ class BeamGasGenerator:
         if return_log:
             return particles, logs
         return particles
+
+    def analyse(self, particles=None, *, at=None, logs=None):
+        """
+        Analyse the beam-gas interaction rates and the tracked particles.
+
+        Without particles, the result contains the interaction rates
+        configured on the markers. With the particles generated at the
+        markers and tracked, it also contains the loss rate: the total weight
+        of the scattered particles that are lost (any ``state <= 0``, e.g. on
+        an aperture or in a collimator). Secondaries produced while tracking
+        carry the weight of their parent and are not counted.
+
+        ``particles`` can be the sample of one marker, the particles of
+        several markers merged with :meth:`xtrack.Particles.merge`, possibly
+        coming from separate jobs, or the samples of each marker separately.
+        The particles do not record the marker at which they were generated,
+        so the per-marker counts and the Monte Carlo error of the loss rate
+        are only available for the samples given separately, or for the
+        particles of a single marker selected with ``at``. The per-event
+        diagnostics (``cutoff_scan``, ``interaction_log`` and the warnings on
+        the generation window) also need the records of the interactions,
+        returned by ``generate(..., return_log=True)``, given as ``logs`` with
+        the same structure as ``particles``.
+
+        Parameters
+        ----------
+        particles : xtrack.Particles, dict, or None, optional
+            The particles: ``None`` (only the configured rates), an
+            ``xtrack.Particles`` object, or a mapping ``{name: particles}``
+            from marker names to the ``xtrack.Particles`` of the marker or a
+            list of its replicas.
+        at : str, sequence of str, or None, optional
+            Markers whose particles are given, when ``particles`` is not a
+            mapping. If ``None`` (default), all the markers of the line.
+        logs : dict or None, optional
+            Records of the interactions, as a mapping ``{name: log}`` or
+            ``{name: [logs of the replicas]}`` matching ``particles``. Each
+            record can be an ``xtrack.Table``, a ``pandas.DataFrame`` or a
+            dict of arrays.
+
+        Returns
+        -------
+        result : BeamGasResult
+            Interaction rates and, with tracked particles, the loss rate and
+            the beam-gas lifetime.
+        """
+        line = self.line
+
+        samples = None
+        if isinstance(particles, dict):
+            if at is not None:
+                raise ValueError(
+                    "`at` cannot be given with a mapping of particles: its "
+                    "keys select the markers.")
+            names = self._markers(list(particles))
+            samples = {}
+            for nn in names:
+                replicas = particles[nn]
+                if not isinstance(replicas, (list, tuple)):
+                    replicas = [replicas]
+                if len(replicas) == 0:
+                    raise ValueError(f"No particles given for marker '{nn}'.")
+                samples[nn] = list(replicas)
+            all_particles = [pp for vv in samples.values() for pp in vv]
+        else:
+            names = self._markers(at)
+            all_particles = [] if particles is None else [particles]
+        for pp in all_particles:
+            if not isinstance(pp, xt.Particles):
+                raise TypeError(
+                    "The particles must be `xtrack.Particles` objects "
+                    f"(got {type(pp).__name__}).")
+
+        sample_logs = None
+        if logs is not None:
+            if samples is None:
+                raise ValueError(
+                    "`logs` need the particles given marker by marker, as a "
+                    "mapping `{name: particles}`: the merged particles cannot "
+                    "be matched to the records.")
+            if set(logs) != set(samples):
+                raise ValueError(
+                    "`logs` must have the same markers as `particles`.")
+            sample_logs = {}
+            for nn in names:
+                replica_logs = logs[nn]
+                if isinstance(replica_logs, (list, tuple)):
+                    replica_logs = list(replica_logs)
+                else:
+                    replica_logs = [replica_logs]
+                if len(replica_logs) != len(samples[nn]):
+                    raise ValueError(
+                        f"Marker '{nn}': {len(samples[nn])} samples but "
+                        f"{len(replica_logs)} records of interactions.")
+                sample_logs[nn] = replica_logs
+
+        markers = {nn: line.element_dict[nn] for nn in names}
+        for nn, marker in markers.items():
+            _check_configured(nn, marker, line.particle_ref)
+        for label, values in (
+                ('processes', {mm.process for mm in markers.values()}),
+                ('bunch intensities',
+                 {float(mm.bunch_intensity) for mm in markers.values()})):
+            if len(values) > 1:
+                raise ValueError(
+                    f"The markers are configured with different {label}: "
+                    f"{sorted(values)}.")
+        first = markers[names[0]]
+        process = first.process
+        bunch_intensity = float(first.bunch_intensity)
+
+        f_rev = (line.particle_ref.beta0[0] * sc.c / line.get_length())
+        tab = line.get_table()
+        mean_free_path = np.array([mm.mean_free_path
+                                   for mm in markers.values()])
+        with np.errstate(divide='ignore'):
+            local_rate = bunch_intensity * f_rev / mean_free_path
+        data = {
+            'name': np.array(names),
+            's': np.array([float(tab['s', nn]) for nn in names]),
+            'ds': np.array([mm.ds for mm in markers.values()]),
+            'mean_free_path': mean_free_path,
+            'local_rate': local_rate,
+            'interaction_rate': np.array([mm.interaction_rate
+                                          for mm in markers.values()]),
+        }
+        rate_scattering = float(np.sum(data['interaction_rate']))
+        rate_above_theta_max = None
+        if process == 'coulomb':
+            rate_above_theta_max = float(sum(
+                mm.rate_above_theta_max for mm in markers.values()))
+
+        tracked = any(_tracked(pp) for pp in all_particles)
+        rate_generated = None
+        rate_tracking = None
+        rate_tracking_error = None
+        cutoff_scan = None
+        interaction_log = None
+
+        if samples is not None:
+            sums = {nn: [_sample_sums(pp) for pp in samples[nn]]
+                    for nn in names}
+
+            def per_marker(key):
+                return np.array([sum(ss[key] for ss in sums[nn])
+                                 for nn in names])
+
+            data['n_replicas'] = np.array([len(samples[nn]) for nn in names])
+            data['num_particles'] = per_marker('num_particles')
+            data['sum_weight'] = per_marker('sum_weight')
+            rate_generated = float(np.sum(data['sum_weight']))
+            if tracked:
+                data['num_lost_particles'] = per_marker('num_lost_particles')
+                data['sum_lost_weight'] = per_marker('sum_lost_weight')
+                variance = per_marker('lost_weight_variance')
+                data['sum_lost_weight_error'] = np.sqrt(variance)
+                rate_tracking = float(np.sum(data['sum_lost_weight']))
+                rate_tracking_error = float(np.sqrt(np.sum(variance)))
+        elif particles is not None:
+            sums = _sample_sums(particles)
+            rate_generated = sums['sum_weight']
+            if tracked:
+                rate_tracking = sums['sum_lost_weight']
+            if len(names) == 1:
+                # Events of a single marker are identically distributed,
+                # also when replicas are merged
+                data['num_particles'] = np.array([sums['num_particles']])
+                data['sum_weight'] = np.array([sums['sum_weight']])
+                if tracked:
+                    data['num_lost_particles'] = np.array(
+                        [sums['num_lost_particles']])
+                    data['sum_lost_weight'] = np.array(
+                        [sums['sum_lost_weight']])
+                    rate_tracking_error = float(
+                        np.sqrt(sums['lost_weight_variance']))
+
+        if sample_logs is not None:
+            column = 'theta' if process == 'coulomb' else 'photon_energy'
+            if process == 'coulomb':
+                window = (float(first.coulomb_theta_min),
+                          float(first.coulomb_theta_max))
+            else:
+                # Up to the kinetic energy of the beam
+                window = (float(first.brems_energy_cut), float(
+                    _energy_from_momentum(first.p0c) - ELECTRON_MASS_EV))
+            x, weight, lost, i_sample, tables = [], [], [], [], []
+            for nn in names:
+                for rr, (pp, log) in enumerate(zip(samples[nn],
+                                                   sample_logs[nn])):
+                    xx, ww, ll = _event_losses(pp, log, column)
+                    x.append(xx)
+                    weight.append(ww)
+                    lost.append(ll)
+                    i_sample.append(np.full(len(xx), len(tables)))
+                    tables.append(_log_table(nn, rr, log))
+            x, weight, lost, i_sample = (
+                np.concatenate(vv) for vv in (x, weight, lost, i_sample))
+            interaction_log = xt.Table({
+                kk: np.concatenate([tt[kk] for tt in tables])
+                for kk in tables[0]})
+            if tracked:
+                cutoff_scan = _cutoff_scan(
+                    window, x, weight, lost, i_sample, bunch_intensity,
+                    _CUTOFF_SCAN_BINS_PER_DECADE)
+                _warn_on_truncation(process, window, x, weight * lost,
+                                    cutoff_scan, rate_above_theta_max)
+
+        def lifetime(rate):
+            return np.inf if rate == 0 else float(bunch_intensity / rate)
+
+        lifetime_tracking = None
+        lifetime_tracking_error = None
+        if rate_tracking is not None:
+            lifetime_tracking = lifetime(rate_tracking)
+            if rate_tracking_error is not None and rate_tracking > 0:
+                lifetime_tracking_error = float(
+                    lifetime_tracking * rate_tracking_error / rate_tracking)
+
+        return BeamGasResult(
+            element_names=names,
+            local_rates=xt.Table(data),
+            rate_scattering=rate_scattering,
+            lifetime_scattering=lifetime(rate_scattering),
+            rate_tracking=rate_tracking,
+            lifetime_tracking=lifetime_tracking,
+            tracked=tracked,
+            rate_generated=rate_generated,
+            rate_tracking_error=rate_tracking_error,
+            lifetime_tracking_error=lifetime_tracking_error,
+            cutoff_scan=cutoff_scan,
+            rate_above_theta_max=rate_above_theta_max,
+            interaction_log=interaction_log,
+        )
 
     def _check_sections_cover_line(self):
         """

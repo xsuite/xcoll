@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
-from dataclasses import dataclass
 from warnings import warn
 
 import numpy as np
@@ -14,6 +13,7 @@ from xtrack.particles import pdg
 
 from ..beam_elements.beamgas import (BeamGasMarker, _resolve_process,
                                      _resolve_n_scattering_events)
+from .analysis import BeamGasResult
 from .cross_sections import (BremsstrahlungCalculator,
                              CoulombScatteringCalculator,
                              atomic_number_from_symbol)
@@ -65,126 +65,6 @@ def _lost_mask(particles):
         ``True`` for the allocated particles that are lost.
     """
     return _allocated_mask(particles) & (particles.state <= 0)
-
-
-@dataclass
-class BeamGasResult:
-    """
-    Result returned by :meth:`BeamGasStudy.run`.
-
-    The result separates quantities inferred from the scattering model from
-    quantities obtained after tracking the generated particles. The particle
-    samples are optional and are stored only when :meth:`BeamGasStudy.run` is
-    called with ``keep_particles=True``.
-
-    Parameters
-    ----------
-    element_names : list
-        Names of the beam-gas scattering elements included in the result.
-    gas_density : xtrack.Table
-        Gas-density profile used by the study.
-    local_rates : xtrack.Table
-        Per-element diagnostics table. It always contains ``name``, ``s``,
-        ``ds``, ``mean_free_path``, ``local_rate`` and ``interaction_rate``.
-        When particles are generated it also contains ``num_particles`` and
-        ``sum_weight``. When tracking is enabled it additionally contains
-        ``num_lost_particles`` and ``sum_lost_weight``.
-    rate_scattering : float
-        Total beam-gas interaction rate represented by the result [1/s]. Only
-        the part of the cross section that is actually generated is counted,
-        i.e. photon energies above ``brems_energy_cut`` or scattering angles
-        within ``coulomb_theta``. ``local_rates.sum_weight`` reproduces it up
-        to the Monte Carlo noise of the importance sampling.
-    lifetime_scattering : float
-        Beam lifetime that would result if every generated interaction led to
-        a loss [s]. It is a lower bound on the beam-gas lifetime, and is a
-        useful diagnostic only when the generated part of the cross section is
-        restricted to the loss-relevant range.
-    rate_tracking : float or None
-        Weighted loss rate after tracking the generated particles [1/s].
-        ``None`` when tracking is disabled.
-    lifetime_tracking : float or None
-        Beam-gas lifetime inferred from ``rate_tracking`` [s]. ``None`` when
-        tracking is disabled. This is the physically meaningful result of the
-        study.
-    tracked : bool
-        Whether the generated particles were tracked to determine losses.
-    rate_tracking_error : float or None
-        Monte Carlo standard error of ``rate_tracking`` [1/s]. ``None`` when
-        tracking is disabled.
-    lifetime_tracking_error : float or None
-        Monte Carlo standard error of ``lifetime_tracking`` [s], propagated
-        from ``rate_tracking_error`` to first order. ``None`` when tracking is
-        disabled.
-    cutoff_scan : xtrack.Table or None
-        Loss rate as a function of the lower generation cut, obtained from
-        the single tracked sample: since every event carries its importance
-        weight, the events above a cut ``c`` are an unbiased sample of a
-        study generated with its lower cut set to ``c``. One row per
-        log-spaced ``cut``, from the configured lower cut (``theta_min`` for
-        Coulomb scattering, ``brems_energy_cut`` for bremsstrahlung) upwards,
-        with columns ``cut``, ``num_events`` and ``num_lost`` (in
-        ``[cut, next cut)``), ``loss_probability`` (weighted fraction of
-        those events that is lost), and ``rate_tracking``,
-        ``rate_tracking_error`` and ``lifetime_tracking`` that a study with
-        its lower cut set to ``cut`` would give. If ``lifetime_tracking``
-        has not saturated in the first rows, the configured cut is too high.
-        Only losses of the generated primaries are included. ``None`` when
-        tracking is disabled.
-    rate_above_theta_max : float or None
-        Interaction rate for Coulomb scattering above ``theta_max`` [1/s],
-        which is not generated. It is an upper bound on the loss rate missing
-        because of the upper cut, and equals it when every event near
-        ``theta_max`` is lost (``cutoff_scan.loss_probability`` close to one
-        in the last rows). ``None`` unless ``process='coulomb'`` and
-        tracking is enabled.
-    particles_by_element : dict or None
-        Mapping ``{element_name: xtrack.Particles}`` with the generated
-        particles for each scattering element. ``None`` unless
-        ``keep_particles=True``.
-    particles : xtrack.Particles or None
-        Merged generated particle sample. ``None`` unless
-        ``keep_particles=True``.
-    lost_particles : xtrack.Particles or None
-        Subset of ``particles`` lost during tracking. ``None`` unless both
-        ``track=True`` and ``keep_particles=True``. It is a copy taken right
-        after tracking, so operations that modify ``particles`` in place (such
-        as :class:`xtrack.LossLocationRefinement`) are not reflected in it.
-    interaction_log : xtrack.Table or None
-        Per-event record of the generated interactions, with columns
-        ``name``, ``s``, ``particle_id``, ``gas``, ``theta``,
-        ``photon_energy`` and ``weight``. ``None`` unless
-        ``keep_particles=True``. ``particle_id`` refers to the particle sample
-        of the element named in the same row, i.e. to
-        ``particles_by_element[name]``; :meth:`xtrack.Particles.merge`
-        renumbers the particles, so the log cannot be joined to ``particles``
-        by id.
-
-    Attributes
-    ----------
-    element_names, gas_density, local_rates, rate_scattering,
-    lifetime_scattering, rate_tracking, lifetime_tracking, tracked,
-    rate_tracking_error, lifetime_tracking_error, cutoff_scan,
-    rate_above_theta_max, particles_by_element, particles, lost_particles,
-    interaction_log
-        See above.
-    """
-    element_names: list
-    gas_density: xt.Table
-    local_rates: xt.Table
-    rate_scattering: float
-    lifetime_scattering: float
-    rate_tracking: float | None
-    lifetime_tracking: float | None
-    tracked: bool
-    rate_tracking_error: float | None = None
-    lifetime_tracking_error: float | None = None
-    cutoff_scan: xt.Table | None = None
-    rate_above_theta_max: float | None = None
-    particles_by_element: dict | None = None
-    particles: xt.Particles | None = None
-    lost_particles: xt.Particles | None = None
-    interaction_log: xt.Table | None = None
 
 
 class BeamGasStudy:

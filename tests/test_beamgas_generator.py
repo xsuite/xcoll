@@ -2,6 +2,8 @@
 # This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
+import warnings
+
 import numpy as np
 import pytest
 from scipy import constants as sc
@@ -497,3 +499,198 @@ def test_generate_checks_its_arguments(ring):
     line.set_particle_ref('electron', p0c=2e9)
     with pytest.raises(ValueError, match='configure the markers again'):
         bg.generate(at=nn)
+
+
+def _fake_track(part, seed):
+    """
+    Stand-in for tracking: half of the particles are lost, on an aperture
+    (state 0) or in a collimator (LOST_ON_MATERIAL = -330), and the first
+    lost one produces a lost secondary, which carries its weight.
+    """
+    rng = np.random.default_rng(seed)
+    alive = np.flatnonzero(part.state > 0)
+    lost = alive[rng.random(len(alive)) < 0.5]
+    part.state[lost] = rng.choice([0, -330], size=len(lost))
+    part.at_turn[alive] = 10
+
+    free = np.flatnonzero(part.particle_id < 0)[0]
+    with part._bypass_linked_vars():
+        for _, nn in xt.Particles.per_particle_vars:
+            getattr(part, nn)[free] = getattr(part, nn)[lost[0]]
+    part.particle_id[free] = np.max(part.particle_id) + 1
+    part.parent_particle_id[free] = part.particle_id[lost[0]]
+
+
+def _lost_contributions(part):
+    primary = (part.parent_particle_id == part.particle_id) & (
+        part.particle_id >= 0)
+    lost = (part.state <= 0) & primary
+    return part.weight[primary] * lost[primary]
+
+
+def test_analyse_without_particles(ring):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1], process='coulomb',
+               coulomb_theta=(1e-6, 0.3))
+    bg = line.xcoll.beamgas
+    result = bg.analyse()
+
+    names = bg.marker_names
+    rates = [line[nn].interaction_rate for nn in names]
+    assert result.element_names == names
+    assert result.rate_scattering == pytest.approx(np.sum(rates), rel=1e-12)
+    assert result.lifetime_scattering == pytest.approx(
+        BEAM['bunch_intensity'] / np.sum(rates), rel=1e-12)
+    assert result.rate_above_theta_max == pytest.approx(
+        sum(line[nn].rate_above_theta_max for nn in names), rel=1e-12)
+    assert result.tracked is False
+    assert result.rate_tracking is None and result.rate_generated is None
+    assert set(result.local_rates._col_names) == {
+        'name', 's', 'ds', 'mean_free_path', 'local_rate',
+        'interaction_rate'}
+
+    _configure(line, twiss=ring[1])
+    assert bg.analyse().rate_above_theta_max is None
+
+
+def test_analyse_merged_particles_and_samples_by_marker(ring):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    bg = line.xcoll.beamgas
+    samples = bg.generate()
+
+    untracked = bg.analyse(xt.Particles.merge(list(samples.values())))
+    assert untracked.tracked is False
+    assert untracked.rate_tracking is None
+    assert untracked.rate_generated == pytest.approx(
+        untracked.rate_scattering, rel=1e-12)
+
+    for ii, part in enumerate(samples.values()):
+        _fake_track(part, seed=ii)
+    expected = sum(np.sum(_lost_contributions(pp))
+                   for pp in samples.values())
+
+    by_marker = bg.analyse(samples)
+    merged = bg.analyse(xt.Particles.merge(list(samples.values())[::-1]))
+    singles = [bg.analyse(pp, at=nn) for nn, pp in samples.items()]
+
+    for result in (by_marker, merged):
+        assert result.tracked is True
+        assert result.rate_tracking == pytest.approx(expected, rel=1e-12)
+        assert result.lifetime_tracking == pytest.approx(
+            BEAM['bunch_intensity'] / expected, rel=1e-12)
+    assert sum(rr.rate_tracking for rr in singles) == pytest.approx(
+        expected, rel=1e-12)
+
+    # Per-marker counts and errors: from the samples of each marker only
+    assert merged.rate_tracking_error is None
+    assert 'sum_lost_weight' not in merged.local_rates._col_names
+    variance = 0
+    for single, nn in zip(singles, samples):
+        contribution = _lost_contributions(samples[nn])
+        n = len(contribution)
+        error = np.sqrt(n * np.var(contribution, ddof=1))
+        assert single.rate_tracking_error == pytest.approx(error, rel=1e-9)
+        assert by_marker.local_rates['sum_lost_weight_error', nn] == (
+            pytest.approx(error, rel=1e-9))
+        for col in ('num_particles', 'sum_weight', 'num_lost_particles',
+                    'sum_lost_weight'):
+            assert single.local_rates[col, nn] == by_marker.local_rates[col, nn]
+        variance += error**2
+    assert by_marker.rate_tracking_error == pytest.approx(
+        np.sqrt(variance), rel=1e-9)
+
+
+def test_analyse_replicas(ring):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    bg = line.xcoll.beamgas
+    n_replicas = 3
+    replicas = {nn: [] for nn in bg.marker_names}
+    for rr in range(n_replicas):
+        for nn, part in bg.generate(replica=rr,
+                                    n_replicas=n_replicas).items():
+            _fake_track(part, seed=rr)
+            replicas[nn].append(part)
+
+    result = bg.analyse(replicas)
+    merged = bg.analyse(xt.Particles.merge(
+        [pp for vv in replicas.values() for pp in vv]))
+    assert result.rate_tracking == pytest.approx(merged.rate_tracking,
+                                                 rel=1e-12)
+    assert result.rate_generated == pytest.approx(result.rate_scattering,
+                                                  rel=1e-12)
+    np.testing.assert_array_equal(result.local_rates.n_replicas, n_replicas)
+    # Independent samples: their variances add up
+    variance = sum(len(cc) * np.var(cc, ddof=1)
+                   for vv in replicas.values()
+                   for cc in map(_lost_contributions, vv))
+    assert result.rate_tracking_error == pytest.approx(np.sqrt(variance),
+                                                       rel=1e-9)
+
+
+@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+def test_analyse_with_the_records_of_the_interactions(ring, process):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1], process=process,
+               coulomb_theta=(1e-6, 0.3))
+    bg = line.xcoll.beamgas
+    samples = {nn: [] for nn in bg.marker_names}
+    logs = {nn: [] for nn in bg.marker_names}
+    for rr in range(2):
+        particles, records = bg.generate(replica=rr, n_replicas=2,
+                                         return_log=True)
+        for nn in particles:
+            _fake_track(particles[nn], seed=rr)
+            samples[nn].append(particles[nn])
+            # Any table-like record works, e.g. one reloaded with pandas
+            logs[nn].append(records[nn].to_pandas())
+
+    with warnings.catch_warnings():
+        # The fake tracking loses particles at all angles and energies: the
+        # generation window looks truncated
+        warnings.simplefilter('ignore')
+        result = bg.analyse(samples, logs=logs)
+    scan = result.cutoff_scan
+    log = result.interaction_log
+    assert len(log.particle_id) == 2 * 8 * 200
+    assert set(log.replica) == {0, 1}
+    # The first row of the scan is the whole sample
+    assert scan.num_events.sum() == len(log.particle_id)
+    assert scan.rate_tracking[0] == pytest.approx(result.rate_tracking,
+                                                  rel=1e-12)
+    assert scan.rate_tracking_error[0] == pytest.approx(
+        result.rate_tracking_error, rel=1e-9)
+    if process == 'coulomb':
+        assert scan.cut[0] == pytest.approx(1e-6)
+        assert result.rate_above_theta_max > 0
+    else:
+        assert scan.cut[0] == pytest.approx(1e6)
+        assert result.rate_above_theta_max is None
+
+
+def test_analyse_checks_its_arguments(ring):
+    line = _ring_with_markers()
+    bg = line.xcoll.beamgas
+    nn = bg.marker_names[1]
+    with pytest.raises(ValueError, match='not configured'):
+        bg.analyse()
+
+    _configure(line, twiss=ring[1])
+    part, log = bg.generate(at=nn, return_log=True)
+    other, other_log = bg.generate(at=nn, replica=1, n_replicas=2,
+                                   return_log=True)
+    with pytest.raises(ValueError, match='keys select the markers'):
+        bg.analyse({nn: part}, at=nn)
+    with pytest.raises(TypeError, match='xtrack.Particles'):
+        bg.analyse({nn: [part, 'other']})
+    with pytest.raises(ValueError, match='No particles'):
+        bg.analyse({nn: []})
+    with pytest.raises(ValueError, match='marker by marker'):
+        bg.analyse(part, logs={nn: log})
+    with pytest.raises(ValueError, match='same markers'):
+        bg.analyse({nn: part}, logs={bg.marker_names[0]: log})
+    with pytest.raises(ValueError, match='records of interactions'):
+        bg.analyse({nn: [part, other]}, logs={nn: [log]})
+    with pytest.raises(ValueError, match='does not match the particles'):
+        bg.analyse({nn: part}, logs={nn: other_log})
