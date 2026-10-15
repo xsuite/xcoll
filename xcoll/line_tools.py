@@ -79,7 +79,7 @@ class XcollLineAPI:
             Beam-gas process to simulate. Default ``'brems'``.
         elements : str, sequence of str, or None, optional
             Beam-gas scattering elements included in the study. If ``None``,
-            all :class:`xcoll.BeamGasScattering` elements in the line are used.
+            all :class:`xcoll.BeamGasMarker` elements in the line are used.
         twiss : xtrack.TwissTable or None, optional
             Twiss table used for the local optics. If ``None``, it is computed
             during initialisation.

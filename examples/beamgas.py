@@ -67,7 +67,7 @@ line.configure_bend_model(core='full', edge=None)
 ######################################################
 # Insert beam-gas scattering centers
 ######################################################
-# Each BeamGasScattering element represents the lattice section between the
+# Each BeamGasMarker element represents the lattice section between the
 # previous scattering center (or the start of the line) and itself, so the
 # last one must sit at the end of the line to cover the whole circumference.
 circumference = line.get_length()
@@ -75,8 +75,8 @@ n_beamgas = 16
 
 placements = []
 for ii, ss in enumerate(np.linspace(0, circumference, n_beamgas + 1)[1:]):
-    beamgas_name = f'BeamGasScattering.{ii}'
-    env.elements[beamgas_name] = xc.BeamGasScattering()
+    beamgas_name = f'BeamGasMarker.{ii}'
+    env.elements[beamgas_name] = xc.BeamGasMarker()
     placements.append(env.place(beamgas_name, at=ss))
 
 line.insert(placements)
@@ -107,7 +107,7 @@ line.insert(placements)
 # Define an example flat pressure profile
 ######################################################
 tab = line.get_table()
-tt_beamgas = tab.rows[tab.element_type == 'BeamGasScattering']
+tt_beamgas = tab.rows[tab.element_type == 'BeamGasMarker']
 
 # N2 at 1e-7 mbar and room temperature. The gas density table holds the
 # *atomic* density of each species, hence the factor 2 for the N2 molecule.

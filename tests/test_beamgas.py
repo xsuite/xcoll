@@ -38,7 +38,7 @@ ATOMIC_DENSITY = 2 * 1e-7 * 1e2 / (sc.Boltzmann * 293.15)
 @pytest.fixture(scope='module')
 def toy_ring():
     """
-    Build a FODO-like toy ring with BeamGasScattering elements and apertures.
+    Build a FODO-like toy ring with BeamGasMarker elements and apertures.
 
     Yields a dict with keys ``line`` and ``gas_density``.
     """
@@ -67,13 +67,13 @@ def toy_ring():
     circumference = line.get_length()
     placements = []
     for ii, ss in enumerate(np.linspace(0, circumference, 9)[1:]):
-        env.elements[f'BeamGasScattering.{ii}'] = xc.BeamGasScattering()
-        placements.append(env.place(f'BeamGasScattering.{ii}', at=ss))
+        env.elements[f'BeamGasMarker.{ii}'] = xc.BeamGasMarker()
+        placements.append(env.place(f'BeamGasMarker.{ii}', at=ss))
     line.insert(placements)
 
     tab = line.get_table()
     needs_aperture = tab.rows.match_not(
-        element_type='Drift.*|Marker|BeamGasScattering|').name
+        element_type='Drift.*|Marker|BeamGasMarker|').name
     env.new('aper', xt.LimitRect, min_x=-0.04, max_x=0.04,
             min_y=-0.04, max_y=0.04)
     placements = []
@@ -86,7 +86,7 @@ def toy_ring():
     line.build_tracker()
 
     tab = line.get_table()
-    tt = tab.rows[tab.element_type == 'BeamGasScattering']
+    tt = tab.rows[tab.element_type == 'BeamGasMarker']
     gas_density = xt.Table({
         'name': tt.name,
         's': tt.s,
@@ -562,7 +562,7 @@ class TestInitialiseBeamGas:
     def test_warns_when_line_end_is_not_covered(self, toy_ring):
         study = xc.BeamGasStudy(
             line=toy_ring['line'], gas_density=toy_ring['gas_density'],
-            process='brems', elements=['BeamGasScattering.0'],
+            process='brems', elements=['BeamGasMarker.0'],
             nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
             sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
             n_scattering_events=10, method='4d')
@@ -623,7 +623,7 @@ class TestGenerateParticles:
                           == line.element_names.index(nn))
 
     def test_raises_if_not_initialised(self, toy_ring):
-        elem = xc.BeamGasScattering()
+        elem = xc.BeamGasMarker()
         with pytest.raises(ValueError, match='not been initialised'):
             elem.scatter()
 
@@ -801,7 +801,7 @@ class TestLineFacade:
         # initialise_beamgas() has already run, so the elements are configured
         assert len(study.elements) == len(
             [nn for nn in toy_ring['line'].element_names
-             if isinstance(toy_ring['line'][nn], xc.BeamGasScattering)])
+             if isinstance(toy_ring['line'][nn], xc.BeamGasMarker)])
         for nn in study.elements:
             assert toy_ring['line'][nn].interaction_rate > 0
         assert study.twiss is not None
@@ -820,7 +820,7 @@ class TestLineFacade:
         assert result_facade.rate_tracking == result_direct.rate_tracking
 
     def test_forwards_element_selection(self, toy_ring):
-        names = ['BeamGasScattering.0', 'BeamGasScattering.1']
+        names = ['BeamGasMarker.0', 'BeamGasMarker.1']
         with pytest.warns(UserWarning, match='not represented'):
             study = toy_ring['line'].xcoll.beamgas_configure(
                 elements=names, verbose=False, **self._kwargs(toy_ring))
@@ -848,7 +848,7 @@ class TestPassiveTracking:
         line_no_beamgas = line.copy()
         line_no_beamgas.discard_tracker()
         for nn in [nn for nn in line_no_beamgas.element_names
-                   if isinstance(line_no_beamgas[nn], xc.BeamGasScattering)]:
+                   if isinstance(line_no_beamgas[nn], xc.BeamGasMarker)]:
             line_no_beamgas.element_dict[nn] = xt.Marker()
         line_no_beamgas.build_tracker()
         line_no_beamgas.track(reference, num_turns=5)
@@ -857,4 +857,4 @@ class TestPassiveTracking:
         assert np.allclose(particles.px, reference.px, rtol=0, atol=1e-15)
 
     def test_element_is_not_collective(self, toy_ring):
-        assert not toy_ring['line']['BeamGasScattering.0'].iscollective
+        assert not toy_ring['line']['BeamGasMarker.0'].iscollective

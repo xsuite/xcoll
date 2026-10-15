@@ -68,7 +68,7 @@ def _resolve_n_scattering_events(*, n_scattering_events, default):
     return int(n_scattering_events)
 
 
-class BeamGasScattering(xt.BeamElement):
+class BeamGasMarker(xt.BeamElement):
     """
     Beam element that generates beam-residual-gas interactions at one location.
 

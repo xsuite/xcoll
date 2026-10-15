@@ -12,7 +12,7 @@ from scipy import constants as sc
 import xtrack as xt
 from xtrack.particles import pdg
 
-from ..beam_elements.beamgas import (BeamGasScattering, _resolve_process,
+from ..beam_elements.beamgas import (BeamGasMarker, _resolve_process,
                                      _resolve_n_scattering_events)
 from .cross_sections import (BremsstrahlungCalculator,
                              CoulombScatteringCalculator,
@@ -209,7 +209,7 @@ class BeamGasStudy:
         and gas-density profile.
 
         The configured study computes the local beam-gas interaction rate at
-        each :class:`xcoll.BeamGasScattering` element, integrates it over the
+        each :class:`xcoll.BeamGasMarker` element, integrates it over the
         lattice section represented by the element, and configures the element
         with the local optics, beam parameters and gas composition needed to
         generate weighted Monte Carlo particles.
@@ -225,7 +225,7 @@ class BeamGasStudy:
         Parameters
         ----------
         line : xtrack.Line
-            Line containing the :class:`xcoll.BeamGasScattering` elements to
+            Line containing the :class:`xcoll.BeamGasMarker` elements to
             configure. It must have a ``particle_ref`` with its PDG id set to
             an electron (``11``) or a positron (``-11``).
         gas_density : xtrack.Table
@@ -240,7 +240,7 @@ class BeamGasStudy:
             elastic Coulomb scattering off them. Default ``'brems'``.
         elements : str, sequence of str, or None, optional
             Beam-gas scattering elements included in the study. If ``None``,
-            all :class:`xcoll.BeamGasScattering` elements in the line are used.
+            all :class:`xcoll.BeamGasMarker` elements in the line are used.
         twiss : xtrack.TwissTable or None, optional
             Twiss table used for the local optics. If ``None``, it is computed
             when :meth:`initialise_beamgas` is called.
@@ -291,7 +291,7 @@ class BeamGasStudy:
 
         Notes
         -----
-        Each :class:`xcoll.BeamGasScattering` element represents the lattice
+        Each :class:`xcoll.BeamGasMarker` element represents the lattice
         section between the previous scattering element (or the start of the
         line) and itself. To cover the whole ring, place one scattering
         element at the end of the line; a warning is issued otherwise.
@@ -414,7 +414,7 @@ class BeamGasStudy:
         ----------
         elements : str, sequence of str, or None
             Requested elements, or ``None`` for all the
-            :class:`xcoll.BeamGasScattering` elements in the line.
+            :class:`xcoll.BeamGasMarker` elements in the line.
 
         Returns
         -------
@@ -427,10 +427,10 @@ class BeamGasStudy:
 
         if elements is None:
             elements = [nn for nn in tab.name[:-1]
-                        if isinstance(line[nn], BeamGasScattering)]
+                        if isinstance(line[nn], BeamGasMarker)]
             if len(elements) == 0:
                 raise ValueError(
-                    "The line does not contain any BeamGasScattering. Please "
+                    "The line does not contain any BeamGasMarker. Please "
                     "add them before initialising the BeamGasStudy.")
             return elements
 
@@ -441,14 +441,14 @@ class BeamGasStudy:
 
         if len(elements) == 0:
             raise ValueError(
-                "No BeamGasScattering elements selected for this study.")
+                "No BeamGasMarker elements selected for this study.")
 
         for nn in elements:
             if nn not in line.element_names:
                 raise ValueError(f"Element '{nn}' is not present in the line.")
-            if not isinstance(line[nn], BeamGasScattering):
+            if not isinstance(line[nn], BeamGasMarker):
                 raise TypeError(
-                    f"Element '{nn}' is not a BeamGasScattering "
+                    f"Element '{nn}' is not a BeamGasMarker "
                     f"(got {type(line[nn]).__name__}).")
 
         return elements
@@ -614,7 +614,7 @@ class BeamGasStudy:
         """
         Compute and configure the beam-gas interaction rates in the lattice.
 
-        For each :class:`xcoll.BeamGasScattering` element this method:
+        For each :class:`xcoll.BeamGasMarker` element this method:
 
         1. Integrates the atomic density of every gas species over the lattice
            section represented by the element (from the previous scattering
@@ -624,8 +624,8 @@ class BeamGasStudy:
            second.
         3. Stores that rate together with the local optics, closed orbit, beam
            parameters and gas composition on the element via
-           :meth:`xcoll.BeamGasScattering._configure`, so that
-           :meth:`xcoll.BeamGasScattering.scatter` can weight the Monte Carlo
+           :meth:`xcoll.BeamGasMarker._configure`, so that
+           :meth:`xcoll.BeamGasMarker.scatter` can weight the Monte Carlo
            macro-particles correctly.
 
         Parameters
@@ -666,11 +666,11 @@ class BeamGasStudy:
         s_all = np.array([float(tab['s', nn]) for nn in self.elements])
         line_length = float(line.get_length())
         if s_all[-1] < line_length - 1e-6:
-            warn(f"The last BeamGasScattering is at s={s_all[-1]:.6g} m, but "
+            warn(f"The last BeamGasMarker is at s={s_all[-1]:.6g} m, but "
                  f"the line is {line_length:.6g} m long: the last "
                  f"{line_length - s_all[-1]:.6g} m of the line are not "
                  f"represented by any scattering element. Place a "
-                 f"BeamGasScattering at the end of the line to cover the "
+                 f"BeamGasMarker at the end of the line to cover the "
                  f"whole circumference.", stacklevel=2)
 
         s_table = np.asarray(self.gas_density['s'], dtype=float)
@@ -695,7 +695,7 @@ class BeamGasStudy:
                 for kk in self.gas_species}
 
             if verbose:
-                print(f'Initialising BeamGasScattering for {nn}')
+                print(f'Initialising BeamGasMarker for {nn}')
 
             line[nn]._configure(
                 s=float(s),
