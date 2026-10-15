@@ -6,7 +6,7 @@
 Atomic data and single-scattering models for beam-residual-gas interactions.
 
 This module provides the differential and total cross sections, and the
-associated Monte Carlo samplers, used by :class:`xcoll.BeamGasStudy` to
+associated Monte Carlo samplers, used by :class:`xcoll.BeamGasGenerator` to
 simulate the interaction of a relativistic electron or positron beam with the
 residual gas of an accelerator vacuum chamber.
 

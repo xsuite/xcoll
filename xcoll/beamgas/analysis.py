@@ -281,8 +281,6 @@ class BeamGasResult:
         ``s``, ``particle_id``, ``gas``, ``theta``, ``photon_energy`` and
         ``weight``. ``particle_id`` refers to the sample of the marker and
         replica of the same row. ``None`` unless the records are given.
-    gas_density : xtrack.Table or None
-        Gas-density profile of the deprecated :class:`xcoll.BeamGasStudy`.
 
     Attributes
     ----------
@@ -290,7 +288,7 @@ class BeamGasResult:
     rate_tracking, lifetime_tracking, tracked, rate_generated,
     rate_tracking_error, lifetime_tracking_error, cutoff_scan,
     rate_above_theta_max, particles_by_element, particles, lost_particles,
-    interaction_log, gas_density
+    interaction_log
         See above.
     """
     element_names: list
@@ -309,4 +307,3 @@ class BeamGasResult:
     particles: xt.Particles | None = None
     lost_particles: xt.Particles | None = None
     interaction_log: xt.Table | None = None
-    gas_density: xt.Table | None = None
