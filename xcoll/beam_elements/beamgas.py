@@ -7,11 +7,15 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+from xtrack.particles import pdg
 
 from ..general import _pkg_root
 
 
 BEAMGAS_PROCESSES = ('brems', 'coulomb')
+
+# Number of gas species that a marker can store
+MAX_GAS_SPECIES = 16
 
 
 def _resolve_process(process):
@@ -179,8 +183,11 @@ class BeamGasMarker(xt.BeamElement):
 
     _xofields = {
         'p0c': xo.Float64,
+        'bunch_intensity': xo.Float64,
         'ds': xo.Float64,
         'interaction_rate': xo.Float64,
+        'rate_above_theta_max': xo.Float64,
+        'mean_free_path': xo.Float64,
         'n_scattering_events': xo.Int64,
         'gemitt_x': xo.Float64,
         'gemitt_y': xo.Float64,
@@ -192,8 +199,22 @@ class BeamGasMarker(xt.BeamElement):
         'dpx': xo.Float64,
         'dy': xo.Float64,
         'dpy': xo.Float64,
+        'x_co': xo.Float64,
+        'px_co': xo.Float64,
+        'y_co': xo.Float64,
+        'py_co': xo.Float64,
+        'zeta_co': xo.Float64,
+        'delta_co': xo.Float64,
         'sigma_z': xo.Float64,
         'sigma_delta': xo.Float64,
+        '_process': xo.Int64,
+        'brems_energy_cut': xo.Float64,
+        'coulomb_theta_min': xo.Float64,
+        'coulomb_theta_max': xo.Float64,
+        'n_gas_species': xo.Int64,
+        'gas_atomic_numbers': xo.Int64[MAX_GAS_SPECIES],
+        'gas_densities': xo.Float64[MAX_GAS_SPECIES],
+        'seed': xo.Int64,
     }
 
     isthick = False
@@ -208,6 +229,8 @@ class BeamGasMarker(xt.BeamElement):
     def __init__(self, s=0.0, ds=0.0,
                  particle_ref=None,
                  element_index=0,
+                 p0c=0.0,
+                 bunch_intensity=0.0,
                  alfx=0.0, betx=0.0, alfy=0.0, bety=0.0,
                  dx=0.0, dpx=0.0, dy=0.0, dpy=0.0,
                  x_co=0.0, px_co=0.0, y_co=0.0, py_co=0.0,
@@ -216,11 +239,17 @@ class BeamGasMarker(xt.BeamElement):
                  sigma_z=0.0, sigma_delta=0.0,
                  n_scattering_events=None,
                  interaction_rate=0.0,
-                 process='brems',
+                 rate_above_theta_max=0.0,
+                 mean_free_path=0.0,
+                 process=None,
+                 brems_energy_cut=0.0,
+                 coulomb_theta_min=0.0,
+                 coulomb_theta_max=0.0,
                  atomic_densities=None,
+                 seed=0,
                  **kwargs):
         """
-        Create a beam-gas scattering element.
+        Create a beam-gas scattering marker.
 
         Parameters
         ----------
@@ -243,6 +272,8 @@ class BeamGasMarker(xt.BeamElement):
         self.ds = ds
         self.particle_ref = particle_ref
         self.element_index = element_index
+        self.p0c = p0c
+        self.bunch_intensity = bunch_intensity
         self.alfx = alfx
         self.betx = betx
         self.alfy = alfy
@@ -264,9 +295,17 @@ class BeamGasMarker(xt.BeamElement):
         self.n_scattering_events = _resolve_n_scattering_events(
             n_scattering_events=n_scattering_events, default=0)
         self.interaction_rate = interaction_rate
-        self.process = process
-        self.atomic_densities = {} if atomic_densities is None \
-            else dict(atomic_densities)
+        self.rate_above_theta_max = rate_above_theta_max
+        self.mean_free_path = mean_free_path
+        # Not overwritten when None, to keep the values loaded from a dict
+        if process is not None:
+            self.process = process
+        self.brems_energy_cut = brems_energy_cut
+        self.coulomb_theta_min = coulomb_theta_min
+        self.coulomb_theta_max = coulomb_theta_max
+        if atomic_densities is not None:
+            self.atomic_densities = atomic_densities
+        self.seed = seed
 
         # Filled in by BeamGasStudy.initialise_beamgas()
         self._calculators = {}
@@ -287,7 +326,7 @@ class BeamGasMarker(xt.BeamElement):
         process : {'brems', 'coulomb'}
             Name of the configured process.
         """
-        return self._process
+        return BEAMGAS_PROCESSES[int(self._process)]
 
     @process.setter
     def process(self, value):
@@ -303,7 +342,55 @@ class BeamGasMarker(xt.BeamElement):
         -------
         None
         """
-        self._process = _resolve_process(value)
+        self._process = BEAMGAS_PROCESSES.index(_resolve_process(value))
+
+    @property
+    def atomic_densities(self):
+        """
+        Local gas composition.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        atomic_densities : dict
+            Mapping ``{element_symbol: atomic_density}`` [atoms/m^3].
+        """
+        n_species = int(self.n_gas_species)
+        return {pdg.get_element_name_from_Z(int(zz)): float(dd)
+                for zz, dd in zip(self.gas_atomic_numbers[:n_species],
+                                  self.gas_densities[:n_species])}
+
+    @atomic_densities.setter
+    def atomic_densities(self, value):
+        """
+        Set the local gas composition.
+
+        Parameters
+        ----------
+        value : dict
+            Mapping ``{element_symbol: atomic_density}`` [atoms/m^3], with at
+            most ``MAX_GAS_SPECIES`` species.
+
+        Returns
+        -------
+        None
+        """
+        value = dict(value)
+        if len(value) > MAX_GAS_SPECIES:
+            raise ValueError(
+                f"At most {MAX_GAS_SPECIES} gas species are supported "
+                f"(got {len(value)}).")
+        atomic_numbers = np.zeros(MAX_GAS_SPECIES, dtype=np.int64)
+        densities = np.zeros(MAX_GAS_SPECIES)
+        for ii, (kk, vv) in enumerate(value.items()):
+            atomic_numbers[ii] = int(pdg.get_Z_from_element_name(kk))
+            densities[ii] = float(vv)
+        self.n_gas_species = len(value)
+        self.gas_atomic_numbers[:] = atomic_numbers
+        self.gas_densities[:] = densities
 
     @property
     def gas_species(self):
@@ -337,8 +424,9 @@ class BeamGasMarker(xt.BeamElement):
             listed by :attr:`gas_species`. The array sums to one.
         """
         self._check_initialised()
+        atomic_densities = self.atomic_densities
         contributions = np.array(
-            [self.atomic_densities[kk]*self._xsecs[kk]
+            [atomic_densities[kk]*self._xsecs[kk]
              for kk in self.gas_species],
             dtype=float)
         total = contributions.sum()
@@ -348,28 +436,6 @@ class BeamGasMarker(xt.BeamElement):
                 f"'{getattr(self, 'name', '?')}': all gas densities are zero.")
 
         return contributions/total
-
-    @property
-    def mean_free_path(self):
-        """
-        Local beam-gas mean free path.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        mean_free_path : float
-            Mean free path [m] against the generated part of the beam-gas
-            cross section, i.e. restricted to the configured photon-energy or
-            scattering-angle range.
-        """
-        self._check_initialised()
-        inverse = sum(self.atomic_densities[kk]*self._xsecs[kk]
-                      for kk in self.gas_species)
-
-        return np.inf if inverse <= 0.0 else 1.0/inverse
 
     def _configure(self, **kwargs):
         """
@@ -387,7 +453,8 @@ class BeamGasMarker(xt.BeamElement):
         None
         """
         config_allowed = {
-            's', 'ds', 'particle_ref', 'element_index',
+            's', 'ds', 'particle_ref', 'element_index', 'p0c',
+            'bunch_intensity',
             'alfx', 'betx', 'alfy', 'bety',
             'dx', 'dpx', 'dy', 'dpy',
             'x_co', 'px_co', 'y_co', 'py_co',
@@ -395,7 +462,9 @@ class BeamGasMarker(xt.BeamElement):
             'gemitt_x', 'gemitt_y',
             'sigma_z', 'sigma_delta',
             'n_scattering_events', 'interaction_rate',
-            'process', 'atomic_densities',
+            'rate_above_theta_max', 'mean_free_path',
+            'process', 'brems_energy_cut', 'coulomb_theta_min',
+            'coulomb_theta_max', 'atomic_densities', 'seed',
             '_calculators', '_xsecs',
         }
 
@@ -414,6 +483,12 @@ class BeamGasMarker(xt.BeamElement):
             setattr(self, kk, vv)
             if kk == 'particle_ref':
                 self.p0c = self.particle_ref.p0c[0]
+
+        if '_xsecs' in kwargs:
+            atomic_densities = self.atomic_densities
+            inverse = sum(atomic_densities[kk]*self._xsecs[kk]
+                          for kk in self.gas_species)
+            self.mean_free_path = np.inf if inverse <= 0.0 else 1.0/inverse
 
     def _check_initialised(self):
         """
