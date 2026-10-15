@@ -8,7 +8,6 @@ import scipy.constants as sc
 
 import xobjects as xo
 import xtrack as xt
-import xcoll as xc
 
 ######################################################
 # Constants
@@ -65,21 +64,16 @@ line.set_particle_ref('electron', p0c=1e9)
 line.configure_bend_model(core='full', edge=None)
 
 ######################################################
-# Insert beam-gas scattering centers
+# Install beam-gas scattering markers
 ######################################################
-# Each BeamGasMarker element represents the lattice section between the
-# previous scattering center (or the start of the line) and itself, so the
-# last one must sit at the end of the line to cover the whole circumference.
+# Each marker represents the section of the line from the previous marker to
+# itself: they are installed at equally spaced positions, the last one at the
+# end of the line so that the sections cover the whole ring.
 circumference = line.get_length()
 n_beamgas = 16
 
-placements = []
-for ii, ss in enumerate(np.linspace(0, circumference, n_beamgas + 1)[1:]):
-    beamgas_name = f'BeamGasMarker.{ii}'
-    env.elements[beamgas_name] = xc.BeamGasMarker()
-    placements.append(env.place(beamgas_name, at=ss))
-
-line.insert(placements)
+line.xcoll.beamgas.install_markers(
+    at=list(np.linspace(0, circumference, n_beamgas + 1)[1:]))
 
 ######################################################
 # Install apertures
@@ -108,6 +102,7 @@ line.insert(placements)
 ######################################################
 tab = line.get_table()
 tt_beamgas = tab.rows[tab.element_type == 'BeamGasMarker']
+beamgas_markers = tt_beamgas.name
 
 # N2 at 1e-7 mbar and room temperature. The gas density table holds the
 # *atomic* density of each species, hence the factor 2 for the N2 molecule.
@@ -124,14 +119,17 @@ gas_density = xt.Table({
 })
 
 ######################################################
-# Beam-gas simulation
+# Configure the beam-gas markers
 ######################################################
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
-# The facade builds the study and initialises it in one call. Equivalently,
-# construct xc.BeamGasStudy(line=line, ...) and call initialise_beamgas().
-beamgas = line.xcoll.beamgas_configure(
+# Integrates the gas density over the section of each marker, and stores on
+# the marker the interaction rate together with the local gas composition,
+# optics, beam parameters and Monte Carlo settings. The configured line can
+# be saved here (e.g. with line.to_json): once loaded again, it generates the
+# same particles, e.g. in separate jobs.
+line.xcoll.beamgas.configure(
     gas_density=gas_density,
     process='coulomb',
     # Losses from angles outside this window are missing from the result, so
@@ -154,14 +152,36 @@ beamgas = line.xcoll.beamgas_configure(
     method='4d',
 )
 
-print(beamgas.local_rates())
+print(line.xcoll.beamgas.analyse().local_rates)
 
-result = beamgas.run(
-    track=True,
-    n_turns=100,
-    keep_particles=True,
-    with_progress=1,
-)
+######################################################
+# Generate and track the beam-gas-scattered particles
+######################################################
+# For each marker:
+#   1. Generate the particles scattered in its section, each with one
+#      interaction with the residual gas, and the record of the interactions
+#   2. Track them around the ring for `nturns` turns, starting and ending at
+#      the marker
+nturns = 100
+particles_by_marker = {}
+logs = {}
+for name in beamgas_markers:
+    particles, log = line.xcoll.beamgas.generate(at=name, return_log=True)
+    line.track(particles, ele_start=name, ele_stop=name, num_turns=nturns,
+               with_progress=1)
+    particles_by_marker[name] = particles
+    logs[name] = log
+
+######################################################
+# Beam-gas loss rate and lifetime
+######################################################
+# Marker by marker, with the records of the interactions: the result also
+# contains the Monte Carlo error and the scan of the lower generation cut.
+# The merged particles alone give the loss rate and the lifetime.
+result = line.xcoll.beamgas.analyse(particles_by_marker, logs=logs)
+
+# All of the above in one call:
+# result = line.xcoll.beamgas.run(n_turns=nturns)
 
 print(f'Beam-gas interaction rate: {result.rate_scattering*1e-3:.3f} kHz')
 print(f'Beam-gas loss rate:        {result.rate_tracking*1e-3:.3f} kHz')
@@ -174,6 +194,10 @@ print(result.cutoff_scan)
 print(f'Interaction rate above theta_max: '
       f'{result.rate_above_theta_max/result.rate_tracking:.1e} of the loss rate')
 
+# The weights are rates [1/s]: merged, the samples of all the markers
+# represent the beam-gas scattering of the whole ring
+particles = xt.Particles.merge(list(particles_by_marker.values()))
+
 ######################################################
 # Optional: refine loss locations
 ######################################################
@@ -185,13 +209,10 @@ loss_loc_refinement = xt.LossLocationRefinement(
     ds=0.1,       # Longitudinal loss refinement accuracy [m]
 )
 
-loss_loc_refinement.refine_loss_location(result.particles)
+loss_loc_refinement.refine_loss_location(particles)
 
-# `result.lost_particles` is a snapshot taken right after tracking, so it does
-# not see the refined loss locations: re-filter the refined particle object.
 # Xcoll flags the different loss mechanisms with distinct non-positive states,
 # and the spare capacity kept for secondaries shows up as particle_id < 0.
-particles = result.particles
 lost_particles = particles.filter((particles.state > -999999999) & (particles.state <= 0))
 
 ######################################################
