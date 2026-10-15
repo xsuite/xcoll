@@ -837,6 +837,40 @@ class TestLineFacade:
 #############################################################
 # The element is passive during tracking
 #############################################################
+class TestBeamGasMarkerSerialization:
+    """A configured BeamGasMarker keeps its whole configuration in JSON."""
+
+    @pytest.mark.parametrize('process', ['brems', 'coulomb'])
+    def test_configured_markers_survive_json(self, toy_ring, tmp_path,
+                                             process):
+        line = toy_ring['line']
+        make_study(toy_ring, process=process)
+        names = [nn for nn in line.element_names
+                 if isinstance(line[nn], xc.BeamGasMarker)]
+        for ii, nn in enumerate(names):
+            # Distinct non-zero values, else the comparison would be vacuous
+            for jj, cc in enumerate(('x_co', 'px_co', 'y_co', 'py_co',
+                                     'zeta_co', 'delta_co')):
+                setattr(line[nn], cc, 1e-6 * (ii + 1) * (jj + 1))
+            line[nn].seed = 1997 + ii
+            line[nn].atomic_densities = {'N': ATOMIC_DENSITY * (ii + 1),
+                                         'H': 1e12 * (ii + 1)}
+
+        line.to_json(tmp_path / 'line.json')
+        loaded = xt.load(tmp_path / 'line.json')
+
+        for nn in names:
+            marker = loaded[nn]
+            assert isinstance(marker, xc.BeamGasMarker)
+            assert line[nn].betx > 0 and line[nn].interaction_rate > 0
+            for field in xc.BeamGasMarker._xofields:
+                np.testing.assert_array_equal(
+                    getattr(marker, field), getattr(line[nn], field),
+                    err_msg=f'{nn}: {field} changed in the JSON round trip')
+            assert marker.process == process
+            assert marker.atomic_densities == line[nn].atomic_densities
+
+
 class TestPassiveTracking:
 
     def test_tracking_is_not_affected(self, toy_ring):
