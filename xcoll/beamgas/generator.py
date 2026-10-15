@@ -1206,6 +1206,10 @@ class BeamGasGenerator:
         if (isinstance(n_turns, (bool, np.bool_))
                 or not isinstance(n_turns, (int, np.integer)) or n_turns < 1):
             raise ValueError("`n_turns` must be a positive integer.")
+        if (isinstance(n_replicas, (bool, np.bool_))
+                or not isinstance(n_replicas, (int, np.integer))
+                or n_replicas < 1):
+            raise ValueError("`n_replicas` must be a positive integer.")
 
         line = self.line
         names = self._markers(at)
