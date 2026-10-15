@@ -40,7 +40,7 @@ def toy_ring():
     """
     Build a FODO-like toy ring with BeamGasMarker elements and apertures.
 
-    Yields a dict with keys ``line`` and ``gas_density``.
+    Yields a dict with keys ``line``, ``gas_density`` and ``twiss``.
     """
     env = xt.Environment()
     line = env.new_line(components=[
@@ -84,6 +84,7 @@ def toy_ring():
         placements.append(env.place(f'{nn}_aper_exit', at=f'{nn}@end'))
     line.insert(placements)
     line.build_tracker()
+    twiss = line.twiss(method='4d')
 
     tab = line.get_table()
     tt = tab.rows[tab.element_type == 'BeamGasMarker']
@@ -93,24 +94,26 @@ def toy_ring():
         'N': np.ones(len(tt.name))*ATOMIC_DENSITY,
     })
 
-    yield {'line': line, 'gas_density': gas_density}
+    yield {'line': line, 'gas_density': gas_density, 'twiss': twiss}
 
 
-def make_study(toy_ring, **kwargs):
-    """Build and initialise a BeamGasStudy with the toy-ring defaults."""
-    kwargs.setdefault('process', 'brems')
-    kwargs.setdefault('brems_energy_cut', 1e6)
-    kwargs.setdefault('n_scattering_events', 200)
-    kwargs.setdefault('seed', 1997)
-    study = xc.BeamGasStudy(
-        line=toy_ring['line'],
-        gas_density=kwargs.pop('gas_density', toy_ring['gas_density']),
-        nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-        sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-        bunch_intensity=BUNCH_INTENSITY,
-        method='4d', **kwargs)
-    study.initialise_beamgas(verbose=False)
-    return study
+def configure(toy_ring, line=None, **kwargs):
+    """Configure the beam-gas markers of the toy ring with its defaults."""
+    config = dict(process='brems', brems_energy_cut=1e6,
+                  n_scattering_events=200, seed=1997,
+                  gas_density=toy_ring['gas_density'],
+                  twiss=toy_ring['twiss'], nemitt_x=NEMITT_X,
+                  nemitt_y=NEMITT_Y, sigma_z=SIGMA_Z,
+                  sigma_delta=SIGMA_DELTA, bunch_intensity=BUNCH_INTENSITY,
+                  method='4d', verbose=False)
+    config.update(kwargs)
+    line = toy_ring['line'] if line is None else line
+    line.xcoll.beamgas.configure(**config)
+    return line
+
+
+def markers(line):
+    return line.xcoll.beamgas.marker_names
 
 
 #############################################################
@@ -379,195 +382,170 @@ class TestBremsstrahlungCrossSection:
 
 
 #############################################################
-# Study construction and validation
+# Configuration inputs
 #############################################################
-class TestBeamGasStudyValidation:
+class TestConfigureInputs:
 
-    def test_construction_with_normalised_emittances(self, toy_ring):
-        study = make_study(toy_ring)
-        beta0 = toy_ring['line'].particle_ref.beta0[0]
-        gamma0 = toy_ring['line'].particle_ref.gamma0[0]
-        assert np.isclose(study.gemitt_x, NEMITT_X/(beta0*gamma0))
-        assert np.isclose(study.gemitt_y, NEMITT_Y/(beta0*gamma0))
+    def test_normalised_emittances(self, toy_ring):
+        line = configure(toy_ring)
+        beta0 = line.particle_ref.beta0[0]
+        gamma0 = line.particle_ref.gamma0[0]
+        for nn in markers(line):
+            assert np.isclose(line[nn].gemitt_x, NEMITT_X/(beta0*gamma0))
+            assert np.isclose(line[nn].gemitt_y, NEMITT_Y/(beta0*gamma0))
 
-    def test_construction_with_geometric_emittances(self, toy_ring):
-        study = xc.BeamGasStudy(
-            line=toy_ring['line'], gas_density=toy_ring['gas_density'],
-            process='brems', gemitt_x=1e-9, gemitt_y=1e-11,
-            sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-            n_scattering_events=10, method='4d')
-        assert np.isclose(study.gemitt_x, 1e-9)
+    def test_geometric_emittances(self, toy_ring):
+        line = configure(toy_ring, nemitt_x=None, nemitt_y=None,
+                         gemitt_x=1e-9, gemitt_y=1e-11)
+        for nn in markers(line):
+            assert np.isclose(line[nn].gemitt_x, 1e-9)
+            assert np.isclose(line[nn].gemitt_y, 1e-11)
 
-    @pytest.mark.parametrize('missing_key', ['line', 'gas_density', 'sigma_z',
+    @pytest.mark.parametrize('missing_key', ['gas_density', 'sigma_z',
                                              'sigma_delta',
                                              'n_scattering_events'])
     def test_raises_on_missing_required_kwarg(self, toy_ring, missing_key):
-        kwargs = dict(line=toy_ring['line'],
-                      gas_density=toy_ring['gas_density'],
-                      process='brems', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-                      sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-                      n_scattering_events=10)
-        kwargs[missing_key] = None
-        with pytest.raises(ValueError):
-            xc.BeamGasStudy(**kwargs)
+        with pytest.raises(ValueError, match=missing_key):
+            configure(toy_ring, **{missing_key: None})
 
     def test_raises_on_invalid_process(self, toy_ring):
-        with pytest.raises(ValueError):
-            make_study(toy_ring, process='compton')
+        with pytest.raises(ValueError, match='brems'):
+            configure(toy_ring, process='compton')
 
     def test_raises_on_both_nemitt_and_gemitt(self, toy_ring):
-        with pytest.raises(ValueError):
-            xc.BeamGasStudy(
-                line=toy_ring['line'], gas_density=toy_ring['gas_density'],
-                process='brems', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-                gemitt_x=1e-9, gemitt_y=1e-11, sigma_z=SIGMA_Z,
-                sigma_delta=SIGMA_DELTA, n_scattering_events=10)
+        with pytest.raises(ValueError, match='not both'):
+            configure(toy_ring, gemitt_x=1e-9, gemitt_y=1e-11)
 
     def test_raises_on_neither_nemitt_nor_gemitt(self, toy_ring):
-        with pytest.raises(ValueError):
-            xc.BeamGasStudy(
-                line=toy_ring['line'], gas_density=toy_ring['gas_density'],
-                process='brems', sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-                n_scattering_events=10)
+        with pytest.raises(ValueError, match='must provide'):
+            configure(toy_ring, nemitt_x=None, nemitt_y=None)
 
     def test_raises_on_wrong_gas_density_type(self, toy_ring):
         with pytest.raises(TypeError):
-            make_study(toy_ring, gas_density={'s': [0.0], 'N': [1e15]})
+            configure(toy_ring, gas_density={'s': [0.0], 'N': [1e15]})
 
     def test_raises_on_gas_density_without_species(self, toy_ring):
         with pytest.raises(ValueError):
-            make_study(toy_ring, gas_density=xt.Table(
+            configure(toy_ring, gas_density=xt.Table(
                 {'name': np.array(['a', 'b']), 's': np.array([0.0, 1.0])}))
 
     @pytest.mark.parametrize('bad_value', [np.nan, np.inf, -1.0])
     def test_raises_on_bad_density_values(self, toy_ring, bad_value):
         gd = toy_ring['gas_density']
         with pytest.raises(ValueError):
-            make_study(toy_ring, gas_density=xt.Table(
+            configure(toy_ring, gas_density=xt.Table(
                 {'name': gd.name, 's': gd.s,
                  'N': np.full(len(gd.s), bad_value)}))
 
     def test_raises_on_unknown_gas_species(self, toy_ring):
         gd = toy_ring['gas_density']
         with pytest.raises(ValueError):
-            make_study(toy_ring, gas_density=xt.Table(
+            configure(toy_ring, gas_density=xt.Table(
                 {'name': gd.name, 's': gd.s,
                  'Zz': np.ones(len(gd.s))*ATOMIC_DENSITY}))
 
-    def _study_with_particle_ref(self, toy_ring, particle_ref):
+    def _line_with_particle_ref(self, toy_ring, particle_ref):
         line = toy_ring['line'].copy()
         line.particle_ref = particle_ref
-        return xc.BeamGasStudy(
-            line=line, gas_density=toy_ring['gas_density'],
-            process='brems', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-            sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-            n_scattering_events=10)
+        return line
 
     def test_raises_on_non_lepton_beam(self, toy_ring):
+        line = self._line_with_particle_ref(
+            toy_ring, xt.Particles(pdg_id=2212, p0c=1e12))
         with pytest.raises(ValueError, match='electron and positron'):
-            self._study_with_particle_ref(
-                toy_ring, xt.Particles(pdg_id=2212, p0c=1e12))
+            configure(toy_ring, line=line)
 
     def test_raises_when_pdg_id_not_set(self, toy_ring):
-        # An electron built without a PDG id: right mass, but the study
-        # cannot tell an electron from a positron
+        # An electron built without a PDG id: right mass, but the beam-gas
+        # models cannot tell an electron from a positron
+        line = self._line_with_particle_ref(
+            toy_ring, xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=-1.0,
+                                   p0c=P0C))
         with pytest.raises(ValueError, match='no PDG id'):
-            self._study_with_particle_ref(
-                toy_ring, xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=-1.0,
-                                       p0c=P0C))
+            configure(toy_ring, line=line)
 
     def test_raises_on_charge_inconsistent_with_pdg_id(self, toy_ring):
+        line = self._line_with_particle_ref(
+            toy_ring, xt.Particles(pdg_id=11, mass0=xt.ELECTRON_MASS_EV,
+                                   q0=+1.0, p0c=P0C))
         with pytest.raises(ValueError, match='q0'):
-            self._study_with_particle_ref(
-                toy_ring, xt.Particles(pdg_id=11, mass0=xt.ELECTRON_MASS_EV,
-                                       q0=+1.0, p0c=P0C))
+            configure(toy_ring, line=line)
 
-    @pytest.mark.parametrize('name,pdg_id,q0', [('electron', 11, -1.0),
-                                                ('positron', -11, 1.0)])
-    def test_accepts_electrons_and_positrons(self, toy_ring, name, pdg_id, q0):
-        line = toy_ring['line'].copy()
-        line.set_particle_ref(name, p0c=P0C)
-        study = xc.BeamGasStudy(
-            line=line, gas_density=toy_ring['gas_density'],
-            process='coulomb', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-            sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-            n_scattering_events=10)
-        assert study.pdg_id == pdg_id
+    def test_accepts_electrons_and_positrons(self, toy_ring):
+        mean_free_path = {}
+        for name, pdg_id in (('electron', 11), ('positron', -11)):
+            line = toy_ring['line'].copy()
+            line.set_particle_ref(name, p0c=P0C)
+            configure(toy_ring, line=line, process='coulomb',
+                      n_scattering_events=10)
+            nn = markers(line)[0]
+            particles = line.xcoll.beamgas.generate(at=nn)
+            assert np.all(particles.pdg_id[particles.state > 0] == pdg_id)
+            mean_free_path[name] = line[nn].mean_free_path
         # q0 is taken from the PDG id, and drives the Mott term
-        assert study.q0 == q0
-        assert study.calculators['N'].q0 == q0
+        assert mean_free_path['electron'] != mean_free_path['positron']
 
     def test_raises_when_no_beamgas_elements(self, toy_ring):
         line = xt.Line(elements=[xt.Drift(length=1.0)])
         line.set_particle_ref('electron', p0c=P0C)
         with pytest.raises(ValueError, match='does not contain'):
-            xc.BeamGasStudy(
-                line=line, gas_density=toy_ring['gas_density'],
-                process='brems', nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-                sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-                n_scattering_events=10)
+            configure(toy_ring, line=line)
 
 
 #############################################################
-# Initialisation of the scattering elements
+# Configuration of the markers
 #############################################################
-class TestInitialiseBeamGas:
+class TestConfigure:
 
     @pytest.fixture(autouse=True)
-    def _study(self, toy_ring):
+    def _configure(self, toy_ring):
         self.toy_ring = toy_ring
-        self.study = make_study(toy_ring)
+        self.line = configure(toy_ring)
+        self.xsec = BremsstrahlungCalculator(7, P0C,
+                                             energy_cut=1e6).compute_xsec()
 
     def test_sections_cover_the_whole_line(self):
-        table = self.study.local_rates()
-        assert np.isclose(table.ds.sum(), self.toy_ring['line'].get_length())
+        table = self.line.xcoll.beamgas.analyse().local_rates
+        assert np.isclose(table.ds.sum(), self.line.get_length())
 
     def test_all_elements_are_configured(self):
-        for nn in self.study.elements:
-            elem = self.toy_ring['line'][nn]
+        for nn in markers(self.line):
+            elem = self.line[nn]
             assert elem.p0c > 0
             assert elem.betx > 0 and elem.bety > 0
             assert elem.interaction_rate > 0
-            assert elem.n_scattering_events == self.study.n_scattering_events
+            assert elem.n_scattering_events == 200
             assert dict(elem.atomic_densities) == {'N': pytest.approx(
                 ATOMIC_DENSITY)}
 
     def test_interaction_rate_matches_analytic_formula(self):
         # rate = N_bunch * f_rev * integral(n ds) * sigma, and for a flat
         # profile the integral over the whole ring is n * circumference
-        line = self.toy_ring['line']
-        xsec = self.study.xsecs['N']
-        beta0 = line.particle_ref.beta0[0]
-        expected = BUNCH_INTENSITY*beta0*sc.c*ATOMIC_DENSITY*xsec
-        total = sum(line[nn].interaction_rate for nn in self.study.elements)
+        beta0 = self.line.particle_ref.beta0[0]
+        expected = BUNCH_INTENSITY*beta0*sc.c*ATOMIC_DENSITY*self.xsec
+        total = sum(self.line[nn].interaction_rate
+                    for nn in markers(self.line))
         assert np.isclose(total, expected, rtol=1e-9)
 
     def test_mean_free_path(self):
-        line = self.toy_ring['line']
-        expected = 1.0/(ATOMIC_DENSITY*self.study.xsecs['N'])
-        for nn in self.study.elements:
-            assert np.isclose(line[nn].mean_free_path, expected)
+        expected = 1.0/(ATOMIC_DENSITY*self.xsec)
+        for nn in markers(self.line):
+            assert np.isclose(self.line[nn].mean_free_path, expected)
 
-    def test_partial_initialise_single_element(self):
-        nn = self.study.elements[0]
-        self.study.initialise_beamgas(element=nn, verbose=False)
-        assert self.toy_ring['line'][nn].interaction_rate > 0
+    def test_partial_configuration_single_element(self):
+        nn = markers(self.line)[0]
+        rate = self.line[nn].interaction_rate
+        configure(self.toy_ring, at=nn,
+                  bunch_intensity=2*BUNCH_INTENSITY)
+        assert np.isclose(self.line[nn].interaction_rate, 2*rate)
 
-    def test_partial_initialise_raises_on_unknown_element(self):
-        with pytest.raises(ValueError):
-            self.study.initialise_beamgas(element='mqf.1', verbose=False)
-        with pytest.raises(TypeError):
-            self.study.initialise_beamgas(element=0, verbose=False)
-
-    def test_warns_when_line_end_is_not_covered(self, toy_ring):
-        study = xc.BeamGasStudy(
-            line=toy_ring['line'], gas_density=toy_ring['gas_density'],
-            process='brems', elements=['BeamGasMarker.0'],
-            nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-            sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-            n_scattering_events=10, method='4d')
-        with pytest.warns(UserWarning, match='not represented'):
-            study.initialise_beamgas(verbose=False)
+    def test_partial_configuration_raises_on_wrong_element(self):
+        with pytest.raises(ValueError, match='not present'):
+            configure(self.toy_ring, at='not_in_the_line')
+        with pytest.raises(TypeError, match='not a BeamGasMarker'):
+            configure(self.toy_ring, at='mqf.1')
+        with pytest.raises(TypeError, match='by name'):
+            configure(self.toy_ring, at=0)
 
 
 #############################################################
@@ -576,72 +554,81 @@ class TestInitialiseBeamGas:
 class TestGenerateParticles:
 
     @pytest.fixture(autouse=True)
-    def _study(self, toy_ring):
+    def _configure(self, toy_ring):
         self.toy_ring = toy_ring
-        self.study = make_study(toy_ring, n_scattering_events=500)
+        self.line = configure(toy_ring, n_scattering_events=500)
 
     def test_weights_sum_to_the_interaction_rate(self):
-        line = self.toy_ring['line']
-        for nn, particles in self.study.generate_particles().items():
+        line = self.line
+        for nn, particles in line.xcoll.beamgas.generate().items():
             allocated = particles.particle_id >= 0
             assert np.isclose(particles.weight[allocated].sum(),
                               line[nn].interaction_rate, rtol=1e-12)
 
     def test_every_particle_interacts_once(self):
-        particles_by_element = self.study.generate_particles()
-        log = self.study.interaction_log()
-        n_generated = sum(int(np.sum(pp.particle_id >= 0))
-                          for pp in particles_by_element.values())
-        assert len(log.particle_id) == n_generated
+        particles, logs = self.line.xcoll.beamgas.generate(return_log=True)
+        for nn, part in particles.items():
+            assert len(logs[nn].particle_id) == int(
+                np.sum(part.particle_id >= 0))
 
     def test_generated_distribution_matches_the_optics(self, toy_ring):
         # With Coulomb scattering delta is untouched, so the generated
         # longitudinal distribution must be the matched one
-        study = make_study(toy_ring, process='coulomb',
-                           coulomb_theta=(1e-5, 1e-3),
-                           n_scattering_events=20_000)
-        nn = study.elements[0]
-        particles = toy_ring['line'][nn].scatter(rng=study.rng)
+        line = configure(toy_ring, process='coulomb',
+                         coulomb_theta=(1e-5, 1e-3),
+                         n_scattering_events=20_000)
+        nn = markers(line)[0]
+        particles = line.xcoll.beamgas.generate(at=nn)
         allocated = particles.particle_id >= 0
-        elem = toy_ring['line'][nn]
+        elem = line[nn]
 
         assert np.isclose(particles.delta[allocated].std(), SIGMA_DELTA,
                           rtol=0.05)
         assert np.isclose(particles.zeta[allocated].std(), SIGMA_Z, rtol=0.05)
-        sigma_x = np.sqrt(study.gemitt_x*elem.betx
+        sigma_x = np.sqrt(elem.gemitt_x*elem.betx
                           + (elem.dx*SIGMA_DELTA)**2)
         assert np.isclose(particles.x[allocated].std(), sigma_x, rtol=0.05)
         assert np.isclose(particles.x[allocated].mean(), elem.x_co,
                           atol=0.1*sigma_x)
 
     def test_particles_start_at_the_element(self):
-        line = self.toy_ring['line']
-        for nn, particles in self.study.generate_particles().items():
+        line = self.line
+        tab = line.get_table()
+        for nn, particles in line.xcoll.beamgas.generate().items():
             allocated = particles.particle_id >= 0
-            assert np.allclose(particles.s[allocated], line[nn].s)
+            assert np.allclose(particles.s[allocated], tab['s', nn])
             assert np.all(particles.at_element[allocated]
                           == line.element_names.index(nn))
 
-    def test_raises_if_not_initialised(self, toy_ring):
-        elem = xc.BeamGasMarker()
-        with pytest.raises(ValueError, match='not been initialised'):
-            elem.scatter()
+    def test_raises_if_not_configured(self):
+        line = xt.Line(elements=[xc.BeamGasMarker()], element_names=['bg'])
+        line.set_particle_ref('electron', p0c=P0C)
+        with pytest.raises(ValueError, match='not configured'):
+            line.xcoll.beamgas.generate()
 
 
 #############################################################
-# Running the study
+# Running the simulation
 #############################################################
 class TestRun:
 
     @pytest.fixture(autouse=True)
-    def _study(self, toy_ring):
+    def _configure(self, toy_ring):
         self.toy_ring = toy_ring
-        self.study = make_study(toy_ring, process='coulomb',
-                                coulomb_theta=(8e-3, 20e-3),
-                                n_scattering_events=200)
+        self.line = configure(toy_ring, process='coulomb',
+                              coulomb_theta=(8e-3, 20e-3),
+                              n_scattering_events=200)
+        self.bg = self.line.xcoll.beamgas
 
-    def test_run_without_tracking(self):
-        result = self.study.run()
+    def run(self, **kwargs):
+        with warnings.catch_warnings():
+            # This window truncates the losses on purpose: see
+            # test_warns_when_the_window_truncates_the_losses
+            warnings.simplefilter('ignore')
+            return self.bg.run(**kwargs)
+
+    def test_analyse_without_tracking(self):
+        result = self.bg.analyse()
         assert result.tracked is False
         assert result.rate_tracking is None
         assert result.particles is None
@@ -650,7 +637,7 @@ class TestRun:
                           BUNCH_INTENSITY/result.rate_scattering)
 
     def test_run_with_tracking(self):
-        result = self.study.run(track=True, n_turns=20, keep_particles=True)
+        result = self.run(n_turns=20, keep_particles=True)
         assert result.tracked is True
         assert 0 < result.rate_tracking <= result.rate_scattering
         assert np.isclose(result.lifetime_tracking,
@@ -665,33 +652,29 @@ class TestRun:
     def test_lifetime_is_independent_of_bunch_intensity(self, toy_ring):
         kwargs = dict(process='coulomb', coulomb_theta=(8e-3, 20e-3),
                       n_scattering_events=200, seed=7)
-        a = make_study(toy_ring, **kwargs).run(track=True, n_turns=20)
-        study_b = xc.BeamGasStudy(
-            line=toy_ring['line'], gas_density=toy_ring['gas_density'],
-            nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y, sigma_z=SIGMA_Z,
-            sigma_delta=SIGMA_DELTA, bunch_intensity=10*BUNCH_INTENSITY,
-            method='4d', **kwargs)
-        study_b.initialise_beamgas(verbose=False)
-        b = study_b.run(track=True, n_turns=20)
+        configure(toy_ring, **kwargs)
+        a = self.run(n_turns=20)
+        configure(toy_ring, bunch_intensity=10*BUNCH_INTENSITY, **kwargs)
+        b = self.run(n_turns=20)
         assert np.isclose(a.rate_tracking*10, b.rate_tracking)
         assert np.isclose(a.lifetime_tracking, b.lifetime_tracking)
 
     def test_local_rates_columns(self):
-        result = self.study.run(track=True, n_turns=5, keep_particles=True)
+        result = self.run(n_turns=5, keep_particles=True)
         table = result.local_rates
         for col in ('name', 's', 'ds', 'mean_free_path', 'local_rate',
                     'interaction_rate', 'num_particles', 'sum_weight',
                     'num_lost_particles', 'sum_lost_weight'):
             assert col in table._col_names
         # The event weights are normalised to the configured cross section,
-        # so this now agrees up to the Monte Carlo noise of the importance
+        # so this agrees up to the Monte Carlo noise of the importance
         # sampling alone
         assert np.isclose(table.sum_weight.sum(), result.rate_scattering,
                           rtol=0.01)
         assert np.isclose(table.sum_lost_weight.sum(), result.rate_tracking)
 
     def test_interaction_log(self):
-        result = self.study.run(track=True, n_turns=5, keep_particles=True)
+        result = self.run(n_turns=5, keep_particles=True)
         log = result.interaction_log
         assert set(np.unique(log.gas)) == {'N'}
         assert np.all(log.theta >= 8e-3) and np.all(log.theta <= 20e-3)
@@ -701,28 +684,29 @@ class TestRun:
     def test_reproducible_with_seed(self, toy_ring):
         kwargs = dict(process='coulomb', coulomb_theta=(8e-3, 20e-3),
                       n_scattering_events=200)
-        a = make_study(toy_ring, seed=11, **kwargs).run(track=True, n_turns=10)
-        b = make_study(toy_ring, seed=11, **kwargs).run(track=True, n_turns=10)
-        c = make_study(toy_ring, seed=12, **kwargs).run(track=True, n_turns=10)
-        assert a.rate_tracking == b.rate_tracking
-        assert a.rate_tracking != c.rate_tracking
+        rates = []
+        for seed in (11, 11, 12):
+            configure(toy_ring, seed=seed, **kwargs)
+            rates.append(self.run(n_turns=10).rate_tracking)
+        assert rates[0] == rates[1]
+        assert rates[0] != rates[2]
 
     def test_statistical_error(self):
-        result = self.study.run(track=True, n_turns=20)
+        result = self.run(n_turns=20)
         assert result.rate_tracking_error > 0
         assert result.rate_tracking_error < result.rate_tracking
         assert np.isclose(
             result.lifetime_tracking_error/result.lifetime_tracking,
             result.rate_tracking_error/result.rate_tracking)
-        assert self.study.run().rate_tracking_error is None
+        assert self.bg.analyse().rate_tracking_error is None
 
     def test_cutoff_scan(self):
-        result = self.study.run(track=True, n_turns=20, keep_particles=True)
+        result = self.run(n_turns=20, keep_particles=True)
         scan = result.cutoff_scan
         assert np.isclose(scan.cut[0], 8e-3)
         assert np.all(np.diff(scan.cut) > 0)
-        # The first row is the study itself: no collimators, so every lost
-        # particle is a generated primary
+        # The first row is the simulation itself: no collimators, so every
+        # lost particle is a generated primary
         assert np.isclose(scan.rate_tracking[0], result.rate_tracking)
         assert np.isclose(scan.rate_tracking_error[0],
                           result.rate_tracking_error)
@@ -750,88 +734,33 @@ class TestRun:
         # The toy ring loses particles well below 8 mrad and virtually all
         # of them above 20 mrad, so both cuts of this window bias the result
         with pytest.warns(UserWarning) as record:
-            result = self.study.run(track=True, n_turns=20)
+            result = self.bg.run(n_turns=20)
         messages = [str(ww.message) for ww in record]
         assert any('lower cut `coulomb_theta[0]`' in mm for mm in messages)
         assert any('above `coulomb_theta[1]`' in mm for mm in messages)
         assert result.rate_above_theta_max > 0.01*result.rate_tracking
 
     def test_no_truncation_warning_for_a_wide_window(self, toy_ring):
-        study = make_study(toy_ring, process='coulomb',
-                           coulomb_theta=(1e-7, 1.0),
-                           n_scattering_events=200)
+        configure(toy_ring, process='coulomb', coulomb_theta=(1e-7, 1.0),
+                  n_scattering_events=200)
         with warnings.catch_warnings():
             warnings.filterwarnings('error', message='.*coulomb_theta.*')
-            result = study.run(track=True, n_turns=20)
+            result = self.bg.run(n_turns=20)
         assert result.rate_above_theta_max < 1e-3*result.rate_tracking
 
     def test_brems_cutoff_scan(self, toy_ring):
-        study = make_study(toy_ring, n_scattering_events=200)
-        result = study.run(track=True, n_turns=5)
+        configure(toy_ring, n_scattering_events=200)
+        result = self.run(n_turns=5)
         assert np.isclose(result.cutoff_scan.cut[0], 1e6)
         assert np.isclose(result.cutoff_scan.rate_tracking[0],
                           result.rate_tracking)
         assert result.rate_above_theta_max is None
 
-    def test_raises_on_inconsistent_run_arguments(self):
-        with pytest.raises(ValueError):
-            self.study.run(track=True)  # missing n_turns
-        with pytest.raises(ValueError):
-            self.study.run(track=True, n_turns=1, generate_particles=False)
-        with pytest.raises(ValueError):
-            self.study.run(keep_particles=True, generate_particles=False)
-
-
-#############################################################
-# line.xcoll.beamgas_configure facade
-#############################################################
-class TestLineFacade:
-
-    def _kwargs(self, toy_ring):
-        return dict(gas_density=toy_ring['gas_density'], process='coulomb',
-                    coulomb_theta=(8e-3, 20e-3),
-                    nemitt_x=NEMITT_X, nemitt_y=NEMITT_Y,
-                    sigma_z=SIGMA_Z, sigma_delta=SIGMA_DELTA,
-                    n_scattering_events=200, seed=1997, method='4d')
-
-    def test_returns_an_initialised_study(self, toy_ring):
-        study = toy_ring['line'].xcoll.beamgas_configure(
-            verbose=False, **self._kwargs(toy_ring))
-        assert isinstance(study, xc.BeamGasStudy)
-        # initialise_beamgas() has already run, so the elements are configured
-        assert len(study.elements) == len(
-            [nn for nn in toy_ring['line'].element_names
-             if isinstance(toy_ring['line'][nn], xc.BeamGasMarker)])
-        for nn in study.elements:
-            assert toy_ring['line'][nn].interaction_rate > 0
-        assert study.twiss is not None
-
-    def test_equivalent_to_direct_construction(self, toy_ring):
-        kwargs = self._kwargs(toy_ring)
-        via_facade = toy_ring['line'].xcoll.beamgas_configure(
-            verbose=False, **kwargs)
-        result_facade = via_facade.run(track=True, n_turns=20)
-
-        direct = xc.BeamGasStudy(line=toy_ring['line'], **kwargs)
-        direct.initialise_beamgas(verbose=False)
-        result_direct = direct.run(track=True, n_turns=20)
-
-        assert result_facade.rate_scattering == result_direct.rate_scattering
-        assert result_facade.rate_tracking == result_direct.rate_tracking
-
-    def test_forwards_element_selection(self, toy_ring):
-        names = ['BeamGasMarker.0', 'BeamGasMarker.1']
-        with pytest.warns(UserWarning, match='not represented'):
-            study = toy_ring['line'].xcoll.beamgas_configure(
-                elements=names, verbose=False, **self._kwargs(toy_ring))
-        assert study.elements == names
-
-    def test_propagates_validation_errors(self, toy_ring):
-        kwargs = self._kwargs(toy_ring)
-        kwargs['process'] = 'compton'
-        with pytest.raises(ValueError, match='brems'):
-            toy_ring['line'].xcoll.beamgas_configure(
-                verbose=False, **kwargs)
+    def test_raises_on_invalid_run_arguments(self):
+        with pytest.raises(ValueError, match='n_turns'):
+            self.bg.run(n_turns=0)
+        with pytest.raises(ValueError, match='n_replicas'):
+            self.bg.run(n_turns=1, n_replicas=0)
 
 
 #############################################################
@@ -843,10 +772,8 @@ class TestBeamGasMarkerSerialization:
     @pytest.mark.parametrize('process', ['brems', 'coulomb'])
     def test_configured_markers_survive_json(self, toy_ring, tmp_path,
                                              process):
-        line = toy_ring['line']
-        make_study(toy_ring, process=process)
-        names = [nn for nn in line.element_names
-                 if isinstance(line[nn], xc.BeamGasMarker)]
+        line = configure(toy_ring, process=process)
+        names = markers(line)
         for ii, nn in enumerate(names):
             # Distinct non-zero values, else the comparison would be vacuous
             for jj, cc in enumerate(('x_co', 'px_co', 'y_co', 'py_co',
