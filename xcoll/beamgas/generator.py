@@ -1168,6 +1168,71 @@ class BeamGasGenerator:
             interaction_log=interaction_log,
         )
 
+    def run(self, n_turns, *, at=None, n_replicas=1, keep_particles=False,
+            with_progress=False):
+        """
+        Generate, track and analyse the beam-gas particles of the markers.
+
+        Convenience helper doing in one call the steps of a beam-gas
+        simulation: the particles of each marker (and replica) are generated
+        with :meth:`generate`, tracked from the marker back to it with
+        ``line.track(part, ele_start=name, ele_stop=name, num_turns=n_turns)``
+        and analysed with :meth:`analyse`, together with the records of the
+        interactions. Doing these steps explicitly gives the same result, and
+        allows splitting them over separate jobs or refining the loss
+        locations before the analysis.
+
+        Parameters
+        ----------
+        n_turns : int
+            Number of turns to track.
+        at : str, sequence of str, or None, optional
+            Markers at which particles are generated. If ``None`` (default),
+            all the markers of the line.
+        n_replicas : int, optional
+            Number of replicas of each marker.
+        keep_particles : bool, optional
+            If ``True``, the result keeps the particles of each marker (its
+            replicas merged), all of them merged, and the lost ones (if any).
+        with_progress : bool, optional
+            Forwarded to ``line.track``.
+
+        Returns
+        -------
+        result : BeamGasResult
+            Result of :meth:`analyse` for the particles of each marker, with
+            the records of the interactions.
+        """
+        if (isinstance(n_turns, (bool, np.bool_))
+                or not isinstance(n_turns, (int, np.integer)) or n_turns < 1):
+            raise ValueError("`n_turns` must be a positive integer.")
+
+        line = self.line
+        names = self._markers(at)
+        samples = {nn: [] for nn in names}
+        logs = {nn: [] for nn in names}
+        for replica in range(n_replicas):
+            generated, records = self.generate(
+                at=names, replica=replica, n_replicas=n_replicas,
+                return_log=True)
+            for nn, part in generated.items():
+                line.track(part, ele_start=nn, ele_stop=nn,
+                           num_turns=n_turns, with_progress=with_progress)
+                samples[nn].append(part)
+                logs[nn].append(records[nn])
+
+        result = self.analyse(samples, logs=logs)
+        if keep_particles:
+            result.particles_by_element = {
+                nn: vv[0] if len(vv) == 1 else xt.Particles.merge(vv)
+                for nn, vv in samples.items()}
+            result.particles = xt.Particles.merge(
+                list(result.particles_by_element.values()))
+            lost = _lost(result.particles)
+            if np.any(lost):
+                result.lost_particles = result.particles.filter(lost)
+        return result
+
     def _check_sections_cover_line(self):
         """
         Check that every part of the line belongs to the section of a marker.

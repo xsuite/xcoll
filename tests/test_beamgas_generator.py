@@ -694,3 +694,64 @@ def test_analyse_checks_its_arguments(ring):
         bg.analyse({nn: [part, other]}, logs={nn: [log]})
     with pytest.raises(ValueError, match='does not match the particles'):
         bg.analyse({nn: part}, logs={nn: other_log})
+
+
+def test_run_tracks_each_sample_from_its_marker(ring, monkeypatch):
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    bg = line.xcoll.beamgas
+    names = bg.marker_names
+
+    calls = []
+
+    def fake_track(particles, **kwargs):
+        calls.append(kwargs)
+        _fake_track(particles, seed=len(calls))
+
+    monkeypatch.setattr(line, 'track', fake_track)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')  # see the test with the records
+        result = bg.run(n_turns=7, at=names[1:4], n_replicas=2,
+                        keep_particles=True)
+
+    assert [cc['ele_start'] for cc in calls] == 2 * names[1:4]
+    assert all(cc['ele_stop'] == cc['ele_start'] and cc['num_turns'] == 7
+               for cc in calls)
+
+    # The explicit steps give the same result
+    samples = {nn: [] for nn in names[1:4]}
+    for rr in range(2):
+        for nn in names[1:4]:
+            part = bg.generate(at=nn, replica=rr, n_replicas=2)
+            _fake_track(part, seed=3 * rr + names[1:4].index(nn) + 1)
+            samples[nn].append(part)
+    explicit = bg.analyse(samples)
+    assert result.element_names == explicit.element_names
+    assert result.rate_tracking == pytest.approx(explicit.rate_tracking,
+                                                 rel=1e-12)
+    assert result.rate_tracking_error == pytest.approx(
+        explicit.rate_tracking_error, rel=1e-12)
+    assert result.cutoff_scan is not None
+    assert len(result.interaction_log.particle_id) == 2 * 3 * 200
+
+    assert list(result.particles_by_element) == names[1:4]
+    assert np.all(result.lost_particles.state <= 0)
+
+
+def test_run_tracks_the_particles(ring):
+    line, tw = ring
+    # No apertures in this ring, and tiny angles: nothing is lost
+    _configure(line, twiss=tw, process='coulomb', coulomb_theta=(1e-6, 1e-5))
+    result = line.xcoll.beamgas.run(n_turns=3, keep_particles=True)
+
+    assert result.tracked is True
+    assert result.rate_tracking == 0
+    assert result.lifetime_tracking == np.inf
+    assert result.lost_particles is None
+    particles = result.particles
+    assert np.all(particles.at_turn[particles.state > 0] == 3)
+
+
+def test_run_checks_its_arguments(ring):
+    with pytest.raises(ValueError, match='n_turns'):
+        ring[0].xcoll.beamgas.run(n_turns=0)
