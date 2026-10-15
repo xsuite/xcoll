@@ -2,9 +2,11 @@
 # This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
+import json
 import warnings
 
 import numpy as np
+import pandas as pd
 import pytest
 from scipy import constants as sc
 
@@ -755,3 +757,95 @@ def test_run_tracks_the_particles(ring):
 def test_run_checks_its_arguments(ring):
     with pytest.raises(ValueError, match='n_turns'):
         ring[0].xcoll.beamgas.run(n_turns=0)
+
+
+def _assert_same_tracked_particles(part, other):
+    """The same particles, in any order (matched by particle_id)."""
+    def allocated_by_id(pp):
+        index = np.flatnonzero(pp.particle_id >= 0)
+        return index[np.argsort(pp.particle_id[index])]
+
+    index, index_other = allocated_by_id(part), allocated_by_id(other)
+    assert len(index) == len(index_other) > 0
+    for nn in COORDINATES + ('state', 'at_turn', 'parent_particle_id'):
+        np.testing.assert_array_equal(
+            getattr(part, nn)[index], getattr(other, nn)[index_other],
+            err_msg=f'{nn} differs')
+
+
+def test_jobs_from_a_saved_line_merge_like_a_single_job(ring, tmp_path):
+    """
+    Independent jobs, each loading the saved line, generating one marker and
+    replica, tracking and saving the particles and the record of their
+    interactions, give the particles and the result of a single job.
+    """
+    line = _ring_with_markers()
+    _configure(line, twiss=ring[1])
+    line.to_json(tmp_path / 'line.json')
+    bg = line.xcoll.beamgas
+    names = bg.marker_names
+    n_replicas = 2
+
+    single_job = {nn: [] for nn in names}
+    single_job_logs = {nn: [] for nn in names}
+    for rr in range(n_replicas):
+        particles, logs = bg.generate(replica=rr, n_replicas=n_replicas,
+                                      return_log=True)
+        for nn, part in particles.items():
+            _fake_track(part, seed=rr)
+            single_job[nn].append(part)
+            single_job_logs[nn].append(logs[nn])
+
+    # The jobs, in reverse order, exchanging only files
+    jobs = [(nn, rr) for rr in range(n_replicas) for nn in names][::-1]
+    for job_id, (nn, rr) in enumerate(jobs):
+        job_line = xt.load(tmp_path / 'line.json')
+        part, log = job_line.xcoll.beamgas.generate(
+            at=nn, replica=rr, n_replicas=n_replicas, return_log=True)
+        _fake_track(part, seed=rr)
+        part.to_json(tmp_path / f'job.{job_id}.json')
+        log.to_pandas().to_csv(tmp_path / f'job.{job_id}.csv', index=False)
+
+    jobs_output = {nn: [None] * n_replicas for nn in names}
+    jobs_logs = {nn: [None] * n_replicas for nn in names}
+    for job_id, (nn, rr) in enumerate(jobs):
+        with open(tmp_path / f'job.{job_id}.json') as fid:
+            jobs_output[nn][rr] = xt.Particles.from_dict(json.load(fid))
+        jobs_logs[nn][rr] = pd.read_csv(tmp_path / f'job.{job_id}.csv',
+                                        float_precision='round_trip')
+
+    for nn in names:
+        for rr in range(n_replicas):
+            _assert_same_tracked_particles(
+                jobs_output[nn][rr], single_job[nn][rr])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')  # see the test with the records
+        expected = bg.analyse(single_job, logs=single_job_logs)
+        result = bg.analyse(jobs_output, logs=jobs_logs)
+
+    # Same particles, summed in another order (the loaded ones are
+    # reorganized): equal to rounding
+    assert result.rate_tracking == pytest.approx(
+        expected.rate_tracking, rel=1e-12)
+    assert result.rate_tracking_error == pytest.approx(
+        expected.rate_tracking_error, rel=1e-9)
+    for col in ('n_replicas', 'num_particles', 'num_lost_particles'):
+        np.testing.assert_array_equal(
+            result.local_rates[col], expected.local_rates[col])
+    for col in ('sum_weight', 'sum_lost_weight'):
+        np.testing.assert_allclose(
+            result.local_rates[col], expected.local_rates[col], rtol=1e-12)
+    for col in ('num_events', 'num_lost'):
+        np.testing.assert_array_equal(
+            result.cutoff_scan[col], expected.cutoff_scan[col])
+    np.testing.assert_allclose(result.cutoff_scan.rate_tracking,
+                               expected.cutoff_scan.rate_tracking, rtol=1e-12)
+    for col in ('name', 'replica', 'particle_id', 'gas', 'photon_energy',
+                'weight'):
+        np.testing.assert_array_equal(
+            result.interaction_log[col], expected.interaction_log[col])
+    merged = bg.analyse(xt.Particles.merge(
+        [pp for vv in jobs_output.values() for pp in vv]))
+    assert merged.rate_tracking == pytest.approx(
+        expected.rate_tracking, rel=1e-12)
