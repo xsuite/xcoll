@@ -181,6 +181,10 @@ def _fluka_builder(collimator_dict, fedb):
                 raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
         else:
             raise EnvironmentError(f"FLUKA_builder.py not found at: {file_path.as_posix()}")
+        # Xcoll already flags open collimators itself (no jaw -> OPEN_JAW). The
+        # LineBuilder additionally drops everything above a hardcoded 100 sigma,
+        # which wrongly removes collimators with a finite jaw at low emittance.
+        fb.COLL_OPEN_THRESHOLD = np.inf
         collimatorList = fb.CollimatorList()
         collimatorList.acquireCollxsuite(collimator_dict)
 

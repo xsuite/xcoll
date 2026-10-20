@@ -248,6 +248,44 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
      12         INROT_12             INROT_12            0.051400""" in insertion_txt
 
 
+@pytest.mark.serial
+@pytest.mark.fluka
+def test_fluka_input_gap_above_100_sigma(register_cleanup):
+    # At low emittance a finite jaw can correspond to a gap of several
+    # hundred sigma. Such collimators must not be dropped by the LineBuilder.
+    print(f"\nTesting FLUKA input generation for gaps above 100 sigma... in {Path.cwd()}")
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
+    beam = 1
+    path = Path(__file__).parent
+    env = xt.load(path / 'data' / f'sequence_lhc_run3_b{beam}.json')
+    line = env.lines[f'lhcb{beam}']
+    colldb = xc.CollimatorDatabase.from_yaml(path / 'data' / 'colldb_lhc_run3_ir7.yaml', beam=beam,
+                                             ignore_crystals=True)
+    names = ['tcp.d6l7.b1', 'tcsg.a6l7.b1', 'tcsg.d4l7.b1']
+    colldb.install_fluka_collimators(line=line, names=names)
+    line.build_tracker()
+    line.xcoll.collimators.assign_optics(nemitt_x=1e-9, nemitt_y=1e-9)
+    gaps = {'tcp.d6l7.b1': 150., 'tcsg.a6l7.b1': 400., 'tcsg.d4l7.b1': 6.}
+    for name, gap in gaps.items():
+        line[name].gap = gap
+    for name in names:
+        assert line[name].jaw_L < 0.01  # finite and well inside the beam pipe
+
+    path_tmp = Path.cwd() / 'fluka_run_temp_test_gap_above_100_sigma'
+    register_cleanup(path_tmp)
+    particle_ref = xt.Particles('proton', p0c=7e12)
+    input_file = xc.fluka.engine.generate_input_file(line=line, clean=False, cwd=path_tmp,
+                        particle_ref=particle_ref, filename=path_tmp / 'fluka_input_test.inp')
+    new_coll_dct = get_collimators_from_input_file(input_file[0])
+    for name in names:
+        assert name in new_coll_dct
+        assert np.isclose(new_coll_dct[name]['jaw'][0],  line[name].jaw_L)
+        assert np.isclose(new_coll_dct[name]['jaw'][1], line[name].jaw_R)
+    with input_file[1].open('r') as fp:
+        assert len(fp.readlines()) >= len(names)
+
+
 
 def _active_cards(text, card):
     """Return uncommented FLUKA cards of the requested type."""

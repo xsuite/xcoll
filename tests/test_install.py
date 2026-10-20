@@ -85,6 +85,34 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys):
 
 
 @pytest.mark.xcother
+@pytest.mark.parametrize('method', ['black_absorbers', 'everest_collimators',
+                                    'fluka_collimators', 'geant4_collimators'])
+def test_install_from_colldb_at_s_center(method):
+    # The collimators do not exist in the line yet: their position has to
+    # be taken from `s_center` in the CollimatorDatabase.
+    line = xt.Line(elements={
+        'drift_1': xt.Drift(length=10.),
+        'drift_2': xt.Drift(length=10.),
+    })
+    colldb = xc.CollimatorDatabase(
+        collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC', s_center=3.),
+                         'coll2': dict(length=0.4, gap=6., material='CFC', s_center=15.)},
+        nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+    aperture = xt.LimitEllipse(a=0.02, b=0.03)
+    getattr(colldb, f'install_{method}')(line, apertures=aperture)
+
+    tt = line.get_table()
+    assert tt['s_center', 'coll'] == pytest.approx(3.)
+    assert tt['s_center', 'coll2'] == pytest.approx(15.)
+    assert line.get_length() == pytest.approx(20.)
+    for name in ['coll', 'coll2']:
+        assert tt['s', f'{name}_aper_upstream'] == pytest.approx(tt['s_start', name])
+        assert tt['s', f'{name}_aper_downstream'] == pytest.approx(tt['s_end', name])
+        assert line[f'{name}_aper_upstream'].a == pytest.approx(0.02)
+        assert line[f'{name}_aper_downstream'].b == pytest.approx(0.03)
+
+
+@pytest.mark.xcother
 @pytest.mark.parametrize('mode', [None, 'thin', 'thick'])
 def test_install_overlapping_devices(mode, capsys):
     line = xt.Line(elements={
