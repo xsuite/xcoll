@@ -15,9 +15,6 @@ module mod_fluka
   private
 
   public :: fluka_mod_init
-  public :: fluka_mod_expand_arrays
-  public :: fluka_mod_end
-
   public :: fluka_connect
   public :: fluka_end
 
@@ -86,9 +83,6 @@ module mod_fluka
 
   ! fluka insertions
   logical, public :: fluka_inside = .false.                    ! Are we in a fluka insertion?
-  integer(kind=4), public, allocatable :: fluka_type(:)        ! type of insertion (one per SINGLE ELEMENT)
-  integer(kind=4), public, allocatable :: fluka_geo_index(:)   ! index of insertion (one per SINGLE ELEMENT)
-  real(kind=8), public, allocatable :: fluka_synch_length(:)   ! length of insertion [m] (one per SINGLE ELEMENT)
   ! current fluka insertion:
   integer :: fluka_i=-1              ! lattice entry (FLUKA_ELEMENT/FLUKA_EXIT)
   integer :: fluka_ix=-1             ! single element entry (FLUKA_ELEMENT/FLUKA_EXIT)
@@ -100,9 +94,6 @@ module mod_fluka
                                         FLUKA_ELEMENT = 1, & ! insertion covers only the present SINGLE ELEMENT
                                         FLUKA_ENTRY   = 2, & ! SINGLE ELEMENT marking the start of the insertion
                                         FLUKA_EXIT    = 3    ! SINGLE ELEMENT marking the end   of the insertion
-  ! ancillary tracking values
-  integer(kind=4), public :: fluka_max_npart                          ! Maximum number of particles (array size)
-  integer,          public, allocatable    :: pids(:)         ! Particle ID moved from hisixtrack, to be harmonised
 
   ! Useful values
   integer :: fluka_nsent     ! Temporary count of sent particles
@@ -124,14 +115,13 @@ contains
 
   !----------------------------------------------------------------------------
   ! set the module up
-  subroutine fluka_mod_init(npart, nele, clight)
+  subroutine fluka_mod_init(clight)
 
     use mod_units
     use mod_common, only : fort208, unit208
     implicit none
 
     ! interface variables
-    integer :: npart, nele
     real(kind=8) :: clight
 
     ! temporary variables
@@ -143,17 +133,11 @@ contains
     end if
 
     if(fluka_debug_level > 1) then
-       write(unit_pyfluka,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
+       write(unit_pyfluka,*) "fluka_mod_init clight=", clight
        flush(unit_pyfluka)
     end if
 
-    fluka_max_npart = npart
     fluka_clight    = clight
-
-    call alloc(pids,               npart, 0, "pids")
-    call alloc(fluka_type,         nele, FLUKA_NONE, 'fluka_type')
-    call alloc(fluka_geo_index,    nele, 0, 'fluka_geo_index')
-    call alloc(fluka_synch_length, nele, zero, 'fluka_synch_length')
 
     if(unit208 == -1) then
       call f_requestUnit(fort208,unit208)
@@ -162,32 +146,6 @@ contains
 
   end subroutine fluka_mod_init
 
-  subroutine fluka_mod_expand_arrays(npart_new, nele_new)
-
-    use parpro, only : npart
-
-    implicit none
-
-    integer :: npart_new, nele_new, j
-
-    call alloc(pids,               npart_new, 0, "pids")
-    call alloc(fluka_type,         nele_new, FLUKA_NONE, 'fluka_type')
-    call alloc(fluka_geo_index,    nele_new, 0, 'fluka_geo_index')
-    call alloc(fluka_synch_length, nele_new, zero, 'fluka_synch_length')
-
-    fluka_max_npart = npart_new
-
-  end subroutine fluka_mod_expand_arrays
-
-  !----------------------------------------------------------------------------
-  ! un-set the module
-  subroutine fluka_mod_end()
-    implicit none
-    call dealloc(pids,"pids")
-    call dealloc(fluka_type,'fluka_type')
-    call dealloc(fluka_geo_index,'fluka_geo_index')
-    call dealloc(fluka_synch_length,'fluka_synch_length')
-  end subroutine fluka_mod_end
 
   !----------------------------------------------------------------------------
   ! acquire info for network communication
@@ -803,8 +761,7 @@ subroutine fluka_close
          call fluka_end
        end if
      end if
-1982 call fluka_mod_end
-     flush(lout)
+1982 flush(lout)
      if (unit_pyfluka /= -1) then
       close(unit_pyfluka)
       unit_pyfluka = -1

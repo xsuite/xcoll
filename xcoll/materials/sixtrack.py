@@ -5,7 +5,7 @@
 
 from .material import Material
 from .atoms import Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead
-from .allotropes import CarbonFibreCarbon
+from .allotropes import CarbonFibreComposite
 from .mixtures import MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180
 from .database import _manually_add_material_to_db
 
@@ -38,10 +38,10 @@ K2Lead._num_nucleons_eff = 9.57417689618882
 
 
 # K2 variants of allotropes
-K2CarbonFibreCarbon = CarbonFibreCarbon.adapt(A=12.01, radiation_length=0.2557)
-K2CarbonFibreCarbon._num_nucleons_eff = 3.705323974123165
+K2CarbonFibreComposite = CarbonFibreComposite.adapt(A=12.01, radiation_length=0.2557)
+K2CarbonFibreComposite._num_nucleons_eff = 3.705323974123165
 
-K2Carbon2 = K2CarbonFibreCarbon.adapt(density=4.52, A=12.01, radiation_length=0.094)  # Was in SixTrack, not sure what it is
+K2Carbon2 = K2CarbonFibreComposite.adapt(density=4.52, A=12.01, radiation_length=0.094)  # Was in SixTrack, not sure what it is
 K2Carbon2._num_nucleons_eff = 3.705323974123165
 
 
@@ -79,7 +79,7 @@ _manually_add_material_to_db(K2Germanium,          'K2Germanium')
 _manually_add_material_to_db(K2Molybdenum,         'K2Molybdenum')
 _manually_add_material_to_db(K2Tungsten,           'K2Tungsten')
 _manually_add_material_to_db(K2Lead,               'K2Lead')
-_manually_add_material_to_db(K2CarbonFibreCarbon,  'K2CarbonFibreCarbon')
+_manually_add_material_to_db(K2CarbonFibreComposite,  'K2CarbonFibreComposite')
 _manually_add_material_to_db(K2Carbon2,            'K2Carbon2')
 _manually_add_material_to_db(K2MolybdenumGraphite, 'K2MolybdenumGraphite')
 _manually_add_material_to_db(K2CopperDiamond,      'K2CopperDiamond')
@@ -89,5 +89,5 @@ _manually_add_material_to_db(K2Inermet180,         'K2Inermet180')
 
 # Clean up namespace
 del (Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead,
-     CarbonFibreCarbon, MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180)
+     CarbonFibreComposite, MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180)
 del Material

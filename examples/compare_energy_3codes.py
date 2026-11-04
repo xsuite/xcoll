@@ -42,7 +42,6 @@ coll3 = xc.Geant4Collimator(length=length, material=material, jaw=jaw)
 
 # Connect to FLUKA
 xc.fluka.engine.particle_ref = particle_ref
-xc.fluka.engine.capacity = capacity
 xc.fluka.engine.seed = 5656565
 xc.fluka.engine.return_none = True
 xc.fluka.engine.return_protons = True

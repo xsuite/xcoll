@@ -22,6 +22,7 @@ def pytest_runtest_setup(item):
 
 
 def pytest_collection_modifyitems(config, items):
+    # Only change ordering and collection when running under xdist
     running_xdist = hasattr(config, "workerinput") or config.getoption("-n") not in (None, 0, 1)
     if not running_xdist:
         return
@@ -29,6 +30,12 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.get_closest_marker("serial"):
             item.add_marker(pytest.mark.skip("Serial test cannot run under xdist"))
+
+    # Stable sort: long tests first, everything else keeps its original order
+    items.sort(
+        key=lambda item: item.get_closest_marker("longtest") is None
+    )
+
 
 @pytest.fixture
 def register_cleanup():

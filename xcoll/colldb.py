@@ -449,17 +449,14 @@ class CollimatorDatabase:
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
                                + f"but it is already installed as {line[name].__class__.__name__}!\n"
                                + f"Please reconstruct the line.")
-            # TODO: only allow Marker elements, no Drifts!!
-            #       How to do this with importing a line for MAD-X or SixTrack...?
-            #       Maybe we want a DriftCollimator type in Xtrack as a general placeholder
-            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
+            elif not isinstance(line[name], (xt.Marker, xt.Drift, xt.Device)):
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
-                               + f"but the line element to replace is not an xtrack.Marker "
-                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
+                               + f"but the line element to replace is not an xtrack.Marker, "
+                               + f"xtrack.Drift or xtrack.Device!\nPlease check the name, or correct the "
                                + f"element.")
         else:
             if getattr(self, 's_center')[name] is None:
-                raise ValueError(f"Collimator {name} not found in line as Marker, nor  `s_center` "
+                raise ValueError(f"Collimator {name} not found in line, nor `s_center` "
                                + f"defined, cannot install in line at correct position!")
 
     def _create_collimator(self, cls, line, name, **kwargs):

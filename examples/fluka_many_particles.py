@@ -20,11 +20,12 @@ def run_many_particles_fluka(particle_ref, num_part, capacity, relative_capacity
     # Connect to FLUKA
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.return_all = True
-    xc.fluka.engine.capacity = capacity
-    xc.fluka.engine.relative_capacity = relative_capacity
-    xc.fluka.engine.start(elements=coll, relative_energy_cut=1e-3, return_all=True, clean=True, verbose=True)
+    xc.fluka.engine.minimum_free_length_fortran_array = relative_capacity
+    xc.fluka.engine.relative_length_fortran_array = relative_capacity
+    xc.fluka.engine.start(elements=coll, return_all=True, clean=True, verbose=True)
+    xc.fluka.engine.physics_settings()
 
-    part = run_many_particles(coll, xc.fluka.engine.particle_ref, num_part, xc.fluka.engine.capacity)
+    part = run_many_particles(coll, xc.fluka.engine.particle_ref, num_part, capacity)
 
     # Stop the FLUKA server
     xc.fluka.engine.stop(clean=True)

@@ -8,11 +8,11 @@ from pathlib import Path
 import xtrack as xt
 import xcoll as xc
 import pytest
-import shutil
 
 from xcoll.scattering_routines.fluka.fluka_input import get_collimators_from_input_file
 
 
+@pytest.mark.serial
 @pytest.mark.fluka
 @pytest.mark.parametrize("el_type", ['collimator', 'crystal'])
 def test_fluka_input_single(el_type, register_cleanup):
@@ -127,6 +127,7 @@ def test_fluka_input_single(el_type, register_cleanup):
         assert found_3
 
 
+@pytest.mark.serial
 @pytest.mark.fluka
 @pytest.mark.parametrize("ignore_crystals", [True, False], ids=['no_crystals', 'with_crystals'])
 def test_fluka_input_line(ignore_crystals, register_cleanup):

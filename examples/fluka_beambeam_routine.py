@@ -1,27 +1,21 @@
-import numpy as np
-import sys, os, contextlib
 import time
 import math
-
+import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
 
-import xobjects as xo
 import xtrack as xt
 import xcoll as xc
 import xpart as xp
 
-import argparse
-import pandas as pd
 
-
-path_in = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run3/2025/xsuite")
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 beam = 1
 ions = True
 dump = False
 
-import matplotlib.pyplot as plt
 
 def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0c_b1, Z_b2, A_b2,
                         sigma_p_x2 = 0, sigma_p_y2 = 0, sigma_z = 0, sigma_dpp = 0):
@@ -57,7 +51,6 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
 
     sigma_p_x2 = (geo_emittance_x*(tw.rows[ip].gamx)[0])**0.5
     sigma_p_y2 = (geo_emittance_y*(tw.rows[ip].gamy)[0])**0.5
-    
 
 
     bb_int = {
@@ -86,8 +79,8 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
     coll_dummy = xc.FlukaCollimator(assembly="lhc_ippipe", length=0.6, jaw=0.001)
 
     xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id=pdg_id_b1, p0c=p0c_b1)
-    xc.fluka.engine.capacity = _capacity
-    xc.fluka.engine.relative_capacity = 200 if ions else 20
+    xc.fluka.engine.minimum_free_length_fortran_array = _capacity
+    xc.fluka.engine.relative_length_fortran_array = 200 if ions else 20
 
     # xc.fluka.engine.seed = 5656565
     xc.fluka.engine.start(elements=coll_dummy, clean=False , verbose=True, include_showers=False, return_ions=True, bb_int=bb_int, touches=False)
@@ -102,6 +95,7 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
         num_particles=num_particles, total_intensity_particles=bunch_intensity,
         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
         line=line, particle_ref=xc.fluka.engine.particle_ref)
+    tt = line.get_table()
     part_init = line.build_particles(x=particles.x, y=particles.y,
                             px=particles.px,
                             py=particles.py,
@@ -110,9 +104,9 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
                             nemitt_x=colldb.nemitt_x,
                             nemitt_y=colldb.nemitt_y,
                             at_element=ip,
-                            match_at_s=line.get_s_position(ip),
+                            match_at_s=tt['s', ip],
                             particle_ref=xc.fluka.engine.particle_ref,
-                            _capacity=xc.fluka.engine.capacity,
+                            _capacity=_capacity,
     mode="normalized_transverse")
     part = part_init.copy()
 
@@ -134,9 +128,8 @@ path_out.mkdir(exist_ok=True)
 
 num_particles = int(100)
 
-line = xt.load(path_in / f'levelling.23_b{beam}.json')
-
-colldb = xc.CollimatorDatabase.from_yaml(path_in / ".." / "colldbs" / f'levelling.23.yaml', beam=beam)
+line = xt.load(path_in / 'machines' / f'levelling.23_b{beam}.json')
+colldb = xc.CollimatorDatabase.from_yaml(path_in / "colldbs" / f'levelling.23.yaml', beam=beam)
 
 if not ions:
     # p-p example

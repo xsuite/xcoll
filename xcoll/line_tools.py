@@ -502,7 +502,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
             table = self.line.get_table()
         tt = table.rows[s_start-s_tol:s_end+s_tol:'s']
         for el_name, el_type in zip(tt.name[:-1], tt.element_type[:-1]):
-            if el_type == 'Marker' or el_type.startswith('Drift'):
+            if (el_type in ('Marker', 'Device', 'ThickSliceDevice')
+                or el_type.startswith('Drift')):
                 continue
             if not el_type.startswith('Limit'):
                 print(f"Warning: Removed active element {el_name} "

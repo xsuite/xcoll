@@ -4,7 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "material": "K2CarbonFibreCarbon",
+ "material": "K2CarbonFibreComposite",
  "jaw_L": 0.0006512781043276405,
  "jaw_R": -0.0006513640792585354
 }

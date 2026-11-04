@@ -24,6 +24,7 @@ xc.geant4.engine.particle_ref = particle_ref
 xc.geant4.engine.return_none = True
 xc.geant4.engine.return_ions = True
 xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, clean=True, verbose=False)
+xc.geant4.engine.physics_settings()
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
 # longitudinal coordinates set to zero)

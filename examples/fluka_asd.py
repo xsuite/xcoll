@@ -86,9 +86,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 # Prepare engine
 line.particle_ref = xt.Particles('proton', p0c=momentum)
-xc.fluka.engine.particles_ref = line.particle_ref
-xc.fluka.engine.capacity = 5*num_particles
-xc.fluka.engine.relative_capacity = 2
+xc.fluka.engine.particle_ref = line.particle_ref
 
 
 # Build the tracker

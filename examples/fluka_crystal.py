@@ -23,7 +23,6 @@ coll = xc.FlukaCrystal(length=0.002, material=xc.materials.Silicon, bending_angl
 
 # Connect to FLUKA
 xc.fluka.engine.particle_ref = particle_ref
-xc.fluka.engine.capacity = capacity
 xc.fluka.engine.seed = 5656565
 xc.fluka.engine.start(elements=coll, clean=False, verbose=False)
 
@@ -33,7 +32,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                           particle_ref=xc.fluka.engine.particle_ref,
-                          _capacity=xc.fluka.engine.capacity)
+                          _capacity=capacity)
 part_init = part.copy()
 
 print(f"Tracking {num_part} particles (FLUKA)...     ", end='', flush=True)

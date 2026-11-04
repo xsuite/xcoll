@@ -46,7 +46,7 @@ line.xcoll.collimators.assign_optics()
 
 
 # Connect to FLUKA
-xc.fluka.engine.start(line=line, capacity=2*num_particles, cwd='run_fluka_temp', clean=True, verbose=True)
+xc.fluka.engine.start(line=line, cwd='run_fluka_temp', clean=True, verbose=True)
 
 
 # Generate initial pencil distribution on horizontal collimator
