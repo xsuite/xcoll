@@ -143,7 +143,7 @@ def track_core(coll, part):
     # Add new particles created in Geant4
     q_new = products['q'][num_sent:]
     pdg_id = products['pdg_id'][num_sent:]
-    mask_new = xc.geant4.engine._mask_particle_return_types(pdg_id, q_new)
+    mask_new = xc.geant4.engine._physics_settings.mask_particle_return_types(pdg_id, q_new)
     idx_new = np.nonzero(mask_new)[0] + num_sent
     assert np.all(products['state'][idx_new] == 1)
 

@@ -18,33 +18,70 @@ path = Path(__file__).parent / 'data'
 @pytest.mark.xcother
 @pytest.mark.parametrize('length', [0., 0.2, 1.2])
 @pytest.mark.parametrize('method', ['direct', 'black_absorbers', 'everest_collimators'])
-def test_install_device_placeholder(length, method, capsys):
+@pytest.mark.parametrize('apertures_mode', ['single', 'list', 'list_of_pairs'],
+                         ids=['single_aperture', 'per_collimator_apertures',
+                              'per_collimator_upstream_downstream_pairs'])
+def test_install_device_placeholder(length, method, apertures_mode, capsys):
     line = xt.Line(elements={
         'before': xt.Drift(length=2.),
         'coll': xt.Device(length=length),
+        'between': xt.Drift(length=2.),
+        'coll2': xt.Device(length=length),
         'after': xt.Drift(length=2.),
     })
-    aperture = xt.LimitEllipse(a=0.02, b=0.03)
+    aperture1 = xt.LimitEllipse(a=0.02, b=0.03)
+    aperture2 = xt.LimitEllipse(a=0.05, b=0.07)
+    aperture1_down = xt.LimitEllipse(a=0.021, b=0.031)
+    aperture2_down = xt.LimitEllipse(a=0.051, b=0.071)
+    # 'single': one aperture spec is broadcast to all installed collimators
+    #           (used for both their upstream and downstream side).
+    # 'list': a list with one aperture spec per collimator assigns a distinct
+    #         aperture (for both sides) to each of them.
+    # 'list_of_pairs': a list with one [upstream, downstream] pair per
+    #         collimator assigns distinct upstream/downstream apertures to
+    #         each of them.
+    if apertures_mode == 'single':
+        apertures = aperture1
+        expected = {'coll': (aperture1, aperture1), 'coll2': (aperture1, aperture1)}
+    elif apertures_mode == 'list':
+        apertures = [aperture1, aperture2]
+        expected = {'coll': (aperture1, aperture1), 'coll2': (aperture2, aperture2)}
+    else:
+        apertures = [[aperture1, aperture1_down], [aperture2, aperture2_down]]
+        expected = {'coll': (aperture1, aperture1_down), 'coll2': (aperture2, aperture2_down)}
     if method == 'direct':
         line.xcoll.collimators.install(
-            'coll', xc.BlackAbsorber(length=0.6),
-            apertures=aperture, need_apertures=True)
+            ['coll', 'coll2'],
+            [xc.BlackAbsorber(length=0.6), xc.BlackAbsorber(length=0.6)],
+            apertures=apertures, need_apertures=True)
     else:
         colldb = xc.CollimatorDatabase(
-            collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC')},
+            collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC'),
+                             'coll2': dict(length=0.6, gap=6., material='CFC')},
             nemitt_x=3.5e-6, nemitt_y=3.5e-6)
-        getattr(colldb, f'install_{method}')(line, apertures=aperture)
+        getattr(colldb, f'install_{method}')(line, apertures=apertures)
 
     expected_class = (xc.EverestCollimator if method == 'everest_collimators'
                       else xc.BlackAbsorber)
-    assert isinstance(line['coll'], expected_class)
-    assert line['coll'].length == pytest.approx(0.6)
     tt = line.get_table()
+    for name in ['coll', 'coll2']:
+        assert isinstance(line[name], expected_class)
+        assert line[name].length == pytest.approx(0.6)
+        assert tt['s', f'{name}_aper_upstream'] == pytest.approx(tt['s_start', name])
+        assert tt['s', f'{name}_aper_downstream'] == pytest.approx(tt['s_end', name])
     assert tt['s_center', 'coll'] == pytest.approx(2. + length / 2)
-    assert tt['s', 'coll_aper_upstream'] == pytest.approx(tt['s_start', 'coll'])
-    assert tt['s', 'coll_aper_downstream'] == pytest.approx(tt['s_end', 'coll'])
-    assert line.get_length() == pytest.approx(4. + length)
+    assert line.get_length() == pytest.approx(6. + 2 * length)
     assert 'Removed active element' not in capsys.readouterr().out
+
+    # Verify each collimator got the expected upstream/downstream apertures.
+    for name in ['coll', 'coll2']:
+        exp_up, exp_down = expected[name]
+        installed_up = line[f'{name}_aper_upstream']
+        installed_down = line[f'{name}_aper_downstream']
+        assert np.isclose(installed_up.a, exp_up.a)
+        assert np.isclose(installed_up.b, exp_up.b)
+        assert np.isclose(installed_down.a, exp_down.a)
+        assert np.isclose(installed_down.b, exp_down.b)
 
 
 @pytest.mark.xcother

@@ -9,10 +9,7 @@ import numpy as np
 from xtrack.particles.pdg import get_properties_from_pdg_id, is_proton, is_ion
 
 from ...materials import RefMaterial
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
+from ...xaux import FsPath
 
 
 _header_start = "! ** XCOLL START  **"
