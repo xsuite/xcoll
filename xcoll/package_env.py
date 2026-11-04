@@ -74,6 +74,10 @@ def _select_directory(name, versioned=False) -> FsPath:
     ]
     for path in candidates:
         if versioned:
+            for pp in path.glob('*.json'):
+                if pp.is_file():
+                    # Clean up old unversioned configuration files
+                    pp.unlink()
             path = path / __version__
         if _is_writable_directory(path):
             return path
