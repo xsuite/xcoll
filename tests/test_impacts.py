@@ -5,6 +5,7 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 from pathlib import Path
 
 import xobjects as xo
@@ -220,6 +221,58 @@ def test_impacts_to_pandas_lattice_frame(test_context):
         assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_interaction_type(test_context):
+    impacts = _make_multiturn_interaction_record(test_context)
+    expected = np.array([
+        "Enter Jaw L",
+        "Multiple Coulomb Scattering",
+        "Enter Jaw R",
+        "Enter Jaw R",
+        "Exit Jaw",
+        "Enter Jaw L",
+    ])
+    assert np.array_equal(
+        impacts.interaction_type[:6],
+        expected,
+    )
+
+
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_interactions_per_collimator_turn(test_context):
+    impacts = _make_multiturn_interaction_record(test_context)
+    interactions = impacts.interactions_per_collimator("TCP", turn=0)
+    assert interactions.loc[10] == ["JI", "MCS"]
+    assert interactions.loc[11] == ["JI"]
+    interactions = impacts.interactions_per_collimator("TCP", turn=1)
+    assert interactions.loc[10] == ["JI", "JO"]
+    assert interactions.loc[11] == ["JI"]
+
+
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_first_touch_per_turn(test_context):
+    impacts = _make_multiturn_interaction_record(test_context)
+    df = impacts.first_touch_per_turn()
+    got = (
+        df[["at_turn", "pid", "jaw"]]
+        .sort_values(["at_turn", "pid"])
+        .reset_index(drop=True)
+    )
+    expected = pd.DataFrame({
+        "at_turn": [0, 0, 1, 1],
+        "pid":     [10, 11, 10, 11],
+        "jaw":     ["L", "R", "R", "L"],
+    })
+    pd.testing.assert_frame_equal(
+        got,
+        expected,
+        check_dtype=False,
+    )
+
+
 def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], lengths=None):
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)
@@ -346,3 +399,39 @@ def _expected_lattice_frame(data, coll, x, px, y, py):
             px[ii] = old_px*cos_z - old_py*sin_z
             py[ii] = old_px*sin_z + old_py*cos_z
     return x, px, y, py
+
+
+def _make_multiturn_interaction_record(test_context):
+    coll = xc.TransparentCollimator(
+        length=1.0,
+        jaw=1e-3,
+        name="TCP",
+        _context=test_context,
+    )
+    impacts = xc.InteractionRecord(
+        elements=[coll],
+        names=["TCP"],
+        num_rows=6,
+        _context=test_context,
+    )
+    data = {
+        "at_turn": np.array([0, 0, 0, 1, 1, 1]),
+        "at_element": np.array([0, 0, 0, 0, 0, 0]),
+        "shape_id": np.array([1, 1, -1, -1, -1, 1]),
+        "_inter": np.array([
+            xcc.ENTER_JAW_L,
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.ENTER_JAW_R,
+            xcc.ENTER_JAW_R,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_L,
+        ]),
+        "particle_id_before": np.array([
+            10, 10, 11, 10, 10, 11
+        ]),
+    }
+    impacts._index.num_recorded = 6
+    for field, values in data.items():
+        getattr(impacts, field)[:6] = values
+
+    return impacts
