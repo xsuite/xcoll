@@ -15,7 +15,7 @@ from contextlib import contextmanager
 #     user_config_path = None
 #     user_data_path = None
 
-from .general import _pkg_root
+from .general import _pkg_root, __version__
 from .xaux import track_construction, FsPath
 
 
