@@ -351,3 +351,14 @@ def test_generic_no_zero_size():
     assert crystal.assembly.fedb_series == 'generic'
     assert crystal.assembly.width == 0.02
     assert crystal.assembly.height == 0.05
+
+
+@pytest.mark.serial
+@pytest.mark.fluka
+def test_generic_tank_size():
+    from xcoll.scattering_routines.fluka.generic_prototype import _body
+    # The LineBuilder removes a collimator when its opening + jaw width reach the tank
+    body, tank = _body('GEN', 0.6, 0.25, 0.25)
+    assert 'RPP GEN_B   0.0 25.0 -12.5 12.5' in body
+    assert 'RPP GEN_T  -50 50 -50 50' in tank
+    assert 'RPP GEN_I  -50 50 -50 50' in tank

@@ -293,8 +293,8 @@ YZP   tip      {tip_thickness*100}
 """
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
-RPP {fedb_tag}_T  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
-RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 5} {length*100/2 + 5}
+RPP {fedb_tag}_T  -50 50 -50 50 -{length*100/2 + 5} {length*100/2 + 5}
+RPP {fedb_tag}_I  -50 50 -50 50 -{length*100/2 + 5} {length*100/2 + 5}
 * For BB, need less margin!
 *RPP {fedb_tag}_T  -28 28 -28 28 -{length*100/2 + 1e-12} {length*100/2 + 1e-12}
 *RPP {fedb_tag}_I  -28 28 -28 28 -{length*100/2 + 1e-12} {length*100/2 + 1e-12}
