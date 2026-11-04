@@ -35,7 +35,7 @@ from ...compare import deep_equal
 
 
 _generic_required_fields = ['material', 'length']
-_generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2,
+_generic_optional_fields = {'side': 'both', 'width': 0.25, 'height': 0.25,
                             'tip_thickness': None, 'tip_material': None}
 _generic_crystal_required_fields = ['material', 'length', 'bending_radius']
 _generic_crystal_optional_fields = {'side': 'left', 'width': 0.02,
@@ -106,6 +106,11 @@ def _validate_kwargs(kwargs):
         for field, opt_value in _generic_optional_fields.items():
             if field not in kwargs or kwargs[field] is None:
                 kwargs[field] = opt_value
+    # The CollimatorDatabase defaults the width and height to zero, which would give a jaw without volume
+    defaults = _generic_crystal_optional_fields if kwargs['is_crystal'] else _generic_optional_fields
+    for field in ['width', 'height']:
+        if kwargs[field] == 0:
+            kwargs[field] = defaults[field]
     if kwargs.get('side') not in ['both', 'left', 'right']:
         raise ValueError(f"Side must be 'both', 'left' or 'right', but got {kwargs.get('side')}!")
     if kwargs['width'] > 0.25:
