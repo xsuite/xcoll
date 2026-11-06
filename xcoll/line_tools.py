@@ -346,6 +346,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
         # Identify collimators that can replace existing elements in place
         direct_replacements = set()
+        direct_indices = {}
         occurrences = Counter(self.line.element_names)
         drift_like_classes = (xt.Drift, xt.DriftExact, xt.Device)
         for name, el, s1, s2 in zip(names, elements, s_start, s_end):
@@ -363,49 +364,28 @@ class XcollCollimatorAPI(XcollLineAccessor):
             if not np.isclose(tt.s_start[idx], s1, atol=s_tol, rtol=0):
                 continue
             direct_replacements.add(name)
+            direct_indices[name] = idx
 
-        # Look for apertures, but avoid unnecessary searches
-        aper_upstream = [None] * len(names)
-        aper_downstream = [None] * len(names)
+        # Look for apertures
+        aper_upstream = []
+        aper_downstream = []
         if need_apertures:
-            aperture_table = None
-            # When all collimators are replaced in place, we can safely
-            # inspect their existing neighbours before installation.
-            all_direct = len(direct_replacements) == len(names)
-
-            if all_direct:
-                line_names = self.line.element_names
-                indices = {nn: ii for ii, nn in enumerate(line_names)
-                           if nn in direct_replacements}
-            for i, (s1, s2, name, aper) in enumerate(zip(s_start, s_end, names, apertures)):
-                # Explicitly specified apertures must always be honoured.
-                if all_direct and aper is None:
-                    idx = indices[name]
-                    has_upstream = (
-                        idx > 0
-                        and xt.line._is_aperture(
-                            self.line.get(line_names[idx - 1]), self.line
-                        )
-                    )
-                    has_downstream = (
-                        idx < len(line_names) - 1
-                        and xt.line._is_aperture(
-                            self.line.get(line_names[idx + 1]), self.line
-                        )
-                    )
-                    if has_upstream and has_downstream:
-                        # Both already exist. Nothing to look up or install.
-                        continue
-
-                # Only build the aperture table when an automatic lookup
-                # is actually required.
-                if aper is None and aperture_table is None:
-                    aperture_table = tt.rows.match('Limit.*', 'element_type')
-                aper_upstream[i], aper_downstream[i] = self.find_aperture(
+            aperture_table = (
+                tt.rows.match('Limit.*', 'element_type')
+                if any(aper is None for aper in apertures)
+                else None
+            )
+        for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
+            if need_apertures:
+                aper1, aper2 = self.find_aperture(
                     name, s_start=s1, s_end=s2,
                     aperture=aper, aperture_table=aperture_table,
                     s_tol=s_tol
                 )
+            else:
+                aper1 = aper2 = None
+            aper_upstream.append(aper1)
+            aper_downstream.append(aper2)
 
         # Remove elements at location of collimator (by changing them
         # into markers) and add pointers to line and names to elements
@@ -461,15 +441,17 @@ class XcollCollimatorAPI(XcollLineAccessor):
         # Add apertures only where not already present
         if need_apertures:
             element_names = self.line.element_names
-            name_to_idx = {nn: ii for ii, nn in enumerate(element_names)
-                           if nn in names}
+            name_set = set(names)
+            name_to_idx = {
+                nn: ii for ii, nn in enumerate(element_names)
+                if nn in name_set
+            }
             aperture_names = {}
             for name, spec, aper1, aper2 in zip(
                 names, apertures, aper_upstream, aper_downstream
             ):
+                # The fallback insertion may have changed the neighbours
                 idx = name_to_idx[name]
-                # Existing apertures can be reused unless the caller
-                # explicitly requested particular aperture elements.
                 reuse = spec is None
                 has_upstream = (
                     reuse
