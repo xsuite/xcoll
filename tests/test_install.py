@@ -67,8 +67,8 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys):
     for name in ['coll', 'coll2']:
         assert isinstance(line[name], expected_class)
         assert line[name].length == pytest.approx(0.6)
-        assert tt['s', f'{name}_aper_upstream'] == pytest.approx(tt['s_start', name])
-        assert tt['s', f'{name}_aper_downstream'] == pytest.approx(tt['s_end', name])
+        assert tt['s', f'{name}/aper_start'] == pytest.approx(tt['s_start', name])
+        assert tt['s', f'{name}/aper_end'] == pytest.approx(tt['s_end', name])
     assert tt['s_center', 'coll'] == pytest.approx(2. + length / 2)
     assert line.get_length() == pytest.approx(6. + 2 * length)
     assert 'Removed active element' not in capsys.readouterr().out
@@ -76,8 +76,8 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys):
     # Verify each collimator got the expected upstream/downstream apertures.
     for name in ['coll', 'coll2']:
         exp_up, exp_down = expected[name]
-        installed_up = line[f'{name}_aper_upstream']
-        installed_down = line[f'{name}_aper_downstream']
+        installed_up = line[f'{name}/aper_start']
+        installed_down = line[f'{name}/aper_end']
         assert np.isclose(installed_up.a, exp_up.a)
         assert np.isclose(installed_up.b, exp_up.b)
         assert np.isclose(installed_down.a, exp_down.a)
@@ -106,10 +106,10 @@ def test_install_from_colldb_at_s_center(method):
     assert tt['s_center', 'coll2'] == pytest.approx(15.)
     assert line.get_length() == pytest.approx(20.)
     for name in ['coll', 'coll2']:
-        assert tt['s', f'{name}_aper_upstream'] == pytest.approx(tt['s_start', name])
-        assert tt['s', f'{name}_aper_downstream'] == pytest.approx(tt['s_end', name])
-        assert line[f'{name}_aper_upstream'].a == pytest.approx(0.02)
-        assert line[f'{name}_aper_downstream'].b == pytest.approx(0.03)
+        assert tt['s', f'{name}/aper_start'] == pytest.approx(tt['s_start', name])
+        assert tt['s', f'{name}/aper_end'] == pytest.approx(tt['s_end', name])
+        assert line[f'{name}/aper_start'].a == pytest.approx(0.02)
+        assert line[f'{name}/aper_end'].b == pytest.approx(0.03)
 
 
 @pytest.mark.xcother
