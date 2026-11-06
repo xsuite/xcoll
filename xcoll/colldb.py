@@ -449,7 +449,7 @@ class CollimatorDatabase:
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
                                + f"but it is already installed as {line[name].__class__.__name__}!\n"
                                + f"Please reconstruct the line.")
-            elif not isinstance(line[name], (xt.Marker, xt.Drift, xt.Device)):
+            elif not (isinstance(line[name], (xt.Marker, xt.Drift, xt.DriftExact, xt.Device))):
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
                                + f"but the line element to replace is not an xtrack.Marker, "
                                + f"xtrack.Drift or xtrack.Device!\nPlease check the name, or correct the "
