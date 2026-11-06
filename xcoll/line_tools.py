@@ -344,25 +344,6 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 raise ValueError(f"Position of {name} too close to end of "
                                  f"line. Please cycle.")
 
-        # Look for apertures
-        aper_upstream = []
-        aper_downstream = []
-        if need_apertures:
-            tt_apertures = tt.rows.match('Limit.*', 'element_type')
-
-        for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
-            if not need_apertures:
-                aper_upstream.append(None)
-                aper_downstream.append(None)
-            else:
-                aper1, aper2 = self.find_aperture(
-                    name, s_start=s1, s_end=s2,
-                    aperture=aper, aperture_table=tt_apertures,
-                    s_tol=s_tol
-                )
-                aper_upstream.append(aper1)
-                aper_downstream.append(aper2)
-
         # Identify collimators that can replace existing elements in place
         direct_replacements = set()
         occurrences = Counter(self.line.element_names)
@@ -382,6 +363,49 @@ class XcollCollimatorAPI(XcollLineAccessor):
             if not np.isclose(tt.s_start[idx], s1, atol=s_tol, rtol=0):
                 continue
             direct_replacements.add(name)
+
+        # Look for apertures, but avoid unnecessary searches
+        aper_upstream = [None] * len(names)
+        aper_downstream = [None] * len(names)
+        if need_apertures:
+            aperture_table = None
+            # When all collimators are replaced in place, we can safely
+            # inspect their existing neighbours before installation.
+            all_direct = len(direct_replacements) == len(names)
+
+            if all_direct:
+                line_names = self.line.element_names
+                indices = {nn: ii for ii, nn in enumerate(line_names)
+                           if nn in direct_replacements}
+            for i, (s1, s2, name, aper) in enumerate(zip(s_start, s_end, names, apertures)):
+                # Explicitly specified apertures must always be honoured.
+                if all_direct and aper is None:
+                    idx = indices[name]
+                    has_upstream = (
+                        idx > 0
+                        and xt.line._is_aperture(
+                            self.line.get(line_names[idx - 1]), self.line
+                        )
+                    )
+                    has_downstream = (
+                        idx < len(line_names) - 1
+                        and xt.line._is_aperture(
+                            self.line.get(line_names[idx + 1]), self.line
+                        )
+                    )
+                    if has_upstream and has_downstream:
+                        # Both already exist. Nothing to look up or install.
+                        continue
+
+                # Only build the aperture table when an automatic lookup
+                # is actually required.
+                if aper is None and aperture_table is None:
+                    aperture_table = tt.rows.match('Limit.*', 'element_type')
+                aper_upstream[i], aper_downstream[i] = self.find_aperture(
+                    name, s_start=s1, s_end=s2,
+                    aperture=aper, aperture_table=aperture_table,
+                    s_tol=s_tol
+                )
 
         # Remove elements at location of collimator (by changing them
         # into markers) and add pointers to line and names to elements
@@ -434,26 +458,57 @@ class XcollCollimatorAPI(XcollLineAccessor):
             if nn in direct_replacements:
                 env._element_dict[nn] = ee
 
-        # Add apertures directly, without calling line.insert()
+        # Add apertures only where not already present
         if need_apertures:
+            element_names = self.line.element_names
+            name_to_idx = {nn: ii for ii, nn in enumerate(element_names)
+                           if nn in names}
             aperture_names = {}
-            for name, aper1, aper2 in zip(
-                names, aper_upstream, aper_downstream
+            for name, spec, aper1, aper2 in zip(
+                names, apertures, aper_upstream, aper_downstream
             ):
-                nn1 = f'{name}_aper_upstream'
-                nn2 = f'{name}_aper_downstream'
-                env.elements[nn1] = aper1
-                env.elements[nn2] = aper2
-                aperture_names[name] = (nn1, nn2)
-            new_names = []
-            for nn in self.line.element_names:
-                if nn in aperture_names:
-                    # Install apertures immediately before/after each collimator.
-                    upstream, downstream = aperture_names[nn]
-                    new_names.extend((upstream, nn, downstream))
-                else:
-                    new_names.append(nn)
-            self.line.element_names[:] = new_names
+                idx = name_to_idx[name]
+                # Existing apertures can be reused unless the caller
+                # explicitly requested particular aperture elements.
+                reuse = spec is None
+                has_upstream = (
+                    reuse
+                    and idx > 0
+                    and xt.line._is_aperture(
+                        self.line.get(element_names[idx - 1]), self.line
+                    )
+                )
+                has_downstream = (
+                    reuse
+                    and idx < len(element_names) - 1
+                    and xt.line._is_aperture(
+                        self.line.get(element_names[idx + 1]), self.line
+                    )
+                )
+                nn1 = None
+                nn2 = None
+                if not has_upstream:
+                    nn1 = f'{name}/aper_start'
+                    env._element_dict[nn1] = aper1
+                if not has_downstream:
+                    nn2 = f'{name}/aper_end'
+                    env._element_dict[nn2] = aper2
+                if nn1 is not None or nn2 is not None:
+                    aperture_names[name] = (nn1, nn2)
+            # Only reconstruct the sequence if new apertures are needed
+            if aperture_names:
+                new_names = []
+                for nn in element_names:
+                    if nn in aperture_names:
+                        upstream, downstream = aperture_names[nn]
+                        if upstream is not None:
+                            new_names.append(upstream)
+                        new_names.append(nn)
+                        if downstream is not None:
+                            new_names.append(downstream)
+                    else:
+                        new_names.append(nn)
+                element_names[:] = new_names
 
     def find_aperture(self, name, *, s_start, s_end, aperture=None,
                       table=None, aperture_table=None, s_tol=1.e-6):
