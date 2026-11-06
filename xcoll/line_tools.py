@@ -364,7 +364,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 aper_downstream.append(aper2)
 
         # Identify collimators that can replace existing elements in place
-        fast_replace = set()
+        direct_replacements = set()
         occurrences = Counter(self.line.element_names)
         drift_like_classes = (xt.Drift, xt.DriftExact, xt.Device)
         for name, el, s1, s2 in zip(names, elements, s_start, s_end):
@@ -381,13 +381,13 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 continue
             if not np.isclose(tt.s_start[idx], s1, atol=s_tol, rtol=0):
                 continue
-            fast_replace.add(name)
+            direct_replacements.add(name)
 
         # Remove elements at location of collimator (by changing them
         # into markers) and add pointers to line and names to elements
         to_remove = []
         for s1, s2, name, el in zip(s_start, s_end, names, elements):
-            if name not in fast_replace:
+            if name not in direct_replacements:
                 self.prepare_space(
                     name, s_start=s1, s_end=s2, table=tt, s_tol=s_tol,
                     to_remove=to_remove
@@ -401,7 +401,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
         to_delete = []
         # Only the fallback elements require normal insertion
         for nn, ee, ss in zip(names, elements, s_start):
-            if nn in fast_replace:
+            if nn in direct_replacements:
                 continue
             if nn in env.elements:
                 to_remove.append(nn)
@@ -422,7 +422,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
         # Register fallback collimators
         for nn, ee in zip(names, elements):
-            if nn not in fast_replace:
+            if nn not in direct_replacements:
                 env.elements[nn] = ee
 
         # Insert only collimators requiring geometric changes
@@ -431,7 +431,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
         # Directly replace existing drift-like placeholders
         for nn, ee in zip(names, elements):
-            if nn in fast_replace:
+            if nn in direct_replacements:
                 env._element_dict[nn] = ee
 
         # Add apertures directly, without calling line.insert()
