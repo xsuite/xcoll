@@ -279,7 +279,6 @@ class XcollCollimatorAPI(XcollLineAccessor):
             # [upstream, downstream] pair, e.g. for 3 collimators:
             #     apertures = [ap1, [ap2_up, ap2_down], 'ap3_name']
             apertures = [apertures for _ in range(len(names))]
-        # names = np.array(names)
         if len(elements) != len(names):
             raise ValueError("Length of `elements` does not match length of "
                              "`names`.")
@@ -344,18 +343,15 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 raise ValueError(f"Position of {name} too close to end of "
                                  f"line. Please cycle.")
 
-        # Identify collimators that can replace existing elements in place
+        # Identify collimators that can replace existing elements inplace
         direct_replacements = set()
-        direct_indices = {}
         occurrences = Counter(self.line.element_names)
         drift_like_classes = (xt.Drift, xt.DriftExact, xt.Device)
-        for name, el, s1, s2 in zip(names, elements, s_start, s_end):
+        for name, el, s1 in zip(names, elements, s_start):
             if occurrences[name] != 1:
                 continue
             old = self.line.get(name)
             if not isinstance(old, drift_like_classes):
-                continue
-            if not getattr(old, 'isthick', False):
                 continue
             idx = tt.rows.get_index(name)
             old_length = tt.s_end[idx] - tt.s_start[idx]
@@ -364,7 +360,6 @@ class XcollCollimatorAPI(XcollLineAccessor):
             if not np.isclose(tt.s_start[idx], s1, atol=s_tol, rtol=0):
                 continue
             direct_replacements.add(name)
-            direct_indices[name] = idx
 
         # Look for apertures
         aper_upstream = []
@@ -403,9 +398,9 @@ class XcollCollimatorAPI(XcollLineAccessor):
         env = self.line.env
         insertions = []
         to_delete = []
-        # Only the fallback elements require normal insertion
         for nn, ee, ss in zip(names, elements, s_start):
             if nn in direct_replacements:
+                # Only the fallback elements require normal insertion
                 continue
             if nn in env.elements:
                 to_remove.append(nn)
@@ -438,9 +433,28 @@ class XcollCollimatorAPI(XcollLineAccessor):
             if nn in direct_replacements:
                 env._element_dict[nn] = ee
 
+        # Register an aperture, reusing its name where possible.
+        element_names = self.line.element_names
+        used_names = set(element_names)
+        def register_aperture(name, aperture):
+            if name in env.elements:
+                if env.get(name) is aperture and name not in used_names:
+                    # The aperture was removed from the line, but is still
+                    # registered in the environment. Reuse it directly.
+                    used_names.add(name)
+                    return name
+                # Genuine name collision: find an unused name.
+                base = name
+                idx = 1
+                while name in env or name in used_names:
+                    name = f'{base}_{idx}'
+                    idx += 1
+            env.elements[name] = aperture
+            used_names.add(name)
+            return name
+
         # Add apertures only where not already present
         if need_apertures:
-            element_names = self.line.element_names
             name_set = set(names)
             name_to_idx = {
                 nn: ii for ii, nn in enumerate(element_names)
@@ -470,11 +484,9 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 nn1 = None
                 nn2 = None
                 if not has_upstream:
-                    nn1 = f'{name}/aper_start'
-                    env._element_dict[nn1] = aper1
+                    nn1 = register_aperture(f'{name}/aper_start', aper1)
                 if not has_downstream:
-                    nn2 = f'{name}/aper_end'
-                    env._element_dict[nn2] = aper2
+                    nn2 = register_aperture(f'{name}/aper_end', aper2)
                 if nn1 is not None or nn2 is not None:
                     aperture_names[name] = (nn1, nn2)
             # Only reconstruct the sequence if new apertures are needed
