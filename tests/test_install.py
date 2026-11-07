@@ -16,7 +16,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xcother
-@pytest.mark.parametrize('length', [0., 0.2, 1.2])
+@pytest.mark.parametrize('length', [0., 0.2, 0.6, 1.2])
 @pytest.mark.parametrize('method', ['direct', 'black_absorbers', 'everest_collimators'])
 @pytest.mark.parametrize('apertures_mode', ['single', 'list', 'list_of_pairs'],
                          ids=['single_aperture', 'per_collimator_apertures',
@@ -67,8 +67,8 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys):
     for name in ['coll', 'coll2']:
         assert isinstance(line[name], expected_class)
         assert line[name].length == pytest.approx(0.6)
-        assert tt['s', f'{name}_aper_upstream'] == pytest.approx(tt['s_start', name])
-        assert tt['s', f'{name}_aper_downstream'] == pytest.approx(tt['s_end', name])
+        assert tt['s', f'{name}/aper_start'] == pytest.approx(tt['s_start', name])
+        assert tt['s', f'{name}/aper_end'] == pytest.approx(tt['s_end', name])
     assert tt['s_center', 'coll'] == pytest.approx(2. + length / 2)
     assert line.get_length() == pytest.approx(6. + 2 * length)
     assert 'Removed active element' not in capsys.readouterr().out
@@ -76,12 +76,40 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys):
     # Verify each collimator got the expected upstream/downstream apertures.
     for name in ['coll', 'coll2']:
         exp_up, exp_down = expected[name]
-        installed_up = line[f'{name}_aper_upstream']
-        installed_down = line[f'{name}_aper_downstream']
+        installed_up = line[f'{name}/aper_start']
+        installed_down = line[f'{name}/aper_end']
         assert np.isclose(installed_up.a, exp_up.a)
         assert np.isclose(installed_up.b, exp_up.b)
         assert np.isclose(installed_down.a, exp_down.a)
         assert np.isclose(installed_down.b, exp_down.b)
+
+
+@pytest.mark.xcother
+@pytest.mark.parametrize('method', ['black_absorbers', 'everest_collimators',
+                                    'fluka_collimators', 'geant4_collimators'])
+def test_install_from_colldb_at_s_center(method):
+    # The collimators do not exist in the line yet: their position has to
+    # be taken from `s_center` in the CollimatorDatabase.
+    line = xt.Line(elements={
+        'drift_1': xt.Drift(length=10.),
+        'drift_2': xt.Drift(length=10.),
+    })
+    colldb = xc.CollimatorDatabase(
+        collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC', s_center=3.),
+                         'coll2': dict(length=0.4, gap=6., material='CFC', s_center=15.)},
+        nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+    aperture = xt.LimitEllipse(a=0.02, b=0.03)
+    getattr(colldb, f'install_{method}')(line, apertures=aperture)
+
+    tt = line.get_table()
+    assert tt['s_center', 'coll'] == pytest.approx(3.)
+    assert tt['s_center', 'coll2'] == pytest.approx(15.)
+    assert line.get_length() == pytest.approx(20.)
+    for name in ['coll', 'coll2']:
+        assert tt['s', f'{name}/aper_start'] == pytest.approx(tt['s_start', name])
+        assert tt['s', f'{name}/aper_end'] == pytest.approx(tt['s_end', name])
+        assert line[f'{name}/aper_start'].a == pytest.approx(0.02)
+        assert line[f'{name}/aper_end'].b == pytest.approx(0.03)
 
 
 @pytest.mark.xcother
@@ -240,3 +268,151 @@ def test_install_single_no_marker(beam, test_context):
 
     # Verify line length did not corrupt
     assert np.isclose(machine_length, line.get_length())
+
+
+@pytest.mark.xcother
+def test_install_reuses_existing_apertures():
+    aper_up = xt.LimitEllipse(a=0.02, b=0.03)
+    aper_down = xt.LimitEllipse(a=0.04, b=0.05)
+
+    line = xt.Line(elements={
+        'before': xt.Drift(length=2.),
+        'aper_up': aper_up,
+        'coll': xt.Device(length=0.6),
+        'aper_down': aper_down,
+        'after': xt.Drift(length=2.),
+    })
+
+    names_before = list(line.element_names)
+    length_before = line.get_length()
+
+    line.xcoll.collimators.install(
+        'coll',
+        xc.BlackAbsorber(length=0.6),
+        need_apertures=True,
+    )
+
+    assert line.element_names == names_before
+    assert line.get('aper_up') is aper_up
+    assert line.get('aper_down') is aper_down
+    assert isinstance(line.get('coll'), xc.BlackAbsorber)
+    assert np.isclose(line.get_length(), length_before)
+
+    assert 'coll/aper_start' not in line.element_names
+    assert 'coll/aper_end' not in line.element_names
+
+
+@pytest.mark.xcother
+@pytest.mark.parametrize("existing_side", ["upstream", "downstream"])
+def test_install_reuses_one_existing_aperture(existing_side):
+    aperture = xt.LimitEllipse(a=0.02, b=0.03)
+
+    elements = {"before": xt.Drift(length=2.)}
+    if existing_side == "upstream":
+        elements["existing_aper"] = aperture
+    elements["coll"] = xt.Device(length=0.6)
+    if existing_side == "downstream":
+        elements["existing_aper"] = aperture
+    elements["after"] = xt.Drift(length=2.)
+
+    line = xt.Line(elements=elements)
+
+    original_aperture = line.get("existing_aper")
+    original_length = line.get_length()
+    original_num_elements = len(line.element_names)
+
+    line.xcoll.collimators.install(
+        "coll",
+        xc.BlackAbsorber(length=0.6),
+        need_apertures=True,
+    )
+
+    # The collimator was replaced in place.
+    assert isinstance(line.get("coll"), xc.BlackAbsorber)
+    assert np.isclose(line.get_length(), original_length)
+
+    # Only one additional aperture was installed.
+    assert len(line.element_names) == original_num_elements + 1
+    assert line.get("existing_aper") is original_aperture
+
+    idx = line.element_names.index("coll")
+
+    if existing_side == "upstream":
+        assert line.element_names[idx - 1] == "existing_aper"
+        assert line.element_names[idx + 1] == "coll/aper_end"
+        assert "coll/aper_start" not in line.element_names
+    else:
+        assert line.element_names[idx - 1] == "coll/aper_start"
+        assert line.element_names[idx + 1] == "existing_aper"
+        assert "coll/aper_end" not in line.element_names
+
+    # Both apertures are at the correct longitudinal positions.
+    tt = line.get_table()
+    assert np.isclose(tt.s[idx - 1], tt.s_start[idx])
+    assert np.isclose(tt.s[idx + 1], tt.s_end[idx])
+
+    # The newly installed aperture has the expected geometry.
+    new_name = (
+        "coll/aper_end" if existing_side == "upstream"
+        else "coll/aper_start"
+    )
+    assert np.isclose(line.get(new_name).a, aperture.a)
+    assert np.isclose(line.get(new_name).b, aperture.b)
+
+
+@pytest.mark.xcother
+def test_install_reuses_removed_aperture():
+    aperture = xt.LimitEllipse(a=0.02, b=0.03)
+
+    line = xt.Line(elements={
+        'before': xt.Drift(length=2.),
+        'coll/aper_start': aperture,
+        'coll': xt.Marker(),
+        'after': xt.Drift(length=2.),
+    })
+
+    length_before = line.get_length()
+    centre_before = line.get_table()['s', 'coll']
+
+    # The aperture and marker initially occupy the same position.
+    assert np.isclose(
+        line.get_table()['s', 'coll/aper_start'], centre_before
+    )
+
+    # Installing a thick collimator requires the fallback path.
+    # The original aperture is removed from the line but remains
+    # in the environment.
+    line.xcoll.collimators.install(
+        'coll',
+        xc.BlackAbsorber(length=0.6),
+        need_apertures=True,
+    )
+
+    assert isinstance(line.get('coll'), xc.BlackAbsorber)
+    assert np.isclose(line.get_length(), length_before)
+
+    tt = line.get_table()
+
+    # The collimator remains centred on the original marker.
+    assert np.isclose(tt['s_center', 'coll'], centre_before)
+
+    # The original aperture object and name are reused.
+    assert line.get('coll/aper_start') is aperture
+    assert line.element_names.count('coll/aper_start') == 1
+
+    # Both apertures are installed at the collimator boundaries.
+    idx = line.element_names.index('coll')
+    assert line.element_names[idx - 1] == 'coll/aper_start'
+    assert line.element_names[idx + 1] == 'coll/aper_end'
+
+    assert np.isclose(
+        tt['s', 'coll/aper_start'], tt['s_start', 'coll']
+    )
+    assert np.isclose(
+        tt['s', 'coll/aper_end'], tt['s_end', 'coll']
+    )
+
+    # The new downstream aperture inherits the original geometry.
+    downstream = line.get('coll/aper_end')
+    assert np.isclose(downstream.a, aperture.a)
+    assert np.isclose(downstream.b, aperture.b)

@@ -6,6 +6,7 @@
 import numpy as np
 from warnings import warn
 from numbers import Number
+from collections import Counter
 
 import xtrack as xt
 
@@ -174,14 +175,7 @@ class XcollScatteringAPI(XcollLineAccessor):
 
     @property
     def names(self):
-        # This makes sure the accessor can access the names of the
-        # collimators dynamically
-        tt = self.line.get_table()
-        names = []
-        for cc in element_classes:
-            ttcc = tt.rows.match(element_type=cc.__name__)
-            names += list(ttcc.name)
-        return names
+        return _element_names_of_type(self.line, element_classes)
 
     def enable(self):
         if len(self) == 0:
@@ -233,38 +227,27 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
     @property
     def names(self):
-        # This makes sure the accessor can access the names of the
-        # collimators dynamically
-        tt = self.line.get_table()
-        names = []
-        for cc in collimator_classes:
-            ttcc = tt.rows.match(element_type=cc.__name__)
-            names += list(ttcc.name)
-        return names
+        return _element_names_of_type(self.line, collimator_classes)
 
     @property
     def families(self):
         families = {}
-        try:
-            prop_families = self.family
-        except AttributeError:
-            return families
-        else:
-            for name in self.names:
-                if name in prop_families:
-                    if prop_families[name] not in families:
-                        families[prop_families[name]] = []
-                    families[prop_families[name]].append(name)
-                else:
-                    if 'no family' not in families:
-                        families['no family'] = []
-                    families['no family'].append(name)
-            return families
+        missing = object()
+        has_family = False
+        for name in self.names:
+            family = getattr(self.line.get(name), 'family', missing)
+            if family is missing:
+                family = 'no family'
+            else:
+                has_family = True
+            families.setdefault(family, []).append(name)
+        return families if has_family else {}
 
     def __getitem__(self, name):
         # We can getitem by name or family, so we overwrite the super method
-        if name in self.families:
-            return XcollLineAccessor(line=self.line, names=self.families[name])
+        families = self.families
+        if name in families:
+            return XcollLineAccessor(line=self.line, names=families[name])
         elif name in self.names:
             return self.line[name]
         else:
@@ -312,7 +295,6 @@ class XcollCollimatorAPI(XcollLineAccessor):
             # [upstream, downstream] pair, e.g. for 3 collimators:
             #     apertures = [ap1, [ap2_up, ap2_down], 'ap3_name']
             apertures = [apertures for _ in range(len(names))]
-        # names = np.array(names)
         if len(elements) != len(names):
             raise ValueError("Length of `elements` does not match length of "
                              "`names`.")
@@ -377,67 +359,169 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 raise ValueError(f"Position of {name} too close to end of "
                                  f"line. Please cycle.")
 
+        # Identify collimators that can replace existing elements inplace
+        direct_replacements = set()
+        occurrences = Counter(self.line.element_names)
+        drift_like_classes = (xt.Drift, xt.DriftExact, xt.Device)
+        for name, el, s1 in zip(names, elements, s_start):
+            if occurrences[name] != 1:
+                continue
+            old = self.line.get(name)
+            if not isinstance(old, drift_like_classes):
+                continue
+            idx = tt.rows.get_index(name)
+            old_length = tt.s_end[idx] - tt.s_start[idx]
+            if not np.isclose(old_length, el.length, atol=s_tol, rtol=0):
+                continue
+            if not np.isclose(tt.s_start[idx], s1, atol=s_tol, rtol=0):
+                continue
+            direct_replacements.add(name)
+
         # Look for apertures
-        aper_upstream   = []
+        aper_upstream = []
         aper_downstream = []
+        if need_apertures:
+            aperture_table = (
+                tt.rows.match('Limit.*', 'element_type')
+                if any(aper is None for aper in apertures)
+                else None
+            )
         for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
-            if not need_apertures:
-                aper_upstream.append(None)
-                aper_downstream.append(None)
+            if need_apertures:
+                aper1, aper2 = self.find_aperture(
+                    name, s_start=s1, s_end=s2,
+                    aperture=aper, aperture_table=aperture_table,
+                    s_tol=s_tol
+                )
             else:
-                aper1, aper2 = self.find_aperture(name, s_start=s1, s_end=s2,
-                                                  aperture=aper, table=tt,
-                                                  s_tol=s_tol)
-                aper_upstream.append(aper1)
-                aper_downstream.append(aper2)
+                aper1 = aper2 = None
+            aper_upstream.append(aper1)
+            aper_downstream.append(aper2)
 
         # Remove elements at location of collimator (by changing them
         # into markers) and add pointers to line and names to elements
         to_remove = []
         for s1, s2, name, el in zip(s_start, s_end, names, elements):
-            self.prepare_space(name, s_start=s1, s_end=s2, table=tt,
-                               s_tol=s_tol, to_remove=to_remove)
+            if name not in direct_replacements:
+                self.prepare_space(
+                    name, s_start=s1, s_end=s2, table=tt, s_tol=s_tol,
+                    to_remove=to_remove
+                )
             el._line = self.line
             el._name = name
 
         # Install
+        env = self.line.env
         insertions = []
         to_delete = []
-        env = self.line.env
         for nn, ee, ss in zip(names, elements, s_start):
+            if nn in direct_replacements:
+                # Only the fallback elements require normal insertion
+                continue
             if nn in env.elements:
-                # remove placeholders with the same name
                 to_remove.append(nn)
-                to_delete.append(nn) # only delete original elements/markers
+                to_delete.append(nn)
             insertions.append(env.place(nn, at=ss, anchor='start'))
 
-        if len(to_remove) > 0:
-            # replaces it with a drift if needed
-            self.line.remove(to_remove, s_tol=s_tol)
+        # We are modifying the line, even if no insert/remove is needed
+        self.line._method_incompatible_with_compose()
+        self.line.discard_tracker()
 
-        # remove old elements/markers from environment (after placing new
-        # ones to avoid issues with names)
+        if to_remove:
+            # Replaces it with a drift if needed
+            self.line.remove(list(dict.fromkeys(to_remove)), s_tol=s_tol)
+
+        # Remove the old placeholders for fallback installations
         for nn in to_delete:
             del env.elements[nn]
 
-        # Add new elements to environment
+        # Register fallback collimators
         for nn, ee in zip(names, elements):
-            env.elements[nn] = ee
+            if nn not in direct_replacements:
+                env.elements[nn] = ee
 
-        # Apertures
+        # Insert only collimators requiring geometric changes
+        if insertions:
+            self.line.insert(insertions, s_tol=s_tol)
+
+        # Directly replace existing drift-like placeholders
+        for nn, ee in zip(names, elements):
+            if nn in direct_replacements:
+                env._element_dict[nn] = ee
+
+        # Register an aperture, reusing its name where possible.
+        element_names = self.line.element_names
+        used_names = set(element_names)
+        def register_aperture(name, aperture):
+            if name in env.elements:
+                if env.get(name) is aperture and name not in used_names:
+                    # The aperture was removed from the line, but is still
+                    # registered in the environment. Reuse it directly.
+                    used_names.add(name)
+                    return name
+                # Genuine name collision: find an unused name.
+                base = name
+                idx = 1
+                while name in env or name in used_names:
+                    name = f'{base}_{idx}'
+                    idx += 1
+            env.elements[name] = aperture
+            used_names.add(name)
+            return name
+
+        # Add apertures only where not already present
         if need_apertures:
-            for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream,
-                                              aper_downstream):
-                nn1 = f'{name}_aper_upstream'
-                nn2 = f'{name}_aper_downstream'
-                env.elements[nn1] = aper1
-                env.elements[nn2] = aper2
-                insertions.append(env.place(nn1, at=name+'@start'))
-                insertions.append(env.place(nn2, at=name+'@end'))
-        self.line.insert(insertions, s_tol=s_tol)
+            name_set = set(names)
+            name_to_idx = {
+                nn: ii for ii, nn in enumerate(element_names)
+                if nn in name_set
+            }
+            aperture_names = {}
+            for name, spec, aper1, aper2 in zip(
+                names, apertures, aper_upstream, aper_downstream
+            ):
+                # The fallback insertion may have changed the neighbours
+                idx = name_to_idx[name]
+                reuse = spec is None
+                has_upstream = (
+                    reuse
+                    and idx > 0
+                    and xt.line._is_aperture(
+                        self.line.get(element_names[idx - 1]), self.line
+                    )
+                )
+                has_downstream = (
+                    reuse
+                    and idx < len(element_names) - 1
+                    and xt.line._is_aperture(
+                        self.line.get(element_names[idx + 1]), self.line
+                    )
+                )
+                nn1 = None
+                nn2 = None
+                if not has_upstream:
+                    nn1 = register_aperture(f'{name}/aper_start', aper1)
+                if not has_downstream:
+                    nn2 = register_aperture(f'{name}/aper_end', aper2)
+                if nn1 is not None or nn2 is not None:
+                    aperture_names[name] = (nn1, nn2)
+            # Only reconstruct the sequence if new apertures are needed
+            if aperture_names:
+                new_names = []
+                for nn in element_names:
+                    if nn in aperture_names:
+                        upstream, downstream = aperture_names[nn]
+                        if upstream is not None:
+                            new_names.append(upstream)
+                        new_names.append(nn)
+                        if downstream is not None:
+                            new_names.append(downstream)
+                    else:
+                        new_names.append(nn)
+                element_names[:] = new_names
 
-    def find_aperture(self, name, *, s_start, s_end, aperture=None, table=None,
-                     s_tol=1.e-6):
+    def find_aperture(self, name, *, s_start, s_end, aperture=None,
+                      table=None, aperture_table=None, s_tol=1.e-6):
         if aperture is not None:
             if isinstance(aperture, str):
                 try:
@@ -477,64 +561,71 @@ class XcollCollimatorAPI(XcollLineAccessor):
             if not xt.line._is_aperture(aper2, self.line):
                 raise ValueError(f"Not a valid aperture: {aper2}")
             return aper1, aper2
+
         else:
-            if table is None:
-                table = self.line.get_table()
-            # We look for apertures, prioritising the ones closest to the
-            # centre of the collimator, and from there (if absent),
-            # searching towards the upstream and downstream side.
-            s_centre = (s_start + s_end)/2
-            # Upstream aperture
-            tt = table.rows[s_start-s_tol:s_centre+s_tol:'s']
-            tt_aper = tt.rows.match('Limit.*', 'element_type')
-            if len(tt_aper.name) == 0:
-                aper1 = None
-            else:
-                aper_name = tt_aper.name[-1]
+            if aperture_table is None:
+                if table is None:
+                    table = self.line.get_table()
+                aperture_table = table.rows.match('Limit.*', 'element_type')
+            s = aperture_table.s
+            s_centre = (s_start + s_end) / 2
+            # Upstream aperture: last aperture between start and centre
+            i0 = np.searchsorted(s, s_start - s_tol, side='left')
+            i1 = np.searchsorted(s, s_centre + s_tol, side='right')
+            aper1 = None
+            if i0 < i1:
+                idx = i1 - 1
+                aper_name = aperture_table.name[idx]
                 aper1 = self.line.get(aper_name)
                 if aper1.transformations_active:
-                    s_aper = tt.rows[aper_name].s_start[0]
+                    s_aper = aperture_table.s_start[idx]
                     if not np.isclose(s_aper, s_start, atol=s_tol):
                         print(f"Warning: Using aperture {aper_name} upstream "
-                              f"of {name}, but transformations are present. "
-                              f"Proceed with caution.")
-            # Downstream aperture
-            tt = table.rows[s_centre-s_tol:s_end+s_tol:'s']
-            tt_aper = tt.rows.match('Limit.*', 'element_type')
-            if len(tt_aper.name) == 0:
-                aper2 = None
-            else:
-                aper_name = tt_aper.name[0]
+                            f"of {name}, but transformations are present. "
+                            f"Proceed with caution.")
+            # Downstream aperture: first aperture between centre and end
+            i0 = np.searchsorted(s, s_centre - s_tol, side='left')
+            i1 = np.searchsorted(s, s_end + s_tol, side='right')
+            aper2 = None
+            if i0 < i1:
+                idx = i0
+                aper_name = aperture_table.name[idx]
                 aper2 = self.line.get(aper_name)
                 if aper2.transformations_active:
-                    s_aper = tt.rows[aper_name].s_end[0]
+                    s_aper = aperture_table.s_end[idx]
                     if not np.isclose(s_aper, s_end, atol=s_tol):
-                        print(f"Warning: Using aperture {aper_name} downstream"
-                              f" of {name}, but transformations are present. "
-                              f"Proceed with caution.")
+                        print(f"Warning: Using aperture {aper_name} downstream "
+                            f"of {name}, but transformations are present. "
+                            f"Proceed with caution.")
+            # Fallback if only one aperture was found
             if aper1 is None and aper2 is not None:
                 aper1 = aper2
             elif aper2 is None and aper1 is not None:
                 aper2 = aper1
             elif aper1 is None and aper2 is None:
-                raise ValueError(f"No aperture found for {name}! Please "
-                                 f"provide one.")
+                raise ValueError(f"No aperture found for {name}! "
+                                f"Please provide one.")
             return aper1, aper2
 
     def prepare_space(self, name, *, s_start, s_end, table=None,
                       s_tol=1.e-6, to_remove=None):
         if table is None:
             table = self.line.get_table()
-        tt = table.rows[s_start-s_tol:s_end+s_tol:'s']
         if to_remove is None:
             to_remove = []
-        for el_name, el_type in zip(tt.name[:-1], tt.element_type[:-1]):
+        # Find the relevant rows without constructing a new table
+        s = table.s
+        i0 = np.searchsorted(s, s_start - s_tol, side='left')
+        i1 = np.searchsorted(s, s_end + s_tol, side='right')
+        # Preserve the original exclusion of the final selected row
+        i1 = max(i0, i1 - 1)
+        for el_name, el_type in zip(table.name[i0:i1], table.element_type[i0:i1]):
             if (el_type in ('Marker', 'Device', 'ThickSliceDevice')
                 or el_type.startswith('Drift')):
                 continue
             if not el_type.startswith('Limit'):
                 print(f"Warning: Removed active element {el_name} "
-                    + f"at location inside collimator {name}!")
+                    f"at location inside collimator {name}!")
             to_remove.append(el_name)
         return to_remove
 
@@ -567,3 +658,21 @@ class XcollCollimatorAPI(XcollLineAccessor):
             warn("No crystals found in line to align to beam divergence.")
         for el in crystals:
             el.align_to_beam_divergence()
+
+
+def _element_names_of_type(line, classes):
+    # Quick accessor to not pass via line.get_table() which is slow
+    # Preserve the existing grouping by element class
+    groups = {cls.__name__: [] for cls in classes}
+    elements = line.element_dict
+
+    for name in line.element_names:
+        el = elements[name]
+        if isinstance(el, xt.Replica):
+            el = el.resolve(line)
+
+        group = groups.get(type(el).__name__)
+        if group is not None:
+            group.append(name)
+
+    return [name for group in groups.values() for name in group]
