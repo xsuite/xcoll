@@ -66,6 +66,10 @@ public:
                        double yOffsetIn,
                        double jawTiltLeft,
                        double jawTiltRight,
+                       double taperAngle,
+                       double horizontalWidth,
+                       double taperDepth,
+                       double jawHalfHeight,
                        int    side,
                        bool isACrystal);
 
@@ -88,6 +92,12 @@ public:
     void selectCollimator(const std::string& name);
 
     double getReferenceMass() { return refParticleDefinition->Mass() / CLHEP::GeV; }
+
+    // Whether BDSIM's AddLinkCollimatorTipJaw takes the tip taper arguments
+    // (bdsim-collaboration/bdsim#228). Detected from the BDSIM headers when compiling; xcoll
+    // keeps only one of these two lines (see Geant4Interface).
+    static bool supportsTipTaper() { return true; }   // BDSIM with tip_taper
+    static bool supportsTipTaper() { return false; }  // BDSIM without tip_taper
 
     py::dict collimateReturn(size_t num_sent);
 

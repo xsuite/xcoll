@@ -305,7 +305,11 @@ geant4_user_fields_read_only = base_coll_user_fields_read_only
 
 # Geant4CollimatorTip
 geant4_tip_fields = {**geant4_fields,
-    'tip_thickness':         0.05
+    'tip_thickness':         0.05,
+    'taper_angle':           0.15,
+    'jaw_depth':             0.125,
+    'taper_depth':           0.037,
+    'jaw_width':             0.012
 }
 geant4_tip_dict_fields =  [*geant4_dict_fields,
     {'field': 'tip_material', 'val': xc.materials.Manganese, 'expected': {'_tip_material': xc.materials.Manganese}}
@@ -420,6 +424,78 @@ def test_geant4_tip():
                                   tip_thickness=0.02, tip_material=xc.materials.Boron)
     _check_all_elements(elem, geant4_tip_fields, geant4_tip_dict_fields,
                         geant4_tip_user_fields, geant4_tip_user_fields_read_only)
+
+
+@pytest.mark.geant4
+def test_geant4_tip_taper_angle():
+    # Default: no taper
+    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreComposite,
+                                  tip_thickness=0.02, tip_material=xc.materials.Boron)
+    assert elem.taper_angle == 0
+
+    # taper_angle_deg
+    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreComposite,
+                                  tip_thickness=0.02, tip_material=xc.materials.Boron,
+                                  taper_angle_deg=12)
+    assert np.isclose(elem.taper_angle, np.deg2rad(12))
+
+    # taper_angle_rad
+    elem = xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreComposite,
+                                  tip_thickness=0.02, tip_material=xc.materials.Boron,
+                                  taper_angle_rad=0.15)
+    assert np.isclose(elem.taper_angle, 0.15)
+
+    # Setting both should raise
+    with pytest.raises(ValueError):
+        xc.Geant4CollimatorTip(length=1, material=xc.materials.CarbonFibreComposite,
+                               tip_thickness=0.02, tip_material=xc.materials.Boron,
+                               taper_angle_deg=12, taper_angle_rad=0.15)
+
+
+@pytest.mark.geant4
+def test_geant4_tip_jaw_depth():
+    from xcoll.scattering_routines.geant4.engine import Geant4Engine
+    width = Geant4Engine._tip_horizontal_width
+
+    def tip(**kwargs):
+        return xc.Geant4CollimatorTip(material=xc.materials.Copper, tip_material=xc.materials.Tungsten,
+                                      tip_thickness=0.005, **kwargs)
+
+    # Default: BDSIM keeps its 2 m wide box, and the jaws are as long as the element
+    assert tip(length=0.01).jaw_depth == 0
+    assert width(tip(length=0.01), 0.008, -0.008, 0, 0, 0) == 0
+    assert tip(length=0.01).taper_extension == 0
+    assert tip(length=0.01, jaw_depth=0.037).taper_extension == 0
+
+    # SuperKEKB-type jaw: 10 mm flat face, 12 degree taper over the first 37 mm (up to
+    # 358 mm), then 88 mm at that length; horizontalWidth such that each jaw is jaw_depth
+    # deep (one-sided too)
+    elem = tip(length=0.01, jaw_depth=0.125, taper_depth=0.037, taper_angle_deg=12)
+    assert np.isclose(elem.length + 2*elem.taper_extension, 0.35814, atol=1e-5)
+    assert np.isclose(width(elem, 0.008, -0.008, 0, 0, 0), 2*(0.008 + 0.125))
+    assert np.isclose(width(elem, 0.008, -0.1, 1, 0, 0), 2*(0.008 + 0.125))
+    assert np.isclose(width(elem, 0.1, -0.006, 2, 0, 0), 2*(0.006 + 0.125))
+
+    # The taper ends at the shallower of taper_depth and jaw_depth
+    ext = 0.037/np.tan(np.deg2rad(12))
+    assert np.isclose(tip(length=0.01, jaw_depth=0.037, taper_angle_deg=12).taper_extension, ext)
+    assert np.isclose(tip(length=0.01, jaw_depth=0.037, taper_depth=0.1,
+                          taper_angle_deg=12).taper_extension, ext)
+    assert np.isclose(tip(length=0.01, taper_depth=0.037, taper_angle_deg=12).taper_extension, ext)
+    assert width(tip(length=0.01, taper_depth=0.037, taper_angle_deg=12), 0.008, -0.008, 0, 0, 0) == 0
+
+    # Invalid geometries are caught before reaching BDSIM
+    for elem, args in [
+        (tip(length=0.01, taper_angle_deg=12), (0.008, -0.008, 0, 0, 0)),    # taper over the 2 m box
+        (tip(length=0.01, jaw_depth=0.125, taper_depth=-0.01, taper_angle_deg=12),
+         (0.008, -0.008, 0, 0, 0)),                                          # negative taper_depth
+        (tip(length=0.01, jaw_depth=0.125, jaw_width=-0.012), (0.008, -0.008, 0, 0, 0)),  # negative width
+        (tip(length=0.01, jaw_depth=0.004), (0.008, -0.008, 0, 0, 0)),       # jaw thinner than its tip
+        (tip(length=0.01, jaw_depth=0.037, taper_angle_deg=12), (0.008, -0.008, 0, 1e-3, 0)),  # with tilt
+        (tip(length=0.01, jaw_depth=0.037), (-0.001, -0.008, 1, 0, 0)),      # jaw across the axis
+    ]:
+        with pytest.raises(ValueError):
+            width(elem, *args)
 
 
 def _assert_all_close(expected, setval):
