@@ -75,7 +75,7 @@ def test_fluka_input_single(el_type, register_cleanup):
     found = False
     with input_file[0].open('r') as fp:
         for line in fp:
-            if f"RPP {jaw.fedb_tag}   0.0 20.0 -10.0 10.0 -22.8 22.8" in line \
+            if f"RPP {jaw.fedb_tag}   0.0 25.0 -12.5 12.5 -22.8 22.8" in line \
             and el_type == 'collimator':
                 found = True
             if f"RPP {jaw.fedb_tag}   0.0 2.2 -2.75 2.75 -0.24 0.24" in line \

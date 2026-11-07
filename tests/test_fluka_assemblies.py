@@ -336,3 +336,29 @@ def test_assembly_with_files():
     assert new_assm2 not in xc.FlukaPrototype._registry
     assert str(new_assm1) == "FlukaAssembly 'ASSM1': tag ASSM1 in test series <defunct>"
     assert str(new_assm2) == "FlukaAssembly 'ASSM2': tag ASSM2 in test series <defunct>"
+
+
+@pytest.mark.serial
+@pytest.mark.fluka
+def test_generic_no_zero_size():
+    xc.fluka.interface # Force initialization
+    # A CollimatorDatabase passes a width and height of zero when they are not defined
+    coll = xc.FlukaCollimator(length=0.6, material=xc.materials.MolybdenumGraphite, width=0, height=0)
+    assert coll.assembly.fedb_series == 'generic'
+    assert coll.assembly.width == 0.25
+    assert coll.assembly.height == 0.25
+    crystal = xc.FlukaCrystal(length=0.004, material=xc.materials.Silicon, bending_radius=80, side='+', width=0, height=0)
+    assert crystal.assembly.fedb_series == 'generic'
+    assert crystal.assembly.width == 0.02
+    assert crystal.assembly.height == 0.05
+
+
+@pytest.mark.serial
+@pytest.mark.fluka
+def test_generic_tank_size():
+    from xcoll.scattering_routines.fluka.generic_prototype import _body
+    # The LineBuilder removes a collimator when its opening + jaw width reach the tank
+    body, tank = _body('GEN', 0.6, 0.25, 0.25)
+    assert 'RPP GEN_B   0.0 25.0 -12.5 12.5' in body
+    assert 'RPP GEN_T  -50 50 -50 50' in tank
+    assert 'RPP GEN_I  -50 50 -50 50' in tank
