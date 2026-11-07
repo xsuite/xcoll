@@ -497,10 +497,10 @@ class CollimatorDatabase:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
         line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
-                                 need_apertures=need_apertures, s_tol=s_tol)
+                                       need_apertures=need_apertures, s_tol=s_tol)
 
     def install_everest_collimators(self, line, *, names=None, families=None, apertures=None,
-                                need_apertures=True, s_tol=1e-6, verbose=False):
+                                    need_apertures=True, s_tol=1e-6, verbose=False):
         names = self._get_names_from_line(line, names, families)
         for name in names:
             mat = self[name]['material']
@@ -523,7 +523,7 @@ class CollimatorDatabase:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
         line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
-                                 need_apertures=need_apertures, s_tol=s_tol)
+                                       need_apertures=need_apertures, s_tol=s_tol)
 
     def install_fluka_collimators(self, line, *, names=None, families=None, apertures=None,
                                   need_apertures=True, s_tol=1e-6, verbose=False):
@@ -572,7 +572,7 @@ class CollimatorDatabase:
             else:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
         line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
-                                 need_apertures=need_apertures, s_tol=s_tol)
+                                       need_apertures=need_apertures, s_tol=s_tol)
 
     def install_geant4_collimators(self, line, *, names=None, families=None, apertures=None,
                                    need_apertures=True, s_tol=1e-6, verbose=False):
@@ -614,7 +614,7 @@ class CollimatorDatabase:
                 at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
         line.xcoll.collimators.install(names, elements, at=at, apertures=apertures,
-                                 need_apertures=need_apertures, s_tol=s_tol)
+                                       need_apertures=need_apertures, s_tol=s_tol)
 
 
     # ==================================
