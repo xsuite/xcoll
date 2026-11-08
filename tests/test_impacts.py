@@ -228,13 +228,29 @@ def test_interaction_type(test_context):
     expected = np.array([
         "Enter Jaw L",
         "Multiple Coulomb Scattering",
-        "Enter Jaw R",
+        "Exit Jaw",
         "Enter Jaw R",
         "Exit Jaw",
         "Enter Jaw L",
+        "Multiple Coulomb Scattering",
+        "PN Elastic",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Multiple Coulomb Scattering",
+        "Absorbed",
+        "Enter Jaw L",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Multiple Coulomb Scattering",
+        "Absorbed",
     ])
     assert np.array_equal(
-        impacts.interaction_type[:6],
+        impacts.interaction_type[:22],
         expected,
     )
 
@@ -243,12 +259,95 @@ def test_interaction_type(test_context):
 @for_all_test_contexts
 def test_interactions_per_collimator_turn(test_context):
     impacts = _make_multiturn_interaction_record(test_context)
-    interactions = impacts.interactions_per_collimator("TCP", turn=0)
-    assert interactions.loc[10] == ["JI", "MCS"]
-    assert interactions.loc[11] == ["JI"]
-    interactions = impacts.interactions_per_collimator("TCP", turn=1)
-    assert interactions.loc[10] == ["JI", "JO"]
-    assert interactions.loc[11] == ["JI"]
+    interactions = impacts.interactions_per_collimator("TCP", show_impacts=True)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 3
+    assert interactions.loc[10].loc[0] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11].loc[0] == ['JI', 'JO']
+    assert interactions.loc[10].loc[1] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", show_impacts=True)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 4
+    assert interactions.loc[10].loc[0] == ['JI', 'MCS', 'PN', 'MCS', 'JO']
+    assert interactions.loc[11].loc[0] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11].loc[1] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11].loc[2] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=0, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 2
+    assert interactions.loc[10] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11] == ['JI', 'JO']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=0, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 2
+    assert interactions.loc[10] == ['JI', 'MCS', 'PN', 'MCS', 'JO']
+    assert interactions.loc[11] == ['JI', 'MCS', 'JO']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=1, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[10] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=1, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['JI', 'MCS', 'JO']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=2, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 0
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=2, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCP", show_impacts=False)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 2
+    assert interactions.loc[10].loc[0] == ['MCS']
+    assert interactions.loc[10].loc[1] == ['MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", show_impacts=False)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 4
+    assert interactions.loc[10].loc[0] == ['MCS', 'PN', 'MCS']
+    assert interactions.loc[11].loc[0] == ['MCS']
+    assert interactions.loc[11].loc[1] == ['MCS']
+    assert interactions.loc[11].loc[2] == ['MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=0, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[10] == ['MCS']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=0, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 2
+    assert interactions.loc[10] == ['MCS', 'PN', 'MCS']
+    assert interactions.loc[11] == ['MCS']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=1, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[10] == ['MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=1, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['MCS']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=2, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 0
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=2, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['MCS', 'A']
 
 
 @pytest.mark.xcother
@@ -257,14 +356,14 @@ def test_first_touch_per_turn(test_context):
     impacts = _make_multiturn_interaction_record(test_context)
     df = impacts.first_touch_per_turn()
     got = (
-        df[["at_turn", "pid", "jaw"]]
-        .sort_values(["at_turn", "pid"])
+        df[["turn", "pid", "jaw"]]
+        .sort_values(["turn", "pid"])
         .reset_index(drop=True)
     )
     expected = pd.DataFrame({
-        "at_turn": [0, 0, 1, 1],
-        "pid":     [10, 11, 10, 11],
-        "jaw":     ["L", "R", "R", "L"],
+        "turn": [0, 0, 1, 1, 2],
+        "pid":  [10, 11, 10, 11, 11],
+        "jaw":  ["L", "R", "R", "L", "R"],
     })
     pd.testing.assert_frame_equal(
         got,
@@ -402,36 +501,61 @@ def _expected_lattice_frame(data, coll, x, px, y, py):
 
 
 def _make_multiturn_interaction_record(test_context):
-    coll = xc.TransparentCollimator(
+    coll1 = xc.TransparentCollimator(
         length=1.0,
         jaw=1e-3,
         name="TCP",
         _context=test_context,
     )
+    coll2 = xc.TransparentCollimator(
+        length=1.0,
+        jaw=1e-3,
+        name="TCS",
+        _context=test_context,
+    )
     impacts = xc.InteractionRecord(
-        elements=[coll],
-        names=["TCP"],
-        num_rows=6,
+        elements=[coll1, coll2],
+        names=["TCP", "TCS"],
+        num_rows=22,
         _context=test_context,
     )
     data = {
-        "at_turn": np.array([0, 0, 0, 1, 1, 1]),
-        "at_element": np.array([0, 0, 0, 0, 0, 0]),
-        "shape_id": np.array([1, 1, -1, -1, -1, 1]),
-        "_inter": np.array([
-            xcc.ENTER_JAW_L,
-            xcc.MULTIPLE_COULOMB_SCATTERING,
-            xcc.ENTER_JAW_R,
-            xcc.ENTER_JAW_R,
-            xcc.EXIT_JAW,
-            xcc.ENTER_JAW_L,
+        "at_turn": np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             1, 1, 1, 1, 1, 1, 2, 2, 2]),
+        "at_element": np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+                                0, 0, 0, 1, 1, 1, 1, 1, 1]),
+        "particle_id_before": np.array([10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
+                                 11, 11, 11, 10, 10, 10, 11, 11, 11, 11, 11, 11
         ]),
-        "particle_id_before": np.array([
-            10, 10, 11, 10, 10, 11
+        "shape_id": np.array([1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1,
+                              -1, -1, -1, 1, 1, 1, -1, -1, -1]),
+        "_inter": np.array([
+            xcc.ENTER_JAW_L,   # turn 0 coll 0 pid 10: MCS
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 0 coll 0 pid 11: hit but miss
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_L,   # turn 0 coll 1 pid 10: PN
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.PN_ELASTIC,
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 0 coll 1 pid 11: MCS
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 1 coll 0 pid 10: absorbed
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.ABSORBED,
+            xcc.ENTER_JAW_L,   # turn 1 coll 1 pid 11: MCS (missed coll 0)
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 2 coll 0 pid 11: absorbed
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.ABSORBED
         ]),
     }
-    impacts._index.num_recorded = 6
+    impacts._index.num_recorded = 22
     for field, values in data.items():
-        getattr(impacts, field)[:6] = values
+        getattr(impacts, field)[:22] = values
 
     return impacts

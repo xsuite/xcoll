@@ -10,7 +10,7 @@ from warnings import warn
 import xobjects as xo
 import xtrack as xt
 
-from .interaction_types import interactions_src, interaction_names, shortcuts
+from .interaction_types import interactions_src, interaction_names, interactions_meta
 from ..general import _pkg_root
 from ..headers.particle_states import particle_states_src
 
@@ -19,6 +19,7 @@ interaction_names = {kk: vv.replace('_', ' ').title().\
                             replace(' Mcs',' MCS').replace(' Ch',' CH').\
                             replace(' Vr',' VR')
                      for kk, vv in interaction_names.items()}
+shortcuts = {vv['value']: vv['shortcut'] for vv in interactions_meta.values()}
 
 
 class InteractionRecord(xt.BeamElement):
@@ -417,16 +418,15 @@ class InteractionRecord(xt.BeamElement):
 
 
     # TODO: does not work when multiple children
-    def interactions_per_collimator(self, collimator=0, *, turn=None):
+    def interactions_per_collimator(self, collimator=0, *, turn=None, show_impacts=False):
         self._check_columns_recorded(['particle_id_before'], 'interactions_per_collimator')
         n_rows = self._index.num_recorded
         if isinstance(collimator, str):
             collimator = self._collimator_id(collimator)
         nparr = self._context.nparray_from_context_array
-        mask = (
-            (self._inter[:n_rows] > 0)
-            & (self.at_element[:n_rows] == collimator)
-        )
+        mask = self.at_element[:n_rows] == collimator
+        if not show_impacts:
+            mask &= self._inter[:n_rows] > 0
         if turn is not None:
             mask &= self.at_turn[:n_rows] == turn
         interaction_type = nparr(self._inter[:n_rows][mask])

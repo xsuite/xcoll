@@ -10,25 +10,25 @@ class XcollInteractions(Constants):
     _reverse_  = "unique"      # builds interaction_names
     _c_prefix_ = "XC"
 
-    UNITIALISED                 = constant(0, "NAN  // Do not use")
+    UNITIALISED                 = constant(0,   shortcut="NAN",  type="point", info="Internal; do not use.")
 
-    ENTER_JAW_L                 = constant(-1, "JI   // point (no children)    Set ds > 0 if entering later")
-    ENTER_JAW_R                 = constant(-2, "JI   // point (no children)    Set ds > 0 if entering later")
-    EXIT_JAW                    = constant(-3, "JO   // point (no children)")
-    ENTER_JAW                   = constant(-4, "JI   // point (no children)    Set ds > 0 if entering later    still here for compatibility")
-    ABSORBED                    = constant(1,  "A    // point (no children)    Don't use 0 (is default for unitialised)")
-    MULTIPLE_COULOMB_SCATTERING = constant(13, "MCS  // continuous")
-    PN_ELASTIC                  = constant(14, "PN   // point (no children)")
-    PP_ELASTIC                  = constant(15, "PP   // point (no children)")
-    SINGLE_DIFFRACTIVE          = constant(16, "SD   // point (no children)")
-    COULOMB                     = constant(17, "C    // point (no children)")
-    CHANNELLING                 = constant(100, "CH   // continuous")
-    DECHANNELLING               = constant(101, "DCH  // point (no children)")
-    VOLUME_REFLECTION_TRANS_CH  = constant(102, "VRCH // point (no children)    Transition region around +-xpcrit")
-    VOLUME_REFLECTION           = constant(103, "VR   // point (no children)")
-    VOLUME_REFLECTION_TRANS_MCS = constant(104, "VRAM // point (no children)    Transition region around t_P")
-    MULTIPLE_COULOMB_TRANS_VR   = constant(105, "AMVR // continuous             Transition region around t_P + 2 xpcrit")
-    VOLUME_CAPTURE              = constant(106, "VC   // point (no children)")
+    ENTER_JAW_L                 = constant(-1,  shortcut="JI",   type="point", info="Impact on left jaw. If not on the front, location is given by 'ds'.")
+    ENTER_JAW_R                 = constant(-2,  shortcut="JI",   type="point", info="Impact on right jaw. If not on the front, location is given by 'ds'.")
+    EXIT_JAW                    = constant(-3,  shortcut="JO",   type="point", info="Exit location.")
+    ENTER_JAW                   = constant(-4,  shortcut="JI",   type="point", info="Deprecated. Impact on jaw.")
+    ABSORBED                    = constant(1,   shortcut="A",    type="point", info="Particle died in material.")
+    MULTIPLE_COULOMB_SCATTERING = constant(13,  shortcut="MCS",  type="continuous", info="MCS transport.")
+    PN_ELASTIC                  = constant(14,  shortcut="PN",   type="point", info="Hadronic elastic interaction on a nucleon.")
+    PP_ELASTIC                  = constant(15,  shortcut="PP",   type="point", info="Hadronic elastic interaction on a proton.")
+    SINGLE_DIFFRACTIVE          = constant(16,  shortcut="SD",   type="point", info="Hadronic single diffractive interaction.")
+    COULOMB                     = constant(17,  shortcut="C",    type="point", info="Electromagnetic interaction.")
+    CHANNELLING                 = constant(100, shortcut="CH",   type="continuous", info="Channeling in crystal.")
+    DECHANNELLING               = constant(101, shortcut="DCH",  type="point", info="Dechanneling in crystal.")
+    VOLUME_REFLECTION_TRANS_CH  = constant(102, shortcut="VRCH", type="point", info="Transition region in crystal around +-xpcrit.")
+    VOLUME_REFLECTION           = constant(103, shortcut="VR",   type="point", info="Volume reflection in crystal.")
+    VOLUME_REFLECTION_TRANS_MCS = constant(104, shortcut="VRAM", type="point", info="Transition region in crystal around t_P.")
+    MULTIPLE_COULOMB_TRANS_VR   = constant(105, shortcut="AMVR", type="continuous", info="Transition region in crystal around t_P + 2 xpcrit.")
+    VOLUME_CAPTURE              = constant(106, shortcut="VC",   type="point", info="Volume capture in crystal.")
 
     POINT_INTERACTIONS          = group(ENTER_JAW_L, ENTER_JAW_R, EXIT_JAW, ENTER_JAW, ABSORBED, PN_ELASTIC, PP_ELASTIC,
                                         SINGLE_DIFFRACTIVE, COULOMB, DECHANNELLING, VOLUME_REFLECTION_TRANS_CH,
@@ -39,8 +39,3 @@ class XcollInteractions(Constants):
     CRYSTAL_INTERACTIONS        = group(CHANNELLING, DECHANNELLING, VOLUME_REFLECTION_TRANS_CH, VOLUME_REFLECTION,
                                         VOLUME_REFLECTION_TRANS_MCS, MULTIPLE_COULOMB_TRANS_VR, VOLUME_CAPTURE,
                                         info="All interactions that can happen in a crystal.")
-
-shortcuts = {
-    int(ll[0]): ll[1].split('//')[0].strip()
-    for ll in [(ii['value'], ii['info']) for ii in interactions_meta.values()]
-}
