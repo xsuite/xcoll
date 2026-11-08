@@ -87,6 +87,7 @@ def interface_dirs(tmp_path, monkeypatch):
     os.environ.update(old_environ)
 
 
+@pytest.mark.xcother
 def test_interface_initialisation(interface_dirs):
     interface = DummyInterface()
     assert interface.config_dir == interface_dirs["config"]
@@ -101,6 +102,7 @@ def test_interface_initialisation(interface_dirs):
     assert interface.config_file.exists()
 
 
+@pytest.mark.xcother
 def test_constructor_does_not_save_or_bruteforce(interface_dirs, monkeypatch):
     required = FsPath(interface_dirs["data"] / "required")
     optional = FsPath(interface_dirs["data"] / "optional")
@@ -133,6 +135,7 @@ def test_constructor_does_not_save_or_bruteforce(interface_dirs, monkeypatch):
     assert interface.readonly == readonly
 
 
+@pytest.mark.xcother
 def test_setting_path_validates_and_saves(interface_dirs, monkeypatch):
     interface = DummyInterface()
     path = FsPath(interface_dirs["data"] / "required")
@@ -149,6 +152,7 @@ def test_setting_path_validates_and_saves(interface_dirs, monkeypatch):
     assert config["paths"]["required"] == path.as_posix()
 
 
+@pytest.mark.xcother
 def test_optional_path(interface_dirs):
     interface = DummyInterface()
     path = FsPath(interface_dirs["data"] / "optional")
@@ -161,6 +165,7 @@ def test_optional_path(interface_dirs):
     assert config["optional_paths"]["optional"] == path.as_posix()
 
 
+@pytest.mark.xcother
 def test_read_only_path(interface_dirs):
     interface = DummyInterface()
     path = FsPath(interface_dirs["data"] / "readonly")
@@ -175,6 +180,7 @@ def test_read_only_path(interface_dirs):
     assert config["read_only_paths"]["readonly"] == path.as_posix()
 
 
+@pytest.mark.xcother
 def test_delete_path(interface_dirs):
     interface = DummyInterface()
     path = FsPath(interface_dirs["data"] / "required")
@@ -189,6 +195,7 @@ def test_delete_path(interface_dirs):
     assert config["paths"]["required"] is None
 
 
+@pytest.mark.xcother
 def test_save_load_roundtrip(interface_dirs):
     required = FsPath(interface_dirs["data"] / "required")
     optional = FsPath(interface_dirs["data"] / "optional")
@@ -207,6 +214,7 @@ def test_save_load_roundtrip(interface_dirs):
     assert second.readonly == readonly
 
 
+@pytest.mark.xcother
 def test_initialised_and_ready(interface_dirs):
     interface = DummyInterface()
     assert not interface.initialised
@@ -219,6 +227,7 @@ def test_initialised_and_ready(interface_dirs):
     assert interface.ready
 
 
+@pytest.mark.xcother
 def test_assert_environment_ready(interface_dirs):
     interface = DummyInterface()
     with pytest.raises(RuntimeError, match="not initialised"):
@@ -230,6 +239,7 @@ def test_assert_environment_ready(interface_dirs):
     interface.assert_environment_ready()
 
 
+@pytest.mark.xcother
 def test_assert_environment_not_compiled(interface_dirs):
     interface = DummyUncompiledInterface()
     required = FsPath(interface_dirs["data"] / "required")
@@ -242,6 +252,7 @@ def test_assert_environment_not_compiled(interface_dirs):
         interface.assert_environment_ready()
 
 
+@pytest.mark.xcother
 def test_temp_dir(interface_dirs, tmp_path):
     interface = DummyInterface()
     first = interface.temp_dir
@@ -258,6 +269,7 @@ def test_temp_dir(interface_dirs, tmp_path):
     assert interface._temp_dir is None
 
 
+@pytest.mark.xcother
 def test_preserve_environment(interface_dirs):
     interface = DummyInterface()
     sys_path_object = sys.path
@@ -275,6 +287,7 @@ def test_preserve_environment(interface_dirs):
     assert dict(os.environ) == old_environ
 
 
+@pytest.mark.xcother
 def test_lib_path_is_not_duplicated(interface_dirs):
     lib = interface_dirs["lib"].as_posix()
     before = sys.path.count(lib)
@@ -283,6 +296,7 @@ def test_lib_path_is_not_duplicated(interface_dirs):
     assert sys.path.count(lib) == before + 1
 
 
+@pytest.mark.xcother
 def test_post_super_constructor_assignment_is_shielded(
     interface_dirs,
     monkeypatch,
@@ -315,6 +329,7 @@ def _completed_process(
     )
 
 
+@pytest.mark.xcother
 def test_assert_installed_success_and_cache(interface_dirs, monkeypatch):
     interface = DummyInterface()
     calls = []
@@ -332,6 +347,7 @@ def test_assert_installed_success_and_cache(interface_dirs, monkeypatch):
     assert calls == [["which", "dummy-program"], ["dummy-program", "--version"]]
 
 
+@pytest.mark.xcother
 def test_assert_installed_which_failure(interface_dirs, monkeypatch):
     interface = DummyInterface()
     def fake_run(args, stdout=None, stderr=None):
@@ -341,6 +357,7 @@ def test_assert_installed_which_failure(interface_dirs, monkeypatch):
         interface.assert_installed("missing-program")
 
 
+@pytest.mark.xcother
 def test_assert_installed_which_exception(interface_dirs, monkeypatch):
     interface = DummyInterface()
     def fake_run(*args, **kwargs):
@@ -351,6 +368,7 @@ def test_assert_installed_which_exception(interface_dirs, monkeypatch):
     assert isinstance(exc_info.value.__cause__, OSError)
 
 
+@pytest.mark.xcother
 def test_assert_installed_version_failure(interface_dirs, monkeypatch):
     interface = DummyInterface()
     def fake_run(args, stdout=None, stderr=None):
@@ -362,6 +380,7 @@ def test_assert_installed_version_failure(interface_dirs, monkeypatch):
         interface.assert_installed("dummy-program")
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "method_name,env_var,program",
     [

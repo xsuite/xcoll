@@ -27,6 +27,7 @@ except (ImportError, ModuleNotFoundError):
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.parametrize("engine", all_engine_params)
 @for_all_test_contexts
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])

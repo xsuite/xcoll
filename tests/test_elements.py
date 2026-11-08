@@ -320,6 +320,7 @@ geant4_tip_user_fields_read_only = geant4_user_fields_read_only
 
 # Tests
 # =====
+@pytest.mark.gpu
 @pytest.mark.black
 @for_all_test_contexts
 def test_black_absorber(test_context):
@@ -329,6 +330,7 @@ def test_black_absorber(test_context):
                         absorber_user_fields_read_only)
 
 
+@pytest.mark.gpu
 @pytest.mark.black
 @for_all_test_contexts
 def test_black_crystal(test_context):
@@ -338,6 +340,7 @@ def test_black_crystal(test_context):
                         black_crystal_user_fields, black_crystal_user_fields_read_only)
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 @for_all_test_contexts(excluding="ContextPyopencl")
 def test_everest_block(test_context):
@@ -359,6 +362,7 @@ def test_everest_block(test_context):
     assert elem.rutherford_rng.Newton_iterations == 7
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 @for_all_test_contexts(excluding="ContextPyopencl")
 def test_everest(test_context):
@@ -368,6 +372,7 @@ def test_everest(test_context):
                         everest_user_fields_read_only)
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 @for_all_test_contexts(excluding="ContextPyopencl")
 def test_everest_crystal(test_context):

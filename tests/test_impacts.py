@@ -19,6 +19,7 @@ num_turns = 3
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 @for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize("beam, plane", [
@@ -50,6 +51,7 @@ def test_impacts_from_line(beam, plane, test_context):
     _assert_impacts(impacts, lengths=line.xcoll.collimators.length)
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 @for_all_test_contexts(excluding="ContextPyopencl")
 def test_impacts_single_collimator(test_context):
@@ -74,6 +76,7 @@ def test_impacts_single_collimator(test_context):
     _assert_impacts(impacts, lengths=coll.length)
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 @for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize("R, side", [
@@ -111,6 +114,7 @@ def test_impacts_single_crystal(R, side, test_context):
     _assert_impacts(impacts, expected_types=[enter, 'Exit Jaw'])
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_impacts_to_pandas_default_frame(test_context):
@@ -122,6 +126,7 @@ def test_impacts_to_pandas_default_frame(test_context):
         impacts.to_pandas(frame='wrong')
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_impacts_selected_columns_to_pandas(test_context):
@@ -149,6 +154,7 @@ def test_impacts_selected_columns_to_pandas(test_context):
         impacts.to_pandas(frame='collimator')
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_impacts_selected_columns_tracking(test_context):
@@ -185,6 +191,7 @@ def test_impacts_selected_columns_tracking(test_context):
     assert 's_before' not in df.columns
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_impacts_selected_columns_unknown(test_context):
@@ -195,6 +202,7 @@ def test_impacts_selected_columns_unknown(test_context):
         xc.InteractionRecord(elements=[coll], columns=['not_a_column'])
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_impacts_to_pandas_collimator_frame(test_context):
@@ -209,6 +217,7 @@ def test_impacts_to_pandas_collimator_frame(test_context):
         assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_impacts_to_pandas_lattice_frame(test_context):
@@ -221,6 +230,7 @@ def test_impacts_to_pandas_lattice_frame(test_context):
         assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_interaction_type(test_context):
@@ -255,6 +265,7 @@ def test_interaction_type(test_context):
     )
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_interactions_per_collimator_turn(test_context):
@@ -350,6 +361,7 @@ def test_interactions_per_collimator_turn(test_context):
     assert interactions.loc[11] == ['MCS', 'A']
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_first_touch_per_turn(test_context):

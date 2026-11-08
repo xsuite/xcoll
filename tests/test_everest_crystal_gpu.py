@@ -166,6 +166,7 @@ def _fractions(coord_dict):
     }
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 def test_everest_crystal_cpu_gpu_distribution_match():
     """EverestCrystal must produce the same distribution on CPU and GPU.
@@ -220,6 +221,7 @@ def test_everest_crystal_cpu_gpu_distribution_match():
           f"survival |delta| = {surv_delta:.5f}")
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 def test_crystal_stack_limit_is_raised_on_gpu():
     """The CUDA per-thread stack must be raised above the 1024 B default.
@@ -247,6 +249,7 @@ def test_crystal_stack_limit_is_raised_on_gpu():
     assert again >= effective
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
 def test_crystal_stack_limit_after_move_to_gpu():
     pytest.importorskip("cupy")

@@ -21,6 +21,7 @@ def test_line_api_facade():
     assert line.xcoll._line is line
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize('beam', [1, 2])

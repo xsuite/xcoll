@@ -86,6 +86,7 @@ GPUKERN void SortTest_sort_rows_desc_int64_t(GPUGLMEM int64_t* values,
     }
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("descending", [False, True])
@@ -105,6 +106,7 @@ def test_fixed_sorting_networks_exhaustive(test_context, descending, double):
         np.testing.assert_array_equal(result, expected)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("descending", [False, True])
@@ -139,6 +141,7 @@ def test_sort_random_lengths(test_context, descending, double, length, num_rows)
     np.testing.assert_array_equal(result, expected)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("descending", [False, True])

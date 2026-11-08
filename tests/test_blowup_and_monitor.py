@@ -25,6 +25,7 @@ path = Path(__file__).parent / 'data'
 # TODO: need to test frev and sampling_frequency with coasting beams!
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("cls", [xc.EmittanceMonitor], ids=["EmittanceMonitor"])
@@ -162,6 +163,7 @@ def test_blowup_install(beam, plane, aper):
                       use_individual_kicks=True)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @retry()
 @for_all_test_contexts
@@ -226,6 +228,7 @@ def test_blowup(beam, plane, test_context):
             assert all([abs(nn-nemitt_x)/nemitt_x < 1.e-1 for nn in mon.nemitt_x])
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_monitor_reset(test_context):

@@ -28,6 +28,7 @@ tilt_ids = ['no_tilt', 'positive_tilt', 'pos_neg_tilt']
 # particles with positive kick and slightly inside the jaw (up to around 1e-9) that survive but should
 # have hit, and similarily for the other jaw with negative kicks. Though most particles behave very well,
 # also in these regions.
+@pytest.mark.gpu
 @pytest.mark.parametrize("engine", all_engine_params)
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('angle', angles)

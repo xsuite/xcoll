@@ -174,12 +174,15 @@ def _make_context(spec):
     raise ValueError(spec)
 
 
+@pytest.mark.xcother
 def test_compile_factory_coverage():
     """Fail when a new element is added without adding it here."""
     concrete = set(element_classes) - NON_INSTANTIABLE_CLASSES
     assert set(FACTORIES) == concrete
 
 
+@pytest.mark.gpu
+@pytest.mark.xcother
 @pytest.mark.context_dependent
 @pytest.mark.parametrize(
     "prebuilt_kernel",

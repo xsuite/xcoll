@@ -19,6 +19,7 @@ path = Path(__file__).parent / 'data'
 
 # TODO:  we are not checking the angles of the pencil!
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 @pytest.mark.parametrize("beam, npart, impact_parameter, pencil_spread, "

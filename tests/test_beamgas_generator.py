@@ -96,6 +96,7 @@ def _place_markers(line, positions):
     return [f'bg.{ii}' for ii in range(len(positions))]
 
 
+@pytest.mark.xcother
 def test_facade_returns_a_generator_bound_to_the_line():
     line = _ring()
     bg = line.xcoll.beamgas
@@ -103,11 +104,13 @@ def test_facade_returns_a_generator_bound_to_the_line():
     assert bg.line is line
 
 
+@pytest.mark.xcother
 def test_generator_needs_a_line():
     with pytest.raises(TypeError, match='xtrack.Line'):
         xc.BeamGasGenerator(None)
 
 
+@pytest.mark.xcother
 def test_marker_names_are_in_line_order():
     line = _ring()
     assert line.xcoll.beamgas.marker_names == []
@@ -117,6 +120,7 @@ def test_marker_names_are_in_line_order():
     assert line.xcoll.beamgas.marker_names == [names[1], names[2], names[0]]
 
 
+@pytest.mark.xcother
 def test_repeated_marker_is_refused():
     line = _ring()
     env = line.env
@@ -141,6 +145,7 @@ POSITIONS = {
 }
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize('position', POSITIONS.values(), ids=POSITIONS.keys())
 def test_install_markers_places_like_env_place(position):
     manual = _ring()
@@ -163,6 +168,7 @@ def test_install_markers_places_like_env_place(position):
     np.testing.assert_array_equal(tab.element_type, tab_manual.element_type)
 
 
+@pytest.mark.xcother
 def test_install_markers_closes_the_ring():
     line = _ring()
     bg = line.xcoll.beamgas
@@ -177,12 +183,14 @@ def test_install_markers_closes_the_ring():
     assert bg.marker_names[-1] == 'beamgas.2'
 
 
+@pytest.mark.xcother
 def test_install_markers_with_a_marker_at_the_end():
     line = _ring()
     names = line.xcoll.beamgas.install_markers(at=[1.0, line.get_length()])
     assert names == ['beamgas.0', 'beamgas.1']
 
 
+@pytest.mark.xcother
 def test_install_markers_without_closing_the_ring():
     line = _ring()
     names = line.xcoll.beamgas.install_markers(
@@ -191,6 +199,7 @@ def test_install_markers_without_closing_the_ring():
     assert line.get_table()['s', 'beamgas.1'] < line.get_length()
 
 
+@pytest.mark.xcother
 def test_install_markers_names():
     line = _ring()
     bg = line.xcoll.beamgas
@@ -208,6 +217,7 @@ def test_install_markers_names():
         bg.install_markers(at=[5.0, 6.0], names=['a', 'a'])
 
 
+@pytest.mark.xcother
 def test_install_markers_checks_its_arguments():
     line = _ring()
     bg = line.xcoll.beamgas
@@ -220,6 +230,7 @@ def test_install_markers_checks_its_arguments():
     assert bg.marker_names == []
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize('process', ['brems', 'coulomb'])
 def test_configure_stores_the_configuration_on_the_markers(ring, process):
     _, tw = ring
@@ -277,6 +288,7 @@ def test_configure_stores_the_configuration_on_the_markers(ring, process):
         s_before = s
 
 
+@pytest.mark.xcother
 def test_configure_does_not_modify_the_gas_density(ring):
     line = _ring_with_markers()
     gas = _gas(line)
@@ -285,6 +297,7 @@ def test_configure_does_not_modify_the_gas_density(ring):
     np.testing.assert_array_equal(gas.H, h_before)
 
 
+@pytest.mark.xcother
 def test_configure_stores_a_drawn_seed(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1], seed=None)
@@ -298,6 +311,7 @@ def test_configure_stores_a_drawn_seed(ring):
         _configure(line, twiss=ring[1], seed=1.5)
 
 
+@pytest.mark.xcother
 def test_configure_a_subset_of_the_markers(ring):
     line, tw = _ring_with_markers(), ring[1]
     _configure(line, twiss=tw)
@@ -320,6 +334,7 @@ def test_configure_a_subset_of_the_markers(ring):
             factor * rates[nn], rel=1e-12)
 
 
+@pytest.mark.xcother
 def test_configure_computes_the_twiss(ring):
     line, tw = ring
     _configure(line)
@@ -332,6 +347,7 @@ def test_configure_computes_the_twiss(ring):
             np.testing.assert_array_equal(line[nn].to_dict()[kk], vv)
 
 
+@pytest.mark.xcother
 def test_configure_requires_the_last_marker_at_the_end_of_the_line():
     line = _ring()
     line.xcoll.beamgas.install_markers(at=[1.0, 5.0], close_ring=False)
@@ -339,6 +355,7 @@ def test_configure_requires_the_last_marker_at_the_end_of_the_line():
         _configure(line)
 
 
+@pytest.mark.xcother
 def test_configure_checks_its_arguments(ring):
     line = ring[0]
     with pytest.raises(ValueError, match='`sigma_z` is required'):
@@ -380,6 +397,7 @@ def _assert_same_particles(part, other):
             err_msg=f'{nn} differs')
 
 
+@pytest.mark.xcother
 def test_generate_at_one_or_several_markers(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1])
@@ -395,6 +413,7 @@ def test_generate_at_one_or_several_markers(ring):
     assert line[names[1]].scatter_log is not None
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize('process', ['brems', 'coulomb'])
 def test_generated_particles(ring, process):
     line = _ring_with_markers()
@@ -429,6 +448,7 @@ def test_generated_particles(ring, process):
             assert np.all(log.photon_energy >= 1e6)
 
 
+@pytest.mark.xcother
 def test_generation_does_not_depend_on_the_other_markers(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1])
@@ -442,6 +462,7 @@ def test_generation_does_not_depend_on_the_other_markers(ring):
         _assert_same_particles(part, single_job[nn])
 
 
+@pytest.mark.xcother
 def test_replicas(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1])
@@ -464,6 +485,7 @@ def test_replicas(ring):
     assert total == pytest.approx(line[nn].interaction_rate, rel=1e-12)
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize('process', ['brems', 'coulomb'])
 def test_generation_from_a_reloaded_line(ring, tmp_path, process):
     line = _ring_with_markers()
@@ -481,6 +503,7 @@ def test_generation_from_a_reloaded_line(ring, tmp_path, process):
             _assert_same_particles(reloaded[nn], part)
 
 
+@pytest.mark.xcother
 def test_generate_checks_its_arguments(ring):
     line = _ring_with_markers()
     bg = line.xcoll.beamgas
@@ -530,6 +553,7 @@ def _lost_contributions(part):
     return part.weight[primary] * lost[primary]
 
 
+@pytest.mark.xcother
 def test_analyse_without_particles(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1], process='coulomb',
@@ -555,6 +579,7 @@ def test_analyse_without_particles(ring):
     assert bg.analyse().rate_above_theta_max is None
 
 
+@pytest.mark.xcother
 def test_analyse_merged_particles_and_samples_by_marker(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1])
@@ -603,6 +628,7 @@ def test_analyse_merged_particles_and_samples_by_marker(ring):
         np.sqrt(variance), rel=1e-9)
 
 
+@pytest.mark.xcother
 def test_analyse_replicas(ring):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1])
@@ -631,6 +657,7 @@ def test_analyse_replicas(ring):
                                                        rel=1e-9)
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize('process', ['brems', 'coulomb'])
 def test_analyse_with_the_records_of_the_interactions(ring, process):
     line = _ring_with_markers()
@@ -671,6 +698,7 @@ def test_analyse_with_the_records_of_the_interactions(ring, process):
         assert result.rate_above_theta_max is None
 
 
+@pytest.mark.xcother
 def test_analyse_checks_its_arguments(ring):
     line = _ring_with_markers()
     bg = line.xcoll.beamgas
@@ -698,6 +726,7 @@ def test_analyse_checks_its_arguments(ring):
         bg.analyse({nn: part}, logs={nn: other_log})
 
 
+@pytest.mark.xcother
 def test_run_tracks_each_sample_from_its_marker(ring, monkeypatch):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1])
@@ -740,6 +769,7 @@ def test_run_tracks_each_sample_from_its_marker(ring, monkeypatch):
     assert np.all(result.lost_particles.state <= 0)
 
 
+@pytest.mark.xcother
 def test_run_tracks_the_particles(ring):
     line, tw = ring
     # No apertures in this ring, and tiny angles: nothing is lost
@@ -754,6 +784,7 @@ def test_run_tracks_the_particles(ring):
     assert np.all(particles.at_turn[particles.state > 0] == 3)
 
 
+@pytest.mark.xcother
 def test_run_checks_its_arguments(ring):
     with pytest.raises(ValueError, match='n_turns'):
         ring[0].xcoll.beamgas.run(n_turns=0)
@@ -776,6 +807,7 @@ def _assert_same_tracked_particles(part, other):
             err_msg=f'{nn} differs')
 
 
+@pytest.mark.xcother
 def test_jobs_from_a_saved_line_merge_like_a_single_job(ring, tmp_path):
     """
     Independent jobs, each loading the saved line, generating one marker and

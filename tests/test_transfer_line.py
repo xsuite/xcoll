@@ -19,6 +19,7 @@ from xcoll.compare import deep_equal
 num_part = int(1e6)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts(excluding="ContextPyopencl")
 def test_transfer_line(test_context):

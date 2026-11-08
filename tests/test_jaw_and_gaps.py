@@ -15,6 +15,7 @@ from xobjects.test_helpers import for_all_test_contexts
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])

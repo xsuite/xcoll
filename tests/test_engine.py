@@ -71,12 +71,14 @@ class DummyEngine(BaseEngine):
         self.restored.append(el)
 
 
+@pytest.mark.xcother
 def make_engine():
     engine = DummyEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
     return engine
 
 
+@pytest.mark.xcother
 def test_engine_exposes_physics_settings():
     engine = make_engine()
     assert engine.return_protons is True
@@ -91,6 +93,7 @@ def test_engine_exposes_physics_settings():
     assert engine.return_pions is False
 
 
+@pytest.mark.xcother
 def test_engine_temporary_physics_settings():
     engine = make_engine()
     element = DummyElement()
@@ -106,6 +109,7 @@ def test_engine_temporary_physics_settings():
     assert engine.return_ions is False
 
 
+@pytest.mark.xcother
 def test_engine_persistent_physics_settings():
     engine = make_engine()
     element = DummyElement()
@@ -120,6 +124,7 @@ def test_engine_persistent_physics_settings():
     assert engine.return_protons is False
 
 
+@pytest.mark.xcother
 def test_engine_dynamic_defaults_follow_reference():
     engine = make_engine()
     assert engine.return_protons is True
@@ -129,6 +134,7 @@ def test_engine_dynamic_defaults_follow_reference():
     assert engine.return_pions is True
 
 
+@pytest.mark.xcother
 def test_engine_explicit_setting_survives_reference_change():
     engine = make_engine()
     engine.return_pions = False
@@ -136,6 +142,7 @@ def test_engine_explicit_setting_survives_reference_change():
     assert engine.return_pions is False
 
 
+@pytest.mark.xcother
 def test_engine_pdg_id_api():
     engine = make_engine()
     engine.return_none = True
@@ -148,6 +155,7 @@ def test_engine_pdg_id_api():
     assert not engine.pdg_id_is_returned(411)
 
 
+@pytest.mark.xcother
 def test_temporary_settings_preserve_dynamic_defaults():
     engine = make_engine()
     element = DummyElement()
@@ -158,6 +166,7 @@ def test_temporary_settings_preserve_dynamic_defaults():
     assert engine.return_protons is True
 
 
+@pytest.mark.xcother
 def test_engine_defaults():
     engine = DummyEngine()
     assert engine.name == "dummy"
@@ -170,6 +179,7 @@ def test_engine_defaults():
     assert engine.is_running() is False
 
 
+@pytest.mark.xcother
 def test_particle_ref():
     engine = DummyEngine()
     ref = xt.Particles("proton", p0c=7e12)
@@ -181,6 +191,7 @@ def test_particle_ref():
     assert engine.particle_ref is None
 
 
+@pytest.mark.xcother
 def test_temporary_particle_ref_is_updated_and_restored():
     engine = make_engine()
     original_engine_ref = engine.particle_ref.copy()
@@ -204,6 +215,7 @@ def test_temporary_particle_ref_is_updated_and_restored():
     assert np.isclose(temporary.mass0, temporary_before.mass0)
 
 
+@pytest.mark.xcother
 def test_particle_ref_validation():
     engine = DummyEngine()
     with pytest.raises(ValueError):
@@ -217,6 +229,7 @@ def test_particle_ref_validation():
         engine.particle_ref = xt.Particles(p0c=7e12)
 
 
+@pytest.mark.xcother
 def test_seed():
     engine = DummyEngine()
     assert engine.seed is None
@@ -232,12 +245,14 @@ class DummyInt32Engine(DummyEngine):
     _int32 = True
 
 
+@pytest.mark.xcother
 def test_seed_int32_casting():
     engine = DummyInt32Engine()
     engine.seed = 123
     assert engine.seed == 123
 
 
+@pytest.mark.xcother
 def test_start_with_single_element():
     engine = make_engine()
     element = DummyElement(name="coll")
@@ -247,6 +262,7 @@ def test_start_with_single_element():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_element_gets_generated_name():
     engine = make_engine()
     element = DummyElement(name=None)
@@ -256,6 +272,7 @@ def test_element_gets_generated_name():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_explicit_name():
     engine = make_engine()
     element = DummyElement(name="old")
@@ -265,6 +282,7 @@ def test_explicit_name():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_names_length_mismatch():
     engine = make_engine()
     with pytest.raises(ValueError, match="Length of `elements` and `names`"):
@@ -274,6 +292,7 @@ def test_names_length_mismatch():
         )
 
 
+@pytest.mark.xcother
 def test_duplicate_names():
     engine = make_engine()
     with pytest.raises(ValueError, match="Duplicate names"):
@@ -285,12 +304,14 @@ def test_duplicate_names():
         )
 
 
+@pytest.mark.xcother
 def test_wrong_element_type():
     engine = make_engine()
     with pytest.raises(ValueError, match="is not a DummyElement"):
         engine.start(elements=object())
 
 
+@pytest.mark.xcother
 def test_inactive_elements_are_ignored_and_restored():
     engine = make_engine()
     active = DummyElement(name="active")
@@ -302,6 +323,7 @@ def test_inactive_elements_are_ignored_and_restored():
     assert inactive in engine.restored
     assert inactive.active is False
 
+@pytest.mark.xcother
 def test_element_without_jaw_is_ignored():
     engine = make_engine()
     good = DummyElement(name="good")
@@ -322,6 +344,7 @@ class DummyLineEngine(DummyEngine):
     _element_classes = (DummyBeamElement,)
 
 
+@pytest.mark.xcother
 def test_start_from_line():
     engine = DummyLineEngine()
     e1 = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
@@ -333,6 +356,7 @@ def test_start_from_line():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_start_from_line_selected_names():
     engine = DummyLineEngine()
     e1 = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
@@ -344,6 +368,7 @@ def test_start_from_line_selected_names():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_line_and_elements_are_mutually_exclusive():
     engine = DummyLineEngine()
     e1 = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
@@ -354,6 +379,7 @@ def test_line_and_elements_are_mutually_exclusive():
         engine.start(line=line, elements=e1)
 
 
+@pytest.mark.xcother
 def test_particle_ref_taken_from_line():
     engine = DummyLineEngine()
     e1 = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
@@ -367,6 +393,7 @@ def test_particle_ref_taken_from_line():
     assert engine.particle_ref is None
 
 
+@pytest.mark.xcother
 def test_existing_engine_particle_ref_overrides_line_temporarily():
     engine = DummyLineEngine()
     engine.particle_ref = xt.Particles("proton", p0c=6e12)
@@ -382,6 +409,7 @@ def test_existing_engine_particle_ref_overrides_line_temporarily():
     assert line.particle_ref.p0c[0] == 7e12
 
 
+@pytest.mark.xcother
 def test_temporary_particle_ref():
     engine = make_engine()
     original = engine.particle_ref.copy()
@@ -392,6 +420,7 @@ def test_temporary_particle_ref():
     assert engine.particle_ref.p0c[0] == original.p0c[0]
 
 
+@pytest.mark.xcother
 def test_temporary_verbose():
     engine = make_engine()
     element = DummyElement("coll")
@@ -402,6 +431,7 @@ def test_temporary_verbose():
     assert engine.verbose is False
 
 
+@pytest.mark.xcother
 def test_temporary_seed_is_restored():
     engine = make_engine()
     engine.seed = 123
@@ -411,6 +441,7 @@ def test_temporary_seed_is_restored():
     assert engine.seed == 123
 
 
+@pytest.mark.xcother
 def test_seed_generated_if_missing():
     engine = make_engine()
     assert engine.seed is None
@@ -420,6 +451,7 @@ def test_seed_generated_if_missing():
     assert engine.seed is None
 
 
+@pytest.mark.xcother
 def test_start_and_stop():
     engine = make_engine()
     element = DummyElement("coll")
@@ -433,6 +465,7 @@ def test_start_and_stop():
     assert engine.element_dict == {}
 
 
+@pytest.mark.xcother
 def test_start_when_already_running_is_noop():
     engine = make_engine()
     element = DummyElement("coll")
@@ -443,6 +476,7 @@ def test_start_when_already_running_is_noop():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_backend_specific_kwargs_are_forwarded():
     engine = make_engine()
     engine.start(elements=DummyElement("coll"), custom_backend_option=123)
@@ -454,6 +488,7 @@ class DummyFolderEngine(DummyEngine):
     _uses_run_folder = True
 
 
+@pytest.mark.xcother
 def test_cwd_created_and_reset(tmp_path):
     engine = DummyFolderEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -466,6 +501,7 @@ def test_cwd_created_and_reset(tmp_path):
     assert not requested.exists()
 
 
+@pytest.mark.xcother
 def test_existing_cwd_gets_unique_suffix(tmp_path):
     requested = tmp_path / "run"
     requested.mkdir()
@@ -509,6 +545,7 @@ class DummyInputEngine(DummyEngine):
         return [input_file]
 
 
+@pytest.mark.xcother
 def test_start_generates_input_file(tmp_path):
     engine = DummyInputEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -523,6 +560,7 @@ def test_start_generates_input_file(tmp_path):
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_start_with_existing_input_file(tmp_path):
     source = tmp_path / "input.in"
     source.write_text("custom")
@@ -538,6 +576,7 @@ def test_start_with_existing_input_file(tmp_path):
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_missing_input_file():
     engine = DummyInputEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -548,6 +587,7 @@ def test_missing_input_file():
         )
 
 
+@pytest.mark.xcother
 def test_generate_input_file_does_not_start_engine(tmp_path):
     engine = DummyInputEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -561,6 +601,7 @@ def test_generate_input_file_does_not_start_engine(tmp_path):
     assert engine.element_dict == {}
 
 
+@pytest.mark.xcother
 def test_ready_to_track():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -575,6 +616,7 @@ def test_ready_to_track():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -595,6 +637,7 @@ def test_ready_to_track_skip_element(kwargs):
     assert not engine.assert_ready_to_track_or_skip(coll, particles)
 
 
+@pytest.mark.xcother
 def test_ready_to_track_skips_empty_particles():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -609,6 +652,7 @@ def test_ready_to_track_skips_empty_particles():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_ready_to_track_requires_running_engine():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -622,6 +666,7 @@ def test_ready_to_track_requires_running_engine():
         engine.assert_ready_to_track_or_skip(coll, particles)
 
 
+@pytest.mark.xcother
 def test_ready_to_track_requires_secondary_capacity():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -637,6 +682,7 @@ def test_ready_to_track_requires_secondary_capacity():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_ready_to_track_requires_pdg_ids():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -653,6 +699,7 @@ def test_ready_to_track_requires_pdg_ids():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_ready_to_track_rejects_mass_mismatch():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -670,6 +717,7 @@ def test_ready_to_track_rejects_mass_mismatch():
     assert not engine.is_running()
 
 
+@pytest.mark.xcother
 def test_ready_to_track_rejects_charge_mismatch():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -687,6 +735,7 @@ def test_ready_to_track_rejects_charge_mismatch():
     assert not engine.is_running()
 
 
+@pytest.mark.xcother
 def test_ready_to_track_resynchronises_known_mass():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -711,6 +760,7 @@ def test_ready_to_track_resynchronises_known_mass():
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_engine_cleaning(tmp_path):
     engine = DummyInputEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -770,6 +820,7 @@ class DummyMultiInputEngine(DummyInputEngine):
         return list(input_file)
 
 
+@pytest.mark.xcother
 def test_start_with_multiple_input_files(tmp_path):
     first = tmp_path / "first.in"
     second = tmp_path / "second.in"
@@ -798,6 +849,7 @@ def test_start_with_multiple_input_files(tmp_path):
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_start_multi_input_accepts_single_path(tmp_path):
     source = tmp_path / "input.in"
     source.write_text("single")
@@ -819,6 +871,7 @@ def test_start_multi_input_accepts_single_path(tmp_path):
     engine.stop(clean=True)
 
 
+@pytest.mark.xcother
 def test_generate_multiple_input_files(tmp_path):
     engine = DummyMultiInputEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -849,6 +902,7 @@ class DummyResetEngine(DummyEngine):
         self.backend_setting = 0
 
 
+@pytest.mark.xcother
 def test_engine_reset():
     engine = DummyResetEngine()
 
@@ -877,6 +931,7 @@ def test_engine_reset():
     assert engine._element_index == 17
 
 
+@pytest.mark.xcother
 def test_ready_to_track_requires_compiled_interface():
     engine = make_engine()
     coll = DummyElement("coll")
@@ -925,6 +980,7 @@ class FaultInjectionInputEngine(DummyInputEngine):
         raise RuntimeError("Injected failure in _generate_input_file")
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize("fail_at", ["pre_input", "start"])
 def test_failed_start_restores_temporary_state(fail_at):
     engine = FaultInjectionEngine(fail_at)
@@ -978,6 +1034,7 @@ def test_failed_start_restores_temporary_state(fail_at):
     assert engine.return_ions is False
 
 
+@pytest.mark.xcother
 def test_failed_generate_input_file_restores_state(tmp_path):
     engine = FaultInjectionInputEngine()
     engine.particle_ref = xt.Particles("proton", p0c=7e12)
@@ -1003,6 +1060,7 @@ def test_failed_generate_input_file_restores_state(tmp_path):
     assert not engine.is_running()
 
 
+@pytest.mark.xcother
 def test_line_particle_ref_is_updated_and_restored():
     engine = DummyLineEngine()
     element = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
@@ -1028,6 +1086,7 @@ class FailingLineEngine(DummyLineEngine):
         )
 
 
+@pytest.mark.xcother
 def test_line_particle_ref_restored_after_failed_start():
     engine = FailingLineEngine()
     element = DummyBeamElement(jaw=1e-3, active=True, _tracking=True)
@@ -1044,6 +1103,7 @@ def test_line_particle_ref_restored_after_failed_start():
     assert np.isclose(original_ref.p0c[0], snapshot.p0c[0])
 
 
+@pytest.mark.xcother
 def test_duplicate_names_checked_before_deactivation():
     engine = make_engine()
     active = DummyElement(name="same", active=True)

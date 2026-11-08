@@ -34,6 +34,7 @@ def restore_materials_database():
         mapping.update(snapshot)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_elemental_material_creation(test_context):
@@ -366,6 +367,7 @@ def test_elemental_material_creation(test_context):
     assert mat._excitation_energy_set_manually is False
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_compound_material_creation(test_context):
@@ -586,6 +588,7 @@ def test_compound_material_creation(test_context):
     assert mat._excitation_energy_set_manually is False
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_mixture_material_creation(test_context):
@@ -677,6 +680,7 @@ def test_mixture_material_creation(test_context):
     }, debug=True)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_different_fractions(test_context):
@@ -717,6 +721,7 @@ def test_different_fractions(test_context):
     assert xnp.allclose(StrongBooze.molar_fractions, [0.16571654, 0.66666667, 0.1676168 ])
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_crystal_material_creation(test_context):
@@ -724,6 +729,7 @@ def test_crystal_material_creation(test_context):
     pass
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_adapt(test_context):
@@ -754,6 +760,7 @@ def test_adapt(test_context):
         adapted.adapt(inplace=True, A=13.0)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_db(test_context):

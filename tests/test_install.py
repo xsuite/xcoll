@@ -15,6 +15,7 @@ from xobjects.test_helpers import for_all_test_contexts
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize('length', [0., 0.2, 0.6, 1.2])
@@ -115,6 +116,7 @@ def test_install_from_colldb_at_s_center(method):
         assert line[f'{name}/aper_end'].b == pytest.approx(0.03)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize('mode', [None, 'thin', 'thick'])

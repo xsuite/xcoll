@@ -39,6 +39,7 @@ def geometry(test_context):
 # for GPU contexts, where all kernel arguments must belong to the exact same
 # context instance as the cached test element.
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_jaw(geometry, test_context):
@@ -53,6 +54,7 @@ def test_jaw(geometry, test_context):
         context, name='expected_s_jaw', run=run, num_polys=4)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_jaw_after_s(geometry, test_context):
@@ -68,6 +70,7 @@ def test_jaw_after_s(geometry, test_context):
         context, name='expected_s_jaw_after_s', run=run, num_polys=4)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_jaw_with_vlimit(geometry, test_context):
@@ -84,6 +87,7 @@ def test_jaw_with_vlimit(geometry, test_context):
         num_polys=4)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_jaw_after_s_with_vlimit(geometry, test_context):
@@ -100,6 +104,7 @@ def test_jaw_after_s_with_vlimit(geometry, test_context):
         num_polys=4)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_polygon(geometry, test_context):
@@ -115,6 +120,7 @@ def test_polygon(geometry, test_context):
         context, name='expected_s_polygon', run=run, num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_polygon_after_s(geometry, test_context):
@@ -131,6 +137,7 @@ def test_polygon_after_s(geometry, test_context):
         context, name='expected_s_polygon_after_s', run=run, num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_polygon_with_vlimit(geometry, test_context):
@@ -148,6 +155,7 @@ def test_polygon_with_vlimit(geometry, test_context):
         num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_polygon_after_s_with_vlimit(geometry, test_context):
@@ -165,6 +173,7 @@ def test_polygon_after_s_with_vlimit(geometry, test_context):
         num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_open_polygon(geometry, test_context):
@@ -181,6 +190,7 @@ def test_open_polygon(geometry, test_context):
         context, name='expected_s_open_polygon', run=run, num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_open_polygon_after_s(geometry, test_context):
@@ -198,6 +208,7 @@ def test_open_polygon_after_s(geometry, test_context):
         num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_open_polygon_with_vlimit(geometry, test_context):
@@ -215,6 +226,7 @@ def test_open_polygon_with_vlimit(geometry, test_context):
         num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_open_polygon_after_s_with_vlimit(geometry, test_context):
@@ -233,6 +245,7 @@ def test_open_polygon_after_s_with_vlimit(geometry, test_context):
         run=run, num_polys=8)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_crystal(geometry, test_context):
@@ -247,6 +260,7 @@ def test_crystal(geometry, test_context):
         context, name='expected_s_crystal', run=run)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_crystal_after_s(geometry, test_context):
@@ -261,6 +275,7 @@ def test_crystal_after_s(geometry, test_context):
         context, name='expected_s_crystal_after_s', run=run)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_crystal_with_vlimit(geometry, test_context):
@@ -276,6 +291,7 @@ def test_crystal_with_vlimit(geometry, test_context):
         context, name='expected_s_crystal_with_vlimit', run=run)
 
 
+@pytest.mark.gpu
 @for_all_test_contexts
 @pytest.mark.xcother
 def test_crystal_after_s_with_vlimit(geometry, test_context):

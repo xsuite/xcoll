@@ -121,6 +121,7 @@ def markers(line):
 #############################################################
 class TestElementData:
 
+    @pytest.mark.xcother
     def test_known_elements(self):
         for Z, symbol, A in [(1, 'H', 1), (6, 'C', 12), (7, 'N', 14),
                              (8, 'O', 16), (18, 'Ar', 40)]:
@@ -128,12 +129,14 @@ class TestElementData:
             assert data.symbol == symbol
             assert data.A == A
 
+    @pytest.mark.xcother
     def test_raises_out_of_range(self):
         with pytest.raises(ValueError):
             ElementData(0)
         with pytest.raises(ValueError):
             ElementData(55)
 
+    @pytest.mark.xcother
     def test_low_z_uses_dirac_fock_logarithms(self):
         # Below Z=5 the tabulated Dirac-Fock values must be used, and they
         # differ from the Thomas-Fermi expression
@@ -164,6 +167,7 @@ class TestCoulombCrossSection:
                         epsabs=0, epsrel=1e-12, limit=400)
         return value
 
+    @pytest.mark.xcother
     @pytest.mark.parametrize('Z', [1, 6, 7, 18, 54])
     @pytest.mark.parametrize('theta_lim', [(1e-5, 50e-3), (20e-3, 200e-3),
                                            (0.1, np.pi)])
@@ -177,6 +181,7 @@ class TestCoulombCrossSection:
         assert np.isclose(calc.compute_xsec(), self._quad_xsec(calc),
                           rtol=1e-10)
 
+    @pytest.mark.xcother
     @pytest.mark.parametrize('Z,theta_lim', [(7, (1e-3, 50e-3)),
                                              (54, (20e-3, 200e-3))])
     def test_importance_weights_are_normalised(self, Z, theta_lim):
@@ -188,6 +193,7 @@ class TestCoulombCrossSection:
         assert np.isclose(weight.mean(), 1.0,
                           atol=5*weight.std()/np.sqrt(weight.size))
 
+    @pytest.mark.xcother
     def test_sampled_distribution_matches_cross_section(self):
         calc = CoulombScatteringCalculator(7, P0C, q0=-1.0,
                                            theta_lim=(1e-3, 50e-3))
@@ -206,6 +212,7 @@ class TestCoulombCrossSection:
                 np.log(z1), np.log(z_cut), epsabs=0, epsrel=1e-12, limit=400)
             assert np.isclose(observed, partial/total, rtol=0.02)
 
+    @pytest.mark.xcother
     def test_mott_correction_sign_flips_with_charge(self):
         electron = CoulombScatteringCalculator(7, P0C, q0=-1.0,
                                                theta_lim=(8e-3, 20e-3))
@@ -219,6 +226,7 @@ class TestCoulombCrossSection:
         # since compute_xsec integrates the Mott-corrected dsigma/dz
         assert electron.compute_xsec() > positron.compute_xsec()
 
+    @pytest.mark.xcother
     def test_deflection_conserves_momentum_modulus(self):
         calc = CoulombScatteringCalculator(7, P0C, q0=-1.0,
                                            theta_lim=(8e-3, 20e-3))
@@ -239,6 +247,7 @@ class TestCoulombCrossSection:
         assert np.allclose(np.arccos(np.clip(cos_angle, -1, 1)), sample.theta,
                            atol=1e-9)
 
+    @pytest.mark.xcother
     def test_small_angles_keep_full_precision(self):
         # 1 - cos(theta) is exactly zero below theta ~ 1e-8, so the window
         # and the sampled angles must be computed without it
@@ -256,6 +265,7 @@ class TestCoulombCrossSection:
                                             theta_lim=(1e-12, 1e-3))
         assert np.isclose(wider.xsec, calc.xsec, rtol=1e-6)
 
+    @pytest.mark.xcother
     def test_raises_on_invalid_theta_range(self):
         with pytest.raises(ValueError):
             CoulombScatteringCalculator(7, P0C, theta_lim=(2e-2, 1e-3))
@@ -265,6 +275,7 @@ class TestCoulombCrossSection:
 
 class TestBremsstrahlungCrossSection:
 
+    @pytest.mark.xcother
     @pytest.mark.parametrize('Z', [1, 6, 7, 18])
     def test_xsec_matches_numerical_integral(self, Z):
         calc = BremsstrahlungCalculator(Z, P0C, energy_cut=1e6)
@@ -278,6 +289,7 @@ class TestBremsstrahlungCrossSection:
             epsabs=0, epsrel=1e-10)
         assert np.isclose(calc.compute_xsec(), prefactor*numerical, rtol=1e-6)
 
+    @pytest.mark.xcother
     def test_sampled_spectrum_matches_cross_section(self):
         calc = BremsstrahlungCalculator(7, P0C, energy_cut=1e6)
         rng = np.random.default_rng(0)
@@ -295,6 +307,7 @@ class TestBremsstrahlungCrossSection:
                 epsabs=0, epsrel=1e-10)
             assert np.isclose(observed, expected/norm, rtol=0.02)
 
+    @pytest.mark.xcother
     @pytest.mark.parametrize('Z', [1, 7, 18, 54])
     def test_screening_variables_are_dimensionless(self, Z):
         # The Tsai screening variables are
@@ -316,6 +329,7 @@ class TestBremsstrahlungCrossSection:
         # ... and at the tip of the spectrum screening must actually bite
         assert expected_gamma > 1.0
 
+    @pytest.mark.xcother
     def test_screening_suppresses_the_hard_tip(self):
         # Screening only matters where gamma is O(1), i.e. y -> 1. Check the
         # differential cross section is pushed below its complete-screening
@@ -336,6 +350,7 @@ class TestBremsstrahlungCrossSection:
             else:
                 assert ratio < expected_ratio
 
+    @pytest.mark.xcother
     def test_sampled_energies_within_bounds(self):
         calc = BremsstrahlungCalculator(7, P0C, energy_cut=1e6)
         rng = np.random.default_rng(2)
@@ -343,6 +358,7 @@ class TestBremsstrahlungCrossSection:
         assert k.min() >= calc.energy_cut
         assert k.max() <= calc.ekin
 
+    @pytest.mark.xcother
     def test_deflection_conserves_energy(self):
         calc = BremsstrahlungCalculator(7, P0C, energy_cut=1e6)
         rng = np.random.default_rng(3)
@@ -374,6 +390,7 @@ class TestBremsstrahlungCrossSection:
         # Bremsstrahlung is sampled without biasing
         assert np.all(sample.weight == 1.0)
 
+    @pytest.mark.xcother
     def test_raises_on_invalid_energy_cut(self):
         with pytest.raises(ValueError):
             BremsstrahlungCalculator(7, P0C, energy_cut=-1.0)
@@ -386,6 +403,7 @@ class TestBremsstrahlungCrossSection:
 #############################################################
 class TestConfigureInputs:
 
+    @pytest.mark.xcother
     def test_normalised_emittances(self, toy_ring):
         line = configure(toy_ring)
         beta0 = line.particle_ref.beta0[0]
@@ -394,6 +412,7 @@ class TestConfigureInputs:
             assert np.isclose(line[nn].gemitt_x, NEMITT_X/(beta0*gamma0))
             assert np.isclose(line[nn].gemitt_y, NEMITT_Y/(beta0*gamma0))
 
+    @pytest.mark.xcother
     def test_geometric_emittances(self, toy_ring):
         line = configure(toy_ring, nemitt_x=None, nemitt_y=None,
                          gemitt_x=1e-9, gemitt_y=1e-11)
@@ -401,6 +420,7 @@ class TestConfigureInputs:
             assert np.isclose(line[nn].gemitt_x, 1e-9)
             assert np.isclose(line[nn].gemitt_y, 1e-11)
 
+    @pytest.mark.xcother
     @pytest.mark.parametrize('missing_key', ['gas_density', 'sigma_z',
                                              'sigma_delta',
                                              'n_scattering_events'])
@@ -408,27 +428,33 @@ class TestConfigureInputs:
         with pytest.raises(ValueError, match=missing_key):
             configure(toy_ring, **{missing_key: None})
 
+    @pytest.mark.xcother
     def test_raises_on_invalid_process(self, toy_ring):
         with pytest.raises(ValueError, match='brems'):
             configure(toy_ring, process='compton')
 
+    @pytest.mark.xcother
     def test_raises_on_both_nemitt_and_gemitt(self, toy_ring):
         with pytest.raises(ValueError, match='not both'):
             configure(toy_ring, gemitt_x=1e-9, gemitt_y=1e-11)
 
+    @pytest.mark.xcother
     def test_raises_on_neither_nemitt_nor_gemitt(self, toy_ring):
         with pytest.raises(ValueError, match='must provide'):
             configure(toy_ring, nemitt_x=None, nemitt_y=None)
 
+    @pytest.mark.xcother
     def test_raises_on_wrong_gas_density_type(self, toy_ring):
         with pytest.raises(TypeError):
             configure(toy_ring, gas_density={'s': [0.0], 'N': [1e15]})
 
+    @pytest.mark.xcother
     def test_raises_on_gas_density_without_species(self, toy_ring):
         with pytest.raises(ValueError):
             configure(toy_ring, gas_density=xt.Table(
                 {'name': np.array(['a', 'b']), 's': np.array([0.0, 1.0])}))
 
+    @pytest.mark.xcother
     @pytest.mark.parametrize('bad_value', [np.nan, np.inf, -1.0])
     def test_raises_on_bad_density_values(self, toy_ring, bad_value):
         gd = toy_ring['gas_density']
@@ -437,6 +463,7 @@ class TestConfigureInputs:
                 {'name': gd.name, 's': gd.s,
                  'N': np.full(len(gd.s), bad_value)}))
 
+    @pytest.mark.xcother
     def test_raises_on_unknown_gas_species(self, toy_ring):
         gd = toy_ring['gas_density']
         with pytest.raises(ValueError):
@@ -444,17 +471,20 @@ class TestConfigureInputs:
                 {'name': gd.name, 's': gd.s,
                  'Zz': np.ones(len(gd.s))*ATOMIC_DENSITY}))
 
+    @pytest.mark.xcother
     def _line_with_particle_ref(self, toy_ring, particle_ref):
         line = toy_ring['line'].copy()
         line.particle_ref = particle_ref
         return line
 
+    @pytest.mark.xcother
     def test_raises_on_non_lepton_beam(self, toy_ring):
         line = self._line_with_particle_ref(
             toy_ring, xt.Particles(pdg_id=2212, p0c=1e12))
         with pytest.raises(ValueError, match='electron and positron'):
             configure(toy_ring, line=line)
 
+    @pytest.mark.xcother
     def test_raises_when_pdg_id_not_set(self, toy_ring):
         # An electron built without a PDG id: right mass, but the beam-gas
         # models cannot tell an electron from a positron
@@ -464,6 +494,7 @@ class TestConfigureInputs:
         with pytest.raises(ValueError, match='no PDG id'):
             configure(toy_ring, line=line)
 
+    @pytest.mark.xcother
     def test_raises_on_charge_inconsistent_with_pdg_id(self, toy_ring):
         line = self._line_with_particle_ref(
             toy_ring, xt.Particles(pdg_id=11, mass0=xt.ELECTRON_MASS_EV,
@@ -471,6 +502,7 @@ class TestConfigureInputs:
         with pytest.raises(ValueError, match='q0'):
             configure(toy_ring, line=line)
 
+    @pytest.mark.xcother
     def test_accepts_electrons_and_positrons(self, toy_ring):
         mean_free_path = {}
         for name, pdg_id in (('electron', 11), ('positron', -11)):
@@ -485,6 +517,7 @@ class TestConfigureInputs:
         # q0 is taken from the PDG id, and drives the Mott term
         assert mean_free_path['electron'] != mean_free_path['positron']
 
+    @pytest.mark.xcother
     def test_raises_when_no_beamgas_elements(self, toy_ring):
         line = xt.Line(elements=[xt.Drift(length=1.0)])
         line.set_particle_ref('electron', p0c=P0C)
@@ -504,10 +537,12 @@ class TestConfigure:
         self.xsec = BremsstrahlungCalculator(7, P0C,
                                              energy_cut=1e6).compute_xsec()
 
+    @pytest.mark.xcother
     def test_sections_cover_the_whole_line(self):
         table = self.line.xcoll.beamgas.analyse().local_rates
         assert np.isclose(table.ds.sum(), self.line.get_length())
 
+    @pytest.mark.xcother
     def test_all_elements_are_configured(self):
         for nn in markers(self.line):
             elem = self.line[nn]
@@ -518,6 +553,7 @@ class TestConfigure:
             assert dict(elem.atomic_densities) == {'N': pytest.approx(
                 ATOMIC_DENSITY)}
 
+    @pytest.mark.xcother
     def test_interaction_rate_matches_analytic_formula(self):
         # rate = N_bunch * f_rev * integral(n ds) * sigma, and for a flat
         # profile the integral over the whole ring is n * circumference
@@ -527,11 +563,13 @@ class TestConfigure:
                     for nn in markers(self.line))
         assert np.isclose(total, expected, rtol=1e-9)
 
+    @pytest.mark.xcother
     def test_mean_free_path(self):
         expected = 1.0/(ATOMIC_DENSITY*self.xsec)
         for nn in markers(self.line):
             assert np.isclose(self.line[nn].mean_free_path, expected)
 
+    @pytest.mark.xcother
     def test_partial_configuration_single_element(self):
         nn = markers(self.line)[0]
         rate = self.line[nn].interaction_rate
@@ -539,6 +577,7 @@ class TestConfigure:
                   bunch_intensity=2*BUNCH_INTENSITY)
         assert np.isclose(self.line[nn].interaction_rate, 2*rate)
 
+    @pytest.mark.xcother
     def test_partial_configuration_raises_on_wrong_element(self):
         with pytest.raises(ValueError, match='not present'):
             configure(self.toy_ring, at='not_in_the_line')
@@ -553,11 +592,13 @@ class TestConfigure:
 #############################################################
 class TestGenerateParticles:
 
+    @pytest.mark.xcother
     @pytest.fixture(autouse=True)
     def _configure(self, toy_ring):
         self.toy_ring = toy_ring
         self.line = configure(toy_ring, n_scattering_events=500)
 
+    @pytest.mark.xcother
     def test_weights_sum_to_the_interaction_rate(self):
         line = self.line
         for nn, particles in line.xcoll.beamgas.generate().items():
@@ -565,12 +606,14 @@ class TestGenerateParticles:
             assert np.isclose(particles.weight[allocated].sum(),
                               line[nn].interaction_rate, rtol=1e-12)
 
+    @pytest.mark.xcother
     def test_every_particle_interacts_once(self):
         particles, logs = self.line.xcoll.beamgas.generate(return_log=True)
         for nn, part in particles.items():
             assert len(logs[nn].particle_id) == int(
                 np.sum(part.particle_id >= 0))
 
+    @pytest.mark.xcother
     def test_generated_distribution_matches_the_optics(self, toy_ring):
         # With Coulomb scattering delta is untouched, so the generated
         # longitudinal distribution must be the matched one
@@ -591,6 +634,7 @@ class TestGenerateParticles:
         assert np.isclose(particles.x[allocated].mean(), elem.x_co,
                           atol=0.1*sigma_x)
 
+    @pytest.mark.xcother
     def test_particles_start_at_the_element(self):
         line = self.line
         tab = line.get_table()
@@ -600,6 +644,7 @@ class TestGenerateParticles:
             assert np.all(particles.at_element[allocated]
                           == line.element_names.index(nn))
 
+    @pytest.mark.xcother
     def test_raises_if_not_configured(self):
         line = xt.Line(elements=[xc.BeamGasMarker()], element_names=['bg'])
         line.set_particle_ref('electron', p0c=P0C)
@@ -627,6 +672,7 @@ class TestRun:
             warnings.simplefilter('ignore')
             return self.bg.run(**kwargs)
 
+    @pytest.mark.xcother
     def test_analyse_without_tracking(self):
         result = self.bg.analyse()
         assert result.tracked is False
@@ -636,6 +682,7 @@ class TestRun:
         assert np.isclose(result.lifetime_scattering,
                           BUNCH_INTENSITY/result.rate_scattering)
 
+    @pytest.mark.xcother
     def test_run_with_tracking(self):
         result = self.run(n_turns=20, keep_particles=True)
         assert result.tracked is True
@@ -649,6 +696,7 @@ class TestRun:
         assert np.isclose(result.lost_particles.weight.sum(),
                           result.rate_tracking)
 
+    @pytest.mark.xcother
     def test_lifetime_is_independent_of_bunch_intensity(self, toy_ring):
         kwargs = dict(process='coulomb', coulomb_theta=(8e-3, 20e-3),
                       n_scattering_events=200, seed=7)
@@ -659,6 +707,7 @@ class TestRun:
         assert np.isclose(a.rate_tracking*10, b.rate_tracking)
         assert np.isclose(a.lifetime_tracking, b.lifetime_tracking)
 
+    @pytest.mark.xcother
     def test_local_rates_columns(self):
         result = self.run(n_turns=5, keep_particles=True)
         table = result.local_rates
@@ -673,6 +722,7 @@ class TestRun:
                           rtol=0.01)
         assert np.isclose(table.sum_lost_weight.sum(), result.rate_tracking)
 
+    @pytest.mark.xcother
     def test_interaction_log(self):
         result = self.run(n_turns=5, keep_particles=True)
         log = result.interaction_log
@@ -681,6 +731,7 @@ class TestRun:
         assert np.all(np.isnan(log.photon_energy))  # Coulomb: no photon
         assert np.isclose(log.weight.sum(), result.rate_scattering, rtol=0.01)
 
+    @pytest.mark.xcother
     def test_reproducible_with_seed(self, toy_ring):
         kwargs = dict(process='coulomb', coulomb_theta=(8e-3, 20e-3),
                       n_scattering_events=200)
@@ -691,6 +742,7 @@ class TestRun:
         assert rates[0] == rates[1]
         assert rates[0] != rates[2]
 
+    @pytest.mark.xcother
     def test_statistical_error(self):
         result = self.run(n_turns=20)
         assert result.rate_tracking_error > 0
@@ -700,6 +752,7 @@ class TestRun:
             result.rate_tracking_error/result.rate_tracking)
         assert self.bg.analyse().rate_tracking_error is None
 
+    @pytest.mark.xcother
     def test_cutoff_scan(self):
         result = self.run(n_turns=20, keep_particles=True)
         scan = result.cutoff_scan
@@ -730,6 +783,7 @@ class TestRun:
             assert np.isclose(scan.rate_tracking[ii],
                               log.weight[above & lost].sum())
 
+    @pytest.mark.xcother
     def test_warns_when_the_window_truncates_the_losses(self):
         # The toy ring loses particles well below 8 mrad and virtually all
         # of them above 20 mrad, so both cuts of this window bias the result
@@ -740,6 +794,7 @@ class TestRun:
         assert any('above `coulomb_theta[1]`' in mm for mm in messages)
         assert result.rate_above_theta_max > 0.01*result.rate_tracking
 
+    @pytest.mark.xcother
     def test_no_truncation_warning_for_a_wide_window(self, toy_ring):
         configure(toy_ring, process='coulomb', coulomb_theta=(1e-7, 1.0),
                   n_scattering_events=200)
@@ -748,6 +803,7 @@ class TestRun:
             result = self.bg.run(n_turns=20)
         assert result.rate_above_theta_max < 1e-3*result.rate_tracking
 
+    @pytest.mark.xcother
     def test_brems_cutoff_scan(self, toy_ring):
         configure(toy_ring, n_scattering_events=200)
         result = self.run(n_turns=5)
@@ -756,6 +812,7 @@ class TestRun:
                           result.rate_tracking)
         assert result.rate_above_theta_max is None
 
+    @pytest.mark.xcother
     def test_raises_on_invalid_run_arguments(self):
         with pytest.raises(ValueError, match='n_turns'):
             self.bg.run(n_turns=0)
@@ -800,6 +857,7 @@ class TestBeamGasMarkerSerialization:
 
 class TestPassiveTracking:
 
+    @pytest.mark.xcother
     def test_tracking_is_not_affected(self, toy_ring):
         line = toy_ring['line']
         particles = line.build_particles(x=[1e-4, 2e-4], px=[1e-6, -1e-6])
@@ -817,5 +875,6 @@ class TestPassiveTracking:
         assert np.allclose(particles.x, reference.x, rtol=0, atol=1e-15)
         assert np.allclose(particles.px, reference.px, rtol=0, atol=1e-15)
 
+    @pytest.mark.xcother
     def test_element_is_not_collective(self, toy_ring):
         assert not toy_ring['line']['BeamGasMarker.0'].iscollective

@@ -15,6 +15,7 @@ from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 
 @pytest.mark.black
+@pytest.mark.gpu
 @for_all_test_contexts
 @fix_random_seed(3482634)
 def test_with_parallel_beam(test_context):
@@ -44,6 +45,7 @@ def test_with_parallel_beam(test_context):
 
 # Should test jaws with different angles
 @pytest.mark.black
+@pytest.mark.gpu
 @pytest.mark.parametrize("angle_L, angle_R, tilt_L, tilt_R", [
                         [0,  0,  0,       0],
                         [0,  0,  0.05,    0.05],
@@ -164,6 +166,8 @@ def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
         )
 
 
+@pytest.mark.black
+@pytest.mark.gpu
 @pytest.mark.parametrize("side, sign_R", [
                         ['+', 1], ['-', 1], ['+', -1], ['-', -1]]
                         , ids=["L R>0", "R R>0", "L R<0", "R R<0"])
