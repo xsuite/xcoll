@@ -592,7 +592,6 @@ class TestConfigure:
 #############################################################
 class TestGenerateParticles:
 
-    @pytest.mark.xcother
     @pytest.fixture(autouse=True)
     def _configure(self, toy_ring):
         self.toy_ring = toy_ring
