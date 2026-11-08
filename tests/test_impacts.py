@@ -556,6 +556,6 @@ def _make_multiturn_interaction_record(test_context):
     }
     impacts._index.num_recorded = 22
     for field, values in data.items():
-        getattr(impacts, field)[:22] = values
+        getattr(impacts, field)[:22] = test_context.nparray_to_context_array(values)
 
     return impacts
