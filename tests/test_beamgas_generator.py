@@ -78,8 +78,8 @@ def ring():
 
 
 def _configure(line, **kwargs):
-    config = dict(gas_density=_gas(line), process='brems',
-                  brems_energy_cut=1e6, n_scattering_events=200, seed=1997,
+    config = dict(gas_density=_gas(line), process='bremsstrahlung',
+                  bremsstrahlung_energy_cut=1e6, n_scattering_events=200, seed=1997,
                   method='4d', verbose=False, **BEAM)
     config.update(kwargs)
     line.xcoll.beamgas.configure(**config)
@@ -220,7 +220,7 @@ def test_install_markers_checks_its_arguments():
     assert bg.marker_names == []
 
 
-@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+@pytest.mark.parametrize('process', ['bremsstrahlung', 'coulomb'])
 def test_configure_stores_the_configuration_on_the_markers(ring, process):
     _, tw = ring
     line = _ring_with_markers()
@@ -232,7 +232,7 @@ def test_configure_stores_the_configuration_on_the_markers(ring, process):
 
     ref = line.particle_ref
     p0c = ref.p0c[0]
-    if process == 'brems':
+    if process == 'bremsstrahlung':
         xsec = {Z: BremsstrahlungCalculator(Z, p0c, energy_cut=1e6)
                 .compute_xsec() for Z in (7, 1)}
     else:
@@ -267,8 +267,8 @@ def test_configure_stores_the_configuration_on_the_markers(ring, process):
         assert marker.bunch_intensity == BEAM['bunch_intensity']
         assert marker.n_scattering_events == 200
         assert marker.seed == 1997
-        if process == 'brems':
-            assert marker.brems_energy_cut == 1e6
+        if process == 'bremsstrahlung':
+            assert marker.bremsstrahlung_energy_cut == 1e6
             assert marker.rate_above_theta_max == 0
         else:
             assert (marker.coulomb_theta_min, marker.coulomb_theta_max) == (
@@ -395,7 +395,7 @@ def test_generate_at_one_or_several_markers(ring):
     assert line[names[1]].scatter_log is not None
 
 
-@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+@pytest.mark.parametrize('process', ['bremsstrahlung', 'coulomb'])
 def test_generated_particles(ring, process):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1], process=process,
@@ -415,7 +415,7 @@ def test_generated_particles(ring, process):
         assert np.all(part.pdg_id[alive] == ref.pdg_id[0])
         # The weights carry the interaction rate of the section: exactly for
         # bremsstrahlung, on average for the importance-sampled Coulomb angles
-        if process == 'brems':
+        if process == 'bremsstrahlung':
             assert np.sum(part.weight[alive]) == pytest.approx(
                 line[nn].interaction_rate, rel=1e-12)
         # One interaction per particle, on the gas species of the profile
@@ -464,7 +464,7 @@ def test_replicas(ring):
     assert total == pytest.approx(line[nn].interaction_rate, rel=1e-12)
 
 
-@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+@pytest.mark.parametrize('process', ['bremsstrahlung', 'coulomb'])
 def test_generation_from_a_reloaded_line(ring, tmp_path, process):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1], process=process)
@@ -631,7 +631,7 @@ def test_analyse_replicas(ring):
                                                        rel=1e-9)
 
 
-@pytest.mark.parametrize('process', ['brems', 'coulomb'])
+@pytest.mark.parametrize('process', ['bremsstrahlung', 'coulomb'])
 def test_analyse_with_the_records_of_the_interactions(ring, process):
     line = _ring_with_markers()
     _configure(line, twiss=ring[1], process=process,

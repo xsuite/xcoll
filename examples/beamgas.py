@@ -140,8 +140,8 @@ line.xcoll.beamgas.configure(
     # log(theta_max/theta_min). BeamGasResult.cutoff_scan and
     # rate_above_theta_max show whether the window is wide enough.
     coulomb_theta=(1e-6, 0.3),
-    # process='brems',
-    # brems_energy_cut=1e6,
+    # process='bremsstrahlung',
+    # bremsstrahlung_energy_cut=1e6,
     nemitt_x=nemitt_x,
     nemitt_y=nemitt_y,
     sigma_z=sigma_z,

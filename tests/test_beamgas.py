@@ -99,7 +99,7 @@ def toy_ring():
 
 def configure(toy_ring, line=None, **kwargs):
     """Configure the beam-gas markers of the toy ring with its defaults."""
-    config = dict(process='brems', brems_energy_cut=1e6,
+    config = dict(process='bremsstrahlung', bremsstrahlung_energy_cut=1e6,
                   n_scattering_events=200, seed=1997,
                   gas_density=toy_ring['gas_density'],
                   twiss=toy_ring['twiss'], nemitt_x=NEMITT_X,
@@ -409,7 +409,7 @@ class TestConfigureInputs:
             configure(toy_ring, **{missing_key: None})
 
     def test_raises_on_invalid_process(self, toy_ring):
-        with pytest.raises(ValueError, match='brems'):
+        with pytest.raises(ValueError, match='bremsstrahlung'):
             configure(toy_ring, process='compton')
 
     def test_raises_on_both_nemitt_and_gemitt(self, toy_ring):
@@ -769,7 +769,7 @@ class TestRun:
 class TestBeamGasMarkerSerialization:
     """A configured BeamGasMarker keeps its whole configuration in JSON."""
 
-    @pytest.mark.parametrize('process', ['brems', 'coulomb'])
+    @pytest.mark.parametrize('process', ['bremsstrahlung', 'coulomb'])
     def test_configured_markers_survive_json(self, toy_ring, tmp_path,
                                              process):
         line = configure(toy_ring, process=process)

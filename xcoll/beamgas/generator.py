@@ -83,7 +83,7 @@ def _cross_section(process, Z, p0c, q0, window):
 
     Parameters
     ----------
-    process : {'brems', 'coulomb'}
+    process : {'bremsstrahlung', 'coulomb'}
         Beam-gas process.
     Z : int
         Atomic number of the species.
@@ -92,7 +92,7 @@ def _cross_section(process, Z, p0c, q0, window):
     q0 : float
         Charge of the beam particles.
     window : tuple of float
-        ``(brems_energy_cut,)`` [eV] for bremsstrahlung, or
+        ``(bremsstrahlung_energy_cut,)`` [eV] for bremsstrahlung, or
         ``(theta_min, theta_max)`` [rad] for Coulomb scattering.
 
     Returns
@@ -102,7 +102,7 @@ def _cross_section(process, Z, p0c, q0, window):
     xsec : float
         Total cross section of the generated part of the process [m^2].
     """
-    if process == 'brems':
+    if process == 'bremsstrahlung':
         calculator = BremsstrahlungCalculator(Z, p0c, energy_cut=window[0])
     else:
         calculator = CoulombScatteringCalculator(
@@ -195,8 +195,8 @@ def _generate_marker(name, marker, *, particle_ref, q0, at_element, s, rng,
             "to generate beam-gas-scattered particles.")
 
     process = marker.process
-    if process == 'brems':
-        window = (float(marker.brems_energy_cut),)
+    if process == 'bremsstrahlung':
+        window = (float(marker.bremsstrahlung_energy_cut),)
     else:
         window = (float(marker.coulomb_theta_min),
                   float(marker.coulomb_theta_max))
@@ -294,7 +294,7 @@ def _warn_on_truncation(process, window, x, contribution, cutoff_scan,
 
     Parameters
     ----------
-    process : {'brems', 'coulomb'}
+    process : {'bremsstrahlung', 'coulomb'}
         Beam-gas process.
     window : tuple of float
         Range of the generation variable.
@@ -324,7 +324,7 @@ def _warn_on_truncation(process, window, x, contribution, cutoff_scan,
                 "cheap: the statistics only degrade as "
                 "log(theta_max/theta_min).")
     else:
-        name = '`brems_energy_cut`'
+        name = '`bremsstrahlung_energy_cut`'
         what = 'photon energies'
         hint = ""
 
@@ -646,10 +646,10 @@ class BeamGasGenerator:
 
         return installed
 
-    def configure(self, *, gas_density=None, process='brems', sigma_z=None,
+    def configure(self, *, gas_density=None, process='bremsstrahlung', sigma_z=None,
                   sigma_delta=None, n_scattering_events=None,
                   nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
-                  bunch_intensity=1.0, brems_energy_cut=10e3,
+                  bunch_intensity=1.0, bremsstrahlung_energy_cut=10e3,
                   coulomb_theta=(1e-7, 50e-3), seed=None, twiss=None,
                   method='6d', at=None, verbose=True, **kwargs):
         """
@@ -675,9 +675,9 @@ class BeamGasGenerator:
             ``'Ar'``, ...) and holding the *atomic* density [atoms/m^3]. For a
             molecular gas, use the atomic density of each constituent, e.g.
             ``N = 2 * n_molecules`` for N2.
-        process : {'brems', 'coulomb'}, optional
+        process : {'bremsstrahlung', 'coulomb'}, optional
             Beam-gas process to simulate: bremsstrahlung on the gas nuclei, or
-            elastic Coulomb scattering off them. Default ``'brems'``.
+            elastic Coulomb scattering off them. Default ``'bremsstrahlung'``.
         sigma_z : float
             RMS bunch length [m].
         sigma_delta : float
@@ -694,9 +694,9 @@ class BeamGasGenerator:
             Number of particles in the bunch. The interaction and loss rates
             are proportional to it; the lifetime is not. Default 1, which
             makes the rates per stored particle.
-        brems_energy_cut : float, optional
+        bremsstrahlung_energy_cut : float, optional
             Lower limit of the generated bremsstrahlung photon energy [eV].
-            Only used when ``process='brems'``. Default 10 keV.
+            Only used when ``process='bremsstrahlung'``. Default 10 keV.
         coulomb_theta : tuple of float, optional
             Range of the generated Coulomb scattering angle [rad]. Only used
             when ``process='coulomb'``. Losses from angles outside this range
@@ -770,7 +770,7 @@ class BeamGasGenerator:
             twiss = line.twiss(method=method, **kwargs)
 
         p0c = float(particle_ref.p0c[0])
-        window = ((float(brems_energy_cut),) if process == 'brems'
+        window = ((float(bremsstrahlung_energy_cut),) if process == 'bremsstrahlung'
                   else (float(coulomb_theta[0]), float(coulomb_theta[1])))
         atomic_numbers = {kk: atomic_number_from_symbol(kk) for kk in species}
         xsecs = {kk: _cross_section(process, Z, p0c, q0, window)[1]
@@ -826,7 +826,7 @@ class BeamGasGenerator:
                 mean_free_path=(np.inf if inverse_mfp <= 0
                                 else 1.0 / inverse_mfp),
                 process=process,
-                brems_energy_cut=float(brems_energy_cut),
+                bremsstrahlung_energy_cut=float(bremsstrahlung_energy_cut),
                 coulomb_theta_min=float(coulomb_theta[0]),
                 coulomb_theta_max=float(coulomb_theta[1]),
                 atomic_densities=atomic_densities,
@@ -1117,7 +1117,7 @@ class BeamGasGenerator:
                           float(first.coulomb_theta_max))
             else:
                 # Up to the kinetic energy of the beam
-                window = (float(first.brems_energy_cut), float(
+                window = (float(first.bremsstrahlung_energy_cut), float(
                     _energy_from_momentum(first.p0c) - ELECTRON_MASS_EV))
             x, weight, lost, i_sample, tables = [], [], [], [], []
             for nn in names:
