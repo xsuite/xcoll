@@ -79,7 +79,6 @@ class Geant4Engine(BaseEngine):
             else:
                 val = True
         elif not isinstance(val, bool):
-            self.stop()
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
@@ -93,12 +92,18 @@ class Geant4Engine(BaseEngine):
         self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
+
+    def _reset_engine_settings(self):
+        self.reentry_protection_enabled = None
+
+
     def _pre_input(self, **kwargs):
         coll_id = 1
         for el in self._element_dict.values():
             el.geant4_id = f'XcollG4.{coll_id}'  # TODO: will be provided by new BDSIM interface
             coll_id += 1
         return kwargs
+
 
     def _generate_input_file(self, **kwargs):
         input_file, kwargs = create_bdsim_config_file(element_dict=self._element_dict,
@@ -107,6 +112,7 @@ class Geant4Engine(BaseEngine):
         # The only thing left in kwargs are parameters to start the engine
         return input_file, kwargs
 
+
     def _start_engine(self, **kwargs):
         from ...beam_elements import BaseCrystal, Geant4CollimatorTip
 
@@ -114,9 +120,25 @@ class Geant4Engine(BaseEngine):
         try:
             from g4interface import XtrackInterface
         except (ModuleNotFoundError, ImportError) as error:
-            self.stop(clean=True)
+            self.stop()
             self._warn(error)
             return
+
+        # An interface built against a BDSIM without the tip taper (bdsim-collaboration/bdsim#228), or
+        # an older build of it, would silently drop these settings: a flat jaw in a
+        # 2 m wide box instead of the requested geometry
+        if not getattr(XtrackInterface, 'supportsTipTaper', lambda: False)():
+            for el in self._element_dict.values():
+                if isinstance(el, Geant4CollimatorTip) and any(
+                        getattr(el, field) != 0
+                        for field in ('taper_angle', 'jaw_depth', 'taper_depth', 'jaw_width')):
+                    self.stop(clean=True)
+                    raise RuntimeError(
+                        f"Geant4CollimatorTip {el.name} uses taper_angle, jaw_depth, taper_depth "
+                        f"or jaw_width, which the compiled Xcoll-BDSIM interface does not support! "
+                        f"This needs a BDSIM that includes bdsim-collaboration/bdsim#228 "
+                        f"(https://github.com/bdsim-collaboration/bdsim/pull/228), and the "
+                        f"interface to be compiled against it: xc.geant4.interface.compile().")
 
         if self.reentry_protection_enabled:
             ### remove this part after geant4 bug fixed
@@ -181,16 +203,89 @@ class Geant4Engine(BaseEngine):
                 xOffset_temp = xOffset*np.cos(np.deg2rad(el.angle_R)) - yOffset*np.sin(np.deg2rad(el.angle_R))
                 yOffset = xOffset*np.sin(np.deg2rad(el.angle_R)) + yOffset*np.cos(np.deg2rad(el.angle_R))
                 xOffset = xOffset_temp
-            tip_material = el.tip_material.geant4_name if isinstance(el, Geant4CollimatorTip) else ''
-            tip_thickness = el.tip_thickness if isinstance(el, Geant4CollimatorTip) else 0
+            tip_material = ''
+            tip_thickness = 0
+            taper_angle = 0
+            taper_depth = 0
+            jaw_half_height = 0
+            horizontal_width = 0
+            if isinstance(el, Geant4CollimatorTip):
+                tip_material = el.tip_material.geant4_name
+                tip_thickness = el.tip_thickness
+                taper_angle = el.taper_angle
+                taper_depth = el.taper_depth
+                jaw_half_height = el.jaw_width/2
+                if el.jaw_depth > 0 and side == 0 \
+                and not np.isclose(jaw_L, -jaw_R, rtol=0, atol=1e-12):
+                    # Centre the jaws on the offset, so that a single horizontalWidth
+                    # gives both of them exactly jaw_depth
+                    shift = (jaw_L + jaw_R)/2
+                    jaw_L -= shift
+                    jaw_R -= shift
+                    xOffset += shift*np.cos(np.deg2rad(el.angle))
+                    yOffset += shift*np.sin(np.deg2rad(el.angle))
+                try:
+                    horizontal_width = self._tip_horizontal_width(el, jaw_L, jaw_R, side,
+                                                                  tilt_L, tilt_R)
+                except ValueError:
+                    self.stop(clean=True)
+                    raise
             self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name,
                                        tip_material, tip_thickness, el.length,
                                        apertureLeft=jaw_L, apertureRight=-jaw_R,
                                        rotation=np.deg2rad(el.angle),
                                        xOffset=xOffset, yOffset=yOffset, side=side,
                                        jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                       taperAngle=taper_angle,
+                                       horizontalWidth=horizontal_width,
+                                       taperDepth=taper_depth,
+                                       jawHalfHeight=jaw_half_height,
                                        isACrystal=isinstance(el, BaseCrystal))
         self._already_started = True
+
+    @staticmethod
+    def _tip_horizontal_width(el, jaw_L, jaw_R, side, tilt_L, tilt_R):
+        # Returns the horizontalWidth to give BDSIM (0 means its default of 2 m).
+        # As in BDSCollimatorJaw, each jaw spans from its edge out to
+        # horizontalWidth/2. With a taper the jaw is `length` long at the beam
+        # and grows with depth up to taper_depth, if set, or else over the
+        # whole jaw (see taper_extension).
+        # Whatever BDSIM would reject is checked here, as its link API does not
+        # raise but silently replaces a failing collimator by a drift.
+        half_gaps = []
+        if side in (0, 1):
+            half_gaps.append(jaw_L)
+        if side in (0, 2):
+            half_gaps.append(-jaw_R)
+        if el.jaw_depth < 0:
+            raise ValueError(f"Geant4CollimatorTip {el.name}: jaw_depth cannot be negative!")
+        if el.jaw_width < 0:
+            raise ValueError(f"Geant4CollimatorTip {el.name}: jaw_width cannot be negative!")
+        if el.jaw_depth > 0:
+            if min(half_gaps) < 0:
+                raise ValueError(f"Geant4CollimatorTip {el.name}: jaw_depth is not supported for "
+                               + "a jaw that crosses the beam axis!")
+            horizontal_width = 2*(max(half_gaps) + el.jaw_depth)
+        else:
+            horizontal_width = 2.0
+        depth = min(horizontal_width/2 - gap for gap in half_gaps)
+        if depth <= el.tip_thickness:
+            raise ValueError(f"Geant4CollimatorTip {el.name}: jaw depth ({depth*1e3:.3f} mm) "
+                           + f"must be larger than tip_thickness ({el.tip_thickness*1e3:.3f} mm)!")
+        if el.taper_angle != 0:
+            if not 0 < el.taper_angle < np.pi/2:
+                raise ValueError(f"Geant4CollimatorTip {el.name}: taper_angle must be in "
+                               + "(0, 90) degrees!")
+            if tilt_L != 0 or tilt_R != 0:
+                raise ValueError(f"Geant4CollimatorTip {el.name}: a taper cannot be combined "
+                               + "with a jaw tilt!")
+            if el.taper_depth < 0:
+                raise ValueError(f"Geant4CollimatorTip {el.name}: taper_depth cannot be negative!")
+            if el.jaw_depth <= 0 and el.taper_depth <= 0:
+                raise ValueError(f"Geant4CollimatorTip {el.name}: a taper needs jaw_depth or "
+                               + "taper_depth, otherwise the wedge would span BDSIM's 2 m wide "
+                               + "box and make the jaws several metres long!")
+        return horizontal_width if el.jaw_depth > 0 else 0
 
     def _stop_engine(self, **kwargs):
         del self._g4link
@@ -203,6 +298,7 @@ class Geant4Engine(BaseEngine):
 
     def _is_running(self):
         return self._g4link is not None
+
 
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is None or input_file is None:
@@ -217,13 +313,13 @@ class Geant4Engine(BaseEngine):
                            'root.err']
         return [cwd / f for f in files_to_delete]
 
+
     def _match_input_file(self):
         # Read the elements in the input file and compare to the elements in the engine,
         # overwriting parameters where necessary
         input_dict = get_collimators_from_input_file(self.input_file)
         for name in input_dict:
             if name not in self._element_dict:
-                self.stop()
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
             from ...beam_elements import Geant4CollimatorTip
@@ -244,17 +340,14 @@ class Geant4Engine(BaseEngine):
                 ee.angle = input_dict[name]['angle']
             if ee.material.geant4_name != input_dict[name]['material'] \
             and ee.material.name != input_dict[name]['material']:
-                self.stop()
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
             if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
                 if not isinstance(ee, Geant4CollimatorTip):
-                    self.stop()
                     raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
                                     + "in the line, but it has tip material in the input file!")
                 if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
-                    self.stop()
                     raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
                                     + "but it has no tip material in the input file!")
                 if ee.tip_material.geant4_name != input_dict[name]['tip_material']:
@@ -265,6 +358,26 @@ class Geant4Engine(BaseEngine):
                     self._print(f"Warning: Tip thickness of {name} differs from input file "
                             + f"({ee.tip_thickness} vs {input_dict[name]['tip_thickness']})! Overwritten.")
                     ee.tip_thickness = input_dict[name]['tip_thickness']
+                taper_angle = input_dict[name].get('taper_angle', 0)
+                if not np.isclose(ee.taper_angle, taper_angle, atol=1e-9):
+                    self._print(f"Warning: Taper angle of {name} differs from input file "
+                            + f"({ee.taper_angle} vs {taper_angle})! Overwritten.")
+                    ee.taper_angle = taper_angle
+                jaw_depth = input_dict[name].get('jaw_depth', 0)
+                if not np.isclose(ee.jaw_depth, jaw_depth, atol=1e-9):
+                    self._print(f"Warning: Jaw depth of {name} differs from input file "
+                            + f"({ee.jaw_depth} vs {jaw_depth})! Overwritten.")
+                    ee.jaw_depth = jaw_depth
+                taper_depth = input_dict[name].get('taper_depth', 0)
+                if not np.isclose(ee.taper_depth, taper_depth, atol=1e-9):
+                    self._print(f"Warning: Taper depth of {name} differs from input file "
+                            + f"({ee.taper_depth} vs {taper_depth})! Overwritten.")
+                    ee.taper_depth = taper_depth
+                jaw_width = input_dict[name].get('jaw_width', 0)
+                if not np.isclose(ee.jaw_width, jaw_width, atol=1e-9):
+                    self._print(f"Warning: Jaw width of {name} differs from input file "
+                            + f"({ee.jaw_width} vs {jaw_width})! Overwritten.")
+                    ee.jaw_width = jaw_width
             jaw = input_dict[name]['jaw']
             if jaw is not None and not hasattr(jaw, '__iter__'):
                 jaw = [jaw, -jaw]

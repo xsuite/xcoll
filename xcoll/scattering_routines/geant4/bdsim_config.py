@@ -9,10 +9,7 @@ import numpy as np
 from xtrack.particles.pdg import get_properties_from_pdg_id, is_proton, is_ion
 
 from ...materials import RefMaterial
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
+from ...xaux import FsPath
 
 
 _header_start = "! ** XCOLL START  **"
@@ -126,6 +123,10 @@ def _generate_xcoll_header(element_dict):
         if isinstance(el, Geant4CollimatorTip):
             vv["tip_material"] = np.array(el.tip_material.geant4_name).tolist()
             vv["tip_thickness"]   = np.array(el.tip_thickness).tolist()
+            vv["taper_angle"]   = np.array(el.taper_angle).tolist()
+            vv["jaw_depth"]     = np.array(el.jaw_depth).tolist()
+            vv["taper_depth"]   = np.array(el.taper_depth).tolist()
+            vv["jaw_width"]     = np.array(el.jaw_width).tolist()
         header.append(f'!  "{kk}": ' + json.dumps(vv) + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("!  }")

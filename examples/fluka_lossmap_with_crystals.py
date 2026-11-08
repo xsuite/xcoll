@@ -107,7 +107,7 @@ print(ThisLM.summary)
 
 
 # Stop the FLUKA connection  (this should be after creating the loss map to get the correct particle_ref)
-xc.fluka.engine.stop(clean=False)
+xc.fluka.engine.stop(clean=True)
 
 
 print(f"Total calculation time {time.time()-start_time}s")

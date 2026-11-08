@@ -15,15 +15,16 @@ DEFAULT_XCOLL_ELEMENTS = [
     xc.EverestCollimator,
     xc.EverestCrystal,
     xc.BlowUp,
+    xc.BeamGasMarker,
     # xc.ParticleStatsMonitor,
     xc.EmittanceMonitor,
 ]
 
-XCOLL_NON_TRACKING_ELEMENTS = []
-
-if xc.fluka.interface.ready:
-    XCOLL_NON_TRACKING_ELEMENTS += [xc.FlukaCollimator, xc.FlukaCrystal]
-if xc.geant4.interface.ready:
-    XCOLL_NON_TRACKING_ELEMENTS += [xc.Geant4Collimator, xc.Geant4CollimatorTip]
+XCOLL_NON_TRACKING_ELEMENTS = [
+    xc.FlukaCollimator,
+    xc.FlukaCrystal,
+    xc.Geant4Collimator,
+    xc.Geant4CollimatorTip
+]
 
 EXTRA_XCOLL_ELEMENTS = []

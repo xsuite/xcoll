@@ -29,6 +29,7 @@ line = env[f'lhcb{beam}']
 
 
 # Install primary collimators
+<<<<<<< HEAD
 TCPH = xc.EverestCollimator(length=0.6, gap=5, emittance=3.5e-6,
                             material=xc.materials.MolybdenumGraphite)
 TCPV = xc.EverestCollimator(length=0.6, gap=5, angle=90, emittance=3.5e-6,
@@ -37,6 +38,12 @@ TCPS = xc.EverestCollimator(length=0.6, gap=5, angle=127.5, emittance=3.5e-6,
                             material=xc.materials.CarbonFibreCarbon)
 line.xcoll.collimators.install(['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'],
                                [TCPH, TCPV, TCPS], need_apertures=False)
+=======
+TCPH = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
+TCPV = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, angle=90, emittance=3.5e-6)
+TCPS = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.CarbonFibreComposite, angle=127.5, emittance=3.5e-6)
+line.xcoll.collimators.install(['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
+>>>>>>> release/v0.13.0
 
 
 # Aperture model check
@@ -139,3 +146,4 @@ plt.plot(x_norm[part.state>0], y_norm[part.state>0], '.', color='green')
 plt.axis('equal')
 plt.axis([n_sigmas, -n_sigmas, -n_sigmas, n_sigmas])
 plt.show()
+

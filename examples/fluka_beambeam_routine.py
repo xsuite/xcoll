@@ -114,7 +114,7 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
     start = time.time()
     coll_dummy.track(part)
     print(f"Done in {round(time.time()-start, 3)}s.")
-    xc.fluka.engine.stop(clean=False)
+    xc.fluka.engine.stop(clean=True)
 
     line.discard_tracker()
 
@@ -131,22 +131,6 @@ num_particles = int(100)
 line = xt.load(path_in / 'machines' / f'levelling.23_b{beam}.json')
 colldb = xc.CollimatorDatabase.from_yaml(path_in / "colldbs" / f'levelling.23.yaml', beam=beam)
 
-if not ions:
-    # p-p example
-    part = FlukaBeamBeamSource(
-        line=line,
-        colldb=colldb,
-        int_type=1.0, # 1.0 inelastic, 10.0 elastic, 100.0 Emd
-        ip="ip1",
-        num_particles=num_particles,
-        pdg_id_b1='proton',
-        p0c_b1=6.8e12,
-        Z_b2=1,
-        A_b2=1,
-        sigma_z = 8e-2,
-        sigma_dpp = 1.1e-4
-    )
-
 if ions:
     # Pb-Pb example
     part = FlukaBeamBeamSource(
@@ -162,7 +146,21 @@ if ions:
         sigma_z = 8e-2,
         sigma_dpp = 1.1e-4
     )
-
+else:
+    # p-p example
+    part = FlukaBeamBeamSource(
+        line=line,
+        colldb=colldb,
+        int_type=1.0, # 1.0 inelastic, 10.0 elastic, 100.0 Emd
+        ip="ip1",
+        num_particles=num_particles,
+        pdg_id_b1='proton',
+        p0c_b1=6.8e12,
+        Z_b2=1,
+        A_b2=1,
+        sigma_z = 8e-2,
+        sigma_dpp = 1.1e-4
+    )
 
 part_alive = part.filter(part.state == 1)
 values, counts = np.unique(part_alive.pdg_id, return_counts=True)
@@ -177,7 +175,6 @@ plt.xlabel('Particles')
 plt.ylabel('Counts')
 plt.tight_layout()
 plt.xticks(rotation=90)
-        
 plt.show()
 
 if dump:

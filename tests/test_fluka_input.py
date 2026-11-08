@@ -3,12 +3,18 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 
+import pytest
 import numpy as np
 from pathlib import Path
+from types import SimpleNamespace
+
 import xtrack as xt
 import xcoll as xc
-import pytest
-
+from xcoll.scattering_routines.fluka.environment import format_fluka_float
+from xcoll.scattering_routines.fluka.includes import (
+    _physics_include_file,
+    _scoring_include_file,
+)
 from xcoll.scattering_routines.fluka.fluka_input import get_collimators_from_input_file
 
 
@@ -69,7 +75,7 @@ def test_fluka_input_single(el_type, register_cleanup):
     found = False
     with input_file[0].open('r') as fp:
         for line in fp:
-            if f"RPP {jaw.fedb_tag}   0.0 20.0 -10.0 10.0 -22.8 22.8" in line \
+            if f"RPP {jaw.fedb_tag}   0.0 25.0 -12.5 12.5 -22.8 22.8" in line \
             and el_type == 'collimator':
                 found = True
             if f"RPP {jaw.fedb_tag}   0.0 2.2 -2.75 2.75 -0.24 0.24" in line \
@@ -240,3 +246,258 @@ def test_fluka_input_line(ignore_crystals, register_cleanup):
      10         INROT_10             INROT_10            0.241000   
      11         INROT_11             INROT_11            0.051400   
      12         INROT_12             INROT_12            0.051400""" in insertion_txt
+
+
+@pytest.mark.serial
+@pytest.mark.fluka
+def test_fluka_input_gap_above_100_sigma(register_cleanup):
+    # At low emittance a finite jaw can correspond to a gap of several
+    # hundred sigma. Such collimators must not be dropped by the LineBuilder.
+    print(f"\nTesting FLUKA input generation for gaps above 100 sigma... in {Path.cwd()}")
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
+    beam = 1
+    path = Path(__file__).parent
+    env = xt.load(path / 'data' / f'sequence_lhc_run3_b{beam}.json')
+    line = env.lines[f'lhcb{beam}']
+    colldb = xc.CollimatorDatabase.from_yaml(path / 'data' / 'colldb_lhc_run3_ir7.yaml', beam=beam,
+                                             ignore_crystals=True)
+    names = ['tcp.d6l7.b1', 'tcsg.a6l7.b1', 'tcsg.d4l7.b1']
+    colldb.install_fluka_collimators(line=line, names=names)
+    line.build_tracker()
+    line.xcoll.collimators.assign_optics(nemitt_x=1e-9, nemitt_y=1e-9)
+    gaps = {'tcp.d6l7.b1': 150., 'tcsg.a6l7.b1': 400., 'tcsg.d4l7.b1': 6.}
+    for name, gap in gaps.items():
+        line[name].gap = gap
+    for name in names:
+        assert line[name].jaw_L < 0.01  # finite and well inside the beam pipe
+
+    path_tmp = Path.cwd() / 'fluka_run_temp_test_gap_above_100_sigma'
+    register_cleanup(path_tmp)
+    particle_ref = xt.Particles('proton', p0c=7e12)
+    input_file = xc.fluka.engine.generate_input_file(line=line, clean=False, cwd=path_tmp,
+                        particle_ref=particle_ref, filename=path_tmp / 'fluka_input_test.inp')
+    new_coll_dct = get_collimators_from_input_file(input_file[0])
+    for name in names:
+        assert name in new_coll_dct
+        assert np.isclose(new_coll_dct[name]['jaw'][0],  line[name].jaw_L)
+        assert np.isclose(new_coll_dct[name]['jaw'][1], line[name].jaw_R)
+    with input_file[1].open('r') as fp:
+        assert len(fp.readlines()) >= len(names)
+
+
+
+def _active_cards(text, card):
+    """Return uncommented FLUKA cards of the requested type."""
+    result = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("*"):
+            continue
+        if stripped.split()[0] == card:
+            result.append(line)
+    return result
+
+def _make_physics_input(tmp_path, monkeypatch, **kwargs):
+    monkeypatch.chdir(tmp_path)
+    params = {
+        "verbose": False,
+        "particle_ref": xt.Particles("proton", p0c=7e12),
+        "hadron_lower_momentum_cut": 2e9,
+        "photon_lower_momentum_cut": 3e6,
+        "electron_lower_momentum_cut": 4e6,
+        "include_showers": True,
+        "include_single_coulomb": True,
+        "include_multiple_coulomb": True,
+        "include_elastic": True,
+        "include_inelastic": True,
+        "include_pair_production": True,
+        "include_bremsstrahlung": True,
+        "include_ionisation_fluctuations": True,
+    }
+    params.update(kwargs)
+    filename = _physics_include_file(**params)
+    return filename.read_text()
+
+
+@pytest.mark.parametrize("include_showers", [True, False])
+def test_fluka_input_showers(tmp_path, monkeypatch, include_showers):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_showers=include_showers,
+    )
+    emfcut = _active_cards(text, "EMFCUT")
+    emf = _active_cards(text, "EMF")
+    deltaray = _active_cards(text, "DELTARAY")
+    if include_showers:
+        assert len(emfcut) == 2
+        assert len(emf) == 0
+        assert len(deltaray) == 0
+    else:
+        assert len(emfcut) == 0
+        assert len(emf) == 1
+        assert len(deltaray) == 1
+
+
+@pytest.mark.parametrize(
+    "single,multiple,expected",
+    [
+        (
+            True, True,
+            [
+                "MULSOPT                                        "
+                "1.0       1.0       1.0GLOBAL",
+            ],
+        ),
+        (
+            True, False,
+            [
+                "MULSOPT          0.0       0.0       0.0       "
+                "1.0       1.0 99999999.GLOBAL",
+            ],
+        ),
+        (
+            False, True,
+            [
+                "MULSOPT                                       "
+                "-1.0      -1.0      -1.0GLOBAL",
+            ],
+        ),
+        (
+            False, False,
+            [
+                "MULSOPT                                       "
+                "-1.0      -1.0      -1.0GLOBAL",
+                "MULSOPT                    3.0       3.0  "
+                "BLCKHOLE  @LASTMAT",
+            ],
+        ),
+    ],
+)
+def test_fluka_input_coulomb(
+    tmp_path, monkeypatch, single, multiple, expected
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_single_coulomb=single,
+        include_multiple_coulomb=multiple,
+    )
+    assert _active_cards(text, "MULSOPT") == expected
+
+
+@pytest.mark.parametrize(
+    "pair,brem,what1",
+    [
+        (True,  True,   3.0),
+        (True,  False,  1.0),
+        (False, True,   2.0),
+        (False, False, -3.0),
+    ],
+)
+def test_fluka_input_pair_bremsstrahlung(
+    tmp_path, monkeypatch, pair, brem, what1
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_pair_production=pair,
+        include_bremsstrahlung=brem,
+    )
+    cards = _active_cards(text, "PAIRBREM")
+    assert len(cards) == 1
+    assert float(cards[0].split()[1]) == what1
+
+
+@pytest.mark.parametrize("fluctuations", [True, False])
+def test_fluka_input_ionisation_fluctuations(
+    tmp_path, monkeypatch, fluctuations
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        include_ionisation_fluctuations=fluctuations,
+    )
+    cards = _active_cards(text, "IONFLUCT")
+    if fluctuations:
+        assert cards == []
+    else:
+        assert len(cards) == 1
+        assert "-1.0" in cards[0]
+
+
+@pytest.mark.parametrize(
+    "elastic,inelastic,comment,n_threshold_values",
+    [
+        (True,  True,  None,                                         0),
+        (False, True,  "Deactivate elastic hadronic interactions",  1),
+        (True,  False, "Deactivate inelastic hadronic interactions",1),
+        (False, False, "Deactivate hadronic interactions",          2),
+    ],
+)
+def test_fluka_input_hadronic_interactions(
+    tmp_path, monkeypatch,
+    elastic, inelastic, comment, n_threshold_values,
+):
+    particle_ref = xt.Particles("proton", p0c=7e12)
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        particle_ref=particle_ref,
+        include_elastic=elastic,
+        include_inelastic=inelastic,
+    )
+    cards = _active_cards(text, "THRESHOLd")
+    if elastic and inelastic:
+        assert cards == []
+        return
+    assert len(cards) == 1
+    assert comment in text
+    threshold = format_fluka_float(
+        5 * particle_ref.energy0[0] / 1e9
+    ).strip()
+    assert cards[0].count(threshold) == n_threshold_values
+
+
+def test_fluka_input_momentum_cuts(tmp_path, monkeypatch):
+    hadron_cut = 2e9
+    photon_cut = 3e6
+    electron_cut = 4e6
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        hadron_lower_momentum_cut=hadron_cut,
+        photon_lower_momentum_cut=photon_cut,
+        electron_lower_momentum_cut=electron_cut,
+        include_showers=True,
+    )
+    # Hadron thresholds: generic, D, T, He3, He4
+    part_thr = _active_cards(text, "PART-THR")
+    assert len(part_thr) == 5
+    values = [float(line.split()[1]) for line in part_thr]
+    assert values == [2.0, 4.0, 6.0, 6.0, 8.0]
+    # EM production cuts.
+    emfcut = _active_cards(text, "EMFCUT")
+    assert len(emfcut) == 2
+    photon_gev = format_fluka_float(photon_cut / 1e9).strip()
+    electron_energy = np.sqrt(electron_cut**2 + (511e3)**2)
+    electron_gev = format_fluka_float(electron_energy / 1e9).strip()
+    for line in emfcut:
+        assert electron_gev in line
+        assert photon_gev in line
+
+
+@pytest.mark.parametrize(
+    "particle,p0c,active",
+    [
+        ("proton", 7e12, False),
+        ("Pu-239", 94*7e12, True),
+    ],
+)
+def test_fluka_input_em_dissociation(
+    tmp_path, monkeypatch, particle, p0c, active
+):
+    text = _make_physics_input(
+        tmp_path, monkeypatch,
+        particle_ref=xt.Particles(particle, p0c=p0c),
+    )
+    cards = [
+        line for line in _active_cards(text, "PHYSICS")
+        if "EM-DISSO" in line
+    ]
+    assert bool(cards) is active

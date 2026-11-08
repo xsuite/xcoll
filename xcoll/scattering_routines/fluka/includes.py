@@ -4,17 +4,25 @@
 # ######################################### #
 
 from math import sqrt
+from warnings import warn
 
 import xtrack as xt
-from xtrack.particles.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, is_ion
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
+from xtrack.particles.pdg import (
+    get_name_from_pdg_id,
+    get_properties_from_pdg_id,
+    is_ion,
+)
 
 from .environment import format_fluka_float
-from .prototype import FlukaPrototype, FlukaAssembly
-from ...general import _pkg_root
+from .prototype import FlukaAssembly
+from .reference_names import fluka_names_meta
+from ...xaux import FsPath
+
+
+_FLUKA_PDG_IDS = {
+    value["value"]: value["pdg_id"]
+    for value in fluka_names_meta.values()
+}
 
 
 def _is_ion(pdg_id):
@@ -23,12 +31,16 @@ def _is_ion(pdg_id):
     return is_ion(pdg_id)
 
 
-def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblies=[],
-                      bb_int=False, **kwargs):
+def get_include_files(particle_ref, include_files=None, *, verbose=True,
+                      assemblies=None, bb_int=False, **kwargs):
 
     import xcoll as xc
     phys = xc.fluka.engine._physics_settings
+    if include_files is None:
+        include_files = []
     this_include_files = include_files.copy()
+    if assemblies is None:
+        assemblies = []
 
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
@@ -57,7 +69,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
                                              use_crystals=any([assm.is_crystal for assm in assemblies]))
         this_include_files.append(scoring_file)
     if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
-        material_file = _assignmat_include_file(assemblies=assemblies)
+        material_file = _assignmat_include_file(particle_ref, assemblies=assemblies)
         this_include_files.append(material_file)
 
     # Add any additional include files
@@ -74,7 +86,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
     return this_include_files, kwargs
 
 
-def _assignmat_include_file(assemblies=[]):
+def _assignmat_include_file(particle_ref, assemblies=[]):
     from xcoll.materials.database import db as mdb
     template =  ''.join([mat._generated_fluka_code for mat in mdb.fluka.values()
                          if mat._generated_fluka_code is not None])
@@ -120,11 +132,12 @@ def _assignmat_include_file(assemblies=[]):
         pos1   = format_fluka_float(pos[3]-50.0+1e-4) # XXX Does it always work with the 50cm shift?
         pos2   = format_fluka_float(pos[4])
         pos3   = format_fluka_float(pos[5])
+        pos4   = format_fluka_float(particle_ref.p0c[0] / 1e9)
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110
 CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &
-CRYSTAL   {pos1}{pos2}{pos3}                              &&
+CRYSTAL   {pos1}{pos2}{pos3}{pos4}                        &&
 """
     filename = FsPath("include_custom_assignmat.inp").resolve()
 
@@ -212,8 +225,10 @@ def _physics_include_file(*, verbose, particle_ref, hadron_lower_momentum_cut,
                           include_showers, include_single_coulomb, include_multiple_coulomb,
                           include_elastic, include_inelastic, include_pair_production,
                           include_bremsstrahlung, include_ionisation_fluctuations,
-                          extra_physics_cards=[]):
+                          extra_physics_cards=None):
     filename = FsPath("include_settings_physics.inp").resolve()
+    if extra_physics_cards is None:
+        extra_physics_cards = []
     # Showers
     emf = "*EMF" if include_showers else "EMF"
     deltaray = "DELTARAY" if not include_showers else "*DELTARAY"
@@ -346,134 +361,193 @@ LOW-PWXS          -1
 
 def _scoring_include_file(*, verbose, return_list, get_touches=False, use_crystals=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
-    all_charged = 'USRBDX' if return_list.return_all_charged else '*USRBDX'
-    all_particles = 'USRBDX' if return_list.return_all else '*USRBDX'
-    neutral = return_list.return_neutral
-    allow = not return_list.return_all_charged and not return_list.return_all
-    photons = 'USRBDX' if return_list.return_photons and allow else '*USRBDX'
-    electrons = 'USRBDX' if return_list.return_electrons and allow else '*USRBDX'
-    muons = 'USRBDX' if return_list.return_muons and allow else '*USRBDX'
-    tauons = 'USRBDX' if return_list.return_tauons and allow else '*USRBDX'
-    neutrinos = 'USRBDX' if return_list.return_neutrinos and allow else '*USRBDX'
-    protons = 'USRBDX' if return_list.return_protons and allow else '*USRBDX'
-    neutrons = 'USRBDX' if return_list.return_neutrons and allow else '*USRBDX'
-    baryons = 'USRBDX' if return_list.return_other_baryons and allow else '*USRBDX'
-    neutral_baryons = 'USRBDX' if return_list.return_other_baryons and neutral and allow else '*USRBDX'
-    pions = 'USRBDX' if return_list.return_pions and allow else '*USRBDX'
-    neutral_pions = 'USRBDX' if return_list.return_pions and neutral and allow else '*USRBDX'
-    kaons = 'USRBDX' if return_list.return_kaons and allow else '*USRBDX'
-    neutral_kaons = 'USRBDX' if return_list.return_kaons and neutral and allow else '*USRBDX'
-    mesons = 'USRBDX' if return_list.return_other_mesons and allow else '*USRBDX'
-    neutral_mesons = 'USRBDX' if return_list.return_other_mesons and neutral and allow else '*USRBDX'
-    ions = 'USRBDX' if return_list.return_ions and allow else '*USRBDX'
-    crystal = 'USRICALL' if use_crystals else '*USRICALL'
-    touches = 'USERDUMP' if get_touches else '*USERDUMP'
-    if verbose:
-        print(f"Scoring include file created with:")
-        if all_particles[0] != '*':
-            print(f"  - Return all particles: True")
-        elif all_charged[0] != '*':
-            print(f"  - Return all charged particles: True")
-        else:
-            print(f"  - Return photons: {photons[0] != '*'}\n"
-                + f"  - Return electrons: {electrons[0] != '*'}\n"
-                + f"  - Return muons: {muons[0] != '*'}\n"
-                + f"  - Return tauons: {tauons[0] != '*'}\n"
-                + f"  - Return neutrinos: {neutrinos[0] != '*'}\n"
-                + f"  - Return protons: {protons[0] != '*'}\n"
-                + f"  - Return neutrons: {neutrons[0] != '*'}\n"
-                + f"  - Return other baryons: {baryons[0] != '*'}\n"
-                + f"  - Return neutral baryons: {neutral_baryons[0] != '*'}\n"
-                + f"  - Return pions: {pions[0] != '*'}\n"
-                + f"  - Return neutral pions: {neutral_pions[0] != '*'}\n"
-                + f"  - Return kaons: {kaons[0] != '*'}\n"
-                + f"  - Return neutral kaons: {neutral_kaons[0] != '*'}\n"
-                + f"  - Return other mesons: {mesons[0] != '*'}\n"
-                + f"  - Return neutral mesons: {neutral_mesons[0] != '*'}\n"
-                + f"  - Return ions: {ions[0] != '*'}\n")
-        print(f"  - Use crystals: {crystal[0] != '*'}")
-        print(f"  - Get touches map: {touches[0] != '*'}")
-
     template = f"""\
 * New way to give back particles to Icosim via fluscw.f routine (no more usrmed)
 *     through a fake USRBDX estimator
-USERWEIG                             3.0
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
-{all_charged}          99.0  ALL-CHAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{all_particles}          99.0  ALL-PART     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{photons}          99.0    PHOTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{photons}          99.0  OPTIPHOT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{photons}          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{electrons}          99.0  ELECTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{electrons}          99.0  POSITRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{muons}          99.0     MUON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{muons}          99.0     MUON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{tauons}          99.0      TAU+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{tauons}          99.0      TAU-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0   NEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0  ANEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0   NEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0  ANEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0   NEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrinos}          99.0  ANEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{pions}          99.0     PION+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{pions}          99.0     PION-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_pions}          99.0    PIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{kaons}          99.0     KAON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{kaons}          99.0     KAON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  KAONZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  AKAONZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_kaons}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutrons}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  DEUTERON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0    TRITON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  3-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  4-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{ions}          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0    LAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   ALAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0  LAMBDAC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0  ALAMBDC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    SIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    SIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  SIGMAZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  ASIGMAZE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   ASIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   ASIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0      XSI-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0     AXSI+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   XSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  AXSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0     XSIC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    AXSIC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0     XSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0    AXSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    XSIPC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   AXSIPC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0    XSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   AXSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0    OMEGA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{baryons}          99.0   AOMEGA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0   OMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_baryons}          99.0  AOMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0        D+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0        D-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_mesons}          99.0        D0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_mesons}          99.0     D0BAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0       DS+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{mesons}          99.0       DS-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-*
+USERWEIG                             3.0
+"""
+
+    return_all = return_list.return_all
+    return_all_charged = return_list.return_all_charged
+    explicit_return = return_list._extra_pdg_ids_to_return
+    covered_ids = set(_FLUKA_PDG_IDS.values())
+
+    # Find explicitly requested particles for which there is no dedicated FLUKA
+    # scorer. Ions are handled through HEAVYION. Charged particles are also
+    # already covered when ALL-CHAR is active.
+    uncovered_explicit = []
+    uncovered_explicit_charged = []
+    uncovered_explicit_neutral = []
+    if not return_all:
+        for pdg_id in explicit_return:
+            if is_ion(pdg_id):
+                continue
+            if pdg_id in covered_ids:
+                continue
+            try:
+                charge = get_properties_from_pdg_id(pdg_id)[0]
+            except ValueError:
+                uncovered_explicit.append(pdg_id)
+            else:
+                if abs(charge) > 1.e-12:
+                    if return_all_charged:
+                        continue
+                    uncovered_explicit_charged.append(pdg_id)
+                else:
+                    uncovered_explicit_neutral.append(pdg_id)
+    need_all_charged = return_all_charged or bool(uncovered_explicit_charged)
+    need_all_neutral = bool(uncovered_explicit_neutral)
+    need_all_unknown = bool(uncovered_explicit)
+
+    score_all  = return_all or need_all_unknown
+    score_all |= need_all_charged and need_all_neutral
+    score_all_charged = not score_all and need_all_charged
+    score_all_neutral = not score_all and need_all_neutral
+
+    if score_all and not return_all:
+        pids  = uncovered_explicit + uncovered_explicit_charged
+        pids += uncovered_explicit_neutral
+        warn("The following explicitly requested PDG IDs do not have "
+            "dedicated FLUKA scoring cards: "
+            + ", ".join(str(pid) for pid in sorted(pids))
+            + ". Falling back to ALL-PART scoring; the normal "
+              "PhysicsSettingsHelper mask will filter the returned "
+              "particles afterwards.", RuntimeWarning, stacklevel=2)
+    elif uncovered_explicit_charged:
+        pids = uncovered_explicit_charged
+        warn("The following explicitly requested PDG IDs do not have "
+            "dedicated FLUKA scoring cards: "
+            + ", ".join(str(pid) for pid in sorted(pids))
+            + ". Falling back to ALL-CHAR scoring; the normal "
+              "PhysicsSettingsHelper mask will filter the returned "
+              "particles afterwards.", RuntimeWarning, stacklevel=2)
+    elif uncovered_explicit_neutral:
+        pids = uncovered_explicit_neutral
+        warn("The following explicitly requested PDG IDs do not have "
+            "dedicated FLUKA scoring cards: "
+            + ", ".join(str(pid) for pid in sorted(pids))
+            + ". Falling back to ALL-NEUT scoring; the normal "
+              "PhysicsSettingsHelper mask will filter the returned "
+              "particles afterwards.", RuntimeWarning, stacklevel=2)
+
+    if score_all:
+        template += f"""\
+USRBDX          99.0  ALL-PART     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+
+    else:
+        if score_all_charged:
+            template += f"""\
+USRBDX          99.0  ALL-CHAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+        if score_all_neutral:
+            template += f"""\
+USRBDX          99.0  ALL-NEUT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+
+        for fluka_name, pdg_id in _FLUKA_PDG_IDS.items():
+            charge = get_properties_from_pdg_id(pdg_id)[0]
+            is_neutral = abs(charge) < 1.e-12
+            # Already covered by a broad scorer.
+            if score_all_charged and not is_neutral:
+                continue
+            if score_all_neutral and is_neutral:
+                continue
+            # Do not score if not requested
+            if not return_list.pdg_id_is_returned(pdg_id):
+                continue
+            # Score
+            template += f"""\
+USRBDX          99.0{fluka_name:>10}     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+            # FLUKA has two additional photon-like scorers:
+            if fluka_name == "PHOTON":
+                template += f"""\
+USRBDX          99.0  OPTIPHOT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+USRBDX          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+
+        # HEAVYION is a FLUKA class rather than one concrete PDG ID.
+        light_ion_pdg_ids = {
+            _FLUKA_PDG_IDS["DEUTERON"],
+            _FLUKA_PDG_IDS["TRITON"],
+            _FLUKA_PDG_IDS["3-HELIUM"],
+            _FLUKA_PDG_IDS["4-HELIUM"],
+        }
+        explicit_heavy_ion = any(
+            is_ion(pdg_id) and pdg_id not in light_ion_pdg_ids
+            for pdg_id in return_list._extra_pdg_ids_to_return
+        )
+        if not score_all_charged and (return_list.return_ions or explicit_heavy_ion):
+            template += f"""\
+USRBDX          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
+"""
+
+    if use_crystals:
+        template += f"""*
+* crystal scoring
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
+USRICALL        50.0                                                  CRYSTAL
+"""
+    if get_touches:
+        template += f"""*
 * Get back touches
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
-{touches}       100.0
-*
-* crystal scoring
-{crystal}        50.0                                                  CRYSTAL
+USERDUMP       100.0
 """
+
+    if verbose:
+        print("Scoring include file created with:")
+        if score_all:
+            if not return_all:
+                print("  - Particle scoring: all particles "
+                      "(fallback for explicitly requested PDG IDs)")
+            else:
+                print("  - Particle scoring: all particles")
+        elif score_all_charged:
+            if not return_all_charged:
+                print("  - Particle scoring: all charged particles "
+                      "(fallback for explicitly requested PDG IDs)")
+            else:
+                print("  - Particle scoring: all charged particles")
+                neutral_explicit = [
+                    pdg_id for pdg_id in sorted(explicit_return)
+                    if abs(get_properties_from_pdg_id(pdg_id)[0]) < 1.e-12
+                ]
+                if neutral_explicit:
+                    print("  - Additional explicitly requested neutral PDG IDs: "
+                        + ", ".join(str(pdg_id) for pdg_id in neutral_explicit))
+        elif score_all_neutral:
+            print("  - Particle scoring: all neutral particles "
+                "(fallback for explicitly requested PDG IDs)")
+        else:
+            enabled = [flag for flag in return_list._return_leaf_flags
+                       if getattr(return_list, flag)]
+            print("  - Particle scoring: selected particle types")
+            if enabled:
+                print("  - Enabled return types: "
+                    + ", ".join(flag.removeprefix("return_")
+                                for flag in enabled)
+                )
+            if explicit_return:
+                print("  - Explicitly returned PDG IDs: "
+                    + ", ".join(str(pdg_id)
+                                for pdg_id in sorted(explicit_return))
+                )
+            if return_list._extra_pdg_ids_to_kill:
+                print("  - Explicitly excluded PDG IDs: "
+                    + ", ".join(
+                        str(pdg_id)
+                        for pdg_id
+                        in sorted(
+                            return_list._extra_pdg_ids_to_kill
+                        )
+                    )
+                )
+        print(f"  - Use crystals: {'ON' if use_crystals else 'OFF'}")
+        print(f"  - Get touches:  {'ON' if get_touches else 'OFF'}")
+
     with filename.open('w') as fp:
         fp.write(template)
     return filename

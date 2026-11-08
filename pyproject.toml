@@ -24,8 +24,8 @@ dependencies = [
     "pandas>=1.4",
     "xobjects>=0.7.0",
     "xdeps>=0.10.21",
-    "xpart>=0.23.18",
-    "xtrack>=0.114.1",
+    "xpart>=0.23.19",
+    "xtrack>=0.115.2",
     "meson"
 ]
 
@@ -42,9 +42,6 @@ download = "https://pypi.python.org/pypi/xcoll"
 [project.entry-points.xobjects]
 include = "xcoll"
 build_info = "xcoll._xobjects:get_build_info"
-
-[tool.poetry]
-exclude = ["xcoll/lib", "xcoll/config"]
 
 [poetry.group.dev.dependencies]
 pytest = ">=7.3"

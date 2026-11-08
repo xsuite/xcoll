@@ -3,35 +3,10 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-# Tenporary file that defines xaux tools - to be used until xaux is in main Xsuite release cycle
-
 import os
 import base64
-import shutil
 import inspect
 import numpy as np
-from pathlib import PosixPath, Path
-
-
-class FsPath(PosixPath):
-    def copy_to(self, other, **kwargs):
-        if self.is_dir():
-            shutil.copytree(self, other / self.name, dirs_exist_ok=True)
-        else:
-            shutil.copy(self, other)
-    def move_to(self, other, **kwargs):
-        shutil.move(self, other)
-    def rmtree(self, *args, **kwargs):
-        shutil.rmtree(self, *args, **kwargs)
-    def __eq__(self, other):
-        try:
-            other = FsPath(other).expanduser().resolve()
-        except:
-            return False
-        self = self.expanduser().resolve()
-        return self.as_posix() == other.as_posix()
-    def __hash__(self):
-        return hash(Path(self))
 
 
 def ranID(*, length=12, size=1, only_alphanumeric=False):
@@ -66,7 +41,6 @@ def ranID(*, length=12, size=1, only_alphanumeric=False):
     else:
         random_bytes = os.urandom(3*length)
         return base64.urlsafe_b64encode(random_bytes).decode('utf-8')
-
 
 
 def count_required_arguments(func):

@@ -78,7 +78,7 @@ def test_elemental_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.4995836802664446)
     assert xnp.isclose(mat._Z2_eff, 36.0)
     assert xnp.isclose(mat.radiation_length, 0.18849567315806856)
-    assert xnp.isclose(mat.excitation_energy, 81.0)
+    assert xnp.isclose(mat.excitation_energy, 78.0)
     assert mat._radiation_length_set_manually is False
     assert mat._excitation_energy_set_manually is False
     assert mat.nuclear_radius is None
@@ -109,7 +109,7 @@ def test_elemental_material_creation(test_context):
         '_atoms_per_volume': np.float64(1.1357326245961699e+29),
         '_num_nucleons_eff': np.float64(3.704356404188558),
         '_radiation_length': np.float64(0.18849567315806856),
-        '_excitation_energy': np.float64(81.0),
+        '_excitation_energy': np.float64(78.0),
         '_nuclear_radius': np.float64(-1.0),
         '_nuclear_elastic_slope': np.float64(-1.0),
         '_cross_section': [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
@@ -146,7 +146,7 @@ def test_elemental_material_creation(test_context):
     assert xnp.isclose(mat._Z2_eff, 36)
     assert xnp.isclose(mat.density, 2.265)
     assert xnp.isclose(mat.radiation_length, 0.18849567315806856)
-    assert xnp.isclose(mat.excitation_energy, 81.0)
+    assert xnp.isclose(mat.excitation_energy, 78.0)
     assert xnp.isclose(mat.electron_density, 3.0085632439633638e+23)
     assert xnp.isclose(mat.plasma_energy, 30.652924826509626)
     assert xnp.isclose(mat.atoms_per_volume, 1.1357326245961699e+29)
@@ -415,7 +415,7 @@ def test_compound_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.5643708350517702)
     assert xnp.isclose(mat._Z2_eff, 15.777777777777777)
     assert xnp.isclose(mat.radiation_length, 0.5183349281307253)
-    assert xnp.isclose(mat.excitation_energy, 61.02615629345832)
+    assert xnp.isclose(mat.excitation_energy, 59.97236969353444)
     assert mat._radiation_length_set_manually is False
     assert mat._excitation_energy_set_manually is False
     assert mat.nuclear_radius is None
@@ -447,7 +447,7 @@ def test_compound_material_creation(test_context):
         '_atoms_per_volume': np.float64(1.0319692250715231e+28),
         '_num_nucleons_eff': np.float64(2.357350095109508),
         '_radiation_length': np.float64(0.5183349281307253),
-        '_excitation_energy': np.float64(61.02615629345832),
+        '_excitation_energy': np.float64(59.97236969353444),
         '_nuclear_radius': np.float64(-1.0),
         '_nuclear_elastic_slope': np.float64(-1.0),
         '_cross_section': [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
@@ -468,7 +468,7 @@ def test_compound_material_creation(test_context):
     assert xnp.isclose(mat._Z2_eff, 15.777777777777777)
     assert mat.radiation_length is None
     assert xnp.isclose(mat._radiation_length, -1)
-    assert xnp.isclose(mat.excitation_energy, 61.02615629345832)
+    assert xnp.isclose(mat.excitation_energy, 59.97236969353444)
     assert mat.plasma_energy is None
     assert mat.atoms_per_volume is None
     assert xnp.isclose(mat._atoms_per_volume, -1)
@@ -484,7 +484,7 @@ def test_compound_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.5643708350517702)
     assert xnp.isclose(mat._Z2_eff, 15.777777777777777)
     assert xnp.isclose(mat.radiation_length, 0.5183349281307253)
-    assert xnp.isclose(mat.excitation_energy, 61.02615629345832)
+    assert xnp.isclose(mat.excitation_energy, 59.97236969353444)
     assert xnp.isclose(mat.electron_density, 3.398720609520502e+23)
     assert xnp.isclose(mat.plasma_energy, 19.23438440668927)
     assert xnp.isclose(mat.atoms_per_volume, 1.0319692250715231e+28)
@@ -501,7 +501,7 @@ def test_compound_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.5643708350517702)
     assert xnp.isclose(mat._Z2_eff, 15.777777777777777)
     assert xnp.isclose(mat.radiation_length, 0.09417710218936735)
-    assert xnp.isclose(mat.excitation_energy, 61.02615629345832)
+    assert xnp.isclose(mat.excitation_energy, 59.97236969353444)
     assert xnp.isclose(mat.electron_density, 3.398720609520502e+23)
     assert xnp.isclose(mat.plasma_energy, 45.12434045076062)
     assert xnp.isclose(mat.atoms_per_volume, 5.679785018602531e+28)
@@ -518,7 +518,7 @@ def test_compound_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.5643708350517702)
     assert xnp.isclose(mat._Z2_eff, 15.777777777777777)
     assert xnp.isclose(mat.radiation_length, 0.5)
-    assert xnp.isclose(mat.excitation_energy, 61.02615629345832)
+    assert xnp.isclose(mat.excitation_energy, 59.97236969353444)
     assert xnp.isclose(mat.electron_density, 3.398720609520502e+23)
     assert xnp.isclose(mat.plasma_energy, 45.12434045076062)
     assert xnp.isclose(mat.atoms_per_volume, 5.679785018602531e+28)
@@ -575,7 +575,7 @@ def test_compound_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.5643708350517702)
     assert xnp.isclose(mat._Z2_eff, 15.777777777777777)
     assert xnp.isclose(mat.radiation_length, 0.09417710218936735)
-    assert xnp.isclose(mat.excitation_energy, 61.02615629345832)
+    assert xnp.isclose(mat.excitation_energy, 59.97236969353444)
     assert xnp.isclose(mat.electron_density, 3.398720609520502e+23)
     assert xnp.isclose(mat.plasma_energy, 45.12434045076062)
     assert xnp.isclose(mat.atoms_per_volume, 5.679785018602531e+28)
@@ -633,7 +633,7 @@ def test_mixture_material_creation(test_context):
     assert xnp.isclose(mat._ZA_mean, 0.5027459683349229)
     assert xnp.isclose(mat._Z2_eff, 93.86563197810295)
     assert xnp.isclose(mat.radiation_length, 0.11306709197802262)
-    assert xnp.isclose(mat.excitation_energy, 121.74338267324313)
+    assert xnp.isclose(mat.excitation_energy, 121.73881740418065)
     assert mat._radiation_length_set_manually is False
     assert mat._excitation_energy_set_manually is False
     assert mat.nuclear_radius is None
@@ -665,7 +665,7 @@ def test_mixture_material_creation(test_context):
         '_atoms_per_volume': np.float64(8.319954934083074e+28),
         '_num_nucleons_eff': np.float64(3.9008141200039312),
         '_radiation_length': np.float64(0.11306709197802262),
-        '_excitation_energy': np.float64(121.74338267324313),
+        '_excitation_energy': np.float64(121.73881740418065),
         '_nuclear_radius': np.float64(-1.0),
         '_nuclear_elastic_slope': np.float64(-1.0),
         '_cross_section': [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
@@ -723,6 +723,7 @@ def test_crystal_material_creation(test_context):
     # TODO
     pass
 
+
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_adapt(test_context):
@@ -752,6 +753,7 @@ def test_adapt(test_context):
     with pytest.raises(ValueError, match="Cannot adapt A inplace"):
         adapted.adapt(inplace=True, A=13.0)
 
+
 @pytest.mark.xcother
 @for_all_test_contexts
 def test_db(test_context):
@@ -780,3 +782,11 @@ def test_db(test_context):
     assert this_mat_geant4 in mdb.values()
     assert this_mat_geant4 not in mdb.fluka.values()
     assert this_mat_geant4 in mdb.geant4.values()
+
+
+@pytest.mark.xcother
+def test_carbon_values():
+    assert xc.materials.Carbon.excitation_energy == 78
+    assert xc.materials.Graphite.excitation_energy == 81
+    assert xc.materials.Diamond.excitation_energy == 88.5
+    assert xc.materials.CarbonFibreComposite.excitation_energy == 78
