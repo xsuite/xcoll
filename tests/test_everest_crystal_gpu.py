@@ -167,7 +167,6 @@ def _fractions(coord_dict):
 
 
 @pytest.mark.everest
-@for_all_test_contexts(excluding=("ContextCpu", "ContextPyopencl"))
 def test_everest_crystal_cpu_gpu_distribution_match():
     """EverestCrystal must produce the same distribution on CPU and GPU.
 

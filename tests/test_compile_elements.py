@@ -25,6 +25,11 @@ NON_INSTANTIABLE_CLASSES = {
 
 FACTORIES = {
 
+    xc.BeamGasMarker:
+        lambda ctx: xc.BeamGasMarker(
+            _context=ctx,
+        ),
+
     xc.BlackAbsorber:
         lambda ctx: xc.BlackAbsorber(
             length=1.0,
