@@ -1,6 +1,6 @@
 tests/assets/
 tests/pytest*results.html
-.benchmarks/
+benchmarks/results/
 .pytest_cache/
 
 # Byte-compiled / optimized / DLL files
