@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 tests = ["pytest", "pytest-html", "pytest-xdist"]
-benchmarks = ["pytest>=8.1", "pytest-benchmark>=5", "psutil>=5"]
+benchmarks = ["pytest>=7.3", "pytest-benchmark>=5.2"]
 
 [project.urls]
 homepage = "https://github.com/xsuite/xcoll"
