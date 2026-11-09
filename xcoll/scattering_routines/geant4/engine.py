@@ -361,7 +361,7 @@ class Geant4Engine(BaseEngine):
                     self._print(f"Warning: Tip material of {name} differs from input file "
                             + f"({ee.tip_material.geant4_name} vs {input_dict[name]['tip_material']})! Overwritten.")
                     ee.tip_material.geant4_name = input_dict[name]['tip_material']
-                if not np.isclose(ee.length, input_dict[name]['tip_thickness'], atol=1e-9):
+                if not np.isclose(ee.tip_thickness, input_dict[name]['tip_thickness'], atol=1e-9):
                     self._print(f"Warning: Tip thickness of {name} differs from input file "
                             + f"({ee.tip_thickness} vs {input_dict[name]['tip_thickness']})! Overwritten.")
                     ee.tip_thickness = input_dict[name]['tip_thickness']
