@@ -239,8 +239,8 @@ class BaseEngine(xo.HybridClass):
     def dont_return_pdg_id(self, pdg_id):
         return self._physics_settings.dont_return_pdg_id(pdg_id)
 
-    def pdg_id_is_returned(self, pdg_id):
-        return self._physics_settings.pdg_id_is_returned(pdg_id)
+    def pdg_id_is_returned(self, pdg_id, q=None):
+        return self._physics_settings.pdg_id_is_returned(pdg_id, q=q)
 
 
     def reset(self, *, clean=False):

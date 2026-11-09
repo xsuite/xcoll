@@ -1,0 +1,67 @@
+name: Xcoll performance
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Benchmark profile (full means all benchmarks)
+        type: choice
+        options: [quick, full]
+        default: quick
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      BENCHMARK_TESTBED: github-ubuntu-24.04-cpu-informational
+
+    steps:
+      - name: Check out selected branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Xsuite and this checkout of Xcoll
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade xsuite
+          python -m pip install -e '.[benchmarks]' cython
+
+      - name: Record dependency versions
+        run: python -m pip freeze > benchmark-dependencies.txt
+
+      - name: Regenerate serial prebuilt kernels
+        run: xsuite-prebuild regenerate --kind serial
+
+      - name: Run CPU benchmarks
+        working-directory: benchmarks
+        env:
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          if [ "$PROFILE" = "quick" ]; then
+            python -m pytest -m quick
+          else
+            python -m pytest
+          fi
+
+      - name: Archive results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            benchmarks/results/
+            benchmark-dependencies.txt
+          if-no-files-found: warn
+          retention-days: 90

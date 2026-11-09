@@ -15,7 +15,7 @@ from contextlib import contextmanager
 #     user_config_path = None
 #     user_data_path = None
 
-from .general import _pkg_root
+from .general import _pkg_root, __version__
 from .xaux import track_construction, FsPath
 
 
@@ -53,7 +53,7 @@ def _is_writable_directory(path: FsPath) -> bool:
         return False
     return True
 
-def _select_directory(name) -> FsPath:
+def _select_directory(name, versioned=False) -> FsPath:
     candidates = []
     env_var_name = f'XCOLL_{name.upper()}_PATH'
     env_var = os.environ.get(env_var_name)
@@ -70,13 +70,19 @@ def _select_directory(name) -> FsPath:
         FsPath(tempfile.gettempdir()) / 'xcoll' / name,
     ]
     for path in candidates:
+        if versioned:
+            for pp in path.glob('*.json'):
+                if pp.is_file():
+                    # Clean up old unversioned configuration files
+                    pp.unlink()
+            path = path / __version__
         if _is_writable_directory(path):
             return path
     raise RuntimeError("No writable directory was found.")
 
-_config_dir = _select_directory('config')
-_data_dir = _select_directory('data')
-_lib_dir = _select_directory('lib')
+_config_dir = _select_directory('config', versioned=True)
+_data_dir = _select_directory('data', versioned=False)
+_lib_dir = _select_directory('lib', versioned=True)
 
 
 @track_construction

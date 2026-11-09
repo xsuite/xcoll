@@ -1,7 +1,7 @@
-xcoll/lib
-xcoll/config
 tests/assets/
 tests/pytest*results.html
+benchmarks/results/
+.pytest_cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

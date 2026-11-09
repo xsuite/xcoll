@@ -123,6 +123,10 @@ def _generate_xcoll_header(element_dict):
         if isinstance(el, Geant4CollimatorTip):
             vv["tip_material"] = np.array(el.tip_material.geant4_name).tolist()
             vv["tip_thickness"]   = np.array(el.tip_thickness).tolist()
+            vv["tip_length"]    = np.array(el._tip_length).tolist()  # 0 if not tapered
+            vv["jaw_depth"]     = np.array(el.jaw_depth).tolist()
+            vv["taper_depth"]   = np.array(el.taper_depth).tolist()
+            vv["jaw_width"]     = np.array(el.jaw_width).tolist()
         header.append(f'!  "{kk}": ' + json.dumps(vv) + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("!  }")
