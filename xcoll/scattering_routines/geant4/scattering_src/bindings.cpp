@@ -22,7 +22,7 @@ PYBIND11_MODULE(g4interface, m) {
                  "name"_a, "material"_a, "tipMaterial"_a, "tipThickness"_a, "length"_a, "apertureLeft"_a,
                  "apertureRight"_a, "rotation"_a, "xOffset"_a, "yOffset"_a, "jawTiltLeft"_a,
                  "jawTiltRight"_a, "taperAngle"_a, "horizontalWidth"_a, "taperDepth"_a,
-                 "jawHalfHeight"_a, "side"_a, "isACrystal"_a,
+                 "jawHalfHeight"_a, "tipLength"_a, "side"_a, "isACrystal"_a,
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             /// The cast here to disambiguate overloaded methods. The other versions of
             /// addParticles were removed, but keep the cast for reference for now.

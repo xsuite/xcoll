@@ -191,6 +191,7 @@ void XtrackInterface::addCollimator(const std::string& name,
                                     double horizontalWidth,
                                     double taperDepth,
                                     double jawHalfHeight,
+                                    double tipLength,
                                     int    side,
                                     bool isACrystal){
         start_redirect();
@@ -218,7 +219,8 @@ void XtrackInterface::addCollimator(const std::string& name,
                                          taperAngle * CLHEP::rad,    // BDSIM with tip_taper
                                          horizontalWidth * CLHEP::m, // BDSIM with tip_taper
                                          taperDepth * CLHEP::m,      // BDSIM with tip_taper
-                                         jawHalfHeight * CLHEP::m);  // BDSIM with tip_taper
+                                         jawHalfHeight * CLHEP::m,   // BDSIM with tip_taper
+                                         tipLength * CLHEP::m);      // BDSIM with tip_taper
         } else {                                                     // BDSIM >= 1.7.7.develop
             bds->AddLinkCollimatorJaw(name,
                                       material,

@@ -27,7 +27,7 @@ class BDSIMServer:
     def addCollimator(self, geant4_id, material, tipMaterial='', tipThickness=0, length=0,
                       apertureLeft=None, apertureRight=None, rotation=None, xOffset=0, yOffset=0,
                       side=None, jawTiltLeft=None, jawTiltRight=None, taperAngle=0, horizontalWidth=0,
-                      taperDepth=0, jawHalfHeight=0, isACrystal=False):
+                      taperDepth=0, jawHalfHeight=0, tipLength=0, isACrystal=False):
         self.g4link.addCollimator(geant4_id, material, tipMaterial, tipThickness, length,
                                   apertureLeft=apertureLeft,
                                   apertureRight=apertureRight,
@@ -38,6 +38,7 @@ class BDSIMServer:
                                   horizontalWidth=horizontalWidth,
                                   taperDepth=taperDepth,
                                   jawHalfHeight=jawHalfHeight,
+                                  tipLength=tipLength,
                                   isACrystal=isACrystal)
 
 
