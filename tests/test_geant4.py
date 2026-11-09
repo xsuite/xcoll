@@ -165,27 +165,29 @@ def test_geant4_tip_taper():
         pytest.skip("BDSIM interface built without tip taper support (bdsim-collaboration/bdsim#228)")
     # SuperKEKB-type jaw, as in its engineering drawing and in SAD: a 10 mm long
     # flat face at the beam, a 12 degree taper over the first 37 mm of depth (up
-    # to 358 mm long), then 88 mm more of jaw at that length. The element is
-    # 10 mm long; Geant4 tracks through the full jaw, centred on it. The jaws
-    # are deliberately not centred on the beam, to exercise the re-centring
+    # to 358 mm long), then 88 mm more of jaw at that length. The element is the
+    # full 358 mm long, calculated from tip_length, the angle and taper_depth. The
+    # jaws are deliberately not centred on the beam, to exercise the re-centring
     # that gives both jaws the same depth.
     if xc.geant4.engine.is_running():
         xc.geant4.engine.stop()
 
-    length = 0.010
+    tip_length = 0.010
     jaw = [0.0080, -0.0076]
     jaw_depth = 0.125
     taper_depth = 0.037
     n_part = 400
     px = 1e-3
-    kwargs = dict(length=length, jaw=jaw, jaw_depth=jaw_depth, taper_depth=taper_depth,
+    kwargs = dict(jaw=jaw, jaw_depth=jaw_depth, taper_depth=taper_depth,
                   material=xc.materials.Copper,
                   tip_material=xc.materials.Tungsten, tip_thickness=0.005)
 
-    flat = xc.Geant4CollimatorTip(**kwargs)
-    tapered = xc.Geant4CollimatorTip(**kwargs, taper_angle_deg=12)
-    assert flat.taper_extension == 0
-    assert np.isclose(length + 2*tapered.taper_extension, 0.35814, atol=1e-5)
+    flat = xc.Geant4CollimatorTip(length=tip_length, **kwargs)
+    tapered = xc.Geant4CollimatorTip(tip_length=tip_length, taper_angle_deg=12, **kwargs)
+    assert flat.taper_angle == 0
+    assert flat.tip_length == flat.length
+    assert np.isclose(tapered.length, 0.35814, atol=1e-5)
+    assert np.isclose(tapered.tip_length, tip_length)
 
     xc.geant4.engine.particle_ref = particle_ref
     xc.geant4.engine.start(elements=[flat, tapered], seed=1993)
@@ -198,11 +200,11 @@ def test_geant4_tip_taper():
                                   _capacity=n_part*4)
         coll.track(part)
         mask = (part.state == 1) & (part.particle_id < n_part)
-        # Surviving primaries come out at the end of the element, not of the
-        # longer wedge: x0 + px*length up to multiple scattering. Being 174 mm
-        # off in either drift would shift this by px*174 mm = 174 um.
+        # Surviving primaries come out at the end of the element, which is the
+        # end of the jaw: x0 + px*length up to multiple scattering. A jaw 174 mm
+        # longer than the element on either side would shift this by 174 um.
         if mask.sum() > 0:
-            assert np.median(np.abs(part.x[mask] - (x0 + px*length))) < 30e-6
+            assert np.median(np.abs(part.x[mask] - (x0 + px*coll.length))) < 30e-6
         return int(mask.sum())
 
     # 2 mm deep: 10 mm of tungsten through the flat jaw, ~29 mm through the taper
@@ -240,7 +242,7 @@ def test_geant4_tip_jaw_width():
 
     jaw = [0.008, -0.008]
     n_part = 200
-    coll = xc.Geant4CollimatorTip(length=0.010, jaw=jaw, jaw_depth=0.125, taper_depth=0.037,
+    coll = xc.Geant4CollimatorTip(tip_length=0.010, jaw=jaw, jaw_depth=0.125, taper_depth=0.037,
                                   taper_angle_deg=12, jaw_width=0.020, material=xc.materials.Copper,
                                   tip_material=xc.materials.Tungsten, tip_thickness=0.005)
 
@@ -278,7 +280,7 @@ def test_geant4_tip_taper_unsupported(monkeypatch):
     kwargs = dict(length=0.010, jaw=0.008, material=xc.materials.Copper,
                   tip_material=xc.materials.Tungsten, tip_thickness=0.005)
     xc.geant4.engine.particle_ref = particle_ref
-    for extra in [dict(taper_angle_deg=12, taper_depth=0.037), dict(jaw_depth=0.125),
+    for extra in [dict(tip_length=0.005, taper_depth=0.037), dict(jaw_depth=0.125),
                   dict(jaw_width=0.02)]:
         with pytest.raises(RuntimeError, match="bdsim#228"):
             xc.geant4.engine.start(elements=xc.Geant4CollimatorTip(**kwargs, **extra), seed=1993)
@@ -313,3 +315,28 @@ def test_bdsim_source_gates(monkeypatch):
     # 1.8.0.develop before and after bdsim-collaboration/bdsim#228: same version, different features
     assert filtered('1.8.0.develop', False) == ['always', 'since_177', 'call(a);']
     assert filtered('1.8.0.develop', True) == ['always', 'since_177', 'call(a,', 'b);']
+
+
+def test_bdsim_tip_taper_detection(monkeypatch):
+    # Tapered tips need AddLinkCollimatorTipJaw with tipLength, where length is the full
+    # length of the jaw (bdsim-collaboration/bdsim#228). An earlier revision of that PR had
+    # tipTaperAngle but no tipLength, with length that of the jaw face at the beam: it
+    # must not be taken as supporting the taper.
+    from xcoll.scattering_routines.geant4.environment import Geant4Interface
+    head = ("  int AddLinkCollimatorTipJaw(const std::string& collimatorName,\n"
+            "                              double length,\n"
+            "                              bool   buildRightJaw = true")
+    headers = {
+        'none':         head + ");\n",
+        'intermediate': head + ",\n                              double tipTaperAngle = 0.0,\n"
+                             + "                              double jawHalfHeight = 0.0);\n",
+        'final':        head + ",\n                              double tipTaperAngle = 0.0,\n"
+                             + "                              double jawHalfHeight = 0.0,\n"
+                             + "                              double tipLength = 0.0);\n",
+    }
+    for state, expected in [('none', False), ('intermediate', False), ('final', True)]:
+        monkeypatch.setattr(Geant4Interface, '_bdsim_headers',
+                            lambda self, name, header=headers[state]: header)
+        assert xc.geant4.interface.bdsim_has_feature('tip_taper') == expected, state
+    monkeypatch.setattr(Geant4Interface, '_bdsim_headers', lambda self, name: None)
+    assert not xc.geant4.interface.bdsim_has_feature('tip_taper')
