@@ -12,7 +12,7 @@ residual gas of an accelerator vacuum chamber.
 
 Two processes are available:
 
-* **Bremsstrahlung** (``'brems'``): emission of a hard photon in the field of a
+* **Bremsstrahlung** (``'bremsstrahlung'``): emission of a hard photon in the field of a
   gas nucleus. The energy loss is the dominant effect; the associated angular
   deflection is small but is included.
 * **Coulomb scattering** (``'coulomb'``): elastic scattering off the screened
@@ -547,10 +547,10 @@ class BremsstrahlungCalculator:
         self.ekin = _energy_from_momentum(self.p0c) - ELECTRON_MASS_EV
 
         if self.energy_cut <= 0.0:
-            raise ValueError("`brems_energy_cut` must be positive.")
+            raise ValueError("`bremsstrahlung_energy_cut` must be positive.")
         if self.energy_cut >= self.ekin:
             raise ValueError(
-                f"`brems_energy_cut` ({self.energy_cut:.3e} eV) must be below "
+                f"`bremsstrahlung_energy_cut` ({self.energy_cut:.3e} eV) must be below "
                 f"the beam kinetic energy ({self.ekin:.3e} eV).")
 
     def __repr__(self):

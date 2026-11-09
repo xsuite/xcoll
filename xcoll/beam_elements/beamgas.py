@@ -12,7 +12,7 @@ from xtrack.particles import pdg
 from ..general import _pkg_root
 
 
-BEAMGAS_PROCESSES = ('brems', 'coulomb')
+BEAMGAS_PROCESSES = ('bremsstrahlung', 'coulomb')
 
 # Number of gas species that a marker can store
 MAX_GAS_SPECIES = 16
@@ -25,7 +25,7 @@ def _resolve_process(process):
     Parameters
     ----------
     process : str
-        Name of the process, ``'brems'`` or ``'coulomb'``.
+        Name of the process, ``'bremsstrahlung'`` or ``'coulomb'``.
 
     Returns
     -------
@@ -37,10 +37,10 @@ def _resolve_process(process):
         if process in BEAMGAS_PROCESSES:
             return process
         if process in ('bremsstrahlung', 'bremss'):
-            return 'brems'
+            return 'bremsstrahlung'
 
     raise ValueError(
-        "`process` must be either 'brems' (bremsstrahlung) or 'coulomb' "
+        "`process` must be either 'bremsstrahlung' or 'coulomb' "
         f"(Coulomb scattering). Got {process!r} instead.")
 
 
@@ -128,9 +128,9 @@ class BeamGasMarker(xt.BeamElement):
     mean_free_path : float, optional
         Local beam-gas mean free path [m], restricted to the generated part of
         the cross section.
-    process : {'brems', 'coulomb'}, optional
+    process : {'bremsstrahlung', 'coulomb'}, optional
         Beam-gas process generated at this marker.
-    brems_energy_cut : float, optional
+    bremsstrahlung_energy_cut : float, optional
         Lowest photon energy generated for bremsstrahlung [eV].
     coulomb_theta_min, coulomb_theta_max : float, optional
         Range of scattering angles generated for Coulomb scattering [rad].
@@ -202,7 +202,7 @@ class BeamGasMarker(xt.BeamElement):
         'sigma_z': xo.Float64,
         'sigma_delta': xo.Float64,
         '_process': xo.Int64,
-        'brems_energy_cut': xo.Float64,
+        'bremsstrahlung_energy_cut': xo.Float64,
         'coulomb_theta_min': xo.Float64,
         'coulomb_theta_max': xo.Float64,
         'n_gas_species': xo.Int64,
@@ -234,7 +234,7 @@ class BeamGasMarker(xt.BeamElement):
                  rate_above_theta_max=0.0,
                  mean_free_path=0.0,
                  process=None,
-                 brems_energy_cut=0.0,
+                 bremsstrahlung_energy_cut=0.0,
                  coulomb_theta_min=0.0,
                  coulomb_theta_max=0.0,
                  atomic_densities=None,
@@ -288,7 +288,7 @@ class BeamGasMarker(xt.BeamElement):
         # Not overwritten when None, to keep the values loaded from a dict
         if process is not None:
             self.process = process
-        self.brems_energy_cut = brems_energy_cut
+        self.bremsstrahlung_energy_cut = bremsstrahlung_energy_cut
         self.coulomb_theta_min = coulomb_theta_min
         self.coulomb_theta_max = coulomb_theta_max
         if atomic_densities is not None:
@@ -306,7 +306,7 @@ class BeamGasMarker(xt.BeamElement):
 
         Returns
         -------
-        process : {'brems', 'coulomb'}
+        process : {'bremsstrahlung', 'coulomb'}
             Name of the configured process.
         """
         return BEAMGAS_PROCESSES[int(self._process)]
@@ -318,7 +318,7 @@ class BeamGasMarker(xt.BeamElement):
 
         Parameters
         ----------
-        value : {'brems', 'coulomb'}
+        value : {'bremsstrahlung', 'coulomb'}
             Name of the process.
 
         Returns
@@ -415,7 +415,7 @@ class BeamGasMarker(xt.BeamElement):
             'sigma_z', 'sigma_delta',
             'n_scattering_events', 'interaction_rate',
             'rate_above_theta_max', 'mean_free_path',
-            'process', 'brems_energy_cut', 'coulomb_theta_min',
+            'process', 'bremsstrahlung_energy_cut', 'coulomb_theta_min',
             'coulomb_theta_max', 'atomic_densities', 'seed',
         }
 

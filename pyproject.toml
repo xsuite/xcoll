@@ -1,6 +1,6 @@
 [project]
 name = "xcoll"
-version = "0.13.0rc0"
+version = "0.13.0"
 description = "Xsuite collimation package"
 authors = [
     {name="Frederik F. Van der Veken", email="frederik@cern.ch"},
@@ -22,15 +22,16 @@ dependencies = [
     "ruamel-yaml>=0.17.31",
     "numpy>=1.0",
     "pandas>=1.4",
-    "xobjects>=0.7.0",
-    "xdeps>=0.10.21",
-    "xpart>=0.23.19",
-    "xtrack>=0.115.2",
+    "xobjects>=0.7.2",
+    "xdeps>=0.11.1",
+    "xpart>=0.23.23",
+    "xtrack>=0.118.6",
     "meson"
 ]
 
 [project.optional-dependencies]
 tests = ["pytest", "pytest-html", "pytest-xdist"]
+benchmarks = ["pytest>=7.3", "pytest-benchmark>=5.2"]
 
 [project.urls]
 homepage = "https://github.com/xsuite/xcoll"
@@ -51,12 +52,3 @@ xaux = ">=0.3.12"
 # Needed for pip install -e (BTW: need pip version 22)
 requires = ["poetry-core>=2.0"]
 build-backend = "poetry.core.masonry.api"
-
-# pyproject.toml
-#[tool.pytest.ini_options]
-#addopts = "-ra --durations=10 --durations-min=1"
-#python_functions = ["test_"]
-#testpaths = [
-#    "tests",
-#]
-

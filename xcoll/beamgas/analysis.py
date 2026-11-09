@@ -225,7 +225,7 @@ class BeamGasResult:
     rate_scattering : float
         Total beam-gas interaction rate represented by the result [1/s]. Only
         the part of the cross section that is actually generated is counted,
-        i.e. photon energies above ``brems_energy_cut`` or scattering angles
+        i.e. photon energies above ``bremsstrahlung_energy_cut`` or scattering angles
         within ``coulomb_theta``.
     lifetime_scattering : float
         Beam lifetime that would result if every generated interaction led to
@@ -255,7 +255,7 @@ class BeamGasResult:
         weight, the events above a cut ``c`` are an unbiased sample of a
         simulation generated with its lower cut set to ``c``. One row per
         log-spaced ``cut``, from the configured lower cut (``theta_min`` for
-        Coulomb scattering, ``brems_energy_cut`` for bremsstrahlung) upwards,
+        Coulomb scattering, ``bremsstrahlung_energy_cut`` for bremsstrahlung) upwards,
         with columns ``cut``, ``num_events`` and ``num_lost`` (in ``[cut,
         next cut)``), ``loss_probability`` (weighted fraction of those events
         that is lost), and ``rate_tracking``, ``rate_tracking_error`` and
