@@ -1,4 +1,6 @@
-"""Create an offline, interactive HTML dashboard from pytest-benchmark JSON.
+"""Create an offline interactive dashboard for GitHub Pages or local viewing.
+
+Reads any number of pytest-benchmark JSON files; no network or JS libraries.
 
 No application server or third-party Python dependencies required.
 
@@ -32,7 +34,12 @@ def read_runs(paths):
         processor = machine.get("processor") or cpu.get("brand_raw") or cpu.get("brand") or "unknown CPU"
         host = machine.get("node", "unknown-host")
         testbed = data.get("testbed", "unlabelled-local")
-        machine_key = f"{testbed} | {host} | {machine.get('system', '?')} | {processor}"
+        # CI hostnames are disposable: comparing by them destroys history.
+        # Compare on labelled testbed + hardware. Add hostname only for local
+        # runs (where a developer's machine is assumed to be persistent).
+        machine_key = f"{testbed} | {machine.get('system', '?')} | {processor}"
+        if not str(testbed).startswith("github-"):
+            machine_key += f" | {host}"
         ci = data.get("commit_info") or {}
         entries = []
         for b in data["benchmarks"]:
@@ -52,8 +59,8 @@ def read_runs(paths):
         runs.append({
             "id": path.name,
             "datetime": data.get("datetime") or "",
-            "sha": ci.get("id") or "unknown",
-            "branch": ci.get("branch") or "unknown",
+            "sha": (data.get("ci") or {}).get("source_sha") or ci.get("id") or "unknown",
+            "branch": (data.get("ci") or {}).get("source_branch") or ci.get("branch") or "unknown",
             "machine": machine_key,
             "versions": data.get("xsuite_versions") or {},
             "entries": entries,
@@ -100,12 +107,12 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface);border
 </div>
 <div class="stats" id="stats"></div>
 <div class="grid"><section class="panel"><h2>Latest run vs previous comparable run</h2>
-<div class="scroll"><table><thead><tr><th>Benchmark</th><th>Median</th><th>Change</th><th>Rounds</th></tr></thead>
+<div class="scroll"><table><thead><tr><th>Benchmark</th><th>Median</th><th>Change</th><th>Physics</th><th>Rounds</th></tr></thead>
 <tbody id="rows"></tbody></table></div></section>
 <section class="panel"><h2>Benchmark history</h2><div class="detail"><h3 id="detailName">Select a benchmark</h3>
 <div class="sub" id="detailSubtitle"></div><div id="plot"></div>
 <div class="note" id="detailNote"></div><pre id="details"></pre></div></section></div>
-<p class="note">Changes are informational, not statistical release gates. Warning: ≥10% slowdown; improvement: ≥10% speed-up. Historical points must have identical workload signatures and machine identities. Compare repeated runs before concluding a regression.</p>
+<p class="note">Physical checks are indicative comparisons of recorded observables, not full physics validation. Missing observables are labelled unverified. Changes are informational, not statistical release gates. Warning: ≥10% slowdown; improvement: ≥10% speed-up. Historical points must have identical workload signatures and machine identities. Compare repeated runs before concluding a regression.</p>
 </main><script>
 const runs = __RUN_DATA__;
 const machines = [...new Set(runs.map(x=>x.machine))].sort();
@@ -116,6 +123,23 @@ function fill(select,values,label){select.replaceChildren();values.forEach(x=>{l
 function fmt(s){if(!Number.isFinite(s))return '—';return s<.001?(s*1e6).toFixed(1)+' µs':s<1?(s*1e3).toFixed(2)+' ms':s.toFixed(3)+' s'}
 function pct(a,b){return (a/b-1)*100}
 function diffClass(d){return d>=10?'warn':d<=-10?'good':''}
+// Physical results are screening checks. Use compare_physics.py for the
+// authoritative per-observable comparison and exit code.
+const physLimits={'lost_fraction':.01,'survivors_with_kick_gt_0.1urad':.02,
+'channeling_proxy_fraction_of_survivors':.02,
+'reference_collimator_losses_per_particle':.02,'reference_aperture_losses_per_particle':.02};
+function physicals(e){let v=e.extra||{},p=Number(v.particles),out={};
+for(let k of ['lost_fraction','survivors_with_kick_gt_0.1urad','channeling_proxy_fraction_of_survivors'])
+if(typeof v[k]==='number')out[k]=v[k];
+if(p>0)for(let k of ['reference_collimator_losses','reference_aperture_losses'])
+if(typeof v[k]==='number')out[k+'_per_particle']=v[k]/p;
+return out}
+function physicalStatus(entry,baseline){if(!baseline)return '—';
+let x=physicals(entry),y=physicals(baseline.entry);
+let keys=Object.keys(x).sort(),other=Object.keys(y).sort();
+if(!keys.length||JSON.stringify(keys)!==JSON.stringify(other))return 'unverified';
+return keys.some(k=>!Number.isFinite(x[k])||!Number.isFinite(y[k])||
+Math.abs(x[k]-y[k])>physLimits[k])?'changed':'ok'}
 function sig(e){return JSON.stringify(e.signature)}
 function getBaseline(run,e){let i=runs.indexOf(run);for(let k=i-1;k>=0;k--){let r=runs[k];if(r.machine!==run.machine)continue;let m=r.entries.find(x=>x.name===e.name && sig(x)===sig(e));if(m)return {run:r,entry:m}}return null}
 function currentRun(){return runs.find(x=>x.id===$('latest').value && x.machine===$('machine').value)}
@@ -123,7 +147,7 @@ function machineChange(){let available=runs.filter(x=>x.machine===$('machine').v
 function render(){let run=currentRun();if(!run)return;let query=$('search').value.toLowerCase();let entries=run.entries.filter(x=>x.name.toLowerCase().includes(query)||x.group.toLowerCase().includes(query));entries.sort((a,b)=>{let aa=getBaseline(run,a),bb=getBaseline(run,b);let da=aa?pct(a.median,aa.entry.median):-9999,db=bb?pct(b.median,bb.entry.median):-9999;return db-da});
 $('rows').replaceChildren();let slow=0,fast=0,missing=0;
 entries.forEach(e=>{let base=getBaseline(run,e);let d=base?pct(e.median,base.entry.median):null;if(d===null)missing++;else if(d>=10)slow++;else if(d<=-10)fast++;
-let tr=el('tr');tr.className='selectable'+(selected===e.name?' selected':'');let n=el('td',e.name,'name');let t=el('td',fmt(e.median),'num');let c=el('td',d===null?'no baseline':(d>0?'+':'')+d.toFixed(1)+'%',d===null?'muted':diffClass(d));let rounds=el('td',e.rounds===null?'—':e.rounds,'num');tr.append(n,t,c,rounds);tr.addEventListener('click',()=>{selected=e.name;render()});$('rows').append(tr)});
+let tr=el('tr');tr.className='selectable'+(selected===e.name?' selected':'');let n=el('td',e.name,'name');let t=el('td',fmt(e.median),'num');let c=el('td',d===null?'no baseline':(d>0?'+':'')+d.toFixed(1)+'%',d===null?'muted':diffClass(d));let phy=physicalStatus(e,base);let phytd=el('td',phy,phy==='changed'?'warn':phy==='ok'?'good':'muted');let rounds=el('td',e.rounds===null?'—':e.rounds,'num');tr.append(n,t,c,phytd,rounds);tr.addEventListener('click',()=>{selected=e.name;render()});$('rows').append(tr)});
 $('stats').replaceChildren();for(const [label,value] of [['Results',entries.length],['Slowdowns ≥10%',slow],['Speed-ups ≥10%',fast],['No baseline',missing]]){let box=el('div',undefined,'stat');box.append(el('strong',value),el('span',label));$('stats').append(box)}
 $('subtitle').textContent='Branch '+run.branch+' · '+run.sha.slice(0,12)+' · '+run.datetime;
 if(!entries.some(e=>e.name===selected))selected=entries.length?entries[0].name:null;
@@ -140,7 +164,7 @@ node('polyline',{points:pts.map(x=>x.join(',')).join(' '),fill:'none',stroke:'#2
 pts.forEach(([x,y],i)=>{let circle=node('circle',{cx:x,cy:y,r:4,fill:'#2663c7'});let t=document.createElementNS('http://www.w3.org/2000/svg','title');t.textContent=candidates[i].r.sha.slice(0,8)+' · '+fmt(candidates[i].b.median);circle.append(t)});
 for(const [x,txt] of [[pad,candidates[0].r.sha.slice(0,7)],[w-14,candidates[n-1].r.sha.slice(0,7)]]){let t=node('text',{x,y:h-16,'text-anchor':x===pad?'start':'end',fill:'#53637b','font-size':'11'});t.textContent=txt}
 $('plot').replaceChildren(svg);$('detailNote').textContent=candidates.length+' compatible run(s) on '+run.machine;
-let base=getBaseline(run,e);$('details').textContent=JSON.stringify({latest_median:fmt(e.median),previous_median:base?fmt(base.entry.median):null,change_percent:base?Number(pct(e.median,base.entry.median).toFixed(2)):null,rounds:e.rounds,standard_deviation:e.stddev,extra_info:e.extra,versions:run.versions},null,2)
+let base=getBaseline(run,e);$('details').textContent=JSON.stringify({latest_median:fmt(e.median),previous_median:base?fmt(base.entry.median):null,change_percent:base?Number(pct(e.median,base.entry.median).toFixed(2)):null,rounds:e.rounds,standard_deviation:e.stddev,physics_status:physicalStatus(e,base),physics_current:physicals(e),physics_previous:base?physicals(base.entry):null,extra_info:e.extra,versions:run.versions},null,2)
 }
 fill($('machine'),machines,x=>x);if(machines.length){$('machine').value=runs[runs.length-1].machine;machineChange()}
 $('machine').addEventListener('change',machineChange);$('latest').addEventListener('change',()=>{selected=null;render()});$('search').addEventListener('input',render);

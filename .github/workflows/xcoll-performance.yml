@@ -3,13 +3,20 @@ name: Xcoll performance
 on:
   workflow_dispatch:
     inputs:
+      target_ref:
+        description: "Xcoll branch, tag, or commit SHA to benchmark"
+        type: string
+        default: main
+        required: true
       profile:
-        description: Benchmark profile (full means all benchmarks)
+        description: "Benchmarks to run"
         type: choice
         options: [quick, full]
         default: quick
         required: true
 
+# Launch the workflow on main and choose target_ref for the code to measure.
+# No automatic PR/push triggers; this workflow does not modify source branches.
 permissions:
   contents: read
 
@@ -17,33 +24,36 @@ jobs:
   benchmark:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    permissions:
+      contents: read
     env:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
       BENCHMARK_TESTBED: github-ubuntu-24.04-cpu-informational
-
     steps:
-      - name: Check out selected branch
+      - name: Check out the benchmark target
         uses: actions/checkout@v4
-
+        with:
+          ref: ${{ inputs.target_ref }}
+      - name: Record the actual commit tested
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install Xsuite and this checkout of Xcoll
+      - name: Install Xsuite and this Xcoll checkout
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
-
-      - name: Record dependency versions
+      - name: Record installed dependency versions
         run: python -m pip freeze > benchmark-dependencies.txt
-
-      - name: Regenerate serial prebuilt kernels
+      - name: Prebuild serial Xsuite kernels
         run: xsuite-prebuild regenerate --kind serial
-
       - name: Run CPU benchmarks
         working-directory: benchmarks
         env:
@@ -54,7 +64,6 @@ jobs:
           else
             python -m pytest
           fi
-
       - name: Archive results
         if: always()
         uses: actions/upload-artifact@v4
@@ -65,3 +74,114 @@ jobs:
             benchmark-dependencies.txt
           if-no-files-found: warn
           retention-days: 90
+
+  publish-history:
+    # Only after a successful, manually requested benchmark run. Keep the
+    # repository-write token OUT OF the job that executes selected branch code.
+    needs: benchmark
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: xcoll-performance-history-write
+      cancel-in-progress: false
+    steps:
+      - name: Check out trusted history tooling from main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Download measured JSON from previous job
+        uses: actions/download-artifact@v4
+        with:
+          name: xcoll-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: downloaded
+      - name: Package one immutable JSON record
+        id: record
+        env:
+          SOURCE_SHA: ${{ needs.benchmark.outputs.source_sha }}
+          SOURCE_BRANCH: ${{ inputs.target_ref }}
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          python benchmarks/history.py \
+            --input downloaded/benchmarks/results \
+            --output "$RUNNER_TEMP/xcoll-history" \
+            --run-id "$GITHUB_RUN_ID" \
+            --attempt "$GITHUB_RUN_ATTEMPT" \
+            --sha "$SOURCE_SHA" \
+            --branch "$SOURCE_BRANCH" \
+            --profile "$PROFILE" \
+            --dependencies downloaded/benchmark-dependencies.txt \
+            > "$RUNNER_TEMP/packed-path.txt"
+          echo "packed=$(cat "$RUNNER_TEMP/packed-path.txt")" >> "$GITHUB_OUTPUT"
+      - name: Commit only the record to benchmark-results
+        env:
+          PACKED_FILE: ${{ steps.record.outputs.packed }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin benchmark-results > /dev/null; then
+            git fetch origin benchmark-results
+            git switch -C benchmark-results FETCH_HEAD
+          else
+            # `git switch --orphan` already clears tracked files.
+            git switch --orphan benchmark-results
+          fi
+          mkdir -p runs
+          target="runs/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          if [ -e "$target" ]; then
+            echo "History record $target already exists; refusing overwrite" >&2
+            exit 1
+          fi
+          cp "$PACKED_FILE" "$target"
+          git add "$target"
+          git commit -m "Benchmark run ${GITHUB_RUN_ID} attempt ${GITHUB_RUN_ATTEMPT}"
+          git push origin HEAD:benchmark-results
+
+  deploy-dashboard:
+    # A push made by GITHUB_TOKEN does NOT automatically trigger another
+    # workflow, so Pages is deployed explicitly here after history publication.
+    needs: publish-history
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: xcoll-performance-pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out trusted dashboard generator
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Fetch permanent benchmark records
+        uses: actions/checkout@v4
+        with:
+          ref: benchmark-results
+          path: benchmark-history
+      - name: Build interactive dashboard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, str(Path('benchmarks').resolve()))
+          from report import create_dashboard
+          files = sorted(Path('benchmark-history/runs').glob('*.json'))
+          if not files:
+              raise SystemExit('No permanent benchmark records found')
+          create_dashboard(files, Path('_site/index.html'))
+          print(f'Generated dashboard from {len(files)} archived runs')
+          PY
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload the Pages site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
