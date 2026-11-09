@@ -197,12 +197,15 @@ class Geant4Interface(BaseInterface):
 
     # BDSIM features that cannot be told from its version, by name as used in
     # the source markers below
-    _tip_taper_re = re.compile(r'AddLinkCollimatorTipJaw\s*\([^)]*\btipTaperAngle\b')
+    _tip_taper_re = re.compile(r'AddLinkCollimatorTipJaw\s*\([^)]*\btipTaperAngle\b[^)]*\btipLength\b')
 
     def bdsim_has_feature(self, feature):
         if feature == 'tip_taper':
             # The taper (and jaw depth, width) arguments of AddLinkCollimatorTipJaw,
-            # added in bdsim-collaboration/bdsim#228 (jcoltip taper). If the header cannot be found,
+            # added in bdsim-collaboration/bdsim#228 (jcoltip taper), with length the full
+            # length of the jaw and tipLength its length at the beam. An earlier revision
+            # of that PR had tipTaperAngle but no tipLength, with length that at the beam,
+            # so it is not taken as supporting the taper. If the header cannot be found,
             # assume not: the call without the new arguments compiles on any BDSIM.
             header = self._bdsim_headers('BDSIMLink.hh')
             return header is not None and self._tip_taper_re.search(header) is not None

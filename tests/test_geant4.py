@@ -313,3 +313,28 @@ def test_bdsim_source_gates(monkeypatch):
     # 1.8.0.develop before and after bdsim-collaboration/bdsim#228: same version, different features
     assert filtered('1.8.0.develop', False) == ['always', 'since_177', 'call(a);']
     assert filtered('1.8.0.develop', True) == ['always', 'since_177', 'call(a,', 'b);']
+
+
+def test_bdsim_tip_taper_detection(monkeypatch):
+    # Tapered tips need AddLinkCollimatorTipJaw with tipLength, where length is the full
+    # length of the jaw (bdsim-collaboration/bdsim#228). An earlier revision of that PR had
+    # tipTaperAngle but no tipLength, with length that of the jaw face at the beam: it
+    # must not be taken as supporting the taper.
+    from xcoll.scattering_routines.geant4.environment import Geant4Interface
+    head = ("  int AddLinkCollimatorTipJaw(const std::string& collimatorName,\n"
+            "                              double length,\n"
+            "                              bool   buildRightJaw = true")
+    headers = {
+        'none':         head + ");\n",
+        'intermediate': head + ",\n                              double tipTaperAngle = 0.0,\n"
+                             + "                              double jawHalfHeight = 0.0);\n",
+        'final':        head + ",\n                              double tipTaperAngle = 0.0,\n"
+                             + "                              double jawHalfHeight = 0.0,\n"
+                             + "                              double tipLength = 0.0);\n",
+    }
+    for state, expected in [('none', False), ('intermediate', False), ('final', True)]:
+        monkeypatch.setattr(Geant4Interface, '_bdsim_headers',
+                            lambda self, name, header=headers[state]: header)
+        assert xc.geant4.interface.bdsim_has_feature('tip_taper') == expected, state
+    monkeypatch.setattr(Geant4Interface, '_bdsim_headers', lambda self, name: None)
+    assert not xc.geant4.interface.bdsim_has_feature('tip_taper')
