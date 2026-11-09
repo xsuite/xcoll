@@ -131,10 +131,10 @@ class Geant4Engine(BaseEngine):
             for el in self._element_dict.values():
                 if isinstance(el, Geant4CollimatorTip) and any(
                         getattr(el, field) != 0
-                        for field in ('taper_angle', 'jaw_depth', 'taper_depth', 'jaw_width')):
+                        for field in ('_tip_length', 'jaw_depth', 'taper_depth', 'jaw_width')):
                     self.stop(clean=True)
                     raise RuntimeError(
-                        f"Geant4CollimatorTip {el.name} uses taper_angle, jaw_depth, taper_depth "
+                        f"Geant4CollimatorTip {el.name} uses a taper, jaw_depth, taper_depth "
                         f"or jaw_width, which the compiled Xcoll-BDSIM interface does not support! "
                         f"This needs a BDSIM that includes bdsim-collaboration/bdsim#228 "
                         f"(https://github.com/bdsim-collaboration/bdsim/pull/228), in its final "
@@ -204,10 +204,8 @@ class Geant4Engine(BaseEngine):
                 xOffset_temp = xOffset*np.cos(np.deg2rad(el.angle_R)) - yOffset*np.sin(np.deg2rad(el.angle_R))
                 yOffset = xOffset*np.sin(np.deg2rad(el.angle_R)) + yOffset*np.cos(np.deg2rad(el.angle_R))
                 xOffset = xOffset_temp
-            length = el.length
             tip_material = ''
             tip_thickness = 0
-            taper_angle = 0
             taper_depth = 0
             tip_length = 0
             jaw_half_height = 0
@@ -215,7 +213,7 @@ class Geant4Engine(BaseEngine):
             if isinstance(el, Geant4CollimatorTip):
                 tip_material = el.tip_material.geant4_name
                 tip_thickness = el.tip_thickness
-                taper_angle = el.taper_angle
+                tip_length = el._tip_length  # 0 if not tapered
                 taper_depth = el.taper_depth
                 jaw_half_height = el.jaw_width/2
                 if el.jaw_depth > 0 and side == 0 \
@@ -233,22 +231,13 @@ class Geant4Engine(BaseEngine):
                 except ValueError:
                     self.stop(clean=True)
                     raise
-                if taper_angle != 0:
-                    # BDSIM takes the full length of the tapered jaw, and the length
-                    # of its face at the beam (the element length) as tipLength
-                    length = el.length + 2*el.taper_extension
-                    tip_length = el.length
-                    if el.jaw_depth > 0 and taper_depth > el.jaw_depth:
-                        # As in taper_extension, the taper ends at jaw_depth at
-                        # most, while BDSIM rejects a taper_depth beyond the jaws
-                        taper_depth = el.jaw_depth
             self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name,
-                                       tip_material, tip_thickness, length,
+                                       tip_material, tip_thickness, el.length,
                                        apertureLeft=jaw_L, apertureRight=-jaw_R,
                                        rotation=np.deg2rad(el.angle),
                                        xOffset=xOffset, yOffset=yOffset, side=side,
                                        jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                       taperAngle=taper_angle,
+                                       taperAngle=0,  # BDSIM calculates it from length and tipLength
                                        horizontalWidth=horizontal_width,
                                        taperDepth=taper_depth,
                                        jawHalfHeight=jaw_half_height,
@@ -260,9 +249,9 @@ class Geant4Engine(BaseEngine):
     def _tip_horizontal_width(el, jaw_L, jaw_R, side, tilt_L, tilt_R):
         # Returns the horizontalWidth to give BDSIM (0 means its default of 2 m).
         # As in BDSCollimatorJaw, each jaw spans from its edge out to
-        # horizontalWidth/2. With a taper the jaw is `length` long at the beam
-        # and grows with depth up to taper_depth, if set, or else over the
-        # whole jaw (see taper_extension).
+        # horizontalWidth/2. With a taper the jaw is `tip_length` long at the beam
+        # and grows with depth up to `length` at taper_depth, if set, or else at
+        # jaw_depth (see Geant4CollimatorTip.taper_angle).
         # Whatever BDSIM would reject is checked here, as its link API does not
         # raise but silently replaces a failing collimator by a drift.
         half_gaps = []
@@ -285,10 +274,7 @@ class Geant4Engine(BaseEngine):
         if depth <= el.tip_thickness:
             raise ValueError(f"Geant4CollimatorTip {el.name}: jaw depth ({depth*1e3:.3f} mm) "
                            + f"must be larger than tip_thickness ({el.tip_thickness*1e3:.3f} mm)!")
-        if el.taper_angle != 0:
-            if not 0 < el.taper_angle < np.pi/2:
-                raise ValueError(f"Geant4CollimatorTip {el.name}: taper_angle must be in "
-                               + "(0, 90) degrees!")
+        if el._tip_length != 0:
             if tilt_L != 0 or tilt_R != 0:
                 raise ValueError(f"Geant4CollimatorTip {el.name}: a taper cannot be combined "
                                + "with a jaw tilt!")
@@ -298,13 +284,14 @@ class Geant4Engine(BaseEngine):
                 raise ValueError(f"Geant4CollimatorTip {el.name}: a taper needs jaw_depth or "
                                + "taper_depth, otherwise the wedge would span BDSIM's 2 m wide "
                                + "box and make the jaws several metres long!")
-            if el.jaw_depth <= 0 and el.taper_depth > max(horizontal_width/2 - gap
-                                                          for gap in half_gaps):
+            max_depth = el.jaw_depth if el.jaw_depth > 0 \
+                        else max(horizontal_width/2 - gap for gap in half_gaps)
+            if el.taper_depth > max_depth:
                 raise ValueError(f"Geant4CollimatorTip {el.name}: taper_depth is larger than "
                                + "the depth of the jaws!")
-            if el.length <= 0:
-                raise ValueError(f"Geant4CollimatorTip {el.name}: a tapered jaw needs a length "
-                               + "(that of its face at the beam)!")
+            if not 0 < el._tip_length < el.length:
+                raise ValueError(f"Geant4CollimatorTip {el.name}: tip_length must be positive "
+                               + "and shorter than length!")
         return horizontal_width if el.jaw_depth > 0 else 0
 
     def _stop_engine(self, **kwargs):
@@ -378,11 +365,11 @@ class Geant4Engine(BaseEngine):
                     self._print(f"Warning: Tip thickness of {name} differs from input file "
                             + f"({ee.tip_thickness} vs {input_dict[name]['tip_thickness']})! Overwritten.")
                     ee.tip_thickness = input_dict[name]['tip_thickness']
-                taper_angle = input_dict[name].get('taper_angle', 0)
-                if not np.isclose(ee.taper_angle, taper_angle, atol=1e-9):
-                    self._print(f"Warning: Taper angle of {name} differs from input file "
-                            + f"({ee.taper_angle} vs {taper_angle})! Overwritten.")
-                    ee.taper_angle = taper_angle
+                tip_length = input_dict[name].get('tip_length', 0)
+                if not np.isclose(ee._tip_length, tip_length, atol=1e-9):
+                    self._print(f"Warning: Tip length of {name} differs from input file "
+                            + f"({ee._tip_length} vs {tip_length})! Overwritten.")
+                    ee._tip_length = tip_length
                 jaw_depth = input_dict[name].get('jaw_depth', 0)
                 if not np.isclose(ee.jaw_depth, jaw_depth, atol=1e-9):
                     self._print(f"Warning: Jaw depth of {name} differs from input file "
