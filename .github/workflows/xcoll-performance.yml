@@ -85,7 +85,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 0
 
       - name: Run benchmarks
         working-directory: benchmarks
@@ -169,7 +169,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad
 
       - name: Run selected profile
         working-directory: benchmarks

@@ -74,7 +74,7 @@ jobs:
           set -euo pipefail
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 0
 
       - name: Compile Xcoll Geant4/BDSIM interface in active environment
         shell: bash
