@@ -1,0 +1,57 @@
+name: Xcoll performance (PR)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark_pr:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    concurrency:
+      group: xcoll-benchmark-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      BENCHMARK_TESTBED: github-ubuntu-24.04-pr-informational
+    steps:
+      - name: Check out PR merge commit (read-only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Xsuite and Xcoll
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade xsuite
+          python -m pip install -e '.[benchmarks]' cython
+      - name: Record dependencies
+        run: |
+          python -m pip freeze > benchmark-dependencies.txt
+          if [ -f benchmarks/perf/dependencies.py ]; then
+            python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
+          fi
+      - name: Prebuild serial kernels
+        run: xsuite-prebuild regenerate --kind serial
+      - name: Benchmark quick CPU cases
+        working-directory: benchmarks
+        run: python -m pytest -m quick
+      - name: Archive PR measurements (not permanent history)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-pr-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            benchmarks/results/
+            benchmark-dependencies.txt
+          if-no-files-found: warn
+          retention-days: 90

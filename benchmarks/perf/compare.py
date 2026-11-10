@@ -1,6 +1,6 @@
 """Convenience command: native pytest-benchmark timing table + physics check.
 
-    python benchmarks/compare.py OLD.json NEW.json
+    python -m perf.compare OLD.json NEW.json
 
 The original `pytest-benchmark compare` executable is not modified. Use
 `--no-timings` to run physics comparison without pytest-benchmark installed.
@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from compare_physics import main as physics_main
+from .compare_physics import main as physics_main
 
 
 def main(argv=None):

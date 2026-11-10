@@ -1,0 +1,48 @@
+# Per-project configuration. Generic comparison/dashboard code reads this file.
+# Add Xtrack-specific workload fields and observables in its own package.
+[comparison]
+workload_fields = [
+  'protocol', 'particles', 'turns', 'crystals', 'beam', 'plane',
+  'interpolation_m', 'physics_case', 'geometry', 'tilt_radians',
+  'sequence_sha256', 'collimator_database_sha256',
+  'coordinate_seed', 'particle_seed', 'phase',
+]
+
+[observables.lost_fraction]
+source = 'lost_fraction'
+absolute_tolerance = 0.01
+
+[observables.kicked_survivors_fraction]
+source = 'survivors_with_kick_gt_0.1urad'
+absolute_tolerance = 0.02
+
+[observables.channeling_proxy_fraction]
+source = 'channeling_proxy_fraction_of_survivors'
+absolute_tolerance = 0.02
+
+[observables.collimator_losses_per_particle]
+source = 'reference_collimator_losses'
+denominator = 'particles'
+absolute_tolerance = 0.02
+
+[observables.aperture_losses_per_particle]
+source = 'reference_aperture_losses'
+denominator = 'particles'
+absolute_tolerance = 0.02
+
+[observables.installed_collimators]
+source = 'installed_collimators'
+absolute_tolerance = 0
+
+[observables.num_collimators]
+source = 'num_collimators'
+absolute_tolerance = 0
+
+[observables.num_families]
+source = 'num_families'
+absolute_tolerance = 0
+
+[observables.recorded_interactions_per_particle]
+source = 'recorded_interactions'
+denominator = 'particles'
+absolute_tolerance = 0.02

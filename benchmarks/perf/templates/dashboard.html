@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xsuite · Performance history</title>
+  <style>
+    :root {color-scheme: light; --bg:#f7f9fc;--paper:#fff;--ink:#19263c;--muted:#65758c;--hair:#e1e7f0;--blue:#375cb7;--blue-pale:#edf2fd;--teal:#167e72;--rust:#ba573b;--amber:#e6af55;--gray:#dce3ec; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}.shell{max-width:1530px;margin:auto;padding:30px 38px 72px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:22px;margin-bottom:25px;flex-wrap:wrap}
+    .eyebrow{color:var(--blue);text-transform:uppercase;font-size:11px;letter-spacing:.14em;font-weight:750;margin-bottom:7px}
+    h1{font-size:clamp(24px,2.2vw,33px);font-weight:730;letter-spacing:-.045em;margin:0 0 6px}h2{font-size:16px;letter-spacing:-.018em;margin:0;font-weight:690}p{line-height:1.55}
+    .subtitle{font-size:13px;color:var(--muted)}.quiet{color:var(--muted)}.toolbar{display:flex;flex-wrap:wrap;gap:11px;align-items:end;margin:18px 0 16px}
+    label.control{display:flex;flex-direction:column;gap:6px;font-size:11px;letter-spacing:.012em;font-weight:650;color:#566780}
+    select,input{background:white;color:var(--ink);font:inherit;font-weight:450;font-size:13px;padding:9px 11px;border:1px solid #cdd7e4;border-radius:7px;min-height:37px;max-width:380px}
+    label.control.wide{flex:1;min-width:220px}label.control.wide select{width:100%}label.control.date input{width:143px}
+    select:focus,input:focus,button:focus-visible{outline:2px solid #7fa3ec;outline-offset:1px}button{font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}
+    .panel{background:var(--paper);border:1px solid var(--hair);border-radius:11px;box-shadow:0 2px 6px rgba(20,43,80,.025)}
+    .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:20px}.metric{padding:15px 17px}
+    .metric strong{font-weight:720;display:block;font-size:23px;font-variant-numeric:tabular-nums;letter-spacing:-.04em}.metric span{display:block;font-size:11.5px;color:var(--muted);margin-top:4px}
+    .panel-header{padding:19px 21px 15px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--hair)}
+    .panel-header p{margin:5px 0 0;font-size:12px;color:var(--muted)}.segment{display:inline-flex;gap:2px;padding:3px;background:#eff3f9;border:1px solid #e4eaf3;border-radius:9px}
+    .segment button{border:0;border-radius:6px;padding:7px 12px;background:transparent;color:var(--muted);font-size:12px;font-weight:620}
+    .segment button.active{background:white;color:var(--blue);box-shadow:0 1px 4px #233c6820}
+    .legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted)}.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+    .timeline{overflow:auto;max-height:580px;scrollbar-gutter:stable;padding:0 0 5px;overscroll-behavior-inline:contain}
+    .timeline svg{display:block;max-width:none;flex:none}
+    .chart-area{display:flex;align-items:flex-start;width:max-content;min-width:100%}
+    .sticky-labels{flex:0 0 280px;width:280px;position:sticky;left:0;background:#fff;z-index:5;border-right:1px solid #e9edf4;box-shadow:5px 0 7px -8px #334b71}
+    .labelrow{position:absolute;left:0;width:100%;padding:0 15px 0 18px;font-size:11px;color:#34455d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+    .labelrow:hover{color:var(--blue);background:#f1f5ff}svg text{font-family:inherit}.caption{padding:10px 21px 15px;font-size:11px;color:var(--muted);border-top:1px solid #edf0f5;line-height:1.5}
+    .lower{margin-top:21px;display:grid;gap:21px}.table-scroll{overflow:auto;max-height:530px}
+    table{width:100%;border-collapse:collapse;font-size:12px}th{position:sticky;top:0;background:#f6f8fc;text-align:left;font-size:11px;color:#586984;letter-spacing:.01em;padding:12px 15px;z-index:1}
+    td{padding:12px 15px;border-top:1px solid #eef1f5;vertical-align:middle}tr.clickable{cursor:pointer}tr.clickable:hover{background:#f8fafe}tr.selected{background:#edf3ff}
+    td.name{min-width:320px;max-width:540px;overflow-wrap:anywhere}td.name strong{font-weight:650}td.name small{display:block;margin-top:4px;color:var(--muted);font-size:10.5px}
+    .mono{font-variant-numeric:tabular-nums;white-space:nowrap}.positive{color:var(--rust);font-weight:680}.negative{color:var(--teal);font-weight:680}
+    .pill{display:inline-flex;padding:3px 7px;border-radius:5px;background:#f0f3f8;color:#63718a;font-size:10px;font-weight:650}
+    .pill.good{background:#e9f5f0;color:var(--teal)}.pill.bad{background:#fff0ea;color:var(--rust)}
+    .compare-body{padding:18px 21px 20px}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.compare-grid label{min-width:0}.compare-grid select{max-width:none;width:100%}
+    .compare-outcome{margin-top:18px;border-top:1px solid var(--hair);padding-top:17px;display:flex;flex-wrap:wrap;align-items:start;gap:25px}
+    .big-change{font-weight:750;font-size:26px;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.compare-detail{font-size:12px;color:var(--muted);line-height:1.7}
+    .compare-title{font-size:12px;color:var(--ink);font-weight:670;margin-bottom:11px}.empty{padding:24px;font-size:13px;color:var(--muted)}
+    .secondary-btn{padding:8px 11px;background:white;border:1px solid var(--hair);border-radius:7px;color:var(--blue);font-size:12px;font-weight:650}
+    .note{font-size:11.5px;color:var(--muted);max-width:1100px;margin:18px 1px 0}
+    @media(max-width:800px){.shell{padding:16px 12px 45px}.summary{grid-template-columns:repeat(2,1fr)}.compare-grid{grid-template-columns:1fr}.panel-header{padding:14px}.toolbar{gap:9px}td.name{min-width:220px}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <div><div class="eyebrow">Xsuite / Benchmarking</div><h1>Performance history</h1><div class="subtitle">Reproducible benchmark measurements across runs, revisions, and branches.</div></div>
+    <div class="subtitle" id="lastUpdated"></div>
+  </header>
+
+  <section class="toolbar" aria-label="History filters">
+    <label class="control wide">Testbed<select id="machine"></select></label>
+    <label class="control">Branch<select id="branch"></select></label>
+    <label class="control date">From<input id="dateFrom" type="date"></label>
+    <label class="control date">To<input id="dateTo" type="date"></label>
+    <label class="control wide">Benchmark filter<input id="search" type="search" placeholder="Filter by name or group…"></label>
+  </section>
+
+  <div class="summary" id="summary"></div>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div><h2 id="timelineTitle">All benchmarks · chronological overview</h2><p id="timelineSubtitle">Performance relative to the earliest compatible run on this branch.</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="secondary-btn" id="backButton" hidden>← All benchmarks</button><div class="segment" role="group" aria-label="Timeline view"><button id="overviewBtn" class="active">Overview</button><button id="trendBtn">Selected benchmark</button></div></div>
+    </div>
+    <div class="timeline" id="timeline" role="region" aria-label="Scrollable chronological benchmark chart" tabindex="0"></div>
+    <div class="caption"><div class="legend" id="legend"></div><div style="margin-top:6px">Each column is a measured run (UTC). Each dashed section shows the branch above the abbreviated commit; the horizontal axis is ordered by run timestamp. Scroll horizontally to inspect older measurements. Hover for details.</div></div>
+  </section>
+
+  <div class="lower">
+    <section class="panel">
+      <div class="panel-header"><div><h2>Benchmarks</h2><p>Latest values on the selected branch and testbed. Select a row to inspect its complete history.</p></div><div class="subtitle" id="tableCount"></div></div>
+      <div class="table-scroll"><table><thead><tr><th>Benchmark</th><th>Latest median</th><th>vs previous</th><th>vs first</th><th>Physics</th><th>Runs</th><th>Commit</th></tr></thead><tbody id="tableBody"></tbody></table></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><div><h2>Compare branches / commits</h2><p id="comparisonCaption">Select a benchmark above, then compare any two recorded revisions. Different machines are flagged as non-comparable.</p></div></div>
+      <div class="compare-body">
+        <div class="compare-title" id="comparisonName">No benchmark selected</div>
+        <div class="compare-grid">
+          <label class="control">Baseline · branch / revision / timestamp<select id="baseline"></select></label>
+          <label class="control">Candidate · branch / revision / timestamp<select id="candidate"></select></label>
+        </div>
+        <div class="compare-outcome" id="comparisonOutcome"><span class="quiet">Choose two measurements to compare.</span></div>
+      </div>
+    </section>
+  </div>
+  <p class="note">Timings are informative, not statistical release gates. A green speed-up or red slowdown is a change in median, not proof of significance. Physics checks use the project's configured observables and tolerances; they do not replace scientific regression tests. Cross-machine, changed-workload, or differently configured runs are not considered directly comparable.</p>
+</main>
+<script>
+'use strict';
+const runs = /*__BENCHMARK_DATA__*/null;
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const state = {selected:null, mode:'overview'};
+const unique = items => [...new Set(items)];
+const short = sha => String(sha||'unknown').slice(0,8);
+const escapeText = (s) => String(s ?? '');
+const keyFor = e => JSON.stringify(e.signature || {});
+const dateOnly = r => (r.datetime || '').slice(0,10);
+const secs = t => Number.isFinite(t) ? t < 1e-3 ? (t*1e6).toFixed(1)+' µs' : t < 1 ? (t*1e3).toFixed(2)+' ms' : t.toFixed(3)+' s' : '—';
+const pct = (a,b) => b > 0 ? 100*(a/b-1) : NaN;
+const fmtPct = v => Number.isFinite(v) ? (v>0?'+':'')+v.toFixed(1)+'%' : '—';
+function elem(tag, content, className){const el=document.createElement(tag);if(content!==undefined)el.textContent=escapeText(content);if(className)el.className=className;return el;}
+function option(sel, val, label){const o=document.createElement('option');o.value=val;o.textContent=label;sel.append(o);}
+function svgEl(tag, attrs, parent, text){const x=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs||{}))x.setAttribute(k,String(v));if(text!==undefined)x.textContent=text;if(parent)parent.append(x);return x;}
+function titleOf(x,text){svgEl('title',{},x,text);}
+function machineRuns(){return runs.filter(r => r.machine===$('machine').value);}
+function filteredRuns(){return machineRuns().filter(r => ($('branch').value==='__all__'||r.branch===$('branch').value)&&(!$('dateFrom').value||dateOnly(r)>=$('dateFrom').value)&&(!$('dateTo').value||dateOnly(r)<=$('dateTo').value));}
+function matchingName(e){const q=$('search').value.trim().toLowerCase();return !q || e.name.toLowerCase().includes(q) || e.group.toLowerCase().includes(q);}
+function entry(run,name){return run.entries.find(e=>e.name===name)||null;}
+function allNames(selectedRuns){return unique(selectedRuns.flatMap(r=>r.entries.filter(matchingName).map(e=>e.name))).sort();}
+function points(name, selectedRuns){return selectedRuns.flatMap(r=>{const e=entry(r,name);return e?[{run:r,e}]:[]});}
+function compatible(a,b){return !!a&&!!b && a.run.machine===b.run.machine && keyFor(a.e)===keyFor(b.e);}
+function relative(points,i){if(!points.length)return null;const p=points[i];const first=points.find(x=>compatible(p,x));return first?pct(p.e.median,first.e.median):null;}
+function previous(points){const current=points.at(-1);if(!current)return null;for(let i=points.length-2;i>=0;i--)if(compatible(current,points[i]))return points[i];return null;}
+function physical(a,b){if(!compatible(a,b))return {status:'incompatible',details:[]};const x=a.e.observables||{},y=b.e.observables||{};const keys=Object.keys(x).sort(),other=Object.keys(y).sort();if(!keys.length||JSON.stringify(keys)!==JSON.stringify(other))return {status:'unverified',details:[]};
+const diffs=[];for(const k of keys){const tol=(b.e.tolerances||{})[k]||{};const d=Math.abs(y[k]-x[k]);const allowed=Number(tol.absolute||0)+Number(tol.relative||0)*Math.abs(x[k]);if(!Number.isFinite(d)||d>allowed)diffs.push(k+' '+x[k].toPrecision(4)+' → '+y[k].toPrecision(4)+' (limit '+allowed.toPrecision(3)+')');}
+return {status:diffs.length?'changed':'ok',details:diffs};}
+function fillBranches(){const previous=$('branch').value;const branches=unique(machineRuns().map(r=>r.branch));const sorted=branches.sort((a,b)=>a==='main'?-1:b==='main'?1:a.localeCompare(b));$('branch').replaceChildren();sorted.forEach(b=>option($('branch'),b,b));option($('branch'),'__all__','All branches');$('branch').value=sorted.includes(previous)?previous:sorted.includes('main')?'main':'__all__';}
+function changeMachine(){fillBranches();state.selected=null;state.mode='overview';refresh();}
+function sigOf(p){return keyFor(p.e);}
+function selectedPoints(){return state.selected?points(state.selected,filteredRuns()):[];}
+function refresh(){const shown=filteredRuns();const names=allNames(shown);
+if(state.selected && !names.includes(state.selected)){state.selected=null;state.mode='overview';}
+$('overviewBtn').classList.toggle('active',state.mode==='overview');$('trendBtn').classList.toggle('active',state.mode==='trend');$('backButton').hidden=!state.selected;
+const latest=shown.at(-1);const latestNames=latest?latest.entries.length:0;let slow=0,fast=0;
+for(const name of names){const ps=points(name,shown);const prev=previous(ps);const now=ps.at(-1);if(prev){const d=pct(now.e.median,prev.e.median);if(d>=10)slow++;if(d<=-10)fast++;}}
+const metrics=[['Runs in view',shown.length],['Benchmark series',names.length],['Slowdowns ≥10%',slow],['Speed-ups ≥10%',fast]];
+$('summary').replaceChildren();for(const [label,value] of metrics){let box=elem('div',undefined,'metric panel');box.append(elem('strong',value),elem('span',label));$('summary').append(box);}
+renderChart(shown,names);renderTable(shown,names);renderCompare();$('tableCount').textContent=latest?('Latest: '+dateOnly(latest)+' · '+short(latest.sha)+' · '+latestNames+' cases'):'No runs in selection';}
+function setView(name){state.selected=name;state.mode='trend';$('baseline').value='';$('candidate').value='';refresh();}
+// A revision section is a contiguous group of runs from the same branch and commit.
+// Explicitly include the branch: one SHA may be recorded under multiple branch names.
+function revisionSections(shown){const sections=[];for(let i=0;i<shown.length;i++){
+ const last=sections.at(-1),r=shown[i];
+ if(last && last.sha===r.sha && last.branch===r.branch){last.end=i+1;}
+ else sections.push({start:i,end:i+1,sha:r.sha,branch:r.branch,first:r.datetime});
+}return sections;}
+// Keep the compact per-run spacing where possible, but reserve enough width
+// for two clear lines (branch and abbreviated SHA) in every revision section.
+function columnLayout(shown,minimumWidth){
+ const sections=revisionSections(shown);
+ const widths=Array(shown.length).fill(minimumWidth);
+ for(const sec of sections){
+  const labelWidth=Math.max(115,Math.ceil(String(sec.branch||'unknown').length*6.7+24));
+  const sectionWidth=Math.max(labelWidth, (sec.end-sec.start)*minimumWidth);
+  const widthPerRun=sectionWidth/(sec.end-sec.start);
+  for(let i=sec.start;i<sec.end;i++)widths[i]=widthPerRun;
+ }
+ const edges=[0];
+ for(const width of widths)edges.push(edges.at(-1)+width);
+ const centers=widths.map((width,i)=>edges[i]+width/2);
+ return {widths,edges,centers,total:edges.at(-1)};
+}
+function sectionHeadings(svg,shown,layout,origin=0){
+ revisionSections(shown).forEach((sec,k)=>{
+  const left=origin+layout.edges[sec.start],right=origin+layout.edges[sec.end];
+  svgEl('rect',{x:left+1,y:3,width:Math.max(0,right-left-2),height:45,rx:3,
+   fill:k%2?'#f2f5fa':'#f7f9fc'},svg);
+  const center=(left+right)/2;
+  const branch=svgEl('text',{x:center,y:20,fill:'#455776','font-size':11,
+   'font-weight':690,'text-anchor':'middle'},svg,sec.branch||'unknown');
+  const sha=svgEl('text',{x:center,y:36,fill:'#71819a','font-size':10,
+   'font-weight':560,'text-anchor':'middle'},svg,short(sec.sha));
+  for(const label of [branch,sha]){
+   titleOf(label,`${sec.branch} @ ${sec.sha}\nFirst run: ${sec.first} UTC\n${sec.end-sec.start} run(s)`);
+  }
+ });
+}
+function addBoundaries(svg,shown,layout,origin,y1,y2){
+ for(const sec of revisionSections(shown).slice(1)){
+  const x=origin+layout.edges[sec.start];
+  const ln=svgEl('line',{x1:x,y1:y1,x2:x,y2:y2,stroke:'#8295b1','stroke-width':1.3,
+   'stroke-dasharray':'5 5',opacity:.9},svg);
+  titleOf(ln,`Revision boundary: ${sec.branch} · ${sec.sha} · ${sec.first}`);
+ }
+}
+function renderChart(shown,names){$('timeline').replaceChildren();if(!shown.length||!names.length){$('timeline').append(elem('div','No measurements match the selected filters.','empty'));return;}
+if(state.mode==='overview' || !state.selected){$('timelineTitle').textContent='All benchmarks · chronological overview';$('timelineSubtitle').textContent='Each cell shows the change in median runtime relative to the first compatible run in view.';renderHeatmap(shown,names);}else{$('timelineTitle').textContent=state.selected;$('timelineSubtitle').textContent='Median runtime across the selected dates; only identical workload signatures are joined.';renderLine(shown,state.selected);}}
+function axis(svg,shown,xAt,y){shown.forEach((r,i)=>{const x=xAt(i);let label=i===0||i===shown.length-1||i%2===0;
+if(label){const t=svgEl('text',{x,y,fill:'#71819a','font-size':'10','text-anchor':'middle'},svg,dateOnly(r).slice(5));titleOf(t,r.datetime+' · '+r.branch+' · '+short(r.sha));}});}
+function color(d){if(!Number.isFinite(d))return '#e1e8f1';if(d>10)return '#e4a28b';if(d>3)return '#f5d9cb';if(d< -10)return '#65b5a5';if(d< -3)return '#c3e7dc';return '#e9eff9';}
+function renderHeatmap(shown,names){
+const top=75,row=29,bottom=59;const layout=columnLayout(shown,58);
+const h=top+names.length*row+bottom;
+const w=Math.max(($('timeline').clientWidth||1000)-280,layout.total+35);
+const area=elem('div',undefined,'chart-area');$('timeline').append(area);
+const labelCol=elem('div',undefined,'sticky-labels');labelCol.style.height=h+'px';area.append(labelCol);
+const labelHead=elem('div','BENCHMARK');labelHead.style.cssText='position:absolute;top:13px;left:18px;font-size:11px;color:#8290a7;font-weight:700';labelCol.append(labelHead);
+const svg=svgEl('svg',{width:w,height:h,viewBox:`0 0 ${w} ${h}`,role:'img','aria-label':'Heatmap of benchmark runtime changes over chronological measurements'},area);
+sectionHeadings(svg,shown,layout);
+for(let i=0;i<names.length;i++){
+ const y=top+i*row;
+ const label=elem('div',names[i].replace(/^.*::/,''),'labelrow');label.style.top=(y+3)+'px';label.style.height=(row-4)+'px';label.title=names[i];label.onclick=()=>setView(names[i]);labelCol.append(label);
+ const ps=points(names[i],shown);
+ for(let j=0;j<shown.length;j++){
+  const e=entry(shown[j],names[i]);const x=layout.edges[j]+5;if(!e)continue;
+  const p={run:shown[j],e};const a=ps.find(q=>compatible(q,p));const delta=a?pct(e.median,a.e.median):NaN;
+  const rect=svgEl('rect',{x,y:y+2,width:layout.widths[j]-9,height:row-6,rx:4,fill:color(delta),stroke:'#ffffff','stroke-width':1},svg);
+  titleOf(rect,`${names[i]}\n${shown[j].datetime} UTC · ${short(shown[j].sha)}\n${secs(e.median)} · ${fmtPct(delta)} vs first compatible run`);
+  rect.style.cursor='pointer';rect.addEventListener('click',()=>setView(names[i]));
+ }
+}
+addBoundaries(svg,shown,layout,0,51,top+names.length*row+5);
+axis(svg,shown,i=>layout.centers[i],top+names.length*row+25);
+
+$('legend').replaceChildren();[['#65b5a5','faster ≥10%'],['#c3e7dc','faster 3–10%'],['#e9eff9','within ±3%'],['#f5d9cb','slower 3–10%'],['#e4a28b','slower ≥10%'],['#e1e8f1','no result']].forEach(([c,t])=>{let sp=elem('span');let dot=elem('i',undefined,'dot');dot.style.background=c;sp.append(dot,document.createTextNode(t));$('legend').append(sp);});
+$('timeline').scrollLeft=$('timeline').scrollWidth;
+}
+function renderLine(shown,name){const ps=points(name,shown);if(!ps.length){$('timeline').append(elem('div','No measurements for this benchmark.','empty'));return;}
+const left=100,top=88,bottom=66,layout=columnLayout(shown,74);const w=Math.max(($('timeline').clientWidth||1000)-2,left+layout.total+35),h=348;const svg=svgEl('svg',{width:w,height:h,viewBox:`0 0 ${w} ${h}`,role:'img','aria-label':'Median runtime history for '+name},$('timeline'));
+const currentSig=keyFor(ps.at(-1).e);const shownP=ps.filter(p=>keyFor(p.e)===currentSig);const vals=shownP.map(p=>p.e.median);let mn=Math.min(...vals),mx=Math.max(...vals);const margin=(mx-mn)*.15||mn*.1||.001;mn=Math.max(0,mn-margin);mx+=margin;
+function xAt(i){return left+layout.centers[i]}sectionHeadings(svg,shown,layout,left);function yAt(m){return top+(h-top-bottom)*(mx-m)/(mx-mn)}
+for(let k=0;k<5;k++){const value=mn+(mx-mn)*k/4;const y=yAt(value);svgEl('line',{x1:left-5,x2:w-17,y1:y,y2:y,stroke:'#e5eaf2','stroke-width':1},svg);svgEl('text',{x:left-15,y:y+4,'text-anchor':'end','font-size':11,fill:'#6b7990'},svg,secs(value));}
+addBoundaries(svg,shown,layout,left,51,h-bottom);
+const indexed=shownP.map(p=>({...p,index:shown.indexOf(p.run)}));const chunks=[];let part=[];
+for(const item of indexed){if(part.length&&item.index!==part.at(-1).index+1){chunks.push(part);part=[];}part.push(item);}if(part.length)chunks.push(part);
+for(const chunk of chunks){if(chunk.length>1)svgEl('polyline',{points:chunk.map(p=>xAt(p.index)+','+yAt(p.e.median)).join(' '),fill:'none',stroke:'#375cb7','stroke-width':2.7,'stroke-linejoin':'round'},svg);}
+for(const p of indexed){const c=svgEl('circle',{cx:xAt(p.index),cy:yAt(p.e.median),r:4.8,fill:'#375cb7',stroke:'#fff','stroke-width':1.7},svg);titleOf(c,`${p.run.datetime} UTC\n${p.run.branch} · ${short(p.run.sha)}\nMedian: ${secs(p.e.median)}`);}
+axis(svg,shown,xAt,h-bottom+25);
+svgEl('text',{x:left,y:54,'font-size':11,fill:'#7a899f'},svg,`Compatible measurements: ${shownP.length} / ${ps.length}`);
+$('legend').replaceChildren();let note=elem('span','Blue line: median runtime · labelled, dashed vertical boundaries: revision changes · disconnected points: incompatible workload or missing benchmark');$('legend').append(note);
+$('timeline').scrollLeft=$('timeline').scrollWidth;}
+function renderTable(shown,names){const tbody=$('tableBody');tbody.replaceChildren();if(!names.length){tbody.append(elem('tr',''));return;}
+const rows=names.map(name=>{const pp=points(name,shown),now=pp.at(-1),prev=previous(pp),initial=pp.find(x=>compatible(x,now));return {name,pp,now,prev,initial,delta:prev?pct(now.e.median,prev.e.median):NaN};});
+rows.sort((a,b)=>{const x=Number.isFinite(a.delta)?a.delta:-Infinity,y=Number.isFinite(b.delta)?b.delta:-Infinity;return y-x||a.name.localeCompare(b.name);});
+for(const r of rows){const tr=elem('tr',undefined,'clickable'+(state.selected===r.name?' selected':''));tr.addEventListener('click',()=>setView(r.name));
+const n=elem('td',undefined,'name');n.append(elem('strong',r.name),elem('small',r.now.e.group));tr.append(n);
+tr.append(elem('td',secs(r.now.e.median),'mono'));const change=elem('td',fmtPct(r.delta),'mono');if(Number.isFinite(r.delta) && Math.abs(r.delta)>3)change.classList.add(r.delta>0?'positive':'negative');tr.append(change);
+const overall=r.initial?pct(r.now.e.median,r.initial.e.median):NaN;const overallTd=elem('td',fmtPct(overall),'mono');if(Number.isFinite(overall)&&Math.abs(overall)>3)overallTd.classList.add(overall>0?'positive':'negative');tr.append(overallTd);
+const physics= r.prev?physical(r.prev,r.now).status:'—';tr.append(elem('td',physics,'pill '+(physics==='ok'?'good':physics==='changed'?'bad':'')));
+tr.append(elem('td',r.pp.length,'mono'));tr.append(elem('td',short(r.now.run.sha),'mono quiet'));tbody.append(tr);}}
+function runOptionsForSelected(){if(!state.selected)return [];return runs.flatMap(run=>{const e=entry(run,state.selected);return e?[{run,e}]:[]});}
+function renderCompare(){const name=state.selected;$('comparisonName').textContent=name || 'Select any benchmark to compare revisions';const base=$('baseline'),cand=$('candidate');const oldBase=base.value,oldCand=cand.value;base.replaceChildren();cand.replaceChildren();const opts=runOptionsForSelected();if(!name||!opts.length){$('comparisonOutcome').textContent='Select a benchmark to see its available revisions.';return;}
+opts.forEach((p,i)=>{const label=`${p.run.branch} · ${short(p.run.sha)} · ${p.run.datetime.slice(0,19)} · ${p.run.testbed} · ${secs(p.e.median)}`;option(base,String(i),label);option(cand,String(i),label);});
+const branches=unique(opts.map(p=>p.run.branch));const main=opts.map((p,i)=>p.run.branch==='main'&&p.run.machine===$('machine').value?i:null).filter(i=>i!==null);const other=opts.map((p,i)=>p.run.branch!=='main'?i:null).filter(i=>i!==null);
+const defaultBase=main.length?main.at(-1):(opts.length>1?opts.length-2:0);const defaultCandidate=other.length?other.at(-1):opts.length-1;
+base.value=oldBase!==''&&Number(oldBase)<opts.length&&Number.isInteger(+oldBase)?oldBase:String(defaultBase);cand.value=oldCand!==''&&Number(oldCand)<opts.length&&Number.isInteger(+oldCand)?oldCand:String(defaultCandidate);
+function update(){const a=opts[Number(base.value)],b=opts[Number(cand.value)];if(!a||!b)return;const out=$('comparisonOutcome');out.replaceChildren();if(!compatible(a,b)){out.append(elem('div','Not directly comparable: machine/testbed or benchmark workload differs.','positive'));return;}
+const d=pct(b.e.median,a.e.median);const change=elem('div',fmtPct(d),'big-change '+(d>=3?'positive':d<=-3?'negative':''));const status=physical(a,b);const detail=elem('div',undefined,'compare-detail');detail.append(elem('div',`${secs(a.e.median)} → ${secs(b.e.median)} (median runtime)`),elem('div',`Physics observables: ${status.status}`),elem('div',`${a.run.branch} ${short(a.run.sha)} → ${b.run.branch} ${short(b.run.sha)}`));
+for(const difference of status.details)detail.append(elem('div',difference));out.append(change,detail);}
+base.onchange=update;cand.onchange=update;update();}
+function init(){if(!runs.length){$('timeline').textContent='No benchmark history available.';return;}const machines=unique(runs.map(r=>r.machine)).sort();const preferred=machines.find(m=>m.startsWith('cern-'))||machines.at(-1);
+machines.forEach(m=>option($('machine'),m,m));$('machine').value=preferred;fillBranches();$('lastUpdated').textContent='Latest record · '+runs.at(-1).datetime.slice(0,19)+' UTC';
+$('machine').addEventListener('change',changeMachine);['branch','dateFrom','dateTo','search'].forEach(id=>$(id).addEventListener('input',()=>{state.selected=null;state.mode='overview';refresh();}));
+$('overviewBtn').onclick=()=>{state.mode='overview';refresh();};$('trendBtn').onclick=()=>{if(!state.selected){state.selected=allNames(filteredRuns())[0]||null;}state.mode='trend';refresh();};$('backButton').onclick=()=>{state.selected=null;state.mode='overview';refresh();};refresh();}
+init();
+</script>
+</body>
+</html>
