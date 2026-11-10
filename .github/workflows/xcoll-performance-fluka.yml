@@ -2,9 +2,8 @@ name: Xcoll performance (FLUKA)
 
 on:
   workflow_dispatch:
-  # Enable after validating the installation on the CERN VM:
-  # schedule:
-  #   - cron: '37 5 * * *'
+  schedule:
+    - cron: '37 5 * * *'
 
 permissions:
   contents: read
@@ -23,12 +22,11 @@ jobs:
       sha: ${{ steps.source.outputs.sha }}
     env:
       MINIFORGE_ROOT: /home/xcollrunner/miniforge3
-      BENCH_ENV: ${{ runner.temp }}/xcoll-fluka-${{ github.run_id }}-${{ github.run_attempt }}
-      XCOLL_PATH: ${{ runner.temp }}/xcoll-fluka-${{ github.run_id }}-${{ github.run_attempt }}-state
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
       BENCHMARK_TESTBED: cern-openstack-xcoll-fluka-v1
+      BENCHMARK_PHYSICAL_HOST: cern-openstack-xcoll-vm-v1
       XCOLL_FLUKA_ROOT: ${{ vars.XCOLL_FLUKA_ROOT }}
       XCOLL_FLUKAIO_LIB: ${{ vars.XCOLL_FLUKAIO_LIB }}
       XCOLL_LINEBUILDER_ROOT: ${{ vars.XCOLL_LINEBUILDER_ROOT }}
@@ -43,6 +41,21 @@ jobs:
         with:
           ref: main
           persist-credentials: false
+
+      - name: Configure environment paths and remove stale benchmark state
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Jobs are mutually exclusive across all CERN benchmark workflows.
+          for dir in "$RUNNER_TEMP"/xcoll-perf-* "$RUNNER_TEMP"/xcoll-fluka-* "$RUNNER_TEMP"/xcoll-geant4-*; do
+            if [ -d "$dir" ]; then
+              echo "Removing stale benchmark state: $dir"
+              rm -rf -- "$dir"
+            fi
+          done
+          env_dir="$RUNNER_TEMP/xcoll-fluka-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "BENCH_ENV=$env_dir" >> "$GITHUB_ENV"
+          echo "XCOLL_PATH=${env_dir}-state" >> "$GITHUB_ENV"
 
       - name: Record tested revision
         id: source
@@ -132,10 +145,11 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [ -d "$BENCH_ENV/conda-meta" ]; then
+          if [ -n "${BENCH_ENV:-}" ] && [ -d "$BENCH_ENV/conda-meta" ]; then
             "$MINIFORGE_ROOT/bin/mamba" env remove --yes --prefix "$BENCH_ENV" || true
           fi
-          rm -rf -- "$BENCH_ENV" "$XCOLL_PATH"
+          if [ -n "${BENCH_ENV:-}" ]; then rm -rf -- "$BENCH_ENV"; fi
+          if [ -n "${XCOLL_PATH:-}" ]; then rm -rf -- "$XCOLL_PATH"; fi
 
   publish:
     needs: benchmark_fluka

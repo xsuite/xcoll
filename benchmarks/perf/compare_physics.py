@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from .metrics import load_config, workload, observables, too_different
@@ -45,8 +46,14 @@ def compare_entry(old, new, config):
     bad = []
     for key in sorted(a):
         spec = config['observables'][key]
-        if too_different(a[key], b[key], spec):
-            allowed = spec['absolute_tolerance'] + spec.get('relative_tolerance', 0) * abs(a[key])
+        allowed = spec['absolute_tolerance'] + spec.get('relative_tolerance', 0) * abs(a[key])
+        if spec.get('binomial_sigmas') is not None:
+            # Account for shot noise in small stochastic particle samples.
+            n = workload(new, config).get(spec.get('trials_field', 'particles'))
+            if n is not None and float(n) > 0 and 0 <= a[key] <= 1:
+                sigma = math.sqrt(a[key] * (1 - a[key]) / float(n))
+                allowed = max(allowed, float(spec['binomial_sigmas']) * sigma)
+        if abs(b[key] - a[key]) > allowed:
             bad.append(f'{key}: {a[key]:.6g} -> {b[key]:.6g}; '
                        f'delta={b[key] - a[key]:+.6g}, allowed={allowed:.6g}')
     if bad:

@@ -12,7 +12,8 @@ import json
 from pathlib import Path
 
 
-def pack(input_dir, output_dir, run_id, attempt, sha, branch, profile, dependencies=None):
+def pack(input_dir, output_dir, run_id, attempt, sha, branch, profile, dependencies=None, trigger="", physical_host=""):
+
     sources = sorted(Path(input_dir).rglob("*.json"))
     if len(sources) != 1:
         raise ValueError(f"Expected exactly one pytest-benchmark autosave JSON in {input_dir}, found {len(sources)}")
@@ -27,6 +28,7 @@ def pack(input_dir, output_dir, run_id, attempt, sha, branch, profile, dependenc
     data["ci"] = {
         "run_id": str(run_id), "run_attempt": int(attempt),
         "source_sha": sha, "source_branch": str(branch), "profile": str(profile),
+        "trigger": str(trigger), "physical_host": str(physical_host),
     }
     if dependencies is not None and Path(dependencies).exists():
         data["ci"]["dependencies"] = Path(dependencies).read_text(encoding="utf-8").splitlines()
@@ -47,11 +49,14 @@ def main(argv=None):
     p.add_argument("--attempt", required=True)
     p.add_argument("--sha", required=True)
     p.add_argument("--branch", required=True)
-    p.add_argument("--profile", choices=["quick", "full", "fluka", "geant4"], required=True)
+    p.add_argument("--profile", choices=["quick", "full", "fluka", "geant4", "gpu"], required=True)
     p.add_argument("--dependencies", type=Path)
+    p.add_argument("--trigger", default="")
+    p.add_argument("--physical-host", default="")
     a = p.parse_args(argv)
     print(pack(a.input, a.output, a.run_id, a.attempt,
-               a.sha, a.branch, a.profile, a.dependencies))
+               a.sha, a.branch, a.profile, a.dependencies,
+               a.trigger, a.physical_host))
 
 
 if __name__ == "__main__":

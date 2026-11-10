@@ -44,7 +44,7 @@ jobs:
             python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
           fi
 
-      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+      - name: Compile non-TPSA non-radiation Xsuite serial kernels (sequentially)
         shell: bash
         run: |
           set -euo pipefail

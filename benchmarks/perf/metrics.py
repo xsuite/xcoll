@@ -26,7 +26,7 @@ def load_config(path=None):
     for name, spec in specifications.items():
         if 'absolute_tolerance' not in spec:
             raise ValueError(f'Missing absolute_tolerance for {name}')
-        if spec['absolute_tolerance'] < 0 or spec.get('relative_tolerance', 0) < 0:
+        if spec['absolute_tolerance'] < 0 or spec.get('relative_tolerance', 0) < 0 or spec.get('binomial_sigmas', 0) < 0:
             raise ValueError(f'Negative tolerance for {name}')
     return {'fields': tuple(fields), 'observables': specifications}
 
@@ -59,7 +59,7 @@ def observables(entry, config):
         try:
             value = float(value)
             denominator = spec.get('denominator')
-            if denominator is not None:
+            if denominator is not None and not (name in embedded and extra.get("observables_pre_normalized")):
                 d = float(extra[denominator])
                 if d <= 0 or not math.isfinite(d):
                     raise ValueError(f'Invalid denominator {denominator} for {name}')

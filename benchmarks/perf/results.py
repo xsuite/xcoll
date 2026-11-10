@@ -146,12 +146,12 @@ def main(argv=None):
         reverse_labels = {}
         for name, rel in labels.items():
             reverse_labels.setdefault(rel, []).append(name)
-        print(f"{'#':>4}  {'Timestamp':19}  {'Branch':22}  {'Commit':10}  {'Cases':>5}  Tag")
-        print('-' * 95)
+        print(f"{'#':>4}  {'Timestamp':19}  {'Branch':22}  {'Commit':10}  {'Cases':>5}  Tag                     Filename")
+        print('-' * 135)
         for i, m in enumerate(rows, 1):
             rel = str(m['path'].relative_to(results))
             tags = ','.join(sorted(reverse_labels.get(rel, [])))
-            print(f"{i:>4}  {m['when'][:19]:19}  {m['branch'][:22]:22}  {m['sha'][:10]:10}  {m['n']:>5}  {tags}")
+            print(f"{i:>4}  {m['when'][:19]:19}  {m['branch'][:22]:22}  {m['sha'][:10]:10}  {m['n']:>5}  {tags:22}  {rel}")
         print(f'({len(rows)} saved run(s) in {results})')
         return 0
     if args.command == 'archive':

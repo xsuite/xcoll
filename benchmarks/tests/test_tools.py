@@ -9,9 +9,7 @@ from pathlib import Path
 
 import pytest
 
-
-ROOT = Path(__file__).resolve().parents[2]
-BENCH = ROOT / "benchmarks"
+BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH))
 
 from perf import metrics, compare_physics, report, results as results_cli, history
@@ -89,9 +87,9 @@ def test_dashboard_uses_schema_and_sanitises_script(tmp_path):
     dest=report.create_dashboard(files, tmp_path/'site'/'index.html')
     html=dest.read_text()
     assert '</script><script>alert(1)' not in html
-    assert 'function physical(' in html
+    assert 'function physics(e)' in html
     assert 'All benchmarks · chronological overview' in html
-    assert 'Compare branches / commits' in html
+    assert 'Compare two sets' in html
     assert 'runner-999' not in html
 
 
@@ -169,11 +167,10 @@ def test_dashboard_accepts_result_directory(tmp_path):
 
 def test_revision_section_labels_present():
     template = (BENCH / 'perf' / 'templates' / 'dashboard.html').read_text()
-    assert 'function revisionSections(shown)' in template
-    assert 'function sectionHeadings(svg,shown,xAt,col)' in template
-    assert 'sectionHeadings(svg,shown,i=>(i+.5)*col,col);' in template
-    assert 'sectionHeadings(svg,shown,xAt,col);' in template
+    assert 'function revisionSections(rr)' in template
+    assert 'function headers(pic,rr,L,x0=0)' in template
     assert 'sec.branch' in template and 'short(sec.sha)' in template
+    assert 'function labelMachine(r)' in template
 
 
 def test_new_benchmarks_use_serial_pedantic_setup():
@@ -185,14 +182,14 @@ def test_new_benchmarks_use_serial_pedantic_setup():
 
 
 def test_new_files_are_valid_python():
-    for name in ("import", "materials", "rf_sweep", "blowup", "emittance_monitor", "fluka", "geant4"):
+    for name in ("import", "materials", "rf_sweep", "blowup", "emittance_monitor", "fluka", "geant4", "gpu"):
         path = BENCH / f"bench_{name}.py"
         tree = ast.parse(path.read_text())
         assert any(isinstance(n, ast.FunctionDef) and n.name.startswith("bench_") for n in tree.body)
 
 
 def test_external_suites_have_separate_marks():
-    for engine in ("fluka", "geant4"):
+    for engine in ("fluka", "geant4", "gpu"):
         tree = ast.parse((BENCH / f"bench_{engine}.py").read_text())
         assert f"pytest.mark.{engine}" in ast.unparse(tree)
 
@@ -208,16 +205,16 @@ def test_setup_requires_configured_existing_paths(monkeypatch):
         _required("XCOLL_MISSING_TEST_PATH")
 
 
-def test_fluka_geant4_are_opt_in():
+def test_fluka_geant4_gpu_are_opt_in():
     config = (BENCH / "pytest.ini").read_text()
-    assert '-m "not fluka and not geant4"' in config
-    assert "fluka:" in config and "geant4:" in config
+    assert '-m "not fluka and not geant4 and not gpu"' in config
+    for mark in ('fluka:', 'geant4:', 'gpu:'):
+        assert mark in config
 
 
 def test_history_accepts_external_profiles():
-    import ast
     src = (BENCH / "perf/history.py").read_text()
-    assert '"fluka", "geant4"' in src
+    assert '"fluka", "geant4", "gpu"' in src
     ast.parse(src)
 
 
@@ -226,10 +223,8 @@ def test_excludes_tpsa_by_name_and_config():
         ("default_no_config", {"config": {}}),
         ("tpsa_base_config", {"config": {"XTRACK_TPSA_TRACK": True}}),
         ("renamed_tpsa_kernel", {"config": {"XTRACK_TPSA_TRACK": True}}),
-        ("all_with_synrad", {"config": {}}),
+        ("all_with_synrad", {"config": {"XTRACK_MULTIPOLE_NO_SYNRAD": False}}),
     ]
-    assert select_kernel_names(defs, skip_tpsa=True) == [
-        "default_no_config", "all_with_synrad"
-    ]
+    assert select_kernel_names(defs, skip_tpsa=True, skip_synrad=True) == ["default_no_config"]
     assert len(select_kernel_names(defs)) == 4
 
