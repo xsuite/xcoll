@@ -4,6 +4,7 @@ All input geometries and FLUKA engine initialisation are outside timed code.
 The optional named FEDB assembly is omitted when unavailable; generic cases
 remain mandatory once the FLUKA environment is configured.
 """
+from pathlib import Path
 import numpy as np
 import pytest
 import xpart as xp
@@ -19,18 +20,20 @@ CASES = [
     'tungsten-hit', 'copper-hit', 'fedb-hilumi-hit',
     'silicon-crystal-hit', 'silicon-crystal-miss',
 ]
+CRYSTAL_CASES = tuple(case for case in CASES if case.startswith('silicon-crystal'))
+COLLIMATOR_CASES = tuple(case for case in CASES if case not in CRYSTAL_CASES)
 
 
 def _make_case(name):
-    if name.startswith('silicon-crystal'):
+    if name in CRYSTAL_CASES:
         return xc.FlukaCrystal(length=0.004, material=xc.materials.Silicon,
                                side='+', jaw=0.001, bending_angle=149e-6)
     if name == 'fedb-hilumi-hit':
         return xc.FlukaCollimator(length=0.6, jaw=0.001, assembly='hilumi_tcppm')
-    mat = (xc.materials.Tungsten if name.startswith('tungsten') else
-           xc.materials.Copper if name.startswith('copper') else
-           xc.materials.CarbonFibreComposite)
-    return xc.FlukaCollimator(length=0.6, jaw=0.001, material=mat)
+    material = (xc.materials.Tungsten if name.startswith('tungsten') else
+                xc.materials.Copper if name.startswith('copper') else
+                xc.materials.CarbonFibreComposite)
+    return xc.FlukaCollimator(length=0.6, jaw=0.001, material=material)
 
 
 def _particles(name, reference):
@@ -46,23 +49,78 @@ def _particles(name, reference):
                               particle_ref=reference, _capacity=N*4)
 
 
+def _crystal_missing_in_log(folder):
+    """Recognise the specific FLUKA CRYINI configuration error, not every crash.
+
+    Engine.start() may already have called stop() after failure, so inspect
+    the explicitly supplied working directory rather than engine.cwd.
+    """
+    for log in Path(folder).rglob('*'):
+        if not log.is_file() or log.suffix.lower() not in {'.log', '.out', '.err'}:
+            continue
+        if log.stat().st_size > 4_000_000:
+            continue
+        content = log.read_text(encoding='utf-8', errors='replace').lower()
+        if 'crystal not found' in content and 'cryini' in content:
+            return True
+    return False
+
+
 @pytest.fixture(scope='module')
-def fluka_cases():
-    if not xc.fluka.interface.ready:
-        pytest.fail('FLUKA interface is not ready; run the FLUKA setup workflow')
+def fluka_cases(tmp_path_factory):
+    """Lazily start FLUKA once per geometry class, never mix crystals with jaws."""
+    try:
+        ready = xc.fluka.interface.ready
+    except (ImportError, OSError, RuntimeError, ValueError) as exc:
+        pytest.skip(f'FLUKA environment unavailable: {exc}')
+    if not ready:
+        pytest.skip('FLUKA environment not ready (FLUKA, FlukaIO, LineBuilder, or compiled interface missing)')
     engine = xc.fluka.engine
     if engine.is_running():
         engine.stop(clean=True)
-    names = [s for s in CASES if not s.startswith('fedb-')]
-    available = set(xc.fluka.assemblies)
-    if 'hilumi_tcppm' in available:
-        names.append('fedb-hilumi-hit')
-    elements = {name: _make_case(name) for name in names}
-    engine.particle_ref = xt.Particles.reference_from_pdg_id('proton', p0c=6.8e12)
-    initial = {name: _particles(name, engine.particle_ref) for name in names}
+
+    state = {'group': None, 'elements': {}, 'initial': {}, 'crystal_skip': None}
+    available_assemblies = set(xc.fluka.assemblies)
+
+    def get_case(case):
+        if case == 'fedb-hilumi-hit' and 'hilumi_tcppm' not in available_assemblies:
+            pytest.skip('Optional FLUKA FEDB assembly hilumi_tcppm is unavailable')
+
+        group = 'crystal' if case in CRYSTAL_CASES else 'collimator'
+        if group == 'crystal' and state['crystal_skip']:
+            pytest.skip(state['crystal_skip'])
+
+        if state['group'] != group:
+            if engine.is_running():
+                engine.stop(clean=True)
+            state.update(group=None, elements={}, initial={})
+            names = (list(CRYSTAL_CASES) if group == 'crystal' else
+                     [name for name in COLLIMATOR_CASES
+                      if name != 'fedb-hilumi-hit' or 'hilumi_tcppm' in available_assemblies])
+            elements = {name: _make_case(name) for name in names}
+            reference = xt.Particles.reference_from_pdg_id('proton', p0c=6.8e12)
+            engine.particle_ref = reference
+            initial = {name: _particles(name, reference) for name in names}
+            # Xcoll appends _0000 to an existing cwd, so pass a new child
+            # directory and keep the actual server logs at this exact path.
+            run_dir = tmp_path_factory.mktemp(f'fluka-bench-{group}') / 'run'
+            try:
+                # Keep input/output on failure so we can diagnose CRYINI.
+                engine.start(elements=list(elements.values()), seed=1993,
+                             verbose=False, cwd=run_dir, clean=False)
+            except Exception as exc:
+                if group == 'crystal' and _crystal_missing_in_log(run_dir):
+                    reason = (f'FLUKA crystal initialisation unavailable: '
+                              f'CRYINI / Crystal not found. See {run_dir}')
+                    state['crystal_skip'] = reason
+                    pytest.skip(reason)
+                raise RuntimeError(f'FLUKA {group} engine failed during startup. '
+                                   f'Preserved output in {run_dir}') from exc
+            state.update(group=group, elements=elements, initial=initial)
+
+        return state['elements'][case], state['initial'][case]
     try:
-        engine.start(elements=list(elements.values()), seed=1993, verbose=False)
-        yield elements, initial
+        yield get_case
     finally:
         if engine.is_running():
             engine.stop(clean=True)
@@ -72,11 +130,7 @@ def fluka_cases():
 @pytest.mark.benchmark(group='FLUKA | tracking')
 @pytest.mark.parametrize('case', CASES, ids=CASES)
 def bench_fluka_tracking(benchmark, fluka_cases, case):
-    elements, initial = fluka_cases
-    if case not in elements:
-        pytest.skip(f'Optional FLUKA FEDB assembly unavailable: {case}')
-    coll = elements[case]
-    p0 = initial[case]
+    coll, p0 = fluka_cases(case)
     coll.track(p0.copy())  # warm-up outside timing
 
     def setup():

@@ -9,11 +9,13 @@ try:
     from .perf.results import archive_results
     from .perf.paths import results_dir
     from .perf.dependencies import external_versions
+    from .perf.machine import machine_name
 except ImportError:
     # Also support executing `pytest` from inside benchmarks/.
     from perf.results import archive_results
     from perf.paths import results_dir
     from perf.dependencies import external_versions
+    from perf.machine import machine_name
 
 
 def pytest_configure(config):
@@ -48,5 +50,6 @@ def pytest_benchmark_update_json(config, benchmarks, output_json):
     versions.update(external)
     output_json['xsuite_versions'] = versions
     output_json['external_version_sources'] = sources
+    output_json['machine_name'] = machine_name()
     output_json['testbed'] = os.environ.get('BENCHMARK_TESTBED', 'unlabelled-local')
     output_json['benchmark_protocol'] = 2

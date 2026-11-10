@@ -146,7 +146,7 @@ def test_workflow_triggers_paths_and_retrieval():
         assert 'schedule' in d['on'] and 'workflow_dispatch' in d['on']
         assert 'push' not in d['on']
         assert 'runner.temp' not in text
-        assert '--skip-tpsa --skip-synrad --n-threads 0' in text
+        assert '--skip-tpsa --skip-synrad --n-threads 2' in text
     for name in ['xcoll-performance.yml','xcoll-performance-publish.yml']:
         text=(workflows/name).read_text()
         assert 'github-token: ${{ github.token }}' in text
@@ -156,7 +156,7 @@ def test_workflow_triggers_paths_and_retrieval():
 
 def test_gpu_and_engine_case_matrix():
     text=(ROOT/'benchmarks/pytest.ini').read_text()
-    assert 'not gpu' in text and 'gpu:' in text
+    assert 'not gpu' not in text and 'gpu:' in text
     for name in ('gpu','fluka','geant4'):
         src=(ROOT/f'benchmarks/bench_{name}.py').read_text()
         assert f'@pytest.mark.{name}' in src

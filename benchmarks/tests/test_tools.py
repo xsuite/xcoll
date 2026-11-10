@@ -205,9 +205,9 @@ def test_setup_requires_configured_existing_paths(monkeypatch):
         _required("XCOLL_MISSING_TEST_PATH")
 
 
-def test_fluka_geant4_gpu_are_opt_in():
+def test_fluka_geant4_gpu_skip_when_unavailable():
     config = (BENCH / "pytest.ini").read_text()
-    assert '-m "not fluka and not geant4 and not gpu"' in config
+    assert '-m "not fluka and not geant4 and not gpu"' not in config
     for mark in ('fluka:', 'geant4:', 'gpu:'):
         assert mark in config
 

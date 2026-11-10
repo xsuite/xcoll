@@ -20,6 +20,7 @@ jobs:
       cancel-in-progress: false
     outputs:
       sha: ${{ steps.source.outputs.sha }}
+      measured: ${{ steps.check_measurements.outputs.measured }}
     env:
       MINIFORGE_ROOT: /home/xcollrunner/miniforge3
       OMP_NUM_THREADS: '1'
@@ -87,7 +88,7 @@ jobs:
           set -euo pipefail
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 0
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
 
       - name: Compile Xcoll Geant4/BDSIM interface in active environment
         shell: bash
@@ -119,6 +120,26 @@ jobs:
           conda activate "$BENCH_ENV"
           python -m pytest -m geant4
 
+      - name: Check for executed benchmark measurements
+        id: check_measurements
+        shell: bash
+        run: |
+          python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          has_data = False
+          for path in Path('benchmarks/results').rglob('*.json'):
+              try:
+                  data = json.loads(path.read_text(encoding='utf-8'))
+              except (OSError, ValueError):
+                  continue
+              has_data |= bool(data.get('benchmarks'))
+          print('measured=' + ('true' if has_data else 'false'))
+          PYCODE
+          if [ "$(find benchmarks/results -name '*.json' -print -quit 2>/dev/null)" = '' ]; then
+            echo 'No benchmark output: all optional cases may have been skipped.'
+          fi
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -143,7 +164,7 @@ jobs:
 
   publish:
     needs: benchmark_geant4
-    if: needs.benchmark_geant4.result == 'success'
+    if: needs.benchmark_geant4.result == 'success' && needs.benchmark_geant4.outputs.measured == 'true'
     uses: ./.github/workflows/xcoll-performance-publish.yml
     with:
       artifact: xcoll-external-${{ github.run_id }}-${{ github.run_attempt }}

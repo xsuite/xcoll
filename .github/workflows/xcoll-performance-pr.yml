@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
 
       - name: Benchmark quick CPU cases
         working-directory: benchmarks

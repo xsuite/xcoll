@@ -38,16 +38,19 @@ def _files(paths):
     return sorted(set(files))
 
 
-def _hardware(machine, testbed, physical_host):
+def _hardware(machine, testbed, physical_host, explicit_name=None):
     cpu = machine.get('cpu') or {}
     processor = (machine.get('processor') or cpu.get('brand_raw') or
                  cpu.get('brand') or 'unknown CPU')
+    # Prefer the configured OS computer name captured when the benchmark ran.
+    if isinstance(explicit_name, str) and explicit_name.strip():
+        return explicit_name.strip()
     if physical_host:
         return physical_host
     if testbed.startswith('cern-openstack-xcoll-'):
         return 'cern-openstack-xcoll-vm-v1'
     # Exclude the volatile network host name: a laptop may move networks.
-    return f"{testbed} | {machine.get('system', '?')} | {processor}"
+    return f"{machine.get('system', '?')} | {processor}"
 
 
 def read_runs(paths, config=None, *, online=False):
@@ -64,11 +67,13 @@ def read_runs(paths, config=None, *, online=False):
         testbed = data.get('testbed') or 'unlabelled-local'
         physical_host = (ci.get('physical_host') or
                          ('cern-openstack-xcoll-vm-v1' if testbed.startswith('cern-openstack-xcoll-') else ''))
-        machine_key = _hardware(machine, testbed, physical_host)
+        machine_key = _hardware(machine, testbed, physical_host, data.get('machine_name'))
         sha = ci.get('source_sha') or commit.get('id') or 'unknown'
         branch = ci.get('source_branch') or commit.get('branch') or 'unknown'
         stamp = str(data.get('datetime') or '')
         profile = ci.get('profile') or ''
+        # Xcoll release/version is stored by pytest-benchmark's metadata hook.
+        release = str(ci.get('release') or (data.get('xsuite_versions') or {}).get('xcoll') or 'unknown')
         entries = []
         for b in data['benchmarks']:
             stats = b.get('stats') or {}
@@ -96,12 +101,13 @@ def read_runs(paths, config=None, *, online=False):
             runs.append({
                 'id': f"{ci['run_id']}-{ci.get('run_attempt', '')}" if ci.get('run_id') else path.name,
                 'datetime': stamp, 'sha': sha, 'branch': branch,
-                'machine': machine_key, 'testbed': testbed,
+                'release': release, 'machine': machine_key, 'testbed': testbed,
                 'host': '', 'physical_host': physical_host,
                 'trigger': ci.get('trigger') or '',
                 'versions': data.get('xsuite_versions') or {},
                 'profile': profile, 'entries': entries,
-                'components': [{'profile': profile, 'sha': sha, 'datetime': stamp}],
+                'components': [{'profile': profile, 'sha': sha, 'datetime': stamp,
+                                'release': release}],
             })
     runs.sort(key=lambda r: (r['datetime'], r['id']))
     return merge_daily(runs) if online else runs
@@ -131,7 +137,9 @@ def merge_daily(runs):
         singles.append({
             'id': f'daily:{date}:{host}:{branch}', 'datetime': max(r['datetime'] for r in chosen),
             'sha': chosen[-1]['sha'] if len({r['sha'] for r in chosen}) == 1 else 'mixed',
-            'branch': branch, 'machine': host, 'testbed': 'cern-daily',
+            'branch': branch, 'release': (chosen[-1]['release']
+                if len({r['release'] for r in chosen}) == 1 else 'mixed'),
+            'machine': chosen[-1]['machine'], 'testbed': 'cern-daily',
             'host': '', 'physical_host': host, 'trigger': 'schedule',
             'versions': chosen[-1]['versions'], 'profile': 'daily',
             'components': components, 'entries': entries,
