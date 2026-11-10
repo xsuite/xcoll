@@ -25,26 +25,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install Xsuite and Xcoll
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
+
       - name: Record dependencies
         run: |
           python -m pip freeze > benchmark-dependencies.txt
           if [ -f benchmarks/perf/dependencies.py ]; then
             python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
           fi
-      - name: Prebuild serial kernels
-        run: xsuite-prebuild regenerate --kind serial
+
+      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa
+
       - name: Benchmark quick CPU cases
         working-directory: benchmarks
         run: python -m pytest -m quick
+
       - name: Archive PR measurements (not permanent history)
         if: always()
         uses: actions/upload-artifact@v4

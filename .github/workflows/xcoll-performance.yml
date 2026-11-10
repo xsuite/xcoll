@@ -85,8 +85,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
-          conda activate "$BENCH_ENV"
           python -m benchmarks.perf.prebuild_cpu --skip-tpsa
 
       - name: Run benchmarks
@@ -144,26 +142,35 @@ jobs:
         with:
           ref: ${{ inputs.target_ref }}
           persist-credentials: false
+
       - name: Record tested commit
         id: source
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install Xsuite and Xcoll
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
+
       - name: Save dependencies
         run: |
           python -m pip freeze > benchmark-dependencies.txt
           if [ -f benchmarks/perf/dependencies.py ]; then
             python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
           fi
-      - name: Prebuild serial kernels
-        run: xsuite-prebuild regenerate --kind serial
+
+      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa
+
       - name: Run selected profile
         working-directory: benchmarks
         env:
@@ -174,6 +181,7 @@ jobs:
           else
             python -m pytest
           fi
+
       - name: Archive detailed results
         if: always()
         uses: actions/upload-artifact@v4
