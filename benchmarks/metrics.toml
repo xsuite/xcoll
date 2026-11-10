@@ -6,6 +6,8 @@ workload_fields = [
   'interpolation_m', 'physics_case', 'geometry', 'tilt_radians',
   'sequence_sha256', 'collimator_database_sha256',
   'coordinate_seed', 'particle_seed', 'phase',
+  'engine', 'material', 'planes', 'individual_kicks',
+  'sweep_per_turn_hz', 'fresh_interpreter',
 ]
 
 [observables.lost_fraction]
@@ -42,7 +44,14 @@ absolute_tolerance = 0
 source = 'num_families'
 absolute_tolerance = 0
 
-[observables.recorded_interactions_per_particle]
-source = 'recorded_interactions'
-denominator = 'particles'
-absolute_tolerance = 0.02
+[observables.blowup_rms_kick]
+source = 'rms_kick'
+absolute_tolerance = 1e-8
+
+[observables.monitor_recorded_particles]
+source = 'recorded_particles'
+absolute_tolerance = 0
+
+[observables.monitor_geometric_emittance]
+source = 'geometric_emittance'
+absolute_tolerance = 1e-9

@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import sys
 from pathlib import Path
 
 import pytest
 
-BENCH = Path(__file__).resolve().parents[1]
+
+ROOT = Path(__file__).resolve().parents[2]
+BENCH = ROOT / "benchmarks"
 sys.path.insert(0, str(BENCH))
 
 from perf import metrics, compare_physics, report, results as results_cli, history
 import conftest
+from perf.prebuild_cpu import select_kernel_names
 
 
 def entry(*, name='bench_a', lost=0.3, particles=100000, **changes):
@@ -178,4 +182,54 @@ def test_new_benchmarks_use_serial_pedantic_setup():
         assert 'benchmark.pedantic(' in content
         assert 'pytest.mark.' in content
         assert 'def setup():' in content
+
+
+def test_new_files_are_valid_python():
+    for name in ("import", "materials", "rf_sweep", "blowup", "emittance_monitor", "fluka", "geant4"):
+        path = BENCH / f"bench_{name}.py"
+        tree = ast.parse(path.read_text())
+        assert any(isinstance(n, ast.FunctionDef) and n.name.startswith("bench_") for n in tree.body)
+
+
+def test_external_suites_have_separate_marks():
+    for engine in ("fluka", "geant4"):
+        tree = ast.parse((BENCH / f"bench_{engine}.py").read_text())
+        assert f"pytest.mark.{engine}" in ast.unparse(tree)
+
+
+def test_setup_requires_configured_existing_paths(monkeypatch):
+    from benchmarks.perf.setup_external import _required
+
+    monkeypatch.delenv("XCOLL_MISSING_TEST_PATH", raising=False)
+    with pytest.raises(RuntimeError, match="Missing"):
+        _required("XCOLL_MISSING_TEST_PATH")
+    monkeypatch.setenv("XCOLL_MISSING_TEST_PATH", "/a/nonexistent/xcoll/benchmark/path")
+    with pytest.raises(FileNotFoundError):
+        _required("XCOLL_MISSING_TEST_PATH")
+
+
+def test_fluka_geant4_are_opt_in():
+    config = (BENCH / "pytest.ini").read_text()
+    assert '-m "not fluka and not geant4"' in config
+    assert "fluka:" in config and "geant4:" in config
+
+
+def test_history_accepts_external_profiles():
+    import ast
+    src = (BENCH / "perf/history.py").read_text()
+    assert '"fluka", "geant4"' in src
+    ast.parse(src)
+
+
+def test_excludes_tpsa_by_name_and_config():
+    defs = [
+        ("default_no_config", {"config": {}}),
+        ("tpsa_base_config", {"config": {"XTRACK_TPSA_TRACK": True}}),
+        ("renamed_tpsa_kernel", {"config": {"XTRACK_TPSA_TRACK": True}}),
+        ("all_with_synrad", {"config": {}}),
+    ]
+    assert select_kernel_names(defs, skip_tpsa=True) == [
+        "default_no_config", "all_with_synrad"
+    ]
+    assert len(select_kernel_names(defs)) == 4
 

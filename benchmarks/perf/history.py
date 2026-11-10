@@ -47,7 +47,7 @@ def main(argv=None):
     p.add_argument("--attempt", required=True)
     p.add_argument("--sha", required=True)
     p.add_argument("--branch", required=True)
-    p.add_argument("--profile", choices=["quick", "full"], required=True)
+    p.add_argument("--profile", choices=["quick", "full", "fluka", "geant4"], required=True)
     p.add_argument("--dependencies", type=Path)
     a = p.parse_args(argv)
     print(pack(a.input, a.output, a.run_id, a.attempt,

@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           env_dir="$RUNNER_TEMP/xcoll-perf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "BENCH_ENV=$env_dir" >> "$GITHUB_ENV"
-          "$CONDA_EXE" create --yes --prefix "$env_dir" python=3.12 pip
+          "$CONDA_EXE" create --yes --prefix "$env_dir" python=3.12 pip make cmake
           echo "$env_dir/bin" >> "$GITHUB_PATH"
 
       - name: Install latest released Xsuite and this Xcoll checkout
@@ -81,8 +81,13 @@ jobs:
           fi
           "$CONDA_EXE" list --prefix "$BENCH_ENV" --explicit > benchmark-conda-spec.txt
 
-      - name: Regenerate serial kernels
-        run: xsuite-prebuild regenerate --kind serial
+      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa
 
       - name: Run benchmarks
         working-directory: benchmarks
