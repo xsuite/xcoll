@@ -3,7 +3,7 @@ import xcoll as xc
 from pathlib import Path
 
 # Set the paths to FLUKA executables
-xc.fluka.interface.fluka       = '/eos/project/f/flukafiles/fluka-coupling/fluka4-5.0/bin/rfluka'
+xc.fluka.interface.fluka       = '/eos/project/f/flukafiles/fluka-coupling/fluka4-5.2/bin/rfluka'
 xc.fluka.interface.flukaserver = '/eos/project/f/flukafiles/fluka-coupling/fluka_coupling/fluka/flukaserver'
 xc.fluka.interface.linebuilder = '/eos/project/c/collimation-team/software/linebuilder'
 xc.fluka.interface.flair       = '/eos/project/f/flukafiles/fluka-coupling/flair-3.4/flair'
