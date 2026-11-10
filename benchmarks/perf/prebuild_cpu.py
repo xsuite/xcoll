@@ -21,7 +21,7 @@ def select_kernel_names(definitions, *, skip_tpsa: bool = False, skip_synrad: bo
         is_tpsa = name.lower().startswith("tpsa_") or bool(
             metadata.get("config", {}).get("XTRACK_TPSA_TRACK", False)
         )
-        is_synrad = bool(metadata.get("config", {}).get("XTRACK_MULTIPOLE_NO_SYNRAD", False))
+        is_synrad = not bool(metadata.get("config", {}).get("XTRACK_MULTIPOLE_NO_SYNRAD", True))
         if not (skip_tpsa and is_tpsa) and not (skip_synrad and is_synrad):
             names.append(name)
     return names
