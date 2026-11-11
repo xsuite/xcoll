@@ -1,0 +1,178 @@
+name: Xcoll performance (Geant4/BDSIM)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '57 8 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark_geant4:
+    if: github.repository == 'xsuite/xcoll' && github.ref == 'refs/heads/main'
+    runs-on:
+      group: xcoll-benchmarks
+      labels: [self-hosted, linux, x64, xcoll-bench-cpu]
+    timeout-minutes: 180
+    concurrency:
+      group: xcoll-cern-benchmark-cpu
+      cancel-in-progress: false
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      measured: ${{ steps.check_measurements.outputs.measured }}
+    env:
+      MINIFORGE_ROOT: /home/xcollrunner/miniforge3
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      BENCHMARK_TESTBED: cern-openstack-xcoll-geant4-v1
+      BENCHMARK_PHYSICAL_HOST: cern-openstack-xcoll-vm-v1
+
+    steps:
+      - name: Check out trusted source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Configure environment paths and remove stale benchmark state
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Jobs are mutually exclusive across all CERN benchmark workflows.
+          for dir in "$RUNNER_TEMP"/xcoll-perf-* "$RUNNER_TEMP"/xcoll-fluka-* "$RUNNER_TEMP"/xcoll-geant4-*; do
+            if [ -d "$dir" ]; then
+              echo "Removing stale benchmark state: $dir"
+              rm -rf -- "$dir"
+            fi
+          done
+          env_dir="$RUNNER_TEMP/xcoll-geant4-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "BENCH_ENV=$env_dir" >> "$GITHUB_ENV"
+          echo "XCOLL_PATH=${env_dir}-state" >> "$GITHUB_ENV"
+
+      - name: Record tested revision
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Mamba environment including BDSIM and Geant4
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$MINIFORGE_ROOT/bin/mamba" create --yes --prefix "$BENCH_ENV" \
+            --override-channels --channel conda-forge \
+            python=3.14 pip bdsim-g4 make cmake \
+            "hdf5=1.14.6=nompi_*" "expat=2.8.1" \
+            cxx-compiler
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          test "$CONDA_PREFIX" = "$BENCH_ENV"
+          python --version
+          geant4-config --version
+          bdsim --version
+          rm -rf benchmarks/results
+
+      - name: Install Xsuite and benchmark dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade xsuite
+          python -m pip install -e '.[benchmarks]' cython pybind11 rpyc
+
+      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+
+      - name: Compile Xcoll Geant4/BDSIM interface in active environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          geant4-config --version
+          bdsim --version
+          python -m benchmarks.perf.setup_external geant4
+
+      - name: Record resolved dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          python --version > benchmark-dependencies.txt
+          python -m pip freeze >> benchmark-dependencies.txt
+          python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
+          "$MINIFORGE_ROOT/bin/mamba" list --prefix "$BENCH_ENV" --explicit > benchmark-conda-spec.txt
+
+      - name: Benchmark Geant4
+        working-directory: benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          python -m pytest -m geant4
+
+      - name: Check for executed benchmark measurements
+        id: check_measurements
+        shell: bash
+        run: |
+          python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          has_data = False
+          for path in Path('benchmarks/results').rglob('*.json'):
+              try:
+                  data = json.loads(path.read_text(encoding='utf-8'))
+              except (OSError, ValueError):
+                  continue
+              has_data |= bool(data.get('benchmarks'))
+          print('measured=' + ('true' if has_data else 'false'))
+          PYCODE
+          if [ "$(find benchmarks/results -name '*.json' -print -quit 2>/dev/null)" = '' ]; then
+            echo 'No benchmark output: all optional cases may have been skipped.'
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-external-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            benchmarks/results/
+            benchmark-dependencies.txt
+            benchmark-conda-spec.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Remove disposable environment and interface
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${BENCH_ENV:-}" ] && [ -d "$BENCH_ENV/conda-meta" ]; then
+            "$MINIFORGE_ROOT/bin/mamba" env remove --yes --prefix "$BENCH_ENV" || true
+          fi
+          if [ -n "${BENCH_ENV:-}" ]; then rm -rf -- "$BENCH_ENV"; fi
+          if [ -n "${XCOLL_PATH:-}" ]; then rm -rf -- "$XCOLL_PATH"; fi
+
+  publish:
+    needs: benchmark_geant4
+    if: needs.benchmark_geant4.result == 'success' && needs.benchmark_geant4.outputs.measured == 'true'
+    uses: ./.github/workflows/xcoll-performance-publish.yml
+    with:
+      artifact: xcoll-external-${{ github.run_id }}-${{ github.run_attempt }}
+      sha: ${{ needs.benchmark_geant4.outputs.sha }}
+      profile: geant4
+      branch: main
+    permissions:
+      contents: write
+      actions: read
+      pages: write
+      id-token: write

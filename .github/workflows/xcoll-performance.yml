@@ -1,187 +1,337 @@
-name: Xcoll performance
+name: Xcoll performance (reference)
 
 on:
+  schedule:
+    - cron: '17 3 * * *' # Daily at 03:17 UTC, on main
   workflow_dispatch:
     inputs:
       target_ref:
-        description: "Xcoll branch, tag, or commit SHA to benchmark"
+        description: 'Branch, tag, or SHA (main uses the CERN runner; other refs use GitHub-hosted CPU)'
+        required: true
         type: string
         default: main
-        required: true
       profile:
-        description: "Benchmarks to run"
+        description: 'Benchmark profile (full runs all cases)'
+        required: true
         type: choice
         options: [quick, full]
         default: quick
-        required: true
 
-# Launch the workflow on main and choose target_ref for the code to measure.
-# No automatic PR/push triggers; this workflow does not modify source branches.
 permissions:
   contents: read
 
 jobs:
-  benchmark:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    outputs:
-      source_sha: ${{ steps.source.outputs.sha }}
+  benchmark_cern:
+    # A privileged, persistent runner must only execute reviewed main code.
+    # This guard also prevents workflow_dispatch on a non-main workflow ref.
+    if: >-
+      github.repository == 'xsuite/xcoll' && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' || inputs.target_ref == 'main')
+    runs-on:
+      group: xcoll-benchmarks
+      labels: [self-hosted, linux, x64, xcoll-bench-cpu]
+    timeout-minutes: 120
+    concurrency:
+      group: xcoll-cern-benchmark-cpu
+      cancel-in-progress: false
     permissions:
       contents: read
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
     env:
+      # Miniforge is installed once under the unprivileged runner account.
+      CONDA_EXE: /home/xcollrunner/miniforge3/bin/conda
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
-      BENCHMARK_TESTBED: github-ubuntu-24.04-cpu-informational
+      BENCHMARK_TESTBED: cern-openstack-xcoll-cpu-v1
+      BENCHMARK_PHYSICAL_HOST: cern-openstack-xcoll-vm-v1
+
     steps:
-      - name: Check out the benchmark target
+      - name: Check out trusted main
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_ref }}
-      - name: Record the actual commit tested
+          ref: main
+          persist-credentials: false
+
+      - name: Record the tested commit
         id: source
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install Xsuite and this Xcoll checkout
+
+      - name: Clear old environments left by aborted runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          # All CERN workflows share an exclusive concurrency group.
+          for dir in "$RUNNER_TEMP"/xcoll-perf-* "$RUNNER_TEMP"/xcoll-fluka-* "$RUNNER_TEMP"/xcoll-geant4-*; do
+            if [ -d "$dir" ]; then
+              echo "Removing stale benchmark state: $dir"
+              rm -rf -- "$dir"
+            fi
+          done
+
+      - name: Create fresh Miniforge environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_dir="$RUNNER_TEMP/xcoll-perf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "BENCH_ENV=$env_dir" >> "$GITHUB_ENV"
+          "$CONDA_EXE" create --yes --prefix "$env_dir" python=3.12 pip make cmake
+          echo "$env_dir/bin" >> "$GITHUB_PATH"
+
+      - name: Install latest released Xsuite and this Xcoll checkout
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
-      - name: Record installed dependency versions
-        run: python -m pip freeze > benchmark-dependencies.txt
-      - name: Prebuild serial Xsuite kernels
-        run: xsuite-prebuild regenerate --kind serial
-      - name: Run CPU benchmarks
+
+      - name: Save dependency manifest
+        run: |
+          python --version > benchmark-dependencies.txt
+          python -m pip freeze >> benchmark-dependencies.txt
+          if [ -f benchmarks/perf/dependencies.py ]; then
+            python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
+          fi
+          "$CONDA_EXE" list --prefix "$BENCH_ENV" --explicit > benchmark-conda-spec.txt
+
+      - name: Compile selected serial kernels (full profile only)
+        if: github.event_name == 'schedule' || inputs.profile == 'full'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+
+      - name: Run benchmarks
+        working-directory: benchmarks
+        env:
+          PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
+          SOURCE_TRIGGER: ${{ github.event_name }}
+          PHYSICAL_HOST: ${{ needs.benchmark_cern.result == 'success' && 'cern-openstack-xcoll-vm-v1' || '' }}
+        run: |
+          if [ "$PROFILE" = quick ]; then
+            python -m pytest -m quick
+          else
+            python -m pytest -m "not fluka and not geant4 and not gpu"
+          fi
+
+      - name: Archive detailed results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-measurements-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            benchmarks/results/
+            benchmark-dependencies.txt
+            benchmark-conda-spec.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Remove temporary environment
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${BENCH_ENV:-}" ] && [ -d "$BENCH_ENV" ]; then
+            "$CONDA_EXE" env remove --yes --prefix "$BENCH_ENV" || true
+            rm -rf -- "$BENCH_ENV"
+          fi
+
+  benchmark_other_ref:
+    # For manual non-main measurements, use disposable GitHub-hosted hardware.
+    # Never execute a user-selected ref on the persistent CERN VM.
+    if: >-
+      github.repository == 'xsuite/xcoll' && github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_dispatch' && inputs.target_ref != 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      BENCHMARK_TESTBED: github-ubuntu-24.04-reference-informational
+
+    steps:
+      - name: Check out selected revision (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+          persist-credentials: false
+
+      - name: Record tested commit
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Xsuite and Xcoll
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade xsuite
+          python -m pip install -e '.[benchmarks]' cython
+
+      - name: Save dependencies
+        run: |
+          python -m pip freeze > benchmark-dependencies.txt
+          if [ -f benchmarks/perf/dependencies.py ]; then
+            python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
+          fi
+
+      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad
+
+      - name: Run selected profile
         working-directory: benchmarks
         env:
           PROFILE: ${{ inputs.profile }}
         run: |
-          if [ "$PROFILE" = "quick" ]; then
+          if [ "$PROFILE" = quick ]; then
             python -m pytest -m quick
           else
             python -m pytest
           fi
-      - name: Archive results
+
+      - name: Archive detailed results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xcoll-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          name: xcoll-measurements-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             benchmarks/results/
             benchmark-dependencies.txt
           if-no-files-found: warn
           retention-days: 90
 
-  publish-history:
-    # Only after a successful, manually requested benchmark run. Keep the
-    # repository-write token OUT OF the job that executes selected branch code.
-    needs: benchmark
+  publish_history:
+    # The benchmark jobs have read-only tokens. This trusted main-only job is
+    # the only one permitted to push immutable JSON to the history branch.
+    needs: [benchmark_cern, benchmark_other_ref]
+    if: >-
+      always() && (needs.benchmark_cern.result == 'success' ||
+                   needs.benchmark_other_ref.result == 'success')
     runs-on: ubuntu-24.04
+    concurrency:
+      group: xcoll-history-writer
+      cancel-in-progress: false
     permissions:
       contents: write
       actions: read
-    concurrency:
-      group: xcoll-performance-history-write
-      cancel-in-progress: false
     steps:
-      - name: Check out trusted history tooling from main
+      - name: Check out trusted publication tooling
         uses: actions/checkout@v4
         with:
           ref: main
-      - name: Download measured JSON from previous job
+
+      - name: Download measurement artifact
         uses: actions/download-artifact@v4
         with:
-          name: xcoll-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          name: xcoll-measurements-${{ github.run_id }}-${{ github.run_attempt }}
           path: downloaded
-      - name: Package one immutable JSON record
-        id: record
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+
+      - name: Package a permanent record
         env:
-          SOURCE_SHA: ${{ needs.benchmark.outputs.source_sha }}
-          SOURCE_BRANCH: ${{ inputs.target_ref }}
-          PROFILE: ${{ inputs.profile }}
+          SOURCE_SHA: ${{ needs.benchmark_cern.outputs.sha || needs.benchmark_other_ref.outputs.sha }}
+          SOURCE_BRANCH: ${{ github.event_name == 'schedule' && 'main' || inputs.target_ref }}
+          PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
         run: |
-          python benchmarks/history.py \
+          python -m benchmarks.perf.history \
             --input downloaded/benchmarks/results \
-            --output "$RUNNER_TEMP/xcoll-history" \
-            --run-id "$GITHUB_RUN_ID" \
-            --attempt "$GITHUB_RUN_ATTEMPT" \
-            --sha "$SOURCE_SHA" \
-            --branch "$SOURCE_BRANCH" \
-            --profile "$PROFILE" \
+            --output "$RUNNER_TEMP/xcoll-packed" \
+            --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" \
+            --sha "$SOURCE_SHA" --branch "$SOURCE_BRANCH" \
+            --profile "$PROFILE" --trigger "$SOURCE_TRIGGER" --physical-host "$PHYSICAL_HOST" \
             --dependencies downloaded/benchmark-dependencies.txt \
-            > "$RUNNER_TEMP/packed-path.txt"
-          echo "packed=$(cat "$RUNNER_TEMP/packed-path.txt")" >> "$GITHUB_OUTPUT"
-      - name: Commit only the record to benchmark-results
+            > "$RUNNER_TEMP/packed-file.txt"
+
+      - name: Append immutable result and rolling daily physics baseline
         env:
-          PACKED_FILE: ${{ steps.record.outputs.packed }}
+          SOURCE_TRIGGER: ${{ github.event_name }}
+          PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if git ls-remote --exit-code --heads origin benchmark-results > /dev/null; then
+          base_path="baselines/cern-openstack-xcoll-vm-v1/${PROFILE}.json.gz"
+          previous="$RUNNER_TEMP/previous-physics.json.gz"
+          previous_arg=()
+          has_history=false
+          if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
             git fetch origin benchmark-results
+            has_history=true
+            if [ "$SOURCE_TRIGGER" = schedule ]; then
+              if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
+                previous_arg=(--previous "$previous")
+              else
+                rm -f "$previous"
+              fi
+            fi
+          fi
+          python -m benchmarks.perf.rolling_physics "$(cat "$RUNNER_TEMP/packed-file.txt")" \
+            "${previous_arg[@]}" \
+            --baseline-out "$RUNNER_TEMP/current-physics.json.gz" \
+            --history-out "$RUNNER_TEMP/compact-run.json"
+          if [ "$has_history" = true ]; then
             git switch -C benchmark-results FETCH_HEAD
           else
-            # `git switch --orphan` already clears tracked files.
             git switch --orphan benchmark-results
           fi
           mkdir -p runs
           target="runs/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
-          if [ -e "$target" ]; then
-            echo "History record $target already exists; refusing overwrite" >&2
-            exit 1
-          fi
-          cp "$PACKED_FILE" "$target"
+          test ! -e "$target" || { echo "Refusing to overwrite $target" >&2; exit 1; }
+          cp "$RUNNER_TEMP/compact-run.json" "$target"
           git add "$target"
+          if [ "$SOURCE_TRIGGER" = schedule ] && [ -f "$RUNNER_TEMP/current-physics.json.gz" ]; then
+            mkdir -p "$(dirname "$base_path")"
+            cp "$RUNNER_TEMP/current-physics.json.gz" "$base_path"
+            git add "$base_path"
+          fi
           git commit -m "Benchmark run ${GITHUB_RUN_ID} attempt ${GITHUB_RUN_ATTEMPT}"
           git push origin HEAD:benchmark-results
 
-  deploy-dashboard:
-    # A push made by GITHUB_TOKEN does NOT automatically trigger another
-    # workflow, so Pages is deployed explicitly here after history publication.
-    needs: publish-history
+  deploy_dashboard:
+    needs: publish_history
     runs-on: ubuntu-24.04
+    concurrency:
+      group: xcoll-performance-pages
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write
       id-token: write
-    concurrency:
-      group: xcoll-performance-pages-deploy
-      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check out trusted dashboard generator
+      - name: Get trusted website generator
         uses: actions/checkout@v4
         with:
           ref: main
-      - name: Fetch permanent benchmark records
+      - name: Get permanent benchmark history
         uses: actions/checkout@v4
         with:
           ref: benchmark-results
           path: benchmark-history
-      - name: Build interactive dashboard
+      - name: Generate dashboard
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import sys
-          sys.path.insert(0, str(Path('benchmarks').resolve()))
-          from report import create_dashboard
-          files = sorted(Path('benchmark-history/runs').glob('*.json'))
-          if not files:
-              raise SystemExit('No permanent benchmark records found')
-          create_dashboard(files, Path('_site/index.html'))
-          print(f'Generated dashboard from {len(files)} archived runs')
-          PY
-      - name: Configure Pages
+          python -m benchmarks.perf.report benchmark-history/runs \
+            --config benchmarks/metrics.toml --online -o _site/index.html
+      - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload the Pages site
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
-      - name: Deploy GitHub Pages
+      - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4

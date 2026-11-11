@@ -1,0 +1,139 @@
+name: Publish Xcoll benchmark history
+
+on:
+  workflow_call:
+    inputs:
+      artifact:
+        type: string
+        required: true
+      sha:
+        type: string
+        required: true
+      branch:
+        type: string
+        required: true
+      profile:
+        type: string
+        required: true
+
+jobs:
+  publish:
+    # A reusable workflow must enforce its own guard, not trust the caller.
+    if: github.repository == 'xsuite/xcoll' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: xcoll-history-writer
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out trusted publication code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact }}
+          path: downloaded
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+
+      - name: Prepare immutable history record
+        env:
+          SOURCE_SHA: ${{ inputs.sha }}
+          SOURCE_BRANCH: ${{ inputs.branch }}
+          PROFILE: ${{ inputs.profile }}
+          SOURCE_TRIGGER: ${{ github.event_name }}
+        run: |
+          python -m benchmarks.perf.history \
+            --input downloaded/benchmarks/results \
+            --output "$RUNNER_TEMP/xcoll-packed" \
+            --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" \
+            --sha "$SOURCE_SHA" --branch "$SOURCE_BRANCH" \
+            --profile "$PROFILE" --trigger "$SOURCE_TRIGGER" \
+            --physical-host "cern-openstack-xcoll-vm-v1" \
+            --dependencies downloaded/benchmark-dependencies.txt \
+            > "$RUNNER_TEMP/packed-file.txt"
+
+      - name: Append benchmark history and daily physics baseline
+        env:
+          PROFILE: ${{ inputs.profile }}
+          SOURCE_TRIGGER: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          base_path="baselines/cern-openstack-xcoll-vm-v1/${PROFILE}.json.gz"
+          previous="$RUNNER_TEMP/previous-physics.json.gz"
+          previous_arg=()
+          has_history=false
+          if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
+            git fetch origin benchmark-results
+            has_history=true
+            if [ "$SOURCE_TRIGGER" = schedule ]; then
+              if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
+                previous_arg=(--previous "$previous")
+              else
+                rm -f "$previous"
+              fi
+            fi
+          fi
+          python -m benchmarks.perf.rolling_physics "$(cat "$RUNNER_TEMP/packed-file.txt")" \
+            "${previous_arg[@]}" \
+            --baseline-out "$RUNNER_TEMP/current-physics.json.gz" \
+            --history-out "$RUNNER_TEMP/compact-run.json"
+          if [ "$has_history" = true ]; then
+            git switch -C benchmark-results FETCH_HEAD
+          else
+            git switch --orphan benchmark-results
+          fi
+          mkdir -p runs
+          target="runs/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          test ! -e "$target" || { echo "Refusing to overwrite $target" >&2; exit 1; }
+          cp "$RUNNER_TEMP/compact-run.json" "$target"
+          git add "$target"
+          if [ "$SOURCE_TRIGGER" = schedule ] && [ -f "$RUNNER_TEMP/current-physics.json.gz" ]; then
+            mkdir -p "$(dirname "$base_path")"
+            cp "$RUNNER_TEMP/current-physics.json.gz" "$base_path"
+            git add "$base_path"
+          fi
+          git commit -m "Benchmark run ${GITHUB_RUN_ID} attempt ${GITHUB_RUN_ATTEMPT}"
+          git push origin HEAD:benchmark-results
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: xcoll-performance-pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out website generator
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Check out permanent benchmark history
+        uses: actions/checkout@v4
+        with:
+          ref: benchmark-results
+          path: benchmark-history
+      - name: Regenerate the static dashboard
+        run: |
+          python -m benchmarks.perf.report benchmark-history/runs \
+            --config benchmarks/metrics.toml --online -o _site/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
