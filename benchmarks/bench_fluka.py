@@ -11,6 +11,11 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
+try:
+    from .perf.particle_metrics import count_lost_primaries
+except ImportError:
+    from perf.particle_metrics import count_lost_primaries
+
 N = 500
 SEED = 20261110
 ROUNDS = 3
@@ -141,11 +146,11 @@ def bench_fluka_tracking(benchmark, fluka_cases, case):
         return p
 
     result = benchmark.pedantic(track, setup=setup, rounds=ROUNDS, warmup_rounds=0)
-    lost = int(np.count_nonzero(np.asarray(result.state) <= 0))
+    lost = count_lost_primaries(result, N)
     if case.endswith('miss'):
         assert lost == 0
     benchmark.extra_info.update(
-        protocol=3, particles=N, engine='fluka', physics_case=case,
+        protocol=4, particles=N, engine='fluka', physics_case=case,
         material=('silicon' if 'crystal' in case else case.split('-')[0]),
         geometry=('crystal' if 'crystal' in case else 'collimator'),
         coordinate_seed=SEED, particle_seed=1993,

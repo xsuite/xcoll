@@ -46,12 +46,14 @@ def bench_rf_sweep_prepare_lhc(benchmark):
 @pytest.mark.benchmark(group="RF sweep | tracking")
 def bench_rf_sweep_tracking_lhc(benchmark):
     line = _line()
-    sweep = xc.RFSweep(line)
-    sweep.prepare(sweep_per_turn=-0.05)
+    # Building normalised particles triggers Twiss, which must happen while
+    # the line still has no time-dependent variables enabled.
     particles0 = line.build_particles(
         delta=np.linspace(-1e-4, 1e-4, 64),
         x_norm=0, px_norm=0, y_norm=0, py_norm=0,
     )
+    sweep = xc.RFSweep(line)
+    sweep.prepare(sweep_per_turn=-0.05)
     line.track(particles0.copy(), num_turns=5)  # warm up
 
     def setup():

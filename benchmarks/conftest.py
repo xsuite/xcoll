@@ -1,7 +1,7 @@
 """Optional metadata only: pytest-benchmark remains the entire benchmark runner."""
 
 import os
-from importlib import metadata
+from importlib import import_module, metadata
 import pytest
 
 try:
@@ -40,7 +40,15 @@ def pytest_sessionstart(session):
 def pytest_benchmark_update_json(config, benchmarks, output_json):
     """Version provenance without replacing pytest-benchmark's own JSON."""
     versions = {}
-    for package in ('xcoll', 'xtrack', 'xobjects', 'xpart', 'xdeps', 'numpy'):
+    for package in ('xcoll', 'xtrack', 'xobjects', 'xpart', 'xdeps', 'xfields'):
+        try:
+            versions[package] = str(import_module(package).__version__)
+        except:
+            try:
+                versions[package] = metadata.version(package)
+            except metadata.PackageNotFoundError:
+                versions[package] = None
+    for package in ('numpy', 'scipy', 'pandas'):
         try:
             versions[package] = metadata.version(package)
         except metadata.PackageNotFoundError:
