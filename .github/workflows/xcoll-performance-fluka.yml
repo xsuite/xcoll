@@ -29,6 +29,7 @@ jobs:
       BENCHMARK_TESTBED: cern-openstack-xcoll-fluka-v1
       BENCHMARK_PHYSICAL_HOST: cern-openstack-xcoll-vm-v1
       XCOLL_FLUKA_ROOT: ${{ vars.XCOLL_FLUKA_ROOT }}
+      XCOLL_FLUKA_SERVER: ${{ vars.XCOLL_FLUKA_SERVER }}
       XCOLL_FLUKAIO_LIB: ${{ vars.XCOLL_FLUKAIO_LIB }}
       XCOLL_LINEBUILDER_ROOT: ${{ vars.XCOLL_LINEBUILDER_ROOT }}
       XCOLL_FLUKA_FEDB: ${{ vars.XCOLL_FLUKA_FEDB }}
