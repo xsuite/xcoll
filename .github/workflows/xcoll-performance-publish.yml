@@ -24,6 +24,7 @@ jobs:
     concurrency:
       group: xcoll-history-writer
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: write
       actions: read
@@ -67,19 +68,19 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          base_path="baselines/cern-openstack-xcoll-vm-v1/${PROFILE}.json.gz"
+          reference_profile="$PROFILE"
+          if [ "$reference_profile" = quick ]; then reference_profile=full; fi
+          base_path="baselines/cern-openstack-xcoll-vm-v1/${reference_profile}.json.gz"
           previous="$RUNNER_TEMP/previous-physics.json.gz"
           previous_arg=()
           has_history=false
           if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
             git fetch origin benchmark-results
             has_history=true
-            if [ "$SOURCE_TRIGGER" = schedule ]; then
-              if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
-                previous_arg=(--previous "$previous")
-              else
-                rm -f "$previous"
-              fi
+            if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
+              previous_arg=(--previous "$previous")
+            else
+              rm -f "$previous"
             fi
           fi
           python -m benchmarks.perf.rolling_physics "$(cat "$RUNNER_TEMP/packed-file.txt")" \
@@ -110,6 +111,7 @@ jobs:
     concurrency:
       group: xcoll-performance-pages
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
       pages: write

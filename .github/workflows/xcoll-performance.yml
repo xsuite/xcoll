@@ -16,6 +16,11 @@ on:
         type: choice
         options: [quick, full]
         default: quick
+      compile_workers:
+        description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
+        type: choice
+        options: ['0', '2']
+        default: '2'
 
 permissions:
   contents: read
@@ -77,17 +82,32 @@ jobs:
           set -euo pipefail
           env_dir="$RUNNER_TEMP/xcoll-perf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "BENCH_ENV=$env_dir" >> "$GITHUB_ENV"
-          "$CONDA_EXE" create --yes --prefix "$env_dir" python=3.12 pip make cmake
-          echo "$env_dir/bin" >> "$GITHUB_PATH"
+          "$CONDA_EXE" create --yes --prefix "$env_dir" \
+            --override-channels --channel conda-forge \
+            python=3.12 pip make cmake "gcc_linux-64=16.2" "gxx_linux-64=16.2"
 
       - name: Install latest released Xsuite and this Xcoll checkout
+        shell: bash
         run: |
+          set -euo pipefail
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
 
       - name: Save dependency manifest
+        shell: bash
         run: |
+          set -euo pipefail
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
+          echo "CC=$CC"
+          "$CC" --version
           python --version > benchmark-dependencies.txt
           python -m pip freeze >> benchmark-dependencies.txt
           if [ -f benchmarks/perf/dependencies.py ]; then
@@ -97,15 +117,27 @@ jobs:
 
       - name: Compile selected serial kernels
         shell: bash
+        env:
+          COMPILE_WORKERS: ${{ github.event_name == 'schedule' && '0' || inputs.compile_workers || '2' }}
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"
 
       - name: Run benchmarks
         working-directory: benchmarks
+        shell: bash
         env:
           PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
         run: |
+          set -euo pipefail
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
           if [ "$PROFILE" = quick ]; then
             python -m pytest -m quick
           else
@@ -184,7 +216,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
 
       - name: Run selected profile
         working-directory: benchmarks
@@ -194,7 +226,7 @@ jobs:
           if [ "$PROFILE" = quick ]; then
             python -m pytest -m quick
           else
-            python -m pytest
+            python -m pytest -m "not fluka and not geant4 and not gpu"
           fi
 
       - name: Archive detailed results
@@ -219,6 +251,7 @@ jobs:
     concurrency:
       group: xcoll-history-writer
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: write
       actions: read
@@ -263,19 +296,19 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          base_path="baselines/cern-openstack-xcoll-vm-v1/${PROFILE}.json.gz"
+          reference_profile="$PROFILE"
+          if [ "$reference_profile" = quick ]; then reference_profile=full; fi
+          base_path="baselines/cern-openstack-xcoll-vm-v1/${reference_profile}.json.gz"
           previous="$RUNNER_TEMP/previous-physics.json.gz"
           previous_arg=()
           has_history=false
           if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
             git fetch origin benchmark-results
             has_history=true
-            if [ "$SOURCE_TRIGGER" = schedule ]; then
-              if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
-                previous_arg=(--previous "$previous")
-              else
-                rm -f "$previous"
-              fi
+            if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
+              previous_arg=(--previous "$previous")
+            else
+              rm -f "$previous"
             fi
           fi
           python -m benchmarks.perf.rolling_physics "$(cat "$RUNNER_TEMP/packed-file.txt")" \
@@ -309,6 +342,7 @@ jobs:
     concurrency:
       group: xcoll-performance-pages
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
       pages: write

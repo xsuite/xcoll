@@ -2,6 +2,7 @@ name: Xcoll performance (PR)
 
 on:
   pull_request:
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
@@ -9,9 +10,14 @@ permissions:
 
 jobs:
   benchmark_pr:
-    if: github.event.pull_request.draft == false
+    # Release branches are merged and deleted automatically; benchmark the
+    # release candidate beforehand or measure main after release.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.base_ref == 'main' &&
+      !startsWith(github.head_ref, 'release/')
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 150
     concurrency:
       group: xcoll-benchmark-pr-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -19,48 +25,123 @@ jobs:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
-      BENCHMARK_TESTBED: github-ubuntu-24.04-pr-informational
+      BENCHMARK_TESTBED: github-ubuntu-24.04-pr-paired
     steps:
+      # The base SHA is main at the time this PR event was generated. Test
+      # the corresponding merge commit, not an independently moving branch.
+      - name: Check out main baseline (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
+          persist-credentials: false
+
       - name: Check out PR merge commit (read-only)
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
+          path: candidate
+          fetch-depth: 2
           persist-credentials: false
+
+      - name: Verify main is the first parent of the tested merge
+        shell: bash
+        run: test "$(git -C candidate rev-parse HEAD^1)" = "$(git -C baseline rev-parse HEAD)"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install Xsuite and Xcoll
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade xsuite
-          python -m pip install -e '.[benchmarks]' cython
-
-      - name: Record dependencies
-        run: |
-          python -m pip freeze > benchmark-dependencies.txt
-          if [ -f benchmarks/perf/dependencies.py ]; then
-            python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
-          fi
-
-      - name: Compile non-TPSA non-radiation Xsuite serial kernels (sequentially)
+      - name: Prepare main benchmark environment
+        working-directory: baseline
         shell: bash
         run: |
           set -euo pipefail
+          python -m venv "$RUNNER_TEMP/xcoll-pr-base"
+          source "$RUNNER_TEMP/xcoll-pr-base/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade xsuite
+          python -m pip install -e '.[benchmarks]' cython
+          # Xsuite pins a released Xcoll; local editable Xcoll deliberately
+          # replaces it. Freeze everything else to use for the candidate.
+          python -m pip freeze --exclude xcoll > "$RUNNER_TEMP/xcoll-pr-lock.txt"
+          python -m pip freeze > benchmark-dependencies.txt
+          python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
           python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
 
-      - name: Benchmark quick CPU cases
-        working-directory: benchmarks
-        run: python -m pytest -m quick
+      - name: Benchmark main (full CPU)
+        working-directory: baseline/benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/xcoll-pr-base/bin/activate"
+          python -m pytest -m "not fluka and not geant4 and not gpu"
 
-      - name: Archive PR measurements (not permanent history)
+      - name: Prepare PR benchmark environment
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/xcoll-pr-candidate"
+          source "$RUNNER_TEMP/xcoll-pr-candidate/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install -r "$RUNNER_TEMP/xcoll-pr-lock.txt"
+          # Install candidate after Xsuite, just as in the main environment.
+          # Constraints prevent silent changes to the shared dependencies.
+          python -m pip install -c "$RUNNER_TEMP/xcoll-pr-lock.txt" -e '.[benchmarks]' cython
+          python -m pip freeze > benchmark-dependencies.txt
+          python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+
+      - name: Benchmark PR (full CPU)
+        working-directory: candidate/benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/xcoll-pr-candidate/bin/activate"
+          python -m pytest -m "not fluka and not geant4 and not gpu"
+
+      - name: Retrieve latest scheduled physics reference (read-only)
+        working-directory: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
+            git fetch --no-tags origin benchmark-results
+            if ! git show FETCH_HEAD:baselines/cern-openstack-xcoll-vm-v1/full.json.gz > "$RUNNER_TEMP/xcoll-pr-physics.json.gz"; then
+              rm -f "$RUNNER_TEMP/xcoll-pr-physics.json.gz"
+              echo 'No scheduled CPU physics baseline exists yet.'
+            fi
+          fi
+
+      - name: Compare main and PR and screen scheduled physics
+        working-directory: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/xcoll-pr-base/bin/activate"
+          # Bootstrap the first PR introducing this helper; future PRs use main.
+          if [ ! -f benchmarks/perf/pr_compare.py ]; then cd ../candidate; fi
+          python -m benchmarks.perf.pr_compare \
+            --base "$GITHUB_WORKSPACE/baseline/benchmarks/results" \
+            --candidate "$GITHUB_WORKSPACE/candidate/benchmarks/results" \
+            --scheduled "$RUNNER_TEMP/xcoll-pr-physics.json.gz" \
+            --base-sha "$(git -C "$GITHUB_WORKSPACE/baseline" rev-parse HEAD)" \
+            --candidate-sha "$(git -C "$GITHUB_WORKSPACE/candidate" rev-parse HEAD)" \
+            --output "$GITHUB_WORKSPACE/pr-comparison.md"
+          cat "$GITHUB_WORKSPACE/pr-comparison.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive paired PR measurements (not permanent history)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: xcoll-pr-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            benchmarks/results/
-            benchmark-dependencies.txt
+            baseline/benchmarks/results/
+            baseline/benchmark-dependencies.txt
+            candidate/benchmarks/results/
+            candidate/benchmark-dependencies.txt
+            pr-comparison.md
           if-no-files-found: warn
           retention-days: 90

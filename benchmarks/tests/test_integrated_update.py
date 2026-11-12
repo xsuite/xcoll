@@ -155,6 +155,20 @@ def test_workflow_triggers_paths_and_retrieval():
         assert 'rolling_physics' in text and '--online' in text
 
 
+def test_pr_workflow_is_paired_and_skips_release_prs():
+    path = ROOT / '.github/workflows/xcoll-performance-pr.yml'
+    d = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
+    job = d['jobs']['benchmark_pr']
+    assert d['on']['pull_request']['branches'] == ['main']
+    assert "!startsWith(github.head_ref, 'release/')" in job['if']
+    assert 'github.event.pull_request.draft == false' in job['if']
+    assert job['runs-on'] == 'ubuntu-24.04'
+    assert d['permissions']['contents'] == 'read'
+    steps = [s['name'] for s in job['steps'] if 'name' in s]
+    assert steps.index('Benchmark main (full CPU)') < steps.index('Benchmark PR (full CPU)')
+    assert 'Compare main and PR and screen scheduled physics' in steps
+
+
 def test_gpu_and_engine_case_matrix():
     text=(ROOT/'benchmarks/pytest.ini').read_text()
     assert 'not gpu' not in text and 'gpu:' in text

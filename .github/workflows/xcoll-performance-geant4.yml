@@ -2,6 +2,12 @@ name: Xcoll performance (Geant4/BDSIM)
 
 on:
   workflow_dispatch:
+    inputs:
+      compile_workers:
+        description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
+        type: choice
+        options: ['0', '2']
+        default: '2'
   schedule:
     - cron: '57 8 * * *'
 
@@ -87,15 +93,17 @@ jobs:
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython pybind11 rpyc
 
-      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+      - name: Compile non-TPSA Xsuite serial kernels
         shell: bash
+        env:
+          COMPILE_WORKERS: ${{ github.event_name == 'schedule' && '0' || inputs.compile_workers || '2' }}
         run: |
           set -euo pipefail
           set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
           set -u
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"
 
       - name: Compile Xcoll Geant4/BDSIM interface in active environment
         shell: bash

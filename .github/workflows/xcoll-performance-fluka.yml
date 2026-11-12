@@ -2,6 +2,12 @@ name: Xcoll performance (FLUKA)
 
 on:
   workflow_dispatch:
+    inputs:
+      compile_workers:
+        description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
+        type: choice
+        options: ['0', '2']
+        default: '2'
   schedule:
     - cron: '37 5 * * *'
 
@@ -93,13 +99,15 @@ jobs:
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
 
-      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+      - name: Compile non-TPSA Xsuite serial kernels
         shell: bash
+        env:
+          COMPILE_WORKERS: ${{ github.event_name == 'schedule' && '0' || inputs.compile_workers || '2' }}
         run: |
           set -euo pipefail
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"
 
       - name: Compile Xcoll FLUKA interface in active environment
         shell: bash
