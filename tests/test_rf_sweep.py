@@ -17,7 +17,6 @@ from xobjects.test_helpers import for_all_test_contexts
 path = Path(__file__).parent / 'data'
 
 
-@pytest.mark.gpu
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("sweep, beam", [[-300, 1], [300, 2], [3500, 3]],
