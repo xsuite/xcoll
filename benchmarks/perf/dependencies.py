@@ -20,7 +20,9 @@ import os
 from pathlib import Path
 import re
 import shutil
+import shlex
 import subprocess
+import sysconfig
 
 
 EXTERNAL_NAMES = ("fluka", "linebuilder", "flukaio", "geant4", "bdsim")
@@ -120,9 +122,26 @@ def external_versions() -> tuple[dict[str, str | None], dict[str, str | None]]:
     return versions, sources
 
 
+def compiler_metadata() -> dict:
+    """Compiler command/version and configured flags (not a full command trace)."""
+    command = os.environ.get('CC') or sysconfig.get_config_var('CC') or 'cc'
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        argv = []
+    flags = ('CFLAGS', 'CPPFLAGS', 'CXXFLAGS', 'LDFLAGS')
+    return {
+        'command': command,
+        'executable': shutil.which(argv[0]) if argv else None,
+        'version': _run([*argv, '--version']) if argv else None,
+        'environment_flags': {key: os.environ.get(key) for key in flags},
+        'python_build_flags': {key: sysconfig.get_config_var(key) for key in flags},
+    }
+
+
 def main() -> None:
     versions, sources = external_versions()
-    print(json.dumps({"external_versions": versions, "sources": sources}, indent=2))
+    print(json.dumps({"external_versions": versions, "sources": sources, "compiler": compiler_metadata()}, indent=2))
 
 
 if __name__ == "__main__":

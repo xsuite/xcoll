@@ -96,6 +96,7 @@ def read_runs(paths, config=None, *, online=False):
                 'physics': extra.get('physics_check'),
                 'extra': {k: v for k, v in extra.items() if k not in {'physics', 'raw_physics', 'particle_data'}},
                 'sha': sha, 'profile': profile, 'datetime': stamp,
+                'compiler': data.get('compiler') or {},
             })
         if entries:
             runs.append({

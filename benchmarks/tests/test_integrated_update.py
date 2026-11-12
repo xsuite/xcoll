@@ -146,7 +146,8 @@ def test_workflow_triggers_paths_and_retrieval():
         assert 'schedule' in d['on'] and 'workflow_dispatch' in d['on']
         assert 'push' not in d['on']
         assert 'runner.temp' not in text
-        assert '--skip-tpsa --skip-synrad --n-threads 2' in text
+        assert '--skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"' in text
+        assert d['on']['workflow_dispatch']['inputs']['compile_workers']['options'] == ['0', '2']
     for name in ['xcoll-performance.yml','xcoll-performance-publish.yml']:
         text=(workflows/name).read_text()
         assert 'github-token: ${{ github.token }}' in text
