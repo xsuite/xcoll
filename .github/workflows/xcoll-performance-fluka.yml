@@ -136,7 +136,7 @@ jobs:
         id: check_measurements
         shell: bash
         run: |
-          python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          "$BENCH_ENV/bin/python" - <<'PYCODE' >> "$GITHUB_OUTPUT"
           import json
           from pathlib import Path
           has_data = False
