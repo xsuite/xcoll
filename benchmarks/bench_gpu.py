@@ -10,7 +10,6 @@ import xobjects as xo
 import xpart as xp
 import xcoll as xc
 
-N = 200_000
 SEED = 20261110
 ROUNDS = 5
 
@@ -27,31 +26,32 @@ def gpu():
     return cp, context
 
 
-def _particles(cp, context, case):
+def _particles(cp, context, case, npart):
     rng = np.random.default_rng(SEED)
     if case.endswith('miss'):
-        x = rng.normal(0, 5e-5, N)
+        x = rng.normal(0, 5e-5, npart)
     elif case.endswith('grazing'):
-        x = rng.normal(0.001, 2e-6, N)
+        x = rng.normal(0.001, 2e-6, npart)
     else:
-        x = rng.normal(0.0011, 1e-5, N)
-    particles = xp.Particles(p0c=450e9, x=x, px=rng.normal(0, 3e-6, N),
-                             y=rng.normal(0, 1e-4, N), py=rng.normal(0, 3e-6, N),
+        x = rng.normal(0.0011, 1e-5, npart)
+    particles = xp.Particles(p0c=450e9, x=x, px=rng.normal(0, 3e-6, npart),
+                             y=rng.normal(0, 1e-4, npart), py=rng.normal(0, 3e-6, npart),
                              _context=context)
-    particles._init_random_number_generator(seeds=13579 + np.arange(N, dtype=np.uint32))
+    particles._init_random_number_generator(seeds=13579 + np.arange(npart, dtype=np.uint32))
     return particles
 
 
 @pytest.mark.gpu
 @pytest.mark.benchmark(group='Everest GPU | tracking')
 @pytest.mark.parametrize('case', ['cfc-hit', 'cfc-miss', 'cfc-grazing', 'tungsten-hit'])
-def bench_gpu_everest(benchmark, gpu, case):
+@pytest.mark.parametrize('npart', [20, 100, 500, 2000, 5000, 20_000, 50_000, 200_000, 1_000_000])
+def bench_gpu_everest(benchmark, gpu, case, npart):
     cp, context = gpu
     material = (xc.materials.Tungsten if case.startswith('tungsten')
                 else xc.materials.CarbonFibreComposite)
     element = xc.EverestCollimator(length=0.6, jaw=[0.001, -0.001],
                                   material=material, _context=context)
-    initial = _particles(cp, context, case)
+    initial = _particles(cp, context, case, npart)
 
     def track(p):
         element.track(p)
@@ -71,8 +71,8 @@ def bench_gpu_everest(benchmark, gpu, case):
     name = properties.get('name', b'unknown GPU')
     if isinstance(name, bytes):
         name = name.decode(errors='replace')
-    benchmark.extra_info.update(protocol=3, particles=N, physics_case='gpu-'+case,
+    benchmark.extra_info.update(protocol=3, particles=npart, physics_case='gpu-'+case,
                                 context='ContextCupy', gpu_name=name,
                                 coordinate_seed=SEED, particle_seed=13579,
-                                lost_fraction=lost/N,
+                                lost_fraction=lost/npart,
                                 timed='element.track(particles) + CUDA device synchronisation')
