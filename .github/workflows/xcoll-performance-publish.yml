@@ -114,6 +114,7 @@ jobs:
       queue: max
     permissions:
       contents: read
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -134,8 +135,38 @@ jobs:
           python -m benchmarks.perf.report benchmark-history/runs \
             --config benchmarks/metrics.toml --online -o _site/index.html
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - name: Upload the Pages site
+        id: pages_artifact
+        uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      # The upload can finish before the artefact is visible to deploy-pages.
+      - name: Wait for Pages artefact metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_ARTIFACT_ID: ${{ steps.pages_artifact.outputs.artifact_id }}
+          PAGES_ARTIFACT_NAME: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          : "${PAGES_ARTIFACT_ID:?Pages upload did not return an artefact ID}"
+          for attempt in {1..12}; do
+            if timeout 10s gh api --method GET \
+                "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+                -f name="$PAGES_ARTIFACT_NAME" \
+                --jq '.artifacts[] | select(.expired == false) | .id' \
+                | grep -Fx "$PAGES_ARTIFACT_ID"; then
+              echo "Pages artefact is visible; allowing time for deployment metadata to propagate."
+              sleep 15
+              exit 0
+            fi
+            echo "Waiting for Pages artefact (attempt $attempt/12)..."
+            sleep 5
+          done
+          echo "::error::Pages artefact metadata did not become available."
+          exit 1
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
