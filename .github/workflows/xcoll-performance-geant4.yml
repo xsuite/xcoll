@@ -64,8 +64,10 @@ jobs:
             python=3.14 pip bdsim-g4 make cmake \
             "hdf5=1.14.6=nompi_*" "expat=2.8.1" \
             cxx-compiler
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           test "$CONDA_PREFIX" = "$BENCH_ENV"
           python --version
           geant4-config --version
@@ -76,8 +78,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython pybind11 rpyc
@@ -86,16 +90,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
 
       - name: Compile Xcoll Geant4/BDSIM interface in active environment
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           geant4-config --version
           bdsim --version
           python -m benchmarks.perf.setup_external geant4
@@ -104,8 +112,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python --version > benchmark-dependencies.txt
           python -m pip freeze >> benchmark-dependencies.txt
           python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
@@ -116,8 +126,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python -m pytest -m geant4
 
       - name: Check for executed benchmark measurements
