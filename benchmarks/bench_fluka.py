@@ -67,7 +67,7 @@ def fluka_cases(tmp_path_factory):
         engine.stop(clean=True)
 
     state = {'group': None, 'elements': {}, 'initial': {}}
-    available_assemblies = set(xc.fluka.assemblies)
+    available_assemblies = set(f"{ass.fedb_series}_{ass.fedb_tag}".lower()  for ass in xc.fluka.assemblies)
 
     def get_case(case):
         if case == 'fedb-hilumi-hit' and 'hilumi_tcppm' not in available_assemblies:

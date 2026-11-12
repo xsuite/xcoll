@@ -111,6 +111,14 @@ jobs:
           : "${XCOLL_FLUKA_SERVER:?Set XCOLL_FLUKA_SERVER in GitHub Actions variables}"
           : "${XCOLL_FLUKAIO_LIB:?Set XCOLL_FLUKAIO_LIB in GitHub Actions variables}"
           : "${XCOLL_LINEBUILDER_ROOT:?Set XCOLL_LINEBUILDER_ROOT in GitHub Actions variables}"
+          # rfluka requires an unprefixed gfortran executable,
+          # independently of the Conda compiler used for Xcoll.
+          command -v gfortran || {
+              echo "FLUKA requires gfortran on PATH."
+              echo "On AlmaLinux: sudo dnf install gcc-gfortran"
+              exit 1
+          }
+          gfortran --version
           python -m benchmarks.perf.setup_external fluka
 
       - name: Record resolved dependencies
@@ -131,7 +139,16 @@ jobs:
           set -euo pipefail
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m pytest -m fluka
+          python -m pytest -m fluka --basetemp="$RUNNER_TEMP/xcoll-fluka-diagnostics"
+
+      - name: Print FLUKA startup errors
+        if: failure()
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/xcoll-fluka-diagnostics" ]; then
+            find "$RUNNER_TEMP/xcoll-fluka-diagnostics" \
+              -name rfluka.log -print -exec tail -n 100 {} \;
+          fi
 
       - name: Check for executed benchmark measurements
         id: check_measurements
