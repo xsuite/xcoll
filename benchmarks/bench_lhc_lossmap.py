@@ -53,7 +53,7 @@ def _build_lhc_case(n_particles, n_turns, include_crystals):
     previous_state = np.random.get_state()
     try:
         np.random.seed(SEED_COORDS)
-        p0 = line[tcp].generate_pencil(n_particles)
+        p0 = line.xcoll.collimators.generate_pencil(tcp, n_particles)
     finally:
         np.random.set_state(previous_state)
     p0._init_random_number_generator(

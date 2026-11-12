@@ -254,6 +254,26 @@ class XcollCollimatorAPI(XcollLineAccessor):
             raise ValueError(f"Neither family nor collimator `{name}` found in"
                              f" line!")
 
+    def generate_pencil(self, name, num_particles, *, side='+-', pencil_spread=1e-6,
+                        impact_parameter=0, sigma_z=7.61e-2, twiss=None, longitudinal=None,
+                        longitudinal_betatron_cut=None, tw=None, **kwargs):
+        """Generate a pencil beam on the named collimator or crystal."""
+        from .initial_distribution import generate_pencil_on_collimator
+        return generate_pencil_on_collimator(
+            line=self.line, name=name, num_particles=num_particles, side=side,
+            pencil_spread=pencil_spread, impact_parameter=impact_parameter,
+            sigma_z=sigma_z, twiss=twiss, longitudinal=longitudinal,
+            longitudinal_betatron_cut=longitudinal_betatron_cut, tw=tw, **kwargs)
+
+    def generate_delta(self, name, *, plane, position_mm, nemitt_x, nemitt_y,
+                       betatron_cut=0, match_at_front=True, twiss=None):
+        """Generate momentum offsets from dispersion at the named collimator."""
+        from .initial_distribution import generate_delta_from_dispersion
+        return generate_delta_from_dispersion(
+            line=self.line, at_element=name, plane=plane, position_mm=position_mm,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, betatron_cut=betatron_cut,
+            match_at_front=match_at_front, twiss=twiss)
+
     def open(self, names=None):
         if names is None:
             names = self.names
@@ -629,31 +649,96 @@ class XcollCollimatorAPI(XcollLineAccessor):
             to_remove.append(el_name)
         return to_remove
 
-    def get_optics_at(self, names, *, twiss=None):
+    def get_optics_at(self, names=None, *, positions=None, twiss=None):
+        """Get optics at the requested positions for one or more collimators.
+
+        Positions are 'upstream', 'centre', 'downstream', or distances in
+        metres from the entrance (inside every selected collimator).
+        Returns a combined Table with absolute s and local s_rel, indexed by
+        collimator name. Interior rows contain nominal linear drift optics.
+        If positions is omitted, return the historical boundary-table pair.
+        """
+        from .optics import _get_optics_at_positions
+        if names is None:
+            names = self.names
+        elif not _iterable(names):
+            names = [names]
+        names = list(names)
         if twiss is None:
             twiss = self.line.twiss()
-        if not _iterable(names):
+        if positions is None:
+            coll_entry_indices = twiss.rows.indices[names]
+            tw_entry = twiss.rows[coll_entry_indices]
+            tw_exit = twiss.rows[coll_entry_indices+1]
+            tw_exit.name = tw_entry.name
+            return tw_entry, tw_exit
+        elements = [self.line.get(name) for name in names]
+        if any(not isinstance(el, collimator_classes) for el in elements):
+            raise ValueError("Need to provide valid collimator names.")
+        if any(not el.behaves_like_drift for el in elements):
+            raise NotImplementedError("Interior optics require drift-like collimators.")
+        lengths = [el.length for el in elements]
+        return _get_optics_at_positions(twiss, names, lengths, positions)
+
+    @property
+    def reference_optics(self):
+        """Combined snapshot of all currently assigned reference optics."""
+        from .optics import _combine_reference_optics
+        tables = [(name, coll.reference_optics) for name, coll in self.items()
+                  if coll.reference_optics is not None]
+        return _combine_reference_optics(tables)
+
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None, names=None,
+                      positions=None, reference_optics=None):
+        """Assign optics to all collimators, or to the specified name(s).
+
+        By default store the upstream, centre and downstream optics.
+        Additional positions can be specified as local distances in metres.
+        Upstream and downstream positions are required for jaw settings.
+        Alternatively, supply an already prepared reference_optics table;
+        its metadata is used unless explicit emittances are provided.
+        """
+        if reference_optics is not None and (twiss is not None or positions is not None):
+            raise ValueError("Provide either reference_optics or twiss/positions.")
+        if names is None:
+            names = (self.names if reference_optics is None
+                     else list(dict.fromkeys(reference_optics.name)))
+        elif not _iterable(names):
             names = [names]
-        coll_entry_indices = twiss.rows.indices[names]
-        tw_entry = twiss.rows[coll_entry_indices]
-        tw_exit = twiss.rows[coll_entry_indices+1]
-        tw_exit.name = tw_entry.name
-        return tw_entry, tw_exit
+        names = list(names)
+        collimators = {name: self.line.get(name) for name in names}
+        if any(not isinstance(coll, collimator_classes) for coll in collimators.values()):
+            raise ValueError("Need to provide valid collimator names.")
+        if not names:
+            return
+        if reference_optics is None:
+            if positions is None:
+                positions = ('upstream', 'centre', 'downstream')
+            optics = self.get_optics_at(names, positions=positions, twiss=twiss)
+        else:
+            optics = reference_optics
+        if not {'upstream', 'downstream'} <= set(optics.position):
+            raise ValueError("Optics assignment requires upstream and downstream positions.")
+        beta_gamma_rel = None
+        if 'beta_gamma_rel' not in optics.keys():
+            beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
+        for name, coll in collimators.items():
+            coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                               reference_optics=optics, beta_gamma_rel=beta_gamma_rel)
 
-    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None):
-        tw_upstream, tw_downstream = self.get_optics_at(self.names, twiss=twiss)
-        beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
-        for name, coll in self.items():
-            coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
-                               twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
-
-    def align_to_beam_divergence(self):
-        tt = self.line.get_table()
-        crystal_names = []
-        for cc in crystal_classes:
-            ttcc = tt.rows.match(element_type=cc.__name__)
-            crystal_names += list(ttcc.name)
-        crystals = [self.line.get(nn) for nn in crystal_names]
+    def align_to_beam_divergence(self, *, names=None):
+        """Align all crystals, or the specified crystal name(s), to beam divergence."""
+        if names is None:
+            tt = self.line.get_table()
+            names = []
+            for cc in crystal_classes:
+                ttcc = tt.rows.match(element_type=cc.__name__)
+                names += list(ttcc.name)
+        elif not _iterable(names):
+            names = [names]
+        crystals = [self.line.get(nn) for nn in names]
+        if any(not isinstance(el, crystal_classes) for el in crystals):
+            raise ValueError("Need to provide valid crystal names.")
         if len(crystals) == 0:
             warn("No crystals found in line to align to beam divergence.")
         for el in crystals:

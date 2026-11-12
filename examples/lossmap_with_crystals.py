@@ -58,7 +58,7 @@ line.optimize_for_tracking()
 
 
 # # Generate initial pencil distribution on crystal
-# part = line[tcp].generate_pencil(num_particles)
+# part = line.xcoll.collimators.generate_pencil(tcp, num_particles)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)

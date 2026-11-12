@@ -38,7 +38,7 @@ def bench_lhc_lossmap_without_interpolation(benchmark):
     old_state = np.random.get_state()
     try:
         np.random.seed(20261109)
-        particles = line['tcp.c6l7.b1'].generate_pencil(3_000)
+        particles = line.xcoll.collimators.generate_pencil('tcp.c6l7.b1', 3_000)
     finally:
         np.random.set_state(old_state)
     particles._init_random_number_generator(
