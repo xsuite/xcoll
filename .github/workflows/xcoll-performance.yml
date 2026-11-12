@@ -34,6 +34,7 @@ jobs:
     concurrency:
       group: xcoll-cern-benchmark-cpu
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
     outputs:

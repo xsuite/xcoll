@@ -18,6 +18,7 @@ jobs:
     concurrency:
       group: xcoll-cern-benchmark-cpu
       cancel-in-progress: false
+      queue: max
     outputs:
       sha: ${{ steps.source.outputs.sha }}
       measured: ${{ steps.check_measurements.outputs.measured }}
