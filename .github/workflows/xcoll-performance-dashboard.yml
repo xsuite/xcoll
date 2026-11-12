@@ -1,0 +1,46 @@
+name: Deploy Xcoll benchmark dashboard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy_dashboard:
+    # Only reviewed main code may deploy the public dashboard.
+    if: github.repository == 'xsuite/xcoll' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: xcoll-performance-pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Get trusted website generator
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Get permanent benchmark history
+        uses: actions/checkout@v4
+        with:
+          ref: benchmark-results
+          path: benchmark-history
+      - name: Generate dashboard
+        run: |
+          python -m benchmarks.perf.report benchmark-history/runs \
+            --config benchmarks/metrics.toml --online -o _site/index.html
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload the Pages site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

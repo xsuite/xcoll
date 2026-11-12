@@ -94,8 +94,7 @@ jobs:
           fi
           "$CONDA_EXE" list --prefix "$BENCH_ENV" --explicit > benchmark-conda-spec.txt
 
-      - name: Compile selected serial kernels (full profile only)
-        if: github.event_name == 'schedule' || inputs.profile == 'full'
+      - name: Compile selected serial kernels
         shell: bash
         run: |
           set -euo pipefail
@@ -105,8 +104,6 @@ jobs:
         working-directory: benchmarks
         env:
           PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
-          SOURCE_TRIGGER: ${{ github.event_name }}
-          PHYSICAL_HOST: ${{ needs.benchmark_cern.result == 'success' && 'cern-openstack-xcoll-vm-v1' || '' }}
         run: |
           if [ "$PROFILE" = quick ]; then
             python -m pytest -m quick
@@ -244,7 +241,10 @@ jobs:
           SOURCE_SHA: ${{ needs.benchmark_cern.outputs.sha || needs.benchmark_other_ref.outputs.sha }}
           SOURCE_BRANCH: ${{ github.event_name == 'schedule' && 'main' || inputs.target_ref }}
           PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
+          SOURCE_TRIGGER: ${{ github.event_name }}
+          PHYSICAL_HOST: ${{ needs.benchmark_cern.result == 'success' && 'cern-openstack-xcoll-vm-v1' || '' }}
         run: |
+          set -euo pipefail
           python -m benchmarks.perf.history \
             --input downloaded/benchmarks/results \
             --output "$RUNNER_TEMP/xcoll-packed" \
@@ -301,6 +301,9 @@ jobs:
 
   deploy_dashboard:
     needs: publish_history
+    # One of the alternative benchmark jobs is always skipped.
+    # Override the implicit success() check for the dependency chain.
+    if: ${{ always() && !cancelled() && needs.publish_history.result == 'success' }}
     runs-on: ubuntu-24.04
     concurrency:
       group: xcoll-performance-pages
