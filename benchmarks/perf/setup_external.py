@@ -31,7 +31,7 @@ def setup_fluka():
     root = _required("XCOLL_FLUKA_ROOT")
     interface = xc.fluka.interface
     interface.fluka = root / "bin" / "rfluka"
-    interface.flukaserver = root / "bin" / "flukaserver"
+    interface.flukaserver = _required("XCOLL_FLUKA_SERVER")
     interface.linebuilder = _required("XCOLL_LINEBUILDER_ROOT")
     lib = _required("XCOLL_FLUKAIO_LIB")
     for executable in (interface.fluka, interface.flukaserver):

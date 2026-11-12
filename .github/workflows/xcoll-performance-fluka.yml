@@ -106,6 +106,7 @@ jobs:
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
           : "${XCOLL_FLUKA_ROOT:?Set XCOLL_FLUKA_ROOT in GitHub Actions variables}"
+          : "${XCOLL_FLUKA_SERVER:?Set XCOLL_FLUKA_SERVER in GitHub Actions variables}"
           : "${XCOLL_FLUKAIO_LIB:?Set XCOLL_FLUKAIO_LIB in GitHub Actions variables}"
           : "${XCOLL_LINEBUILDER_ROOT:?Set XCOLL_LINEBUILDER_ROOT in GitHub Actions variables}"
           python -m benchmarks.perf.setup_external fluka
