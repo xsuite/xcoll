@@ -112,14 +112,12 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         part = line.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.reference_optics.nemitt_x, nemitt_y=coll.reference_optics.nemitt_y,
-                at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
-                **kwargs)
+                at_element=at_element, _capacity=_capacity, **kwargs)
     else:
         part = line.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil,
                 zeta=zeta, delta=delta, nemitt_x=coll.reference_optics.nemitt_x, nemitt_y=coll.reference_optics.nemitt_y,
-                at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
-                **kwargs)
+                at_element=at_element, _capacity=_capacity, **kwargs)
 
     part._init_random_number_generator()
 

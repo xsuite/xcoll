@@ -45,7 +45,6 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-from xobjects.test_helpers import for_all_test_contexts
 from xcoll.scattering_routines.everest import set_crystal_stack_limit, CRYSTAL_STACK_LIMIT_BYTES
 
 

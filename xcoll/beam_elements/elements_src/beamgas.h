@@ -14,7 +14,7 @@
 // in a line costs nothing in tracking speed and does not split the line into
 // collective chunks.
 
-/*gpufun*/
+GPUFUN
 void BeamGasMarker_track_local_particle(BeamGasMarkerData el, LocalParticle* part0){
     (void) el;
     (void) part0;

@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
+import xobjects as xo
 import xtrack as xt
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
@@ -63,6 +64,8 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys, test
             collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC'),
                              'coll2': dict(length=0.6, gap=6., material='CFC')},
             nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+        if method == 'everest_collimators' and isinstance(test_context, xo.ContextPyopencl):
+            pytest.skip("Everest not supported on PyOpenCL context.")
         getattr(colldb, f'install_{method}')(line, apertures=apertures)
 
     expected_class = (xc.EverestCollimator if method == 'everest_collimators'
