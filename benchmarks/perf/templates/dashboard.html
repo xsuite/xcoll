@@ -62,7 +62,7 @@
 </style></head>
 <body><main class="shell">
 <header><div><div class="eyebrow">Xsuite / Benchmarking</div><h1>Performance history</h1><div class="subtitle">Measurements across runs, revisions, branches, and hardware.</div></div><div class="subtitle" id="lastUpdated"></div></header>
-<div class="view-tabs"><button id="historyMode" class="active">History</button><button id="compareMode">Compare two sets</button></div>
+<div class="view-tabs"><button id="historyMode" class="active">History</button><button id="compareMode">Compare two sets</button><button id="prMode">Pull Requests</button></div>
 <div id="historyPanel">
 <section class="toolbar"><label class="control">Branch<select id="branch"></select></label>
 <label class="control date">From<input id="dateFrom" type="date"></label><label class="control date">To<input id="dateTo" type="date"></label>
@@ -83,11 +83,21 @@
 <section class="panel"><div class="panel-header"><div><h2>Performance differences · all benchmarks</h2><p>Positive percentages mean slower candidate performance. Physics flags refer to the candidate’s latest scheduled comparison, not an arbitrary comparison of the two selected sets.</p></div><label class="control">Search<input id="compareSearch" type="search" placeholder="Filter benchmarks…"></label></div>
 <div class="table-scroll"><table><thead><tr><th>Benchmark</th><th>Baseline median</th><th>Candidate median</th><th>Change</th><th>Compatibility</th><th>Physics (daily)</th><th>Machine</th></tr></thead><tbody id="compareTable"></tbody></table></div></section>
 </div>
+<div id="prPanel" hidden>
+<section class="panel"><div class="panel-header"><div><h2>Pull request comparisons</h2><p>Full CPU benchmarks of main and the PR merge commit, measured sequentially on one GitHub runner. Physics checks are frozen at the time of the run.</p></div></div>
+<div class="toolbar" style="padding:0 20px 18px"><label class="control">Pull request<select id="prNumber"></select></label><label class="control wide">Workflow run<select id="prRun"></select></label><label class="control wide">Filter<input id="prFilter" type="search" placeholder="Filter benchmarks…"></label></div>
+<div id="prMetadata" style="padding:0 20px 20px" class="subtitle"></div></section>
+<div class="summary" id="prSummary"></div>
+<section class="panel"><div class="panel-header"><div><h2>Changes relative to main</h2><p>Positive percentages mean slower PR performance. Select a row for workload and physics details.</p></div></div>
+<div id="prBars" style="padding:14px 20px"></div>
+<div class="table-scroll"><table><thead><tr><th>Benchmark</th><th>Main median</th><th>PR median</th><th>Change</th><th>Timing</th><th>Physics vs main</th><th>Physics vs scheduled</th></tr></thead><tbody id="prTable"></tbody></table></div></section>
+</div>
 <p class="note">Screening is not a scientific validation suite. Missing/unverified physics results are not treated as agreement. Hardware and differing workloads cannot be compared as if equivalent. Full raw physics references are retained only for the next scheduled comparison.</p>
 </main>
 <script>
 'use strict';
 const runs = /*__BENCHMARK_DATA__*/null;
+const prRuns = /*__PR_DATA__*/null;
 const $=id=>document.getElementById(id);
 const NS='http://www.w3.org/2000/svg';
 const state={selected:null,trend:false,mode:'history'};
@@ -190,7 +200,74 @@ function fillRevision(side){const branch=$(side+'Branch').value,choice=$(side+'R
 function setRuns(side){const branch=$(side+'Branch').value,revision=$(side+'Revision').value,min=$(side+'From').value,max=$(side+'To').value;return runs.filter(r=>(branch==='__all__'||r.branch===branch)&&(!min||dateOnly(r)>=min)&&(!max||dateOnly(r)<=max)).flatMap(r=>r.entries.filter(e=>revision==='__latest__'||e.sha===revision||r.sha===revision||r.components?.some(c=>c.sha===revision)&&r.components.length===1).map(e=>({run:r,e})));}
 function latestPerName(points){const m=new Map();for(const p of points)m.set(p.e.name,p);return m;}
 function compareSets(){const left=latestPerName(setRuns('base')),right=latestPerName(setRuns('cand')),names=unique([...left.keys(),...right.keys()]).filter(n=>n.toLowerCase().includes($('compareSearch').value.trim().toLowerCase())).sort();const rows=names.map(name=>{const a=left.get(name),b=right.get(name),same=compatible(a,b),delta=same?pct(a.e.median,b.e.median):NaN;return{name,a,b,same,delta};});rows.sort((a,b)=>{if(Number.isFinite(a.delta)&&Number.isFinite(b.delta))return b.delta-a.delta;if(Number.isFinite(a.delta))return-1;if(Number.isFinite(b.delta))return 1;return a.name.localeCompare(b.name);});const summary=$('compareSummary');summary.replaceChildren();for(const [label,value]of [['Cases',rows.length],['Comparable',rows.filter(r=>r.same).length],['Slowdowns ≥10%',rows.filter(r=>r.delta>=10).length],['Speed-ups ≥10%',rows.filter(r=>r.delta<=-10).length]]){const card=elem('div',undefined,'metric panel');card.append(elem('strong',value),elem('span',label));summary.append(card);}const tbody=$('compareTable');tbody.replaceChildren();for(const r of rows){const tr=elem('tr');const n=elem('td',undefined,'name');n.append(elem('strong',r.name));tr.append(n);tr.append(elem('td',r.a?secs(r.a.e.median):'—','mono'),elem('td',r.b?secs(r.b.e.median):'—','mono'));const change=elem('td',fmtPct(r.delta),'mono '+(r.delta>3?'positive':r.delta< -3?'negative':''));tr.append(change);const reason=!r.a?'New in candidate':!r.b?'Missing from candidate':r.a.run.machine!==r.b.run.machine?'Different machines':sig(r.a.e)!==sig(r.b.e)?'Different workloads':'Comparable';tr.append(elem('td',reason,'mini'));const stat=elem('td');if(r.b)stat.append(physicsCell(r.b.e,true));else stat.textContent='—';tr.append(stat);tr.append(elem('td',r.b?labelMachine(r.b.run):r.a?labelMachine(r.a.run):'—','mini'));tbody.append(tr);}}
-function changeMode(mode){state.mode=mode;const history=mode==='history';$('historyPanel').hidden=!history;$('comparePanel').hidden=history;$('historyMode').classList.toggle('active',history);$('compareMode').classList.toggle('active',!history);if(history)renderHistory();else compareSets();}
-function init(){if(!runs.length){$('historyPanel').textContent='No benchmark history available';return;}$('lastUpdated').textContent='Latest record · '+runs.at(-1).datetime.slice(0,19)+' UTC';selectBranch('branch','main');for(const side of ['base','cand']){selectBranch(side+'Branch',side==='base'?'main':(unique(runs.map(r=>r.branch)).filter(b=>b!=='main').at(-1)||'main'));fillRevision(side);$(side+'Branch').onchange=()=>{fillRevision(side);compareSets();};for(const key of ['Revision','From','To'])$(side+key).addEventListener('input',compareSets);}for(const id of ['branch','dateFrom','dateTo','search','heatReference'])$(id).addEventListener('input',()=>{state.selected=null;state.trend=false;renderHistory();});$('compareSearch').oninput=compareSets;$('historyMode').onclick=()=>changeMode('history');$('compareMode').onclick=()=>changeMode('compare');$('overviewBtn').onclick=()=>{state.selected=null;state.trend=false;renderHistory();};$('trendBtn').onclick=()=>{state.selected=state.selected||allNames(historyRuns(),$('search').value)[0]||null;state.trend=true;renderHistory();};$('backButton').onclick=()=>{state.selected=null;state.trend=false;renderHistory();};renderHistory();}
+function fillPRs(){
+ const select=$('prNumber'),old=select.value;
+ const numbers=unique(prRuns.map(r=>r.pr)).sort((a,b)=>b-a);
+ select.replaceChildren();
+ for(const n of numbers)option(select,String(n),`#${n} · ${prRuns.filter(r=>r.pr===n).length} run(s)`);
+ if(numbers.includes(Number(old)))select.value=old;
+ fillPRRuns();
+}
+function fillPRRuns(){
+ const select=$('prRun'),old=select.value;
+ const relevant=prRuns.filter(r=>String(r.pr)===$('prNumber').value).slice().reverse();
+ select.replaceChildren();
+ for(const r of relevant)option(select,`${r.run_id}-${r.attempt}`,`${r.datetime} UTC · ${short(r.head_sha)} · run ${r.run_id} / ${r.attempt}`);
+ if(relevant.some(r=>`${r.run_id}-${r.attempt}`===old))select.value=old;
+ renderPR();
+}
+function renderPR(){
+ const r=prRuns.find(r=>String(r.pr)===$('prNumber').value&&`${r.run_id}-${r.attempt}`===$('prRun').value);
+ const meta=$('prMetadata'),summary=$('prSummary'),bars=$('prBars'),table=$('prTable');
+ for(const x of [meta,summary,bars,table])x.replaceChildren();
+ if(!r){meta.textContent='No completed paired PR comparisons have been published yet.';return;}
+ const links=elem('div');
+ for(const [label,url] of [['PR #'+r.pr,`https://github.com/xsuite/xcoll/pull/${r.pr}`],['Workflow run',`https://github.com/xsuite/xcoll/actions/runs/${r.run_id}`]]){
+  const a=elem('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.style.marginRight='18px';links.append(a);
+ }
+ meta.append(links,elem('div',`${r.branch} · main ${short(r.base_sha)} → merge ${short(r.candidate_sha)} · head ${short(r.head_sha)} · ${r.machine}`));
+ if(r.scheduled_reference)meta.append(elem('div','Scheduled physics reference SHA256: '+r.scheduled_reference));
+ const query=$('prFilter').value.toLowerCase();
+ const rows=r.rows.filter(x=>x.name.toLowerCase().includes(query));
+ const comparable=rows.filter(x=>Number.isFinite(x.delta));
+ const slow=comparable.filter(x=>x.delta>=10).length,fast=comparable.filter(x=>x.delta<=-10).length;
+ const flags=rows.filter(x=>x.pair?.status==='CHANGED'||x.scheduled?.status==='CHANGED').length;
+ for(const [label,value] of [['Benchmarks',rows.length],['Comparable',comparable.length],['Slowdowns ≥10%',slow],['Speed-ups ≥10%',fast],['Physics flags',flags]]){
+  const card=elem('div',undefined,'metric panel');card.append(elem('strong',value),elem('span',label));summary.append(card);
+ }
+ const sorted=rows.slice().sort((a,b)=>(b.delta??-Infinity)-(a.delta??-Infinity));
+ const max=Math.max(10,...comparable.map(x=>Math.abs(x.delta)));
+ for(const row of sorted.slice(0,30)){
+  if(!Number.isFinite(row.delta))continue;
+  const line=elem('div',undefined,'pr-bar-row');line.style.cssText='display:grid;grid-template-columns:minmax(160px,1fr) 3fr 75px;gap:12px;align-items:center;margin-bottom:7px;font-size:11px';
+  const name=elem('div',nameShort(row.name));name.title=row.name;
+  const slot=elem('div');slot.style.cssText='position:relative;background:#f4f6fa;height:13px;border-radius:3px';
+  const center=elem('div');center.style.cssText='position:absolute;left:50%;top:0;height:100%;border-left:1px solid #8c9bb0';slot.append(center);
+  const bar=elem('div');const extent=50*Math.abs(row.delta)/max;
+  bar.style.cssText=`position:absolute;top:1px;height:11px;border-radius:3px;left:${row.delta<0?50-extent:50}%;width:${extent}%;background:${row.delta<0?'#65b5a5':'#e4a28b'}`;
+  slot.append(bar);line.append(name,slot,elem('div',fmtPct(row.delta),'mono'));bars.append(line);
+ }
+ if(!comparable.length)bars.append(elem('div','No comparable timing measurements in this run.','empty'));
+ for(const row of sorted){
+  const tr=elem('tr',undefined,'clickable');
+  tr.append(elem('td',row.name,'name'),elem('td',secs(row.base),'mono'),elem('td',secs(row.candidate),'mono'),
+    elem('td',fmtPct(row.delta),'mono '+(row.delta>3?'positive':row.delta< -3?'negative':'')),
+    elem('td',row.timing_status,'mini'),elem('td',row.pair?.status||'NOT_CHECKED','mini'),
+    elem('td',row.scheduled?.status||'NOT_CHECKED','mini'));
+  tr.onclick=()=>{
+   const sibling=tr.nextElementSibling;
+   if(sibling?.classList.contains('pr-expand')){sibling.remove();return;}
+   const detail=elem('tr',undefined,'pr-expand'),td=elem('td');td.colSpan=7;
+   const pre=elem('pre',JSON.stringify({main:{median:row.base,stddev:row.base_stddev,workload:row.base_workload,observables:row.base_observables},
+    candidate:{median:row.candidate,stddev:row.candidate_stddev,workload:row.candidate_workload,observables:row.candidate_observables},
+    physics_vs_main:row.pair,physics_vs_scheduled:row.scheduled},null,2));
+   pre.style.cssText='white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.5;max-height:380px;overflow:auto';
+   td.append(pre);detail.append(td);tr.after(detail);
+  };
+  table.append(tr);
+ }
+}
+function changeMode(mode){state.mode=mode;const history=mode==='history',compare=mode==='compare';$('historyPanel').hidden=!history;$('comparePanel').hidden=!compare;$('prPanel').hidden=mode!=='pr';$('historyMode').classList.toggle('active',history);$('compareMode').classList.toggle('active',compare);$('prMode').classList.toggle('active',mode==='pr');if(history)renderHistory();else if(compare)compareSets();else renderPR();}
+function init(){if(!runs.length){$('historyPanel').textContent='No benchmark history available';return;}$('lastUpdated').textContent='Latest record · '+runs.at(-1).datetime.slice(0,19)+' UTC';selectBranch('branch','main');for(const side of ['base','cand']){selectBranch(side+'Branch',side==='base'?'main':(unique(runs.map(r=>r.branch)).filter(b=>b!=='main').at(-1)||'main'));fillRevision(side);$(side+'Branch').onchange=()=>{fillRevision(side);compareSets();};for(const key of ['Revision','From','To'])$(side+key).addEventListener('input',compareSets);}for(const id of ['branch','dateFrom','dateTo','search','heatReference'])$(id).addEventListener('input',()=>{state.selected=null;state.trend=false;renderHistory();});$('compareSearch').oninput=compareSets;$('historyMode').onclick=()=>changeMode('history');$('compareMode').onclick=()=>changeMode('compare');$('prMode').onclick=()=>changeMode('pr');$('prNumber').onchange=fillPRRuns;$('prRun').onchange=renderPR;$('prFilter').oninput=renderPR;$('overviewBtn').onclick=()=>{state.selected=null;state.trend=false;renderHistory();};$('trendBtn').onclick=()=>{state.selected=state.selected||allNames(historyRuns(),$('search').value)[0]||null;state.trend=true;renderHistory();};$('backButton').onclick=()=>{state.selected=null;state.trend=false;renderHistory();};fillPRs();renderHistory();}
 init();
 </script></body></html>

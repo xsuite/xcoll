@@ -85,6 +85,58 @@ def markdown(rows, base_sha, candidate_sha, *, scheduled_available):
     return '\n'.join(lines) + '\n'
 
 
+def comparison_record(rows, base, candidate, *, pr, branch, head_sha,
+                      base_sha, candidate_sha, run_id, attempt,
+                      scheduled_reference=''):
+    """Retain exactly the paired comparison performed in this workflow.
+
+    The publisher only validates and archives this document; it must not
+    recompute physics against what might be a newer daily baseline.
+    """
+    from .metrics import load_config, observables, workload
+
+    cfg = load_config()
+    a = _entries(base)
+    b = _entries(candidate)
+
+    def physics(result):
+        if result is None:
+            return None
+        return {'status': result.status, 'summary': result.summary,
+                'details': list(result.differences)}
+
+    def deviation(entry):
+        return entry.get('stats', {}).get('stddev') if entry else None
+
+    output = []
+    for row in rows:
+        name = row['name']
+        left, right = a.get(name), b.get(name)
+        output.append({
+            'name': name, 'base': row['base'], 'candidate': row['candidate'],
+            'delta': row['delta'], 'timing_status': row['timing_status'],
+            'base_stddev': deviation(left), 'candidate_stddev': deviation(right),
+            'base_workload': workload(left, cfg) if left else None,
+            'candidate_workload': workload(right, cfg) if right else None,
+            'base_observables': observables(left, cfg) if left else None,
+            'candidate_observables': observables(right, cfg) if right else None,
+            'pair': physics(row['pair']), 'scheduled': physics(row['scheduled']),
+        })
+    return {
+        'schema': 1, 'pr': pr, 'branch': branch, 'run_id': str(run_id),
+        'attempt': attempt, 'datetime': candidate.get('datetime', ''),
+        'base_sha': base_sha, 'candidate_sha': candidate_sha,
+        'head_sha': head_sha, 'machine': candidate.get('machine_name') or
+        (candidate.get('machine_info') or {}).get('processor') or 'GitHub hosted',
+        'scheduled_reference': scheduled_reference,
+        'base_versions': base.get('xsuite_versions') or {},
+        'candidate_versions': candidate.get('xsuite_versions') or {},
+        'base_compiler': base.get('compiler') or {},
+        'candidate_compiler': candidate.get('compiler') or {},
+        'rows': output,
+    }
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--base', required=True, type=Path)
@@ -93,13 +145,34 @@ def main(argv=None):
     p.add_argument('--base-sha', required=True)
     p.add_argument('--candidate-sha', required=True)
     p.add_argument('--output', required=True, type=Path)
+    p.add_argument('--json-output', type=Path)
+    p.add_argument('--pr-number', type=int)
+    p.add_argument('--branch')
+    p.add_argument('--head-sha')
+    p.add_argument('--run-id')
+    p.add_argument('--attempt', type=int)
     a = p.parse_args(argv)
     baseline = _read_baseline(a.scheduled)
     if baseline is not None and baseline.get('profile') != 'full':
         raise ValueError('Expected scheduled full CPU baseline')
-    rows = compare(_load(a.base), _load(a.candidate), baseline)
+    left, right = _load(a.base), _load(a.candidate)
+    rows = compare(left, right, baseline)
     a.output.write_text(markdown(rows, a.base_sha, a.candidate_sha,
                                  scheduled_available=baseline is not None), encoding='utf-8')
+    if a.json_output is not None:
+        from hashlib import sha256
+        if not all((a.pr_number, a.branch, a.head_sha, a.run_id, a.attempt)):
+            p.error('JSON publication needs the PR and run metadata')
+        digest = (sha256(a.scheduled.read_bytes()).hexdigest() if a.scheduled
+                  and a.scheduled.is_file() else '')
+        document = comparison_record(
+            rows, left, right, pr=a.pr_number, branch=a.branch,
+            head_sha=a.head_sha, base_sha=a.base_sha,
+            candidate_sha=a.candidate_sha, run_id=a.run_id,
+            attempt=a.attempt, scheduled_reference=digest,
+        )
+        a.json_output.write_text(json.dumps(document, indent=2, allow_nan=False)
+                                 + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':

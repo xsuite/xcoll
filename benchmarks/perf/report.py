@@ -148,7 +148,20 @@ def merge_daily(runs):
     return sorted(singles, key=lambda r: (r['datetime'], r['id']))
 
 
-def create_dashboard(paths, output, config=None, *, online=False):
+def read_pr_records(paths):
+    """Read compact PR comparisons from the permanent history branch."""
+    if paths is None or not Path(paths).exists():
+        return []
+    records = []
+    for path in _files([paths]):
+        obj = json.loads(path.read_text(encoding='utf-8'))
+        if obj.get('schema') != 1 or not isinstance(obj.get('rows'), list):
+            continue
+        records.append(obj)
+    return sorted(records, key=lambda r: (r['datetime'], r['run_id'], r['attempt']))
+
+
+def create_dashboard(paths, output, config=None, *, online=False, pr_runs=None):
     runs = read_runs(paths, config=config, online=online)
     if not runs:
         raise ValueError('No valid benchmark results found')
@@ -157,8 +170,11 @@ def create_dashboard(paths, output, config=None, *, online=False):
     # values such as '</script>' in benchmark extra_info closing the script.
     serialized = json.dumps(runs, ensure_ascii=True, separators=(',', ':')).replace('<', '\\u003c')
     html = template.replace('/*__BENCHMARK_DATA__*/null', serialized)
-    if html == template:
-        raise RuntimeError('Dashboard template missing its data placeholder')
+    pr_data = json.dumps(read_pr_records(pr_runs), ensure_ascii=True,
+                         separators=(',', ':')).replace('<', '\\u003c')
+    html = html.replace('/*__PR_DATA__*/null', pr_data)
+    if '/*__BENCHMARK_DATA__*/null' in html or '/*__PR_DATA__*/null' in html:
+        raise RuntimeError('Dashboard template missing a data placeholder')
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding='utf-8')
@@ -171,9 +187,12 @@ def main(argv=None):
     p.add_argument('-o', '--output', type=Path, default=results_dir() / 'dashboard.html')
     p.add_argument('--config', type=Path)
     p.add_argument('--online', action='store_true', help='Group scheduled CERN CPU/FLUKA/Geant4 per UTC day')
+    p.add_argument('--pr-runs', type=Path, help='Optional permanent PR comparison directory')
     a = p.parse_args(argv)
     try:
-        output = create_dashboard(a.paths or [results_dir()], a.output, load_config(a.config), online=a.online)
+        output = create_dashboard(a.paths or [results_dir()], a.output,
+                                  load_config(a.config), online=a.online,
+                                  pr_runs=a.pr_runs)
     except (FileNotFoundError, ValueError) as err:
         p.error(str(err))
     print(f'Dashboard: {output}')

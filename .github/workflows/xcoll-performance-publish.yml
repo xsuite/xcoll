@@ -133,7 +133,8 @@ jobs:
       - name: Regenerate the static dashboard
         run: |
           python -m benchmarks.perf.report benchmark-history/runs \
-            --config benchmarks/metrics.toml --online -o _site/index.html
+            --config benchmarks/metrics.toml --online \
+            --pr-runs benchmark-history/pr-runs -o _site/index.html
       - uses: actions/configure-pages@v5
       - name: Upload the Pages site
         id: pages_artifact

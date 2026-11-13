@@ -129,8 +129,21 @@ jobs:
             --scheduled "$RUNNER_TEMP/xcoll-pr-physics.json.gz" \
             --base-sha "$(git -C "$GITHUB_WORKSPACE/baseline" rev-parse HEAD)" \
             --candidate-sha "$(git -C "$GITHUB_WORKSPACE/candidate" rev-parse HEAD)" \
+            --pr-number "${{ github.event.pull_request.number }}" \
+            --branch "${{ github.head_ref }}" \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" \
+            --json-output "$GITHUB_WORKSPACE/pr-comparison.json" \
             --output "$GITHUB_WORKSPACE/pr-comparison.md"
           cat "$GITHUB_WORKSPACE/pr-comparison.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload compact PR comparison for trusted publication
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-pr-comparison-${{ github.run_id }}-${{ github.run_attempt }}
+          path: pr-comparison.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Archive paired PR measurements (not permanent history)
         if: always()
@@ -143,5 +156,6 @@ jobs:
             candidate/benchmarks/results/
             candidate/benchmark-dependencies.txt
             pr-comparison.md
+            pr-comparison.json
           if-no-files-found: warn
           retention-days: 90
