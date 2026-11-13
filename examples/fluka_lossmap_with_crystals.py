@@ -64,14 +64,15 @@ xc.fluka.engine.start(line=line, cwd='run_fluka_temp', clean=False, verbose=True
 
 
 # # Generate initial pencil distribution on crystal
-# part = line[tcp].generate_pencil(num_particles)
+# part = line.xcoll.collimators.generate_pencil(tcp, num_particles)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
 py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-            nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
+            nemitt_x=line[tcpc].reference_optics.nemitt_x,
+            nemitt_y=line[tcpc].reference_optics.nemitt_y,
             at_element=tcpc, particle_ref=xc.fluka.engine.particle_ref,
             _capacity=capacity)
 

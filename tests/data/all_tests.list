@@ -341,6 +341,14 @@ test_jaw_position.py::test_positions[positive-127.5-positive_tilt-geant4]
 test_jaw_position.py::test_positions[positive-127.5-pos_neg_tilt-everest]
 test_jaw_position.py::test_positions[positive-127.5-pos_neg_tilt-fluka]
 test_jaw_position.py::test_positions[positive-127.5-pos_neg_tilt-geant4]
+test_line_api.py::test_installed_element_copy
+test_line_api.py::test_line_copy_uses_its_own_distribution_api
+test_line_api.py::test_distribution_api_and_deprecations
+test_line_api.py::test_optics_api_and_element_methods
+test_line_api.py::test_optics_at_positions_drift
+test_line_api.py::test_reference_emittance[collimator]
+test_line_api.py::test_reference_emittance[crystal]
+test_line_api.py::test_line_reference_emittance
 test_line_tools.py::test_line_api_facade
 test_line_tools.py::test_line_accessor[1-ContextCpu]
 test_line_tools.py::test_line_accessor[1-ContextCpu:auto]

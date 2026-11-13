@@ -51,7 +51,7 @@ xc.fluka.engine.start(line=line, cwd='run_fluka_temp', clean=True, verbose=True)
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = line[tcp].generate_pencil(num_particles)
+part = line.xcoll.collimators.generate_pencil(tcp, num_particles)
 
 
 # # Treat warnings as errors to debug

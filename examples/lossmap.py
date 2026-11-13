@@ -52,7 +52,7 @@ line.optimize_for_tracking()
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = line[tcp].generate_pencil(num_particles)
+part = line.xcoll.collimators.generate_pencil(tcp, num_particles)
 
 
 # Move the line to an OpenMP context to be able to use all cores

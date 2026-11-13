@@ -549,10 +549,26 @@ def _check_all_elements(elem, fields, dict_fields, user_fields, user_fields_read
     elem.jaw = 1
     elem.gap = None
 
+    # Exercise deprecated properties explicitly until they are removed.
+    deprecated = {'emittance', 'nemitt_x', 'nemitt_y', 'gemitt_x', 'gemitt_y'}
+
+    def read(field):
+        if field in deprecated:
+            with pytest.warns(FutureWarning, match=field):
+                return getattr(elem, field)
+        return getattr(elem, field)
+
+    def write(field, val):
+        if field in deprecated:
+            with pytest.warns(FutureWarning, match=field):
+                setattr(elem, field, val)
+        else:
+            setattr(elem, field, val)
+
     # Test reading fields
     for field in list(fields.keys()) + [vv['field'] for vv in dict_fields] \
                + [vv['field'] for vv in user_fields] + user_fields_read_only:
-        print(f"Reading field {field}: {getattr(elem, field)}")
+        print(f"Reading field {field}: {read(field)}")
 
     # Test writing xofields
     for field, val in fields.items():
@@ -565,9 +581,9 @@ def _check_all_elements(elem, fields, dict_fields, user_fields, user_fields_read
     for data in [*dict_fields, *user_fields]:
         field = data['field']
         val = data['val']
-        setattr(elem, field, val)
+        write(field, val)
         for basefield, expected in data['expected'].items():
-            setval = getattr(elem, basefield)
+            setval = read(basefield)
             print(f"Writing field {field} with {val}:  {basefield} expected {expected}, got {setval}")
             _assert_all_close(expected, setval)
 

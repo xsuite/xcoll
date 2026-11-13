@@ -25,10 +25,10 @@ assert not np.any(df_with_coll.has_aperture_problem)
 # Start interaction record
 impacts = xc.InteractionRecord(line=line)
 
-# Build tracker, assign optics and generate particles 
+# Build tracker, assign optics, and generate particles
 line.build_tracker()
 line.xcoll.collimators.assign_optics()
-part = line['tcp.d6l7.b1'].generate_pencil(5000)
+part = line.xcoll.collimators.generate_pencil('tcp.d6l7.b1', 5000)
 
 # This is not needed, but is done here so that we can track with 12 treads.
 line.discard_tracker()
