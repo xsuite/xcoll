@@ -89,7 +89,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
-    line.xcoll.collimators.assign_optics()
+    tw = line.twiss()
+    line.xcoll.collimators.assign_optics(twiss=tw)
     if not ignore_crystals:
         line.xcoll.collimators.align_to_beam_divergence()
     if identify_primary_losses:
@@ -101,7 +102,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
         xc.geant4.engine.start(line=line, verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(npart, _capacity=capacity,
+    part = line[tcp].generate_pencil(npart, _capacity=capacity, twiss=tw,
                                      _context=test_context)
     if engine == "fluka":
         # Make sure all primaries hit the collimator (not trivial because of assembly)
