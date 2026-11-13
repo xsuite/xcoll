@@ -12,6 +12,7 @@ import xtrack as xt
 
 from .beam_elements import (element_classes, collimator_classes, block_classes,
                             crystal_classes)
+from .optics import _UNSET, _validate_reference_emittance
 
 
 def _iterable(obj):
@@ -184,13 +185,13 @@ class XcollScatteringAPI(XcollLineAccessor):
             nemitt_x = None
             nemitt_y = None
             for el in self:
-                if hasattr(el, 'optics') and el.optics is not None:
+                if hasattr(el, 'optics_ready') and el.optics_ready():
                     if nemitt_x is None:
-                        nemitt_x = el.nemitt_x
+                        nemitt_x = el.reference_optics.nemitt_x
                     if nemitt_y is None:
-                        nemitt_y = el.nemitt_y
-                    if not np.isclose(el.nemitt_x, nemitt_x) \
-                    or not np.isclose(el.nemitt_y, nemitt_y):
+                        nemitt_y = el.reference_optics.nemitt_y
+                    if not np.isclose(el.reference_optics.nemitt_x, nemitt_x) \
+                    or not np.isclose(el.reference_optics.nemitt_y, nemitt_y):
                         raise ValueError("Not all collimators have the same "
                                          "emittance. This is not supported.")
                 if hasattr(el, 'enable_scattering'):
@@ -687,6 +688,28 @@ class XcollCollimatorAPI(XcollLineAccessor):
         tables = [(name, coll.reference_optics) for name, coll in self.items()
                   if coll.reference_optics is not None]
         return _combine_reference_optics(tables)
+
+    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET, names=None):
+        """Set reference emittances without calculating Twiss.
+
+        Omitted planes remain unchanged; an explicit None clears a plane.
+        """
+        if nemitt_x is _UNSET and nemitt_y is _UNSET:
+            return
+        if names is None:
+            names = self.names
+        elif not _iterable(names):
+            names = [names]
+        collimators = [self.line.get(name) for name in names]
+        if any(not isinstance(coll, collimator_classes) for coll in collimators):
+            raise ValueError("Need to provide valid collimator names.")
+        # Validate both planes before modifying any collimator.
+        if nemitt_x is not _UNSET:
+            nemitt_x = _validate_reference_emittance(nemitt_x, 'x')
+        if nemitt_y is not _UNSET:
+            nemitt_y = _validate_reference_emittance(nemitt_y, 'y')
+        for coll in collimators:
+            coll.set_reference_emittance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None, names=None,
                       positions=None, reference_optics=None):

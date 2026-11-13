@@ -12,6 +12,11 @@ import xdeps as xd
 
 
 _DEFAULT_POSITIONS = ('upstream', 'centre', 'downstream')
+_UNSET = object()
+_METADATA = ('beta_gamma_rel', 'nemitt_x', 'nemitt_y')
+_PROTECTED_METADATA = {*_METADATA, 'gemitt_x', 'gemitt_y', 'collimator_name', 's_start'}
+_FIELDS = ('betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'mux', 'muy',
+           'x', 'px', 'y', 'py', 'zeta', 'delta', 'dx', 'dpx', 'dy', 'dpy')
 
 
 def _position_offset(position, lengths):
@@ -31,10 +36,76 @@ def _position_offset(position, lengths):
 class CollimatorOpticsTable(xt.Table):
     """Reference optics, indexed by collimator name or local position."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # A combined table may contain different emittances per collimator.
+        # Protect those columns as well as scalar reference metadata.
+        for key in _METADATA:
+            if key in self._col_names:
+                values = np.array(self._data[key], copy=True)
+                values.setflags(write=False)
+                self._data[key] = values
+
+    def _check_metadata_write(self, key):
+        if isinstance(key, tuple):
+            key = key[0]
+        data = self.__dict__.get('_data', {})
+        columns = self.__dict__.get('_col_names', ())
+        if isinstance(key, str) and (key in _PROTECTED_METADATA
+                or (key in data and key not in columns)):
+            raise AttributeError("Reference optics metadata is read-only. Use "
+                                 "set_reference_emittance() or assign_optics().")
+
+    def __setitem__(self, key, value):
+        self._check_metadata_write(key)
+        # New scalar metadata must also be supplied at construction/assignment.
+        if (isinstance(key, str) and not key.startswith('_')
+                and key not in self.__dict__.get('_col_names', ())
+                and key not in self.__dict__
+                and (not hasattr(value, '__len__') or isinstance(value, str)
+                     or np.ndim(value) == 0 or len(value) != len(self))):
+            raise AttributeError("Reference optics metadata is read-only.")
+        return super().__setitem__(key, value)
+
+    __setattr__ = __setitem__
+
+    def __delitem__(self, key):
+        self._check_metadata_write(key)
+        return super().__delitem__(key)
+
+    def __delattr__(self, key):
+        self._check_metadata_write(key)
+        return super().__delattr__(key)
+
+    def _set_metadata(self, **metadata):
+        # Only the owning element's setters/assignment may update metadata.
+        if any(key in self._col_names for key in metadata):
+            raise ValueError("Cannot replace a metadata column with a scalar.")
+        self._data.update(metadata)
+
+    def _geometric_emittance(self, plane):
+        nemitt = self._data.get(f'nemitt_{plane}')
+        beta_gamma = self._data.get('beta_gamma_rel')
+        if nemitt is None or beta_gamma is None:
+            return None
+        if np.ndim(nemitt) or np.ndim(beta_gamma):
+            return np.asarray(nemitt, dtype=float) / np.asarray(beta_gamma, dtype=float)
+        return nemitt / beta_gamma
+
+    @property
+    def gemitt_x(self):
+        return self._geometric_emittance('x')
+
+    @property
+    def gemitt_y(self):
+        return self._geometric_emittance('y')
+
     def copy(self):
         return self.rows[np.arange(len(self))]
 
     def __getitem__(self, key):
+        if isinstance(key, str) and key in ('gemitt_x', 'gemitt_y'):
+            return getattr(self, key)
         if isinstance(key, str) and key in ('upstream', 'downstream') and self._index == 'position':
             from warnings import warn
             warn(f"optics[{key!r}] is deprecated; use reference_optics.rows[{key!r}] "
@@ -43,9 +114,20 @@ class CollimatorOpticsTable(xt.Table):
         return super().__getitem__(key)
 
 
-_FIELDS = ('betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'mux', 'muy',
-           'x', 'px', 'y', 'py', 'zeta', 'delta', 'dx', 'dpx', 'dy', 'dpy')
-_METADATA = ('beta_gamma_rel', 'nemitt_x', 'nemitt_y')
+def _empty_reference_optics():
+    data = dict(name=np.array([], dtype=object), position=np.array([], dtype=object),
+                s=np.array([]), s_rel=np.array([]),
+                nemitt_x=None, nemitt_y=None, beta_gamma_rel=None)
+    return CollimatorOpticsTable(data, col_names=['name', 'position', 's', 's_rel'],
+                                 index='position')
+
+
+def _validate_reference_emittance(value, plane):
+    if value is None:
+        return None
+    if not isinstance(value, Real) or not np.isfinite(value) or value <= 0:
+        raise ValueError(f"The field `nemitt_{plane}` should be finite and positive, but got {value}.")
+    return float(value)
 
 
 def _get_optics_at_positions(twiss, names, lengths, positions):
@@ -179,9 +261,19 @@ def _select_optics_rows(twiss, name, length):
 
 def _combine_reference_optics(named_tables):
     """Aggregate assigned snapshots, without retaining line or element references."""
+    all_tables = [table for _, table in named_tables]
+    named_tables = [(name, table) for name, table in named_tables if len(table)]
     if not named_tables:
-        return CollimatorOpticsTable(dict(name=np.array([], dtype=object),
-            position=np.array([], dtype=object), s=np.array([]), s_rel=np.array([])))
+        # A pending table has no longitudinal rows. Expose common reference
+        # metadata, but leave heterogeneous pending values on their elements.
+        data = dict(name=np.array([], dtype=object), position=np.array([], dtype=object),
+                    s=np.array([]), s_rel=np.array([]))
+        cols = list(data)
+        for key in _METADATA:
+            values = [table[key] for table in all_tables]
+            data[key] = (values[0] if values and all(v == values[0] for v in values)
+                         else None)
+        return CollimatorOpticsTable(data, col_names=cols)
     _, tables = zip(*named_tables)
     cols = list(dict.fromkeys(key for table in tables for key in table._col_names))
     data = {}

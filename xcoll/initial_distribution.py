@@ -25,7 +25,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     coll = line[name]
     if not isinstance(coll, tuple(collimator_classes)):
         raise ValueError("Need to provide a valid collimator!")
-    if coll.optics is None:
+    if not coll.optics_ready():
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
 
     num_particles = int(num_particles)
@@ -111,13 +111,13 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if plane == 'x':
         part = line.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
-                zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
+                zeta=zeta, delta=delta, nemitt_x=coll.reference_optics.nemitt_x, nemitt_y=coll.reference_optics.nemitt_y,
                 at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
                 **kwargs)
     else:
         part = line.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil,
-                zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
+                zeta=zeta, delta=delta, nemitt_x=coll.reference_optics.nemitt_x, nemitt_y=coll.reference_optics.nemitt_y,
                 at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
                 **kwargs)
 
@@ -161,7 +161,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
                                 pencil_spread, twiss=None, **kwargs):
     coll = line[name]
-    beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
+    beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.reference_optics.nemitt_x, nemitt_y=coll.reference_optics.nemitt_y)
 
     # Is it converging or diverging?
     # TODO: dispersion might change this
@@ -213,7 +213,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
     # Collimator plane: generate pencil distribution
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
                         num_particles, plane=plane, absolute_cut=pencil_pos, line=line,
-                        dr_sigmas=dr_sigmas, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
+                        dr_sigmas=dr_sigmas, nemitt_x=coll.reference_optics.nemitt_x, nemitt_y=coll.reference_optics.nemitt_y,
                         at_element=at_element, side=side, twiss=tw_at_s, **kwargs
                        )
 

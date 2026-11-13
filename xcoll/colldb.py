@@ -468,7 +468,7 @@ class CollimatorDatabase:
         prop_dict['name'] = name
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
-        el.emittance = [self.nemitt_x, self.nemitt_y]
+        el.set_reference_emittance(nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y)
         if 'family' in self[name] and self[name]['family'] \
         and self[name]['family'].lower() != 'unknown':
             if self[name]['family'] == name:

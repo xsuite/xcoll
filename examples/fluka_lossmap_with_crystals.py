@@ -71,7 +71,8 @@ y_norm  = np.random.normal(scale=0.01, size=num_particles)
 py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-            nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
+            nemitt_x=line[tcpc].reference_optics.nemitt_x,
+            nemitt_y=line[tcpc].reference_optics.nemitt_y,
             at_element=tcpc, particle_ref=xc.fluka.engine.particle_ref,
             _capacity=capacity)
 

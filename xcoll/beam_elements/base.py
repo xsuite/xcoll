@@ -12,7 +12,8 @@ import xtrack as xt
 from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
 from ..headers.particle_states import particle_states_src
-from ..optics import _select_optics_rows
+from ..optics import (_select_optics_rows, _empty_reference_optics,
+                      _validate_reference_emittance, _UNSET)
 
 
 OPEN_JAW = 3
@@ -132,6 +133,17 @@ class BaseBlock(xt.BeamElement):
         obj.name = self.name
         return obj
 
+    def to_dict(self, **kwargs):
+        out = super().to_dict(**kwargs)
+        # Preserve the existing wire format without accessing a deprecated
+        # property. Reference optics rows themselves are not serialised.
+        if hasattr(self, 'reference_optics'):
+            ex = self.reference_optics.nemitt_x
+            ey = self.reference_optics.nemitt_y
+            if ex is not None or ey is not None:
+                out['emittance'] = ex if ex == ey else [ex, ey]
+        return out
+
     @property
     def name(self):
         if not hasattr(self, '_name'):
@@ -144,9 +156,10 @@ class BaseBlock(xt.BeamElement):
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
-            if hasattr(self, 'optics') and self.optics is None and \
+            if hasattr(self, 'optics_ready') and not self.optics_ready() and \
             (hasattr(self, '_gap_L_set_manually') and self._gap_L_set_manually() \
-            or hasattr(self, '_gap_R_set_manually') and self._gap_R_set_manually()):
+            or hasattr(self, '_gap_R_set_manually') and self._gap_R_set_manually() \
+            or hasattr(self, '_gap_set_manually') and self._gap_set_manually()):
                 raise ValueError("Gap set but optics not yet assigned! "
                                + "Cannot enable scattering.")
             self._tracking = True
@@ -258,7 +271,7 @@ class BaseCollimator(BaseBlock):
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
                          *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
-                         'side', 'align', 'emittance']
+                         'side', 'align']
     _internal_record_class = BaseBlock._internal_record_class
     _allowed_fields_when_frozen = BaseBlock._allowed_fields_when_frozen
 
@@ -353,12 +366,14 @@ class BaseCollimator(BaseBlock):
         self._align = 'upstream'
         self._gap_L = OPEN_GAP
         self._gap_R = -OPEN_GAP
-        self._nemitt_x = 0.
-        self._nemitt_y = 0.
         if not hasattr(self, '_optics'):
-            self._optics = None
+            self._optics = _empty_reference_optics()
         for key, val in to_assign.items():
-            setattr(self, key, val)
+            if key == 'emittance':
+                # Constructor/legacy JSON input is not deprecated.
+                self._set_legacy_emittance(val)
+            else:
+                setattr(self, key, val)
         self._update_tilts()
         BaseCollimator._verify_consistency(self)
 
@@ -713,14 +728,18 @@ class BaseCollimator(BaseBlock):
 
     @property
     def optics(self):
-        return self.reference_optics
+        # Legacy callers expect None until full optics are assigned.
+        ref = self.reference_optics
+        return ref if len(ref) else None
 
     @property
     def reference_optics(self):
-        return getattr(self, "_optics", None)
+        return self._optics
 
     def optics_ready(self):
-        return self.emittance is not None and self.optics is not None
+        ref = self.reference_optics
+        return (len(ref) > 0 and ref.nemitt_x is not None
+                and ref.nemitt_y is not None and ref.beta_gamma_rel is not None)
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None, reference_optics=None):
@@ -754,93 +773,126 @@ class BaseCollimator(BaseBlock):
         if nemitt_y is None and 'nemitt_y' in metadata:
             nemitt_y = optics['nemitt_y']
         if nemitt_x is None:
-            if self.nemitt_x is None:
-                raise ValueError("Need to provide `nemitt_x`.")
-        else:
-            self.nemitt_x = nemitt_x
+            nemitt_x = self.reference_optics.nemitt_x
         if nemitt_y is None:
-            if self.nemitt_y is None:
-                raise ValueError("Need to provide `nemitt_y`.")
-        else:
-            self.nemitt_y = nemitt_y
-        optics['beta_gamma_rel'] = beta_gamma_rel
-        optics['nemitt_x'] = self.nemitt_x
-        optics['nemitt_y'] = self.nemitt_y
+            nemitt_y = self.reference_optics.nemitt_y
+        if nemitt_x is None or nemitt_y is None:
+            raise ValueError("Need to provide `nemitt_x` and `nemitt_y`.")
+        nemitt_x = _validate_reference_emittance(nemitt_x, 'x')
+        nemitt_y = _validate_reference_emittance(nemitt_y, 'y')
+        if beta_gamma_rel is None or not np.isfinite(beta_gamma_rel) or beta_gamma_rel <= 0:
+            raise ValueError("Need a finite positive `beta_gamma_rel`.")
+        # Install the new optics and emittances together; do not move the jaws
+        # using the previous Twiss table while assigning the new one.
+        optics._set_metadata(beta_gamma_rel=float(beta_gamma_rel),
+                             nemitt_x=nemitt_x, nemitt_y=nemitt_y)
         self._optics = optics
         self._apply_optics()
 
+    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET):
+        """Set reference normalised emittances and reapply the current optics.
+
+        Omitted planes are unchanged; None clears a plane. No line or Twiss
+        calculation is needed. Without optics rows only metadata is updated.
+        """
+        if nemitt_x is _UNSET and nemitt_y is _UNSET:
+            return
+        ref = self.reference_optics
+        ex = ref.nemitt_x if nemitt_x is _UNSET else _validate_reference_emittance(nemitt_x, 'x')
+        ey = ref.nemitt_y if nemitt_y is _UNSET else _validate_reference_emittance(nemitt_y, 'y')
+        ref._set_metadata(nemitt_x=ex, nemitt_y=ey)
+        self._apply_optics()
+
+    def _set_legacy_emittance(self, val):
+        if val is None:
+            val = [None, None]
+        elif not hasattr(val, '__iter__'):
+            val = [val, val]
+        elif len(val) == 1:
+            val = [val[0], val[0]]
+        if len(val) != 2:
+            raise ValueError("Need one or two reference emittances.")
+        self.set_reference_emittance(nemitt_x=val[0], nemitt_y=val[1])
+
+    # Private compatibility aliases for existing low-level Python callers.
+    # They do not store separate state (zero remains the old unset sentinel).
+    @property
+    def _nemitt_x(self):
+        return self.reference_optics.nemitt_x or 0.
+
+    @_nemitt_x.setter
+    def _nemitt_x(self, val):
+        self.set_reference_emittance(nemitt_x=None if val == 0 else val)
+
+    @property
+    def _nemitt_y(self):
+        return self.reference_optics.nemitt_y or 0.
+
+    @_nemitt_y.setter
+    def _nemitt_y(self, val):
+        self.set_reference_emittance(nemitt_y=None if val == 0 else val)
+
     @property
     def nemitt_x(self):
-        if self._nemitt_x == 0:
-            return None
-        return self._nemitt_x
+        warn("`nemitt_x` is deprecated on elements. Use reference_optics.nemitt_x.",
+             FutureWarning, stacklevel=2)
+        return self.reference_optics.nemitt_x
 
     @nemitt_x.setter
     def nemitt_x(self, val):
-        if val is None:
-            val = 0
-        elif val <= 0:
-            raise ValueError(f"The field `nemitt_x` should be positive, but got {val}.")
-        self._nemitt_x = val
-        self._apply_optics()
-
-    @property
-    def gemitt_x(self):
-        if self.nemitt_x is not None and self.optics_ready():
-            return self.nemitt_x / self.optics['beta_gamma_rel']
+        warn("`nemitt_x` is deprecated on elements. Use set_reference_emittance().",
+             FutureWarning, stacklevel=2)
+        self.set_reference_emittance(nemitt_x=val)
 
     @property
     def nemitt_y(self):
-        if self._nemitt_y == 0:
-            return None
-        return self._nemitt_y
+        warn("`nemitt_y` is deprecated on elements. Use reference_optics.nemitt_y.",
+             FutureWarning, stacklevel=2)
+        return self.reference_optics.nemitt_y
 
     @nemitt_y.setter
     def nemitt_y(self, val):
-        if val is None:
-            val = 0
-        elif val <= 0:
-            raise ValueError(f"The field `nemitt_y` should be positive, but got {val}.")
-        self._nemitt_y = val
-        self._apply_optics()
+        warn("`nemitt_y` is deprecated on elements. Use set_reference_emittance().",
+             FutureWarning, stacklevel=2)
+        self.set_reference_emittance(nemitt_y=val)
+
+    @property
+    def gemitt_x(self):
+        warn("`gemitt_x` is deprecated on elements. Use reference_optics.gemitt_x.",
+             FutureWarning, stacklevel=2)
+        if self.optics_ready():
+            return self.reference_optics.gemitt_x
 
     @property
     def gemitt_y(self):
-        if self.nemitt_y is not None and self.optics_ready():
-            return self.nemitt_y / self.optics['beta_gamma_rel']
+        warn("`gemitt_y` is deprecated on elements. Use reference_optics.gemitt_y.",
+             FutureWarning, stacklevel=2)
+        if self.optics_ready():
+            return self.reference_optics.gemitt_y
 
     @property
     def emittance(self):
-        if self.nemitt_x is not None and self.nemitt_y is not None:
-            if np.isclose(self.nemitt_x, self.nemitt_y):
-                return self.nemitt_x
-            else:
-                return [self.nemitt_x, self.nemitt_y]
+        warn("`emittance` is deprecated on elements. Use reference_optics.nemitt_x "
+             "and reference_optics.nemitt_y.", FutureWarning, stacklevel=2)
+        ex = self.reference_optics.nemitt_x
+        ey = self.reference_optics.nemitt_y
+        if ex is not None and ey is not None:
+            return ex if np.isclose(ex, ey) else [ex, ey]
 
     @emittance.setter
     def emittance(self, val):
-        if val is None:
-            self._nemitt_x = 0
-            self._nemitt_y = 0
-        else:
-            if not hasattr(val, '__iter__'):
-                val = [val]
-            if len(val) == 1:
-                val = [val[0], val[0]]
-            assert len(val) == 2
-            if val[0] <= 0 or val[1] <= 0:
-                raise ValueError(f"The field `emittance` should be positive, but got {val}.")
-            self._nemitt_x = val[0]
-            self._nemitt_y = val[1]
-            self._apply_optics()
+        warn("`emittance` is deprecated on elements. Use set_reference_emittance().",
+             FutureWarning, stacklevel=2)
+        self._set_legacy_emittance(val)
 
     @property
     def sigma(self):
         if self.optics_ready():
             betx = self.reference_optics['betx', self.align]
             bety = self.reference_optics['bety', self.align]
-            sigma_x = np.sqrt(betx*self.nemitt_x/self.reference_optics['beta_gamma_rel'])
-            sigma_y = np.sqrt(bety*self.nemitt_y/self.reference_optics['beta_gamma_rel'])
+            ref = self.reference_optics
+            sigma_x = np.sqrt(betx*ref.nemitt_x/ref.beta_gamma_rel)
+            sigma_y = np.sqrt(bety*ref.nemitt_y/ref.beta_gamma_rel)
             if hasattr(self, '_cos_zL'):
                 sigma_L = np.sqrt((sigma_x*self._cos_zL)**2 + (sigma_y*self._sin_zL)**2)
                 sigma_R = np.sqrt((sigma_x*self._cos_zR)**2 + (sigma_y*self._sin_zR)**2)
@@ -869,8 +921,8 @@ class BaseCollimator(BaseBlock):
             alfy = self.reference_optics['alfy', self.align]
             betx = self.reference_optics['betx', self.align]
             bety = self.reference_optics['bety', self.align]
-            divx = -np.sqrt(self.gemitt_x/betx)*alfx
-            divy = -np.sqrt(self.gemitt_y/bety)*alfy
+            divx = -np.sqrt(self.reference_optics.gemitt_x/betx)*alfx
+            divy = -np.sqrt(self.reference_optics.gemitt_y/bety)*alfy
             if hasattr(self, '_cos_zL'):
                 if self.side != 'right':
                     return divx if abs(self.angle_L) < 1e-6 else divy
@@ -999,9 +1051,6 @@ class BaseCollimator(BaseBlock):
         return not np.isclose(self._gap_R, -OPEN_GAP)
 
     def _apply_optics(self, only_L=False, only_R=False):
-        if self.reference_optics is not None:
-            self.reference_optics['nemitt_x'] = self.nemitt_x
-            self.reference_optics['nemitt_y'] = self.nemitt_y
         if self.optics_ready():
             # Only if we have set a value for the gap manually, this needs to be updated
             if self._gap_L_set_manually() and not only_R:
@@ -1177,7 +1226,7 @@ class BaseCrystal(BaseBlock):
     _noexpr_fields    = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
-                         'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
+                         'width', 'height', 'bending_radius', 'bending_angle']
     _internal_record_class = BaseBlock._internal_record_class
     _allowed_fields_when_frozen = BaseBlock._allowed_fields_when_frozen
 
@@ -1187,6 +1236,23 @@ class BaseCrystal(BaseBlock):
             raise Exception("Abstract class `BaseCrystal` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        # Older (and current) crystal dictionaries contain both representations
+        # of the same bending geometry. Keep the constructor strict, but accept
+        # redundant, consistent values when deserialising.
+        radius = dct.get('bending_radius')
+        angle = dct.get('bending_angle')
+        if radius is not None and angle is not None:
+            length = dct.get('length', 0.)
+            if (radius == 0 or abs(angle) > np.pi/2
+                    or not np.isclose(length/radius, np.sin(angle),
+                                      rtol=1e-9, atol=1e-12)):
+                raise ValueError("Inconsistent bending_radius and bending_angle in crystal dictionary.")
+            dct = dct.copy()
+            dct.pop('bending_angle')
+        return super().from_dict(dct, **kwargs)
 
     def __init__(self, **kwargs):
         to_assign = {}
@@ -1258,12 +1324,14 @@ class BaseCrystal(BaseBlock):
         # We also have to manually initialise them for xobject generation
         self._align = 'upstream'
         self._gap = OPEN_GAP
-        self._nemitt_x = 0.
-        self._nemitt_y = 0.
         if not hasattr(self, '_optics'):
-            self._optics = None
+            self._optics = _empty_reference_optics()
         for key, val in to_assign.items():
-            setattr(self, key, val)
+            if key == 'emittance':
+                # Constructor/legacy JSON input is not deprecated.
+                self._set_legacy_emittance(val)
+            else:
+                setattr(self, key, val)
         if self.side == 'right':
             if np.isclose(self._jaw_U, OPEN_JAW):
                 self._jaw_U *= -1
@@ -1382,48 +1450,28 @@ class BaseCrystal(BaseBlock):
 
     @property
     def optics(self):
-        return self.reference_optics
+        # Legacy callers expect None until longitudinal optics are assigned.
+        ref = self.reference_optics
+        return ref if len(ref) else None
 
     @property
     def reference_optics(self):
-        return getattr(self, "_optics", None)
+        return self._optics
 
     def optics_ready(self):
         return BaseCollimator.optics_ready(self)
 
     assign_optics = BaseCollimator.assign_optics
 
-    @property
-    def nemitt_x(self):
-        return BaseCollimator.nemitt_x.fget(self)
-
-    @nemitt_x.setter
-    def nemitt_x(self, val):
-        BaseCollimator.nemitt_x.fset(self, val)
-
-    @property
-    def gemitt_x(self):
-        return BaseCollimator.gemitt_x.fget(self)
-
-    @property
-    def nemitt_y(self):
-        return BaseCollimator.nemitt_y.fget(self)
-
-    @nemitt_y.setter
-    def nemitt_y(self, val):
-        BaseCollimator.nemitt_y.fset(self, val)
-
-    @property
-    def gemitt_y(self):
-        return BaseCollimator.gemitt_y.fget(self)
-
-    @property
-    def emittance(self):
-        return BaseCollimator.emittance.fget(self)
-
-    @emittance.setter
-    def emittance(self, val):
-        BaseCollimator.emittance.fset(self, val)
+    set_reference_emittance = BaseCollimator.set_reference_emittance
+    _set_legacy_emittance = BaseCollimator._set_legacy_emittance
+    _nemitt_x = BaseCollimator._nemitt_x
+    _nemitt_y = BaseCollimator._nemitt_y
+    nemitt_x = BaseCollimator.nemitt_x
+    nemitt_y = BaseCollimator.nemitt_y
+    gemitt_x = BaseCollimator.gemitt_x
+    gemitt_y = BaseCollimator.gemitt_y
+    emittance = BaseCollimator.emittance
 
     @property
     def sigma(self):
@@ -1484,9 +1532,6 @@ class BaseCrystal(BaseBlock):
         return not np.isclose(self._gap, OPEN_GAP)
 
     def _apply_optics(self):
-        if self.reference_optics is not None:
-            self.reference_optics['nemitt_x'] = self.nemitt_x
-            self.reference_optics['nemitt_y'] = self.nemitt_y
         if self.optics_ready():
             # Only if we have set a value for the gap manually, this needs to be updated
             if self._gap_set_manually():

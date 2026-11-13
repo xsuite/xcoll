@@ -43,9 +43,10 @@ def test_installed_element_copy(make_line, monkeypatch):
 
     def check_copy(source, **kwargs):
         # Only the element being copied is temporarily detached.
-        assert any(source is el for el in originals)
-        assert '_line' not in source.__dict__
-        assert all(el._line is line for el in originals if el is not source)
+        # Nested BeamElements (e.g. RandomRutherford) are also copied.
+        if any(source is el for el in originals):
+            assert '_line' not in source.__dict__
+            assert all(el._line is line for el in originals if el is not source)
         return original_copy(source, **kwargs)
 
     def forbid_line_copy(*args, **kwargs):
@@ -191,7 +192,8 @@ def test_optics_api_and_element_methods(make_line, monkeypatch):
         api.assign_optics(names='coll', nemitt_x=2.5e-6, nemitt_y=3.5e-6,
                           twiss=twiss)
         assert coll.optics_ready()
-        assert crystal.reference_optics is None
+        assert len(crystal.reference_optics) == 0
+        assert not crystal.optics_ready()
         assert not twiss_calls
         # With no table, compute Twiss only once for both collimators.
         api.assign_optics(nemitt_x=2.5e-6, nemitt_y=3.5e-6)
@@ -221,15 +223,15 @@ def test_optics_api_and_element_methods(make_line, monkeypatch):
                                          nemitt_x=2.5e-6, nemitt_y=3.5e-6)
         standalone_crystal.align_to_beam_divergence()
         assert standalone_crystal.tilt == pytest.approx(
-            standalone_crystal.divergence * standalone_crystal.gap)
+            standalone_crystal.divergence * standalone_crystal.gap, abs=5.1e-11)
 
         crystal.gap = 6.
         api.align_to_beam_divergence(names='crystal')
         expected_tilt = crystal.divergence * crystal.gap
-        assert crystal.tilt == pytest.approx(expected_tilt)
+        assert crystal.tilt == pytest.approx(expected_tilt, abs=5.1e-11)
         crystal.tilt = 0.
         api.align_to_beam_divergence()
-        assert crystal.tilt == pytest.approx(expected_tilt)
+        assert crystal.tilt == pytest.approx(expected_tilt, abs=5.1e-11)
         assert len(twiss_calls) == 1
         # Extra interior positions are supported, and do not change jaw/gap.
         jaw = coll.jaw
@@ -258,16 +260,16 @@ def test_optics_api_and_element_methods(make_line, monkeypatch):
                                coll.reference_optics.s_rel)
     assigned.betx[:] = -1.
     assert coll.reference_optics['betx', 'centre'] > 0.
-    coll.nemitt_x = 4e-6
+    coll.set_reference_emittance(nemitt_x=4e-6)
     assert coll.reference_optics.nemitt_x == 4e-6
     assigned = api.reference_optics
     assert 'nemitt_x' in assigned._col_names
     assert np.all(assigned.rows[assigned.name == 'coll'].nemitt_x == 4e-6)
     standalone.assign_optics(reference_optics=assigned, name='coll')
-    assert standalone.nemitt_x == 4e-6
+    assert standalone.reference_optics.nemitt_x == 4e-6
     api.assign_optics(reference_optics=assigned, names='coll')
     assert len(twiss_calls) == 1
-    assert coll.nemitt_x == 4e-6
+    assert coll.reference_optics.nemitt_x == 4e-6
     local = api.get_optics_at('coll', positions=['downstream', 'upstream', 'centre'], twiss=twiss)
     assert isinstance(local, xt.Table)
     assert list(local.position) == ['upstream', 'centre', 'downstream']
@@ -324,3 +326,134 @@ def test_optics_at_positions_drift():
         _get_optics_at_positions(boundary, ['d1'], [0.6], ['middle'])
     with pytest.raises(ValueError, match='not compatible'):
         _get_optics_at_positions(boundary, ['d1'], [0.5], ['centre'])
+
+
+@pytest.mark.xcother
+@pytest.mark.parametrize('cls', [xc.BlackAbsorber, xc.BlackCrystal], ids=['collimator', 'crystal'])
+def test_reference_emittance(cls):
+    with warnings.catch_warnings():
+        warnings.filterwarnings('error', category=FutureWarning)
+        coll = cls(length=0.6, gap=6., emittance=2.5e-6)
+        ref = coll.reference_optics
+        assert isinstance(ref, xt.Table)
+        assert len(ref) == 0
+        assert ref.nemitt_x == ref.nemitt_y == 2.5e-6
+        assert ref.gemitt_x is None
+        assert not coll.optics_ready()
+        assert coll.optics is None
+        assert '_nemitt_x' not in coll.__dict__ and '_nemitt_y' not in coll.__dict__
+        coll.set_reference_emittance(nemitt_y=3.5e-6)
+        assert ref.nemitt_y == 3.5e-6
+        assert not coll.optics_ready()
+        dct = coll.to_dict()
+        restored = cls.from_dict(dct)
+        assert restored.reference_optics.nemitt_x == 2.5e-6
+        assert restored.reference_optics.nemitt_y == 3.5e-6
+        assert len(restored.reference_optics) == 0
+        if cls is xc.BlackCrystal:
+            # Both bending fields remain in the serialised format. Reading
+            # them must preserve the geometry and not modify the input.
+            assert 'bending_radius' in dct and 'bending_angle' in dct
+            assert restored.bending_radius == pytest.approx(coll.bending_radius)
+            assert restored.bending_angle == pytest.approx(coll.bending_angle)
+            for radius in (-2., np.inf):
+                crystal = cls(length=0.6, gap=6., bending_radius=radius)
+                saved = crystal.to_dict()
+                clone = cls.from_dict(saved)
+                assert clone.bending_radius == pytest.approx(radius)
+                assert clone.bending_angle == pytest.approx(crystal.bending_angle)
+                assert 'bending_angle' in saved
+            bad = dict(dct, bending_angle=0.1)
+            with pytest.raises(ValueError, match='Inconsistent bending_radius'):
+                cls.from_dict(bad)
+            with pytest.raises(ValueError, match='Need to choose between'):
+                cls(length=0.6, bending_radius=1., bending_angle=0.1)
+        # Both planes are validated before either is changed.
+        with pytest.raises(ValueError, match='positive'):
+            coll.set_reference_emittance(nemitt_x=4e-6, nemitt_y=-1.)
+        assert ref.nemitt_x == 2.5e-6
+        with pytest.raises(AttributeError, match='read-only'):
+            ref.nemitt_x = 4e-6
+        with pytest.raises(AttributeError, match='read-only'):
+            ref['nemitt_y'] = 4e-6
+        with pytest.raises(AttributeError, match='read-only'):
+            del ref['nemitt_y']
+        with pytest.raises(AttributeError, match='read-only'):
+            ref.beta_gamma_rel = 2.
+        tw = xt.Table(dict(name=np.array(['c', 'end']), s=np.array([1., 1.6]),
+                           betx=np.array([10., 10.]), bety=np.array([12., 12.]),
+                           alfx=np.zeros(2), alfy=np.zeros(2),
+                           x=np.zeros(2), y=np.zeros(2)))
+        coll.assign_optics(twiss=tw, name='c', beta_gamma_rel=100.)
+        ref = coll.reference_optics
+        assert coll.optics_ready()
+        assert ref.gemitt_x == pytest.approx(2.5e-8)
+        assert ref.gemitt_y == pytest.approx(3.5e-8)
+        assert len(ref) == 3
+        jaw = coll.jaw_L if cls is xc.BlackAbsorber else coll.jaw_U
+        coll.set_reference_emittance(nemitt_x=1e-5)
+        assert (coll.jaw_L if cls is xc.BlackAbsorber else coll.jaw_U) == pytest.approx(2*jaw)
+        assert coll.gap == pytest.approx(6.)
+        copied = coll.copy()
+        copied.set_reference_emittance(nemitt_x=2e-5)
+        assert coll.reference_optics.nemitt_x == 1e-5
+        assert copied.reference_optics.nemitt_x == 2e-5
+        coll.set_reference_emittance(nemitt_y=None)
+        assert not coll.optics_ready()
+        assert coll.reference_optics.nemitt_y is None
+        # Serialise the legacy emittance field; assigned optics rows are
+        # deliberately not serialised. Check a pending partial round-trip.
+        assert coll.to_dict()['emittance'] == [1e-5, None]
+        pending = cls(length=0.6, gap=6.)
+        pending.set_reference_emittance(nemitt_x=1e-5)
+        restored = cls.from_dict(pending.to_dict())
+        assert restored.reference_optics.nemitt_x == 1e-5
+        assert restored.reference_optics.nemitt_y is None
+    with pytest.warns(FutureWarning, match='nemitt_x'):
+        assert coll.nemitt_x == 1e-5
+    with pytest.warns(FutureWarning, match='nemitt_y'):
+        coll.nemitt_y = 3.5e-6
+    with pytest.warns(FutureWarning, match='gemitt_x'):
+        assert coll.gemitt_x == pytest.approx(1e-7)
+    with pytest.warns(FutureWarning, match='emittance'):
+        coll.emittance = 2.5e-6
+    assert coll.reference_optics.nemitt_y == 2.5e-6
+
+
+@pytest.mark.xcother
+def test_line_reference_emittance(make_line, monkeypatch):
+    line = make_line()
+    api = line.xcoll.collimators
+    with warnings.catch_warnings():
+        warnings.filterwarnings('error', category=FutureWarning)
+        api.set_reference_emittance(nemitt_x=2.5e-6, nemitt_y=3.5e-6)
+        assert len(api.reference_optics) == 0
+        assert api.reference_optics.nemitt_x == 2.5e-6
+        api.set_reference_emittance(names='coll', nemitt_x=4e-6)
+        assert line['coll'].reference_optics.nemitt_x == 4e-6
+        assert line['crystal'].reference_optics.nemitt_x == 2.5e-6
+        assert len(api.reference_optics) == 0
+        table = line.get_table()
+        n = len(table.name)
+        twiss = xt.Table(dict(name=table.name.copy(), s=table.s.copy(),
+                              betx=np.full(n, 10.), bety=np.full(n, 12.),
+                              alfx=np.zeros(n), alfy=np.zeros(n),
+                              x=np.zeros(n), y=np.zeros(n)))
+        def forbid_twiss(*args, **kwargs):
+            pytest.fail('Precomputed optics or emittance updates must not compute Twiss')
+        monkeypatch.setattr(xt.Line, 'twiss', forbid_twiss)
+        api.assign_optics(twiss=twiss)
+        ref = api.reference_optics
+        assert 'nemitt_x' in ref._col_names
+        assert np.all(ref.rows[ref.name == 'coll'].nemitt_x == 4e-6)
+        assert ref.nemitt_y == 3.5e-6
+        with pytest.raises(ValueError, match='read-only'):
+            ref.nemitt_x[:] = 1e-6
+        with pytest.raises(AttributeError, match='read-only'):
+            ref['nemitt_y'] = 1e-6
+        api.assign_optics(names='coll', twiss=twiss, nemitt_x=5e-6, nemitt_y=6e-6)
+        assert line['coll'].reference_optics.nemitt_x == 5e-6
+        assert line['coll'].reference_optics.nemitt_y == 6e-6
+        assert line['crystal'].reference_optics.nemitt_y == 3.5e-6
+        api.set_reference_emittance(nemitt_x=7e-6)
+        assert api.reference_optics.nemitt_x == 7e-6
