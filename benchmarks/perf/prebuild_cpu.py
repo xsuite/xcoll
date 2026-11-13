@@ -1,4 +1,4 @@
-"""Compile selected Xsuite prebuilt CPU kernels, without parallel gcc processes.
+"""Compile selected Xsuite prebuilt CPU kernels, with configurable compiler workers.
 
 The CLI `xsuite-prebuild regenerate` accepts a `--threads` parameter but does
 not expose a kernel exclusion flag. The public Python API supports selecting
@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     if not selected:
         raise RuntimeError("No kernel definitions selected")
 
-    print("Rebuilding Xsuite serial prebuilt kernels sequentially:", flush=True)
+    print(f"Rebuilding Xsuite serial prebuilt kernels (compiler workers: {args.n_threads}):", flush=True)
     for name in selected:
         print(f"  - {name}", flush=True)
     regenerate_kernels(kernels=selected, n_threads=args.n_threads, context="serial")

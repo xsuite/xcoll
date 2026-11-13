@@ -44,8 +44,8 @@ def write(tmp_path, name, data):
 def test_online_groups_only_scheduled_profiles(tmp_path):
     p = []
     for profile,sha,time in [('full','a'*40,'2026-11-10T04:30:00'),
-                             ('fluka','b'*40,'2026-11-10T06:30:00'),
-                             ('geant4','c'*40,'2026-11-10T09:30:00')]:
+                             ('fluka','a'*40,'2026-11-10T06:30:00'),
+                             ('geant4','a'*40,'2026-11-10T09:30:00')]:
         d = sample(profile=profile, sha=sha, time=time, name=f'bench_{profile}',
                    testbed=f'cern-openstack-xcoll-{profile}-v1')
         p.append(write(tmp_path,profile+'.json', d))
@@ -58,8 +58,53 @@ def test_online_groups_only_scheduled_profiles(tmp_path):
     daily = next(r for r in merged if r['profile'] == 'daily')
     assert {e['name'] for e in daily['entries']} == {f'test.py::bench_{x}' for x in ('full','fluka','geant4')}
     assert len(daily['components']) == 3
-    assert daily['sha'] == 'mixed'
+    assert daily['sha'] == 'a'*40
     assert {e['profile'] for e in daily['entries']} == {'full','fluka','geant4'}
+
+
+@pytest.mark.parametrize('change', ['sha', 'xtrack', 'numpy', 'missing'])
+def test_daily_splits_incompatible_configurations(tmp_path, change):
+    versions = {'xcoll': '0.13.0', 'xtrack': '0.118.7', 'numpy': '2.5.4'}
+    full = sample(profile='full', name='full')
+    full['xsuite_versions'] = dict(versions)
+    fluka = sample(profile='fluka', name='fluka', time='2026-11-10T11:00:00')
+    fluka['xsuite_versions'] = dict(versions)
+    if change == 'sha':
+        fluka['ci']['source_sha'] = 'b'*40
+    elif change == 'missing':
+        del fluka['xsuite_versions']['xtrack']
+    else:
+        fluka['xsuite_versions'][change] = 'different'
+    geant4 = sample(profile='geant4', name='geant4', time='2026-11-10T12:00:00')
+    geant4['xsuite_versions'] = dict(versions)
+    paths = [write(tmp_path, d['ci']['profile']+'.json', d)
+             for d in (full, fluka, geant4)]
+    runs = report.read_runs(paths, online=True)
+    assert len(runs) == len({r['id'] for r in runs}) == 2
+    assert {frozenset(e['name'] for e in r['entries']) for r in runs} == {
+        frozenset({'test.py::full', 'test.py::geant4'}), frozenset({'test.py::fluka'})}
+    assert all(r['sha'] != 'mixed' for r in runs)
+
+
+def test_daily_engine_versions_and_latest_retry(tmp_path):
+    common = {'xcoll': '0.13.0', 'xtrack': '0.118.7'}
+    paths = []
+    for profile, name, hour, external in [
+        ('full', 'full', '04', {}),
+        ('fluka', 'old_fluka', '05', {'fluka': '4-4.0'}),
+        ('fluka', 'new_fluka', '06', {'fluka': '4-4.1'}),
+        ('geant4', 'geant4', '08', {'geant4': '11.4.2', 'bdsim': '1.7.7'}),
+    ]:
+        d = sample(profile=profile, name=name, time=f'2026-11-10T{hour}:00:00')
+        d['xsuite_versions'] = {**common, **external}
+        paths.append(write(tmp_path, name+'.json', d))
+    (daily,) = report.read_runs(paths, online=True)
+    assert daily['versions'] == common
+    assert {e['name'] for e in daily['entries']} == {
+        'test.py::full', 'test.py::new_fluka', 'test.py::geant4'}
+    components = {c['profile']: c for c in daily['components']}
+    assert components['fluka']['versions']['fluka'] == '4-4.1'
+    assert components['geant4']['versions']['bdsim'] == '1.7.7'
 
 
 def test_local_hostname_not_part_of_machine_key(tmp_path):
@@ -146,12 +191,41 @@ def test_workflow_triggers_paths_and_retrieval():
         assert 'schedule' in d['on'] and 'workflow_dispatch' in d['on']
         assert 'push' not in d['on']
         assert 'runner.temp' not in text
-        assert '--skip-tpsa --skip-synrad --n-threads 2' in text
+        assert '--skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"' in text
+        assert d['on']['workflow_dispatch']['inputs']['compile_workers']['options'] == ['0', '2']
     for name in ['xcoll-performance.yml','xcoll-performance-publish.yml']:
         text=(workflows/name).read_text()
         assert 'github-token: ${{ github.token }}' in text
         assert 'actions: read' in text
         assert 'rolling_physics' in text and '--online' in text
+
+
+@pytest.mark.parametrize('engine,job', [
+    ('', 'publish_history'), ('-fluka', 'publish'), ('-geant4', 'publish'),
+])
+def test_manual_publication_is_opt_in(engine, job):
+    path = ROOT / '.github/workflows' / f'xcoll-performance{engine}.yml'
+    d = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
+    toggle = d['on']['workflow_dispatch']['inputs']['publish_history']
+    assert toggle['type'] == 'boolean'
+    assert toggle['default'] == 'false'
+    condition = d['jobs'][job]['if']
+    assert "(github.event_name == 'schedule' || inputs.publish_history == true)" in condition
+    assert "'success'" in condition
+
+
+def test_pr_workflow_is_paired_and_skips_release_prs():
+    path = ROOT / '.github/workflows/xcoll-performance-pr.yml'
+    d = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
+    job = d['jobs']['benchmark_pr']
+    assert d['on']['pull_request']['branches'] == ['main']
+    assert "!startsWith(github.head_ref, 'release/')" in job['if']
+    assert 'github.event.pull_request.draft == false' in job['if']
+    assert job['runs-on'] == 'ubuntu-24.04'
+    assert d['permissions']['contents'] == 'read'
+    steps = [s['name'] for s in job['steps'] if 'name' in s]
+    assert steps.index('Benchmark main (full CPU)') < steps.index('Benchmark PR (full CPU)')
+    assert 'Compare main and PR and screen scheduled physics' in steps
 
 
 def test_gpu_and_engine_case_matrix():

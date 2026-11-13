@@ -61,7 +61,7 @@ line.build_tracker(_context=context)
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = line[tcp].generate_pencil(num_particles, _context=context)
+part = line.xcoll.collimators.generate_pencil(tcp, num_particles, _context=context)
 
 
 # Track!

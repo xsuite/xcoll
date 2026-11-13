@@ -42,7 +42,7 @@ def test_impacts_from_line(beam, plane, test_context):
     tw = line.twiss()
     line.xcoll.collimators.assign_optics(twiss=tw)
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(num_part, twiss=tw, _context=test_context)
+    part = line.xcoll.collimators.generate_pencil(tcp, num_part, twiss=tw, _context=test_context)
 
     line.xcoll.scattering.enable()
     line.track(part, num_turns=num_turns, time=True, with_progress=1)

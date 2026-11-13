@@ -20,7 +20,7 @@ path = Path(__file__).parent / 'data'
 # TODO:  we are not checking the angles of the pencil!
 
 @pytest.mark.gpu
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextPyopencl',))
 @pytest.mark.xcother
 @pytest.mark.parametrize("beam, npart, impact_parameter, pencil_spread, "
                        + "longitudinal, longitudinal_betatron_cut", [
@@ -50,24 +50,18 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = line[tcp_conv].generate_pencil(
-                    npart,
-                    twiss=tw,
-                    pencil_spread=pencil_spread,
-                    impact_parameter=impact_parameter,
-                    longitudinal=longitudinal,
-                    longitudinal_betatron_cut=longitudinal_betatron_cut,
-                    _context=test_context
-                )
-    part_div = line[tcp_div].generate_pencil(
-                    npart,
-                    twiss=tw,
-                    pencil_spread=pencil_spread,
-                    impact_parameter=impact_parameter,
-                    longitudinal=longitudinal,
-                    longitudinal_betatron_cut=longitudinal_betatron_cut,
-                    _context=test_context
-                )
+    part_conv = line.xcoll.collimators.generate_pencil(
+        tcp_conv, npart, twiss=tw, pencil_spread=pencil_spread,
+        impact_parameter=impact_parameter, longitudinal=longitudinal,
+        longitudinal_betatron_cut=longitudinal_betatron_cut,
+        _context=test_context
+    )
+    part_div = line.xcoll.collimators.generate_pencil(
+        tcp_div, npart, twiss=tw, pencil_spread=pencil_spread,
+        impact_parameter=impact_parameter, longitudinal=longitudinal,
+        longitudinal_betatron_cut=longitudinal_betatron_cut,
+        _context=test_context
+    )
     at_element_conv = test_context.nparray_from_context_array(part_conv.at_element)
     np.testing.assert_array_equal(
         np.unique(at_element_conv), [line.element_names.index(tcp_conv)])

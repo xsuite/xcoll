@@ -67,14 +67,15 @@ line.build_tracker(_context=context)
 
 
 # # Generate initial pencil distribution on crystal
-# part = line[tcp].generate_pencil(num_particles, _context=context)
+# part = line.xcoll.collimators.generate_pencil(tcp, num_particles, _context=context)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
 py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-            nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
+            nemitt_x=line[tcpc].reference_optics.nemitt_x,
+            nemitt_y=line[tcpc].reference_optics.nemitt_y,
             at_element=tcpc, _context=context
 )
 

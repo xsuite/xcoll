@@ -30,7 +30,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 # Build tracker, assign optics and generate particles 
 line.build_tracker(_context=context)
 line.xcoll.collimators.assign_optics()   # Not super fast
-part = line['tcp.d6l7.b1'].generate_pencil(5000, _context=context)
+part = line.xcoll.collimators.generate_pencil('tcp.d6l7.b1', 5000)
 
 # Start interaction record (after having the line on the correct context)
 impacts = xc.InteractionRecord(line=line, _context=context)

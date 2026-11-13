@@ -2,6 +2,16 @@ name: Xcoll performance (FLUKA)
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_history:
+        description: 'Publish results to permanent history and redeploy the dashboard'
+        type: boolean
+        default: false
+      compile_workers:
+        description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
+        type: choice
+        options: ['0', '2']
+        default: '2'
   schedule:
     - cron: '37 5 * * *'
 
@@ -18,6 +28,7 @@ jobs:
     concurrency:
       group: xcoll-cern-benchmark-cpu
       cancel-in-progress: false
+      queue: max
     outputs:
       sha: ${{ steps.source.outputs.sha }}
       measured: ${{ steps.check_measurements.outputs.measured }}
@@ -29,6 +40,7 @@ jobs:
       BENCHMARK_TESTBED: cern-openstack-xcoll-fluka-v1
       BENCHMARK_PHYSICAL_HOST: cern-openstack-xcoll-vm-v1
       XCOLL_FLUKA_ROOT: ${{ vars.XCOLL_FLUKA_ROOT }}
+      XCOLL_FLUKA_SERVER: ${{ vars.XCOLL_FLUKA_SERVER }}
       XCOLL_FLUKAIO_LIB: ${{ vars.XCOLL_FLUKAIO_LIB }}
       XCOLL_LINEBUILDER_ROOT: ${{ vars.XCOLL_LINEBUILDER_ROOT }}
       XCOLL_FLUKA_FEDB: ${{ vars.XCOLL_FLUKA_FEDB }}
@@ -91,13 +103,15 @@ jobs:
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
 
-      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+      - name: Compile non-TPSA Xsuite serial kernels
         shell: bash
+        env:
+          COMPILE_WORKERS: ${{ github.event_name == 'schedule' && '0' || inputs.compile_workers || '2' }}
         run: |
           set -euo pipefail
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"
 
       - name: Compile Xcoll FLUKA interface in active environment
         shell: bash
@@ -106,8 +120,17 @@ jobs:
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
           : "${XCOLL_FLUKA_ROOT:?Set XCOLL_FLUKA_ROOT in GitHub Actions variables}"
+          : "${XCOLL_FLUKA_SERVER:?Set XCOLL_FLUKA_SERVER in GitHub Actions variables}"
           : "${XCOLL_FLUKAIO_LIB:?Set XCOLL_FLUKAIO_LIB in GitHub Actions variables}"
           : "${XCOLL_LINEBUILDER_ROOT:?Set XCOLL_LINEBUILDER_ROOT in GitHub Actions variables}"
+          # rfluka requires an unprefixed gfortran executable,
+          # independently of the Conda compiler used for Xcoll.
+          command -v gfortran || {
+              echo "FLUKA requires gfortran on PATH."
+              echo "On AlmaLinux: sudo dnf install gcc-gfortran"
+              exit 1
+          }
+          gfortran --version
           python -m benchmarks.perf.setup_external fluka
 
       - name: Record resolved dependencies
@@ -128,13 +151,22 @@ jobs:
           set -euo pipefail
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m pytest -m fluka
+          python -m pytest -m fluka --basetemp="$RUNNER_TEMP/xcoll-fluka-diagnostics"
+
+      - name: Print FLUKA startup errors
+        if: failure()
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/xcoll-fluka-diagnostics" ]; then
+            find "$RUNNER_TEMP/xcoll-fluka-diagnostics" \
+              -name rfluka.log -print -exec tail -n 100 {} \;
+          fi
 
       - name: Check for executed benchmark measurements
         id: check_measurements
         shell: bash
         run: |
-          python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          "$BENCH_ENV/bin/python" - <<'PYCODE' >> "$GITHUB_OUTPUT"
           import json
           from pathlib import Path
           has_data = False
@@ -174,7 +206,9 @@ jobs:
 
   publish:
     needs: benchmark_fluka
-    if: needs.benchmark_fluka.result == 'success' && needs.benchmark_fluka.outputs.measured == 'true'
+    if: >-
+      (github.event_name == 'schedule' || inputs.publish_history == true) &&
+      needs.benchmark_fluka.result == 'success' && needs.benchmark_fluka.outputs.measured == 'true'
     uses: ./.github/workflows/xcoll-performance-publish.yml
     with:
       artifact: xcoll-external-${{ github.run_id }}-${{ github.run_attempt }}

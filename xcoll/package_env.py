@@ -301,7 +301,7 @@ class BaseInterface:
             raise FileNotFoundError(f"Could not find path {path}!")
         try:
             cmd = run(['tree', path.as_posix()], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             # No tree executable. Return as no more can be done. TODO: alternatives for mac and windows?
             return
         if cmd.returncode != 0:

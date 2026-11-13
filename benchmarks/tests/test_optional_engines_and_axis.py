@@ -23,6 +23,7 @@ def _import_benchmark(path, monkeypatch, *, ready=True, crash_crystal=False, cra
         def __init__(self):
             self.running = False
             self.groups = []
+            self.started_elements = []
             self.particle_ref = None
         def is_running(self):
             return self.running
@@ -31,6 +32,7 @@ def _import_benchmark(path, monkeypatch, *, ready=True, crash_crystal=False, cra
         def start(self, *, elements, seed, cwd=None, **kwargs):
             crystal = any(e.crystal for e in elements)
             self.groups.append('crystal' if crystal else 'collimator')
+            self.started_elements.append(list(elements))
             if (crystal and crash_crystal) or (not crystal and crash_collimator):
                 Path(cwd).mkdir(parents=True, exist_ok=True)
                 Path(cwd, 'rfluka.log').write_text(
@@ -43,7 +45,7 @@ def _import_benchmark(path, monkeypatch, *, ready=True, crash_crystal=False, cra
     fake_xc = types.ModuleType('xcoll')
     fake_xc.fluka = types.SimpleNamespace(
         interface=types.SimpleNamespace(ready=ready),
-        engine=engine, assemblies={'hilumi_tcppm'},
+        engine=engine, assemblies=[types.SimpleNamespace(fedb_series='HiLumi', fedb_tag='TCPPM')],
     )
     fake_xc.geant4 = types.SimpleNamespace(interface=types.SimpleNamespace(ready=ready), engine=engine)
     fake_xc.materials = types.SimpleNamespace(
@@ -81,15 +83,21 @@ def test_fluka_crystal_failure_does_not_poison_collimator_cases(monkeypatch, tmp
     get_case = next(fixture)
     assert get_case('cfc-hit')[0].crystal is False
     assert get_case('tungsten-hit')[0].crystal is False
+    assert get_case('fedb-hilumi-hit')[0].crystal is False
     assert engine.groups == ['collimator']
-    with pytest.raises(pytest.skip.Exception, match='CRYINI'):
-        get_case('silicon-crystal-hit')
-    with pytest.raises(pytest.skip.Exception, match='CRYINI'):
-        get_case('silicon-crystal-miss')
-    assert engine.groups == ['collimator', 'crystal']
+    # A configured engine failing in CRYINI is a failure, not an optional skip.
+    for case in ('silicon-crystal-hit', 'silicon-crystal-miss'):
+        with pytest.raises(RuntimeError, match='crystal engine failed') as exc:
+            get_case(case)
+        assert isinstance(exc.value.__cause__, RuntimeError)
+        assert 'flukaserver died' in str(exc.value.__cause__)
+    assert engine.groups == ['collimator', 'crystal', 'crystal']
+    logs = sorted(tmp_path.glob('fluka-bench-crystal-*/run/rfluka.log'))
+    assert len(logs) == 2
+    assert all('CRYINI' in log.read_text() for log in logs)
     # Collimator group can be restarted after crystal failure.
     assert get_case('cfc-miss')[0].crystal is False
-    assert engine.groups == ['collimator', 'crystal', 'collimator']
+    assert engine.groups == ['collimator', 'crystal', 'crystal', 'collimator']
     with pytest.raises(StopIteration):
         next(fixture)
 
@@ -125,13 +133,20 @@ def test_unrelated_fluka_crash_is_not_silently_skipped(monkeypatch, tmp_path):
         next(fixture)
 
 
-def test_crystal_log_detector_requires_specific_error(monkeypatch, tmp_path):
-    mod, _ = _import_benchmark(BENCH / 'bench_fluka.py', monkeypatch)
-    log = tmp_path / 'rfluka.log'
-    log.write_text('unrelated server error')
-    assert not mod._crystal_missing_in_log(tmp_path)
-    log.write_text('Abort called from CRYINI reason Crystal not found Run stopped!')
-    assert mod._crystal_missing_in_log(tmp_path)
+def test_fluka_crystal_cases_share_one_geometry(monkeypatch, tmp_path_factory):
+    mod, engine = _import_benchmark(BENCH / 'bench_fluka.py', monkeypatch)
+    fixture = mod.fluka_cases.__wrapped__(tmp_path_factory)
+    get_case = next(fixture)
+    try:
+        hit, hit_particles = get_case('silicon-crystal-hit')
+        miss, miss_particles = get_case('silicon-crystal-miss')
+        assert hit is miss
+        assert hit_particles is not miss_particles
+        assert engine.groups == ['crystal']
+        assert engine.started_elements == [[hit]]
+    finally:
+        fixture.close()
+    assert not engine.is_running()
 
 
 def test_optional_markers_collected_by_default():

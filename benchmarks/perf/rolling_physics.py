@@ -1,4 +1,4 @@
-"""Compare the current scheduled benchmark to the last daily physics baseline.
+"""Compare benchmarks to the last daily physics baseline; only daily runs update it.
 
 Only compact physical observables currently exist in the benchmark JSON.
 Checks therefore screen scalar observables using metrics.toml, not particle
@@ -59,12 +59,13 @@ def annotate(current, previous=None, config=None, *, daily=False):
     statuses = {}
     for item in current.get('benchmarks') or []:
         name = _name(item)
-        if not daily:
-            status = {'status': 'NOT_CHECKED', 'summary': 'Not a scheduled daily run', 'details': []}
-        elif previous is None:
-            status = {'status': 'BASELINE', 'summary': 'First scheduled measurement; no previous baseline', 'details': []}
+        if previous is None:
+            status = {'status': 'BASELINE' if daily else 'NOT_CHECKED',
+                      'summary': ('First scheduled measurement; no previous baseline' if daily
+                                  else 'No scheduled physics baseline available'), 'details': []}
         elif name not in old:
-            status = {'status': 'BASELINE', 'summary': 'No previous measurement for this benchmark', 'details': []}
+            status = {'status': 'BASELINE' if daily else 'NOT_CHECKED',
+                      'summary': 'No scheduled reference for this benchmark', 'details': []}
         else:
             comparison = compare_entry(old[name], item, config)
             status = {'status': comparison.status, 'summary': comparison.summary,
@@ -97,8 +98,12 @@ def process(record, *, previous=None, baseline_out=None, history_out=None, confi
     ci = current.get('ci') or {}
     daily = (ci.get('trigger') == 'schedule' and ci.get('source_branch') == 'main'
              and ci.get('profile') in ('full', 'fluka', 'geant4'))
-    old = _read_baseline(previous) if daily else None
-    if old and (old.get('testbed') != current.get('testbed') or old.get('profile') != ci.get('profile')):
+    reference_profile = 'full' if ci.get('profile') == 'quick' else ci.get('profile')
+    old = _read_baseline(previous)
+    # Physics can be compared across machines; only a scheduled baseline writer
+    # must have the same testbed. Workload compatibility is checked per entry.
+    if old and (old.get('profile') != reference_profile or
+                (daily and old.get('testbed') != current.get('testbed'))):
         old = None
     statuses = annotate(current, old, config, daily=daily)
     if daily and baseline_out is not None:

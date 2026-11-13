@@ -16,6 +16,15 @@ on:
         type: choice
         options: [quick, full]
         default: quick
+      publish_history:
+        description: 'Publish results to permanent history and redeploy the dashboard'
+        type: boolean
+        default: false
+      compile_workers:
+        description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
+        type: choice
+        options: ['0', '2']
+        default: '2'
 
 permissions:
   contents: read
@@ -34,6 +43,7 @@ jobs:
     concurrency:
       group: xcoll-cern-benchmark-cpu
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
     outputs:
@@ -76,17 +86,32 @@ jobs:
           set -euo pipefail
           env_dir="$RUNNER_TEMP/xcoll-perf-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "BENCH_ENV=$env_dir" >> "$GITHUB_ENV"
-          "$CONDA_EXE" create --yes --prefix "$env_dir" python=3.12 pip make cmake
-          echo "$env_dir/bin" >> "$GITHUB_PATH"
+          "$CONDA_EXE" create --yes --prefix "$env_dir" \
+            --override-channels --channel conda-forge \
+            python=3.12 pip make cmake "gcc_linux-64=16.2" "gxx_linux-64=16.2"
 
       - name: Install latest released Xsuite and this Xcoll checkout
+        shell: bash
         run: |
+          set -euo pipefail
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython
 
       - name: Save dependency manifest
+        shell: bash
         run: |
+          set -euo pipefail
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
+          echo "CC=$CC"
+          "$CC" --version
           python --version > benchmark-dependencies.txt
           python -m pip freeze >> benchmark-dependencies.txt
           if [ -f benchmarks/perf/dependencies.py ]; then
@@ -94,20 +119,29 @@ jobs:
           fi
           "$CONDA_EXE" list --prefix "$BENCH_ENV" --explicit > benchmark-conda-spec.txt
 
-      - name: Compile selected serial kernels (full profile only)
-        if: github.event_name == 'schedule' || inputs.profile == 'full'
+      - name: Compile selected serial kernels
         shell: bash
+        env:
+          COMPILE_WORKERS: ${{ github.event_name == 'schedule' && '0' || inputs.compile_workers || '2' }}
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"
 
       - name: Run benchmarks
         working-directory: benchmarks
+        shell: bash
         env:
           PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
-          SOURCE_TRIGGER: ${{ github.event_name }}
-          PHYSICAL_HOST: ${{ needs.benchmark_cern.result == 'success' && 'cern-openstack-xcoll-vm-v1' || '' }}
         run: |
+          set -euo pipefail
+          set +u
+          source "$(dirname "$CONDA_EXE")/../etc/profile.d/conda.sh"
+          conda activate "$BENCH_ENV"
+          set -u
           if [ "$PROFILE" = quick ]; then
             python -m pytest -m quick
           else
@@ -186,7 +220,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
 
       - name: Run selected profile
         working-directory: benchmarks
@@ -196,7 +230,7 @@ jobs:
           if [ "$PROFILE" = quick ]; then
             python -m pytest -m quick
           else
-            python -m pytest
+            python -m pytest -m "not fluka and not geant4 and not gpu"
           fi
 
       - name: Archive detailed results
@@ -215,12 +249,14 @@ jobs:
     # the only one permitted to push immutable JSON to the history branch.
     needs: [benchmark_cern, benchmark_other_ref]
     if: >-
-      always() && (needs.benchmark_cern.result == 'success' ||
+      always() && (github.event_name == 'schedule' || inputs.publish_history == true) &&
+      (needs.benchmark_cern.result == 'success' ||
                    needs.benchmark_other_ref.result == 'success')
     runs-on: ubuntu-24.04
     concurrency:
       group: xcoll-history-writer
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: write
       actions: read
@@ -244,7 +280,10 @@ jobs:
           SOURCE_SHA: ${{ needs.benchmark_cern.outputs.sha || needs.benchmark_other_ref.outputs.sha }}
           SOURCE_BRANCH: ${{ github.event_name == 'schedule' && 'main' || inputs.target_ref }}
           PROFILE: ${{ github.event_name == 'schedule' && 'full' || inputs.profile }}
+          SOURCE_TRIGGER: ${{ github.event_name }}
+          PHYSICAL_HOST: ${{ needs.benchmark_cern.result == 'success' && 'cern-openstack-xcoll-vm-v1' || '' }}
         run: |
+          set -euo pipefail
           python -m benchmarks.perf.history \
             --input downloaded/benchmarks/results \
             --output "$RUNNER_TEMP/xcoll-packed" \
@@ -262,19 +301,19 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          base_path="baselines/cern-openstack-xcoll-vm-v1/${PROFILE}.json.gz"
+          reference_profile="$PROFILE"
+          if [ "$reference_profile" = quick ]; then reference_profile=full; fi
+          base_path="baselines/cern-openstack-xcoll-vm-v1/${reference_profile}.json.gz"
           previous="$RUNNER_TEMP/previous-physics.json.gz"
           previous_arg=()
           has_history=false
           if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
             git fetch origin benchmark-results
             has_history=true
-            if [ "$SOURCE_TRIGGER" = schedule ]; then
-              if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
-                previous_arg=(--previous "$previous")
-              else
-                rm -f "$previous"
-              fi
+            if git show "FETCH_HEAD:${base_path}" > "$previous" 2>/dev/null; then
+              previous_arg=(--previous "$previous")
+            else
+              rm -f "$previous"
             fi
           fi
           python -m benchmarks.perf.rolling_physics "$(cat "$RUNNER_TEMP/packed-file.txt")" \
@@ -301,12 +340,17 @@ jobs:
 
   deploy_dashboard:
     needs: publish_history
+    # One of the alternative benchmark jobs is always skipped.
+    # Override the implicit success() check for the dependency chain.
+    if: ${{ always() && !cancelled() && needs.publish_history.result == 'success' }}
     runs-on: ubuntu-24.04
     concurrency:
       group: xcoll-performance-pages
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: read
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -325,13 +369,43 @@ jobs:
       - name: Generate dashboard
         run: |
           python -m benchmarks.perf.report benchmark-history/runs \
-            --config benchmarks/metrics.toml --online -o _site/index.html
+            --config benchmarks/metrics.toml --online \
+            --pr-runs benchmark-history/pr-runs -o _site/index.html
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload the Pages site
+        id: pages_artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      # The upload can finish before the artefact is visible to deploy-pages.
+      - name: Wait for Pages artefact metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_ARTIFACT_ID: ${{ steps.pages_artifact.outputs.artifact_id }}
+          PAGES_ARTIFACT_NAME: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          : "${PAGES_ARTIFACT_ID:?Pages upload did not return an artefact ID}"
+          for attempt in {1..12}; do
+            if timeout 10s gh api --method GET \
+                "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+                -f name="$PAGES_ARTIFACT_NAME" \
+                --jq '.artifacts[] | select(.expired == false) | .id' \
+                | grep -Fx "$PAGES_ARTIFACT_ID"; then
+              echo "Pages artefact is visible; allowing time for deployment metadata to propagate."
+              sleep 15
+              exit 0
+            fi
+            echo "Waiting for Pages artefact (attempt $attempt/12)..."
+            sleep 5
+          done
+          echo "::error::Pages artefact metadata did not become available."
+          exit 1
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}

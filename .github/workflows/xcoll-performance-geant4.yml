@@ -2,6 +2,16 @@ name: Xcoll performance (Geant4/BDSIM)
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_history:
+        description: 'Publish results to permanent history and redeploy the dashboard'
+        type: boolean
+        default: false
+      compile_workers:
+        description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
+        type: choice
+        options: ['0', '2']
+        default: '2'
   schedule:
     - cron: '57 8 * * *'
 
@@ -18,6 +28,7 @@ jobs:
     concurrency:
       group: xcoll-cern-benchmark-cpu
       cancel-in-progress: false
+      queue: max
     outputs:
       sha: ${{ steps.source.outputs.sha }}
       measured: ${{ steps.check_measurements.outputs.measured }}
@@ -62,10 +73,12 @@ jobs:
           "$MINIFORGE_ROOT/bin/mamba" create --yes --prefix "$BENCH_ENV" \
             --override-channels --channel conda-forge \
             python=3.14 pip bdsim-g4 make cmake \
-            "hdf5=1.14.6=nompi_*" "expat=2.8.1" \
+            "hdf5>=2,<3=nompi_*" "expat=2.8.1" \
             cxx-compiler
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           test "$CONDA_PREFIX" = "$BENCH_ENV"
           python --version
           geant4-config --version
@@ -76,26 +89,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python -m pip install --upgrade pip
           python -m pip install --upgrade xsuite
           python -m pip install -e '.[benchmarks]' cython pybind11 rpyc
 
-      - name: Compile non-TPSA Xsuite serial kernels (sequentially)
+      - name: Compile non-TPSA Xsuite serial kernels
         shell: bash
+        env:
+          COMPILE_WORKERS: ${{ github.event_name == 'schedule' && '0' || inputs.compile_workers || '2' }}
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
-          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 2
+          set -u
+          python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads "$COMPILE_WORKERS"
 
       - name: Compile Xcoll Geant4/BDSIM interface in active environment
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           geant4-config --version
           bdsim --version
           python -m benchmarks.perf.setup_external geant4
@@ -104,8 +125,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python --version > benchmark-dependencies.txt
           python -m pip freeze >> benchmark-dependencies.txt
           python -m benchmarks.perf.dependencies >> benchmark-dependencies.txt
@@ -116,15 +139,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set +u
           source "$MINIFORGE_ROOT/etc/profile.d/conda.sh"
           conda activate "$BENCH_ENV"
+          set -u
           python -m pytest -m geant4
 
       - name: Check for executed benchmark measurements
         id: check_measurements
         shell: bash
         run: |
-          python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          "$BENCH_ENV/bin/python" - <<'PYCODE' >> "$GITHUB_OUTPUT"
           import json
           from pathlib import Path
           has_data = False
@@ -164,7 +189,9 @@ jobs:
 
   publish:
     needs: benchmark_geant4
-    if: needs.benchmark_geant4.result == 'success' && needs.benchmark_geant4.outputs.measured == 'true'
+    if: >-
+      (github.event_name == 'schedule' || inputs.publish_history == true) &&
+      needs.benchmark_geant4.result == 'success' && needs.benchmark_geant4.outputs.measured == 'true'
     uses: ./.github/workflows/xcoll-performance-publish.yml
     with:
       artifact: xcoll-external-${{ github.run_id }}-${{ github.run_attempt }}

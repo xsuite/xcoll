@@ -72,11 +72,11 @@ def test_online_daily_release_mismatch_and_machine_name(tmp_path):
         _saved_run(tmp_path, profile='fluka', version='0.13.1',
                    when='2026-11-10T06:00:00'),
     ]
-    (daily,) = report.read_runs(files, online=True)
-    assert daily['machine'] == 'BlackMetal3'
-    assert daily['release'] == 'mixed'
-    assert len(daily['components']) == 2
-    assert {x['release'] for x in daily['components']} == {'0.13.0', '0.13.1'}
+    daily = report.read_runs(files, online=True)
+    assert len(daily) == len({r['id'] for r in daily}) == 2
+    assert all(r['machine'] == 'BlackMetal3' for r in daily)
+    assert {r['release'] for r in daily} == {'0.13.0', '0.13.1'}
+    assert all(len(r['components']) == 1 for r in daily)
 
 
 def test_dashboard_header_has_four_labels():
