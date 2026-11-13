@@ -3,6 +3,10 @@ name: Xcoll performance (Geant4/BDSIM)
 on:
   workflow_dispatch:
     inputs:
+      publish_history:
+        description: 'Publish results to permanent history and redeploy the dashboard'
+        type: boolean
+        default: false
       compile_workers:
         description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
         type: choice
@@ -185,7 +189,9 @@ jobs:
 
   publish:
     needs: benchmark_geant4
-    if: needs.benchmark_geant4.result == 'success' && needs.benchmark_geant4.outputs.measured == 'true'
+    if: >-
+      (github.event_name == 'schedule' || inputs.publish_history == true) &&
+      needs.benchmark_geant4.result == 'success' && needs.benchmark_geant4.outputs.measured == 'true'
     uses: ./.github/workflows/xcoll-performance-publish.yml
     with:
       artifact: xcoll-external-${{ github.run_id }}-${{ github.run_attempt }}

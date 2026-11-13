@@ -7,17 +7,20 @@ The input may be a JSON file, a directory, or a list of paths. Paths are
 resolved from the invoking directory; project defaults live in perf.paths.
 
 Normal/local reports retain one column per JSON file. ``--online`` merges
-scheduled full/FLUKA/Geant4 runs from the same physical CERN VM and UTC day,
-keeping each contributing revision/timestamp in its entry metadata.
+scheduled full/FLUKA/Geant4 runs from the same physical CERN VM and UTC day
+only when their tested revision, release, and common dependency versions match.
+Each component retains its own revision, timestamp, and dependency versions.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from collections import defaultdict
 from pathlib import Path
 
+from .dependencies import EXTERNAL_NAMES
 from .metrics import load_config, limits, observables, workload
 from .paths import results_dir
 
@@ -108,41 +111,48 @@ def read_runs(paths, config=None, *, online=False):
                 'versions': data.get('xsuite_versions') or {},
                 'profile': profile, 'entries': entries,
                 'components': [{'profile': profile, 'sha': sha, 'datetime': stamp,
-                                'release': release}],
+                                'release': release, 'versions': data.get('xsuite_versions') or {}}],
             })
     runs.sort(key=lambda r: (r['datetime'], r['id']))
     return merge_daily(runs) if online else runs
 
 
+def _common_versions(run):
+    """Comparable Python dependencies; engine-specific versions stay per component."""
+    return tuple(sorted((name, version) for name, version in run['versions'].items()
+                        if name not in EXTERNAL_NAMES and version is not None))
+
+
 def merge_daily(runs):
-    """Group only scheduled CERN profiles, never ordinary local/manual results."""
+    """Group scheduled CERN profiles only for a matching software configuration."""
     buckets = defaultdict(list)
     singles = []
     for run in runs:
         if (run['trigger'] == 'schedule' and run['profile'] in ONLINE_PROFILES and
                 run['physical_host'] and run['branch'] == 'main' and
-                len(run['datetime']) >= 10):
-            key = (run['datetime'][:10], run['physical_host'], run['branch'])
+                len(run['datetime']) >= 10 and run['sha'] != 'unknown'):
+            key = (run['datetime'][:10], run['physical_host'], run['branch'],
+                   run['sha'], run['release'], _common_versions(run))
             buckets[key].append(run)
         else:
             singles.append(run)
-    for (date, host, branch), matches in buckets.items():
-        # One result per profile per day; on retries keep the latest successful.
-        most_recent = {r['profile']: r for r in matches}
+    for (date, host, branch, sha, release, versions), matches in buckets.items():
+        # One result per profile and configuration; retain the latest successful retry.
+        most_recent = {r['profile']: r for r in sorted(matches, key=lambda r: (r['datetime'], r['id']))}
         chosen = sorted(most_recent.values(), key=lambda r: (r['datetime'], r['profile']))
         entries = []
         components = []
         for r in chosen:
             entries.extend(r['entries'])
             components.extend(r['components'])
+        fingerprint = hashlib.sha256(json.dumps([release, versions]).encode('utf-8')).hexdigest()
         singles.append({
-            'id': f'daily:{date}:{host}:{branch}', 'datetime': max(r['datetime'] for r in chosen),
-            'sha': chosen[-1]['sha'] if len({r['sha'] for r in chosen}) == 1 else 'mixed',
-            'branch': branch, 'release': (chosen[-1]['release']
-                if len({r['release'] for r in chosen}) == 1 else 'mixed'),
+            'id': f'daily:{date}:{host}:{branch}:{sha}:{fingerprint}',
+            'datetime': max(r['datetime'] for r in chosen),
+            'sha': sha, 'branch': branch, 'release': release,
             'machine': chosen[-1]['machine'], 'testbed': 'cern-daily',
             'host': '', 'physical_host': host, 'trigger': 'schedule',
-            'versions': chosen[-1]['versions'], 'profile': 'daily',
+            'versions': dict(versions), 'profile': 'daily',
             'components': components, 'entries': entries,
         })
     return sorted(singles, key=lambda r: (r['datetime'], r['id']))
@@ -186,7 +196,7 @@ def main(argv=None):
     p.add_argument('paths', nargs='*', type=Path)
     p.add_argument('-o', '--output', type=Path, default=results_dir() / 'dashboard.html')
     p.add_argument('--config', type=Path)
-    p.add_argument('--online', action='store_true', help='Group scheduled CERN CPU/FLUKA/Geant4 per UTC day')
+    p.add_argument('--online', action='store_true', help='Group scheduled CERN profiles per UTC day and software configuration')
     p.add_argument('--pr-runs', type=Path, help='Optional permanent PR comparison directory')
     a = p.parse_args(argv)
     try:

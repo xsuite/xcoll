@@ -16,6 +16,10 @@ on:
         type: choice
         options: [quick, full]
         default: quick
+      publish_history:
+        description: 'Publish results to permanent history and redeploy the dashboard'
+        type: boolean
+        default: false
       compile_workers:
         description: 'CERN prebuild: 0 = sequential, 2 = two compiler workers'
         type: choice
@@ -245,7 +249,8 @@ jobs:
     # the only one permitted to push immutable JSON to the history branch.
     needs: [benchmark_cern, benchmark_other_ref]
     if: >-
-      always() && (needs.benchmark_cern.result == 'success' ||
+      always() && (github.event_name == 'schedule' || inputs.publish_history == true) &&
+      (needs.benchmark_cern.result == 'success' ||
                    needs.benchmark_other_ref.result == 'success')
     runs-on: ubuntu-24.04
     concurrency:
