@@ -846,8 +846,7 @@ def test_jobs_from_a_saved_line_merge_like_a_single_job(ring, tmp_path):
     for job_id, (nn, rr) in enumerate(jobs):
         with open(tmp_path / f'job.{job_id}.json') as fid:
             jobs_output[nn][rr] = xt.Particles.from_dict(json.load(fid))
-        jobs_logs[nn][rr] = pd.read_csv(tmp_path / f'job.{job_id}.csv',
-                                        float_precision='round_trip')
+        jobs_logs[nn][rr] = pd.read_csv(tmp_path / f'job.{job_id}.csv')
 
     for nn in names:
         for rr in range(n_replicas):

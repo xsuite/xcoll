@@ -78,8 +78,8 @@ def test_loading_SixTrack():
     df2.loc[['tcsg.b4l7.b1', 'tcsg.e5r7.b1', 'tcsg.6r7.b1'], 'stage'] = 'secondary'
     # In SixTrack loader, information for parking is missing
     df2.loc[['tctph.4l1.b1', 'tctpv.4l1.b1', 'tctph.4l5.b1', 'tctpv.4l5.b1'], 'parking'] = 0.02
-    df1.sort_index(axis=0, inplace=True)
-    df2.sort_index(axis=0, inplace=True)
+    df1 = df1.sort_index()
+    df2 = df2.sort_index()
     assert df1.equals(df2)
 
 
@@ -102,8 +102,8 @@ def test_loading_SixTrack_crystals():
     df2.loc[['tcsg.b4l7.b1', 'tcsg.e5r7.b1', 'tcsg.6r7.b1'], 'stage'] = 'secondary'
     # In SixTrack loader, information for parking is missing
     df2.loc[['tctph.4l1.b1', 'tctpv.4l1.b1', 'tctph.4l5.b1', 'tctpv.4l5.b1'], 'parking'] = 0.02
-    df1.sort_index(axis=0, inplace=True)
-    df2.sort_index(axis=0, inplace=True)
+    df1 = df1.sort_index()
+    df2 = df2.sort_index()
     assert df1.equals(df2)
 
 
