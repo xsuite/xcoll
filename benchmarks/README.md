@@ -77,6 +77,7 @@ Here we measure tracking, not copying particles or compiling the kernel. If the 
 
 A few things to keep in mind:
 
+- Write generated files (plots, input files, logs, etc.) to `tmp_path`, `results/`, or another Git-ignored location. Do not create or modify non-ignored files during a benchmark: the Git provenance safeguard will reject the run.
 - Reset mutable state between rounds (particles, counters, RNG state where appropriate). Record the seeds for stochastic tracking.
 - Record workload and physics diagnostics in `benchmark.extra_info`. Increase `protocol` when the workload or timed operation changes, so old measurements are not compared as if they were identical.
 - Optional engines can skip when unavailable. If a configured engine fails to start or track, the benchmark should fail. Engine start-up and interface compilation are outside the tracking measurement.
@@ -103,6 +104,10 @@ The physical diagnostics are a screening of selected scalar observables, not a s
 
 `conftest.py` adds provenance to the native pytest-benchmark output: Xsuite and external-engine versions, machine identity, testbed, and compiler information. The result itself contains the timing samples and the Git revision. Use `BENCHMARK_MACHINE_NAME` if you want to give your machine an explicit stable name.
 
+Benchmark sessions that save results check the Git checkout at the beginning and immediately before saving. Uncommitted changes are allowed, but the commit, branch, staged and unstaged changes, and non-ignored untracked files (including their contents) must remain unchanged throughout the run. Do not edit, commit, or switch branches while benchmarks are running. Keep generated output in `results/`, another Git-ignored directory, or a temporary directory outside the checkout. An unchanged dirty tree is allowed for local development; commit hashes alone do not identify its changes. The check compares two snapshots, so changes made and reverted in between are not detected. Use an isolated checkout for reproducible runs.
+
+The trusted history publisher also checks that the JSON's commit matches the commit recorded by the workflow before writing a permanent history record.
+
 From `benchmarks/`:
 
 ```bash
@@ -126,6 +131,8 @@ The dashboard (`python -m perf.report`) is a self-contained HTML file. Filter by
 
 - **Previous scheduled (default):** the latest earlier compatible scheduled measurement, even outside the selected timeframe. Manual runs do not replace this reference. For local results without scheduled history, use the previous compatible measurement.
 - **First, average, median:** use the compatible measurements in the selected timeframe, separately for each workload and machine. Average and median operate on the individual run medians.
+
+Heatmap colours show changes in median runtime on a fixed logarithmic ratio scale: teal for faster, rust/red for slower, and neutral within ±3%. The strongest colours correspond to a fourfold speed-up (−75%) or slowdown (+300%); a white cross marks cells at or beyond these limits. Hover for the exact percentage, including changes outside the colour scale. The red corner separately flags a physics change.
 
 The `vs first` column and absolute-runtime plot show longer-term evolution.
 
