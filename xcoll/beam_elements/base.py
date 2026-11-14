@@ -45,8 +45,6 @@ class InvalidXcoll(xt.BeamElement):
         particle_states_src
     ]
 
-    _depends_on = [xt.RandomRutherford]  # Needed for checks
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

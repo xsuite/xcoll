@@ -103,7 +103,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line.xcoll.collimators.generate_pencil(tcp, npart, _capacity=capacity,
-            _context=test_context)
+                                                  _context=test_context, twiss=tw)
     if engine == "fluka":
         # Make sure all primaries hit the collimator (not trivial because of assembly)
         if plane == 'H':

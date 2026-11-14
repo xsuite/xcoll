@@ -206,16 +206,18 @@ class InteractionRecord(xt.BeamElement):
                              f"'collimator', or 'lattice'!")
         n_rows = self._index.num_recorded
         nparr = self._context.nparray_from_context_array
-        interaction_type = [
-                    inter.tolist() if hasattr(inter, 'tolist') else inter
-                    for inter in self._inter[:n_rows]
-        ]
+        element_ids = nparr(self.at_element[:n_rows]).tolist()
+        interaction_codes = nparr(self._inter[:n_rows]).tolist()
         data = {
-            'turn':             nparr(self.at_turn[:n_rows]),
-            'collimator':       [self._collimator_name(element_id)
-                                 for element_id in self.at_element[:n_rows]],
-            'interaction_type': [interaction_names[inter]
-                                 for inter in interaction_type],
+            'turn': nparr(self.at_turn[:n_rows]),
+            'collimator': [
+                self._collimator_name(element_id)
+                for element_id in element_ids
+            ],
+            'interaction_type': [
+                interaction_names[inter]
+                for inter in interaction_codes
+            ],
         }
         for p in ['before', 'after']:
             for val in ['particle_id', 's', 'x', 'px', 'y', 'py', 'zeta',
