@@ -23,6 +23,15 @@ def pack(input_dir, output_dir, run_id, attempt, sha, branch, profile, dependenc
     sha = str(sha)
     if len(sha) != 40 or not all(c in "0123456789abcdefABCDEF" for c in sha):
         raise ValueError("Expected a full 40-character Git commit SHA")
+    commit_info = data.get("commit_info")
+    reported_sha = (
+        commit_info.get("id") if isinstance(commit_info, dict) else None
+    )
+    if not isinstance(reported_sha, str) or reported_sha.lower() != sha.lower():
+        raise ValueError(
+            f"Benchmark commit mismatch: workflow tested {sha}, "
+            f"but the benchmark JSON reports {reported_sha!r}; refusing publication"
+        )
     if not (str(run_id).isdigit() and str(attempt).isdigit()):
         raise ValueError("Run ID/attempt must be numeric")
     data["ci"] = {

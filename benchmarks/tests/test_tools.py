@@ -140,10 +140,30 @@ def test_xdist_guard():
 def test_history_pack(tmp_path):
     original=tmp_path/'raw'/'machine';original.mkdir(parents=True)
     (original/'0001_file.json').write_text(json.dumps(doc()))
-    file=history.pack(tmp_path/'raw',tmp_path/'history','123','1','c'*40,'main','full')
-    assert json.loads(file.read_text())['ci']['source_branch'] == 'main'
+    file=history.pack(tmp_path/'raw',tmp_path/'history','123','1','f'*40,'main','full')
+    saved = json.loads(file.read_text())
+    assert saved['ci']['source_branch'] == 'main'
+    assert saved['ci']['source_sha'] == saved['commit_info']['id']
     with pytest.raises(FileExistsError):
-        history.pack(tmp_path/'raw',tmp_path/'history','123','1','c'*40,'main','full')
+        history.pack(tmp_path/'raw',tmp_path/'history','123','1','f'*40,'main','full')
+
+
+@pytest.mark.parametrize('commit_info', [
+    {'id': 'c'*40}, {'id': 'f'*7}, {'id': 'unknown'}, {}, None,
+])
+def test_history_rejects_commit_mismatch(tmp_path, commit_info):
+    original = tmp_path/'raw'
+    original.mkdir()
+    data = doc()
+    if commit_info is None:
+        data.pop('commit_info')
+    else:
+        data['commit_info'] = commit_info
+    (original/'0001_file.json').write_text(json.dumps(data))
+    output = tmp_path/'history'
+    with pytest.raises(ValueError, match='Benchmark commit mismatch'):
+        history.pack(original, output, '123', '1', 'f'*40, 'main', 'full')
+    assert not output.exists()
 
 
 def test_paths_are_relative_to_package_not_cwd(tmp_path, monkeypatch):
