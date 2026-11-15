@@ -2,55 +2,64 @@
 # This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
-"""Opt-in CPU physics regression against an explicitly generated Git reference."""
-import json
+"""CPU physics regression against an accepted (or explicitly selected) reference.
+
+If the codebase has changed and the references will no longer match, one can
+regenerate them by running (from the Xcoll root)
+
+    rm -r tests/data/everest_physics_reference
+    python benchmarks/compare_everest_physics.py reference --ref main --output tests/data/everest_physics_reference
+"""
+
+
 import os
 from pathlib import Path
 import re
 import sys
 from types import SimpleNamespace
 
-import numpy as np
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[1]
-BENCHMARKS = ROOT / 'benchmarks'
-sys.path.insert(0, str(BENCHMARKS))
-from compare_everest_physics import collect, compare
-from everest_workloads import ELEMENT_CASES
+sys.path.insert(0, str(ROOT / 'benchmarks'))
+from compare_everest_physics import (
+    collect, compare, case_specs, load_manifest, snapshot_info,
+    DEFAULT_REFERENCE, ELEMENT_ENERGIES, LHC_ENERGIES,
+)
 
 
 def pytest_generate_tests(metafunc):
     if 'physics_case' not in metafunc.fixturenames:
         return
     configured = os.environ.get('XCOLL_EVEREST_PHYSICS_REFERENCE')
-    if not configured:
+    path = Path(configured).expanduser().resolve() if configured else DEFAULT_REFERENCE
+    if not configured and not path.exists():
+        # Bootstrap only: once committed, the default is always exercised.
         metafunc.parametrize('physics_case', [pytest.param(None, marks=pytest.mark.skip(
-            reason='Set XCOLL_EVEREST_PHYSICS_REFERENCE to a generated reference directory'))])
+            reason='No committed physics reference yet; generate one or set '
+                   'XCOLL_EVEREST_PHYSICS_REFERENCE'))])
         return
-    path = Path(configured).expanduser().resolve()
-    files = sorted(path.glob('*.npz'))
-    if not files:
-        raise pytest.UsageError(f'No physics reference snapshots in {path}')
-    expected_sha = os.environ.get('XCOLL_EVEREST_PHYSICS_REF_SHA')
-    cases = []
-    shas = set()
-    for file in files:
-        case = file.stem
-        if case not in (*ELEMENT_CASES, 'lhc'):
-            raise pytest.UsageError(f'Unexpected physics reference case: {file}')
-        with np.load(file, allow_pickle=False) as data:
-            info = json.loads(data['info'].item())
-        sha = info.get('sha', '')
+    try:
+        manifest = load_manifest(path)
+        sha = manifest['sha']
+        expected_sha = os.environ.get('XCOLL_EVEREST_PHYSICS_REF_SHA')
         if not re.fullmatch('[0-9a-f]{40}', sha):
-            raise pytest.UsageError(f'Invalid reference commit in {file}')
-        if info.get('case') != case or info.get('workload_version') != 2:
-            raise pytest.UsageError(f'Incompatible reference schema/case in {file}; regenerate it')
-        shas.add(sha)
-        cases.append(pytest.param((path, case, info), id=case))
-    if len(shas) != 1 or (expected_sha is not None and shas != {expected_sha}):
-        raise pytest.UsageError(f'Unexpected or mixed reference commit(s): {shas}; expected {expected_sha}')
+            raise ValueError(f'Invalid reference commit: {sha}')
+        if expected_sha is not None and sha != expected_sha:
+            raise ValueError(f'Expected reference {expected_sha}, got {sha}')
+        # External references may intentionally contain a subset, but the
+        # permanent reference and CI must always cover the complete matrix.
+        if not configured or os.environ.get('XCOLL_EVEREST_PHYSICS_FULL_MATRIX') == '1':
+            full = {case for case, _ in case_specs(SimpleNamespace(
+                cases=None, element_energies=ELEMENT_ENERGIES,
+                lhc_energies=LHC_ENERGIES, beam=[1, 2], plane=['H', 'V'],
+                crystal_modes=[False, True]))}
+            if set(manifest['cases']) != full:
+                raise ValueError(f'Incomplete full physics matrix: {full ^ set(manifest["cases"])}')
+        cases = [pytest.param((path, case, snapshot_info(path, case, manifest)), id=case)
+                 for case in manifest['cases']]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise pytest.UsageError(f'Invalid physics reference {path}: {exc}') from exc
     metafunc.parametrize('physics_case', cases)
 
 
@@ -58,14 +67,15 @@ def pytest_generate_tests(metafunc):
 @pytest.mark.longtest
 def test_everest_physics_against_reference(physics_case, tmp_path):
     reference, case, info = physics_case
-    # The accepted reference fixes the inputs; don't silently change them in a test.
     n = info['n']
+    energy = info['energy_gev']
     candidate = tmp_path / 'candidate'
     args = SimpleNamespace(
-        checkout=ROOT, output=candidate, data=ROOT/'tests'/'data', cases=[case],
+        checkout=ROOT, output=candidate, data=ROOT/'tests'/'data', cases=[info['family']],
         particles=n, lhc_particles=n, turns=info.get('turns', 10),
-        beam=info.get('beam', 1), plane=info.get('plane', 'H'),
-        crystals=info.get('crystals', False), interpolation=info.get('interpolation', 0.2),
+        element_energies=[energy], lhc_energies=[energy],
+        beam=[info.get('beam', 1)], plane=[info.get('plane', 'H')],
+        crystal_modes=[info.get('crystals', False)], interpolation=info.get('interpolation', 0.2),
         events_per_particle=info.get('events_per_particle', 40),
     )
     # A developer must be able to test uncommitted changes against a clean reference.

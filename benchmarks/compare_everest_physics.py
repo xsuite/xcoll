@@ -2,22 +2,26 @@ r"""Compare CPU physics of two Xcoll revisions using identical seeded inputs.
 
 HOW TO USE
 ==========
-Run from the repository root, with the same pinned Python/Xsuite/NumPy/SciPy
-and Pandas environment for both revisions. Use the same version of this script
-and everest_workloads.py, and the same LHC test data for every collection.
+The default matrix has 40 cases: eight standalone element workloads at
+26, 450, and 7000 GeV/c, plus B1H/B1V/B2H/B2V with and without crystals at
+450 and 7000 GeV/c. The LHC scan uses the same normalised Run 3 lattice at
+both momenta; it is not an injection/flat-top optics comparison.
 
-Generate a reference directly from a branch, tag, or commit (resolved to a
-full SHA before checkout), using a temporary detached Git worktree::
+Generate a reference from a branch, tag, or commit (resolved to a full SHA):
 
     python benchmarks/compare_everest_physics.py reference \
-        --ref main --output /tmp/physics-main --crystals
+        --ref main --output /tmp/physics-main
 
-Use --ref v0.13.1 or --ref <full-commit-sha> to pin the reference. The command
-removes its temporary worktree, and never switches the current checkout.
-The output directory must not already exist. Save the reported SHA with the
-reference; do not silently regenerate it when main moves.
+Use --ref v0.13.1 or --ref <full-sha> for an immutable revision. The command
+creates and removes a temporary detached worktree. The output directory must
+not exist. Both collections must use the same workload definitions, data,
+Python and dependency versions. For a smaller reference use e.g.
+--particles 20000 --lhc-particles 3000 --turns 5. To select a subset use
+--cases crystal-channeling lhc --element-energies 450 7000
+--lhc-energies 450 --beam 2 --plane H --crystals (only crystals).
+--no-crystals selects only the non-crystal LHC cases; omission means both.
 
-Alternatively, to collect both revisions explicitly in separate worktrees::
+Manual worktrees (run from the candidate repository root):
 
     ROOT="$PWD"
     git worktree add --detach /tmp/xcoll-main main
@@ -25,41 +29,32 @@ Alternatively, to collect both revisions explicitly in separate worktrees::
     SCRIPT="$ROOT/benchmarks/compare_everest_physics.py"
     DATA="$ROOT/tests/data"
     PYTHONPATH=/tmp/xcoll-main python "$SCRIPT" collect \
-        --checkout /tmp/xcoll-main --data "$DATA" \
-        --output /tmp/physics-main --crystals
+        --checkout /tmp/xcoll-main --data "$DATA" --output /tmp/physics-main
     PYTHONPATH=/tmp/xcoll-gpu python "$SCRIPT" collect \
-        --checkout /tmp/xcoll-gpu --data "$DATA" \
-        --output /tmp/physics-gpu --crystals
+        --checkout /tmp/xcoll-gpu --data "$DATA" --output /tmp/physics-gpu
     python "$SCRIPT" compare /tmp/physics-main /tmp/physics-gpu
     git worktree remove /tmp/xcoll-main
     git worktree remove /tmp/xcoll-gpu
 
-The script verifies which Xcoll is imported; the worktrees must contain the
-clean revisions you intend to test. The workload definitions live beside this
-script, not in the worktrees being measured. Use the same --cases, --particles,
---lhc-particles, --turns, --beam, --plane, --crystals and --interpolation flags
-for both collections. For example, --cases lhc --beam 2 --plane H --crystals
-selects the B2 horizontal LHC case. Use distinct directories for B1 and B2.
-
-Automated regression test, using the generated reference and the current
-editable checkout (local uncommitted candidate changes are allowed)::
+Automated test (current editable checkout, including uncommitted changes):
 
     XCOLL_EVEREST_PHYSICS_REFERENCE=/tmp/physics-main \
         python -m pytest tests/test_everest_physics_reference.py -v
 
-Optionally set XCOLL_EVEREST_PHYSICS_REF_SHA to the expected full reference
-SHA. The test runs one parametrised case per reference snapshot, using the
-reference's recorded workload parameters and current checkout's test data.
-A missing reference configuration skips the opt-in test; an invalid supplied
-reference, mismatched input/dependency, or failed comparison fails the test.
+Without an override the test reads tests/data/everest_physics_reference.
+Use XCOLL_EVEREST_PHYSICS_REF_SHA to enforce an expected reference commit.
+A manifest records the exact cases, Python and dependency versions. The test
+rejects incomplete or incompatible snapshots. The PR workflow reads the
+committed reference from the base checkout, never from the candidate; before
+one exists it collects from the exact PR base SHA in a fresh worktree.
 
-Each NPZ contains per-primary states/coordinates (sorted by particle ID),
-interaction counts or loss-map bins, and input/provenance metadata. The
-comparison rejects incompatible snapshots and returns a nonzero status for
-screening failures. The configurable tolerances are preliminary screening
-criteria, not a validated physics acceptance specification. NPZ files are
-local reference artefacts; keep them outside the repository or in ignored
-locations. Never regenerate an accepted reference from a failing candidate.
+For a permanent reference, generate from a validated commit in the CI Python
+and dependency environment, inspect and review the results, then copy the
+reference directory (manifest and all NPZ files) into tests/data. Commit it
+explicitly; never update an accepted reference merely to make a test pass.
+Use a temporary directory or ignored location for ordinary generated output.
+The comparison thresholds are screening criteria, not validated acceptance
+criteria. Keep a higher-statistics reference for detailed studies.
 """
 import argparse
 from importlib import metadata
@@ -72,6 +67,8 @@ import inspect
 import os
 import tempfile
 import platform
+import re
+from itertools import product
 import numpy as np
 import xobjects as xo
 import xcoll as xc
@@ -80,6 +77,68 @@ from everest_workloads import (DEFAULT_DATA, ELEMENT_CASES, COORD_SEED,
     make_lossmap, reset_counters, host)
 
 FIELDS = ('x','px','y','py','zeta','delta','energy','s','state','at_element')
+WORKLOAD_VERSION = 3
+DEFAULT_REFERENCE = DEFAULT_DATA / 'everest_physics_reference'
+ELEMENT_ENERGIES = (26, 450, 7000)
+LHC_ENERGIES = (450, 7000)
+DEPENDENCIES = ('xobjects', 'xtrack', 'xpart', 'xdeps', 'numpy', 'scipy', 'pandas')
+
+
+def case_id(family, energy_gev, beam=None, plane=None, crystals=None):
+    if family == 'lhc':
+        mode = 'crystals' if crystals else 'no-crystals'
+        return f'lhc-b{beam}-{plane.lower()}-{mode}-{energy_gev}gev'
+    return f'{family}-{energy_gev}gev'
+
+
+def case_specs(args):
+    """Enumerate unique, deterministic workload IDs and their parameters."""
+    families = args.cases or [*ELEMENT_CASES, 'lhc']
+    if len(set(families)) != len(families):
+        raise ValueError('Duplicate physics case families')
+    for family in families:
+        if family == 'lhc':
+            for energy, beam, plane, crystals in product(
+                    args.lhc_energies, args.beam, args.plane, args.crystal_modes):
+                yield case_id(family, energy, beam, plane, crystals), dict(
+                    family=family, energy_gev=energy, beam=beam, plane=plane,
+                    crystals=crystals)
+        else:
+            for energy in args.element_energies:
+                yield case_id(family, energy), dict(family=family, energy_gev=energy)
+
+
+def load_manifest(path):
+    """Validate inventory and provenance before a test or comparison starts."""
+    path = Path(path)
+    manifest = json.loads((path / 'reference.json').read_text())
+    cases = manifest.get('cases')
+    if (manifest.get('workload_version') != WORKLOAD_VERSION
+            or not isinstance(cases, list) or not cases
+            or any(not isinstance(c, str) or Path(c).name != c for c in cases)
+            or len(set(cases)) != len(cases)
+            or not re.fullmatch(r'[0-9a-f]{40}', str(manifest.get('sha', '')))):
+        raise ValueError(f'Invalid reference manifest in {path}')
+    actual = {p.stem for p in path.glob('*.npz')}
+    if set(cases) != actual:
+        raise ValueError(f'Incomplete reference {path}: {set(cases) ^ actual}')
+    return manifest
+
+
+def snapshot_info(path, case, manifest):
+    with np.load(Path(path) / f'{case}.npz', allow_pickle=False) as z:
+        info = json.loads(z['info'].item())
+    for key in ('sha', 'python', 'deps', 'workload_version'):
+        if info.get(key) != manifest.get(key):
+            raise ValueError(f'{case}: {key} differs from manifest')
+    family = info.get('family')
+    if family not in (*ELEMENT_CASES, 'lhc'):
+        raise ValueError(f'Unknown family in {case}')
+    if info.get('case') != case or case != case_id(
+            family, info['energy_gev'], info.get('beam'), info.get('plane'),
+            info.get('crystals')):
+        raise ValueError(f'Inconsistent case metadata in {case}')
+    return info
 
 
 def digest(p):
@@ -110,6 +169,12 @@ def save_case(out, case, p, n, initial_px, info, **extra):
 
 
 def collect(args, *, allow_dirty=False):
+    # Scope the compilation policy to this collection (pytest may run other tests).
+    with xo.settings.override(force_kernel_compilation=True):
+        return _collect(args, allow_dirty=allow_dirty)
+
+
+def _collect(args, *, allow_dirty=False):
     root = args.checkout.resolve()
     if not Path(xc.__file__).resolve().is_relative_to(root):
         raise SystemExit(f'Imported {xc.__file__}, expected Xcoll from {root}. '
@@ -120,33 +185,41 @@ def collect(args, *, allow_dirty=False):
     if initial_status and not allow_dirty:
         raise SystemExit('Physics comparison requires a clean checkout.')
     sha = git('rev-parse','HEAD')
-    deps = {p: metadata.version(p) for p in ('xobjects','xtrack','xpart','xdeps','numpy','scipy','pandas')}
+    deps = {p: metadata.version(p) for p in DEPENDENCIES}
+    # Record optional packages when installed, too.
+    for package in ('xfields', 'xsuite'):
+        try:
+            deps[package] = metadata.version(package)
+        except metadata.PackageNotFoundError:
+            pass
     out = args.output.resolve()
     out.mkdir(parents=True,exist_ok=True)
     cpu = xo.ContextCpu()
-    cases = args.cases or [*ELEMENT_CASES,'lhc']
-    if len(set(cases)) != len(cases):
+    specs = list(case_specs(args))
+    ids = [case for case, _ in specs]
+    if len(set(ids)) != len(ids):
         raise ValueError('Duplicate physics cases')
-    for case in cases:
-        print(f'Collecting {case} on {sha[:12]}',flush=True)
-        n = args.lhc_particles if case=='lhc' else args.particles
-        info = dict(case=case,n=n,sha=sha,deps=deps,python=platform.python_version(),
-                    workload_version=2,
-                    coordinate_seed=COORD_SEED,
-                    particle_seed=PARTICLE_SEED)
-        if (out/f'{case}.npz').exists():
-            raise FileExistsError(f'Use a new output directory: {out/f"{case}.npz"}')
-        if case=='lhc':
-            line,tw,hashes = build_lhc(args.data,args.beam,args.crystals,cpu)
-            p = make_lhc_pencil(line,tw,n,args.beam,args.plane)
-            info.update(hashes=hashes,beam=args.beam,plane=args.plane,
-                        turns=args.turns,crystals=args.crystals,interpolation=args.interpolation)
+    if (out / 'reference.json').exists() or any(out.glob('*.npz')):
+        raise FileExistsError(f'Use a new output directory: {out}')
+    for case, spec in specs:
+        family = spec['family']
+        energy = spec['energy_gev']
+        print(f'Collecting {case} on {sha[:12]}', flush=True)
+        n = args.lhc_particles if family == 'lhc' else args.particles
+        info = dict(case=case, n=n, sha=sha, deps=deps,
+                    python=platform.python_version(), workload_version=WORKLOAD_VERSION,
+                    coordinate_seed=COORD_SEED, particle_seed=PARTICLE_SEED, **spec)
+        if family == 'lhc':
+            beam, plane, crystals = spec['beam'], spec['plane'], spec['crystals']
+            line,tw,hashes = build_lhc(args.data, beam, crystals, cpu, energy_gev=energy)
+            p = make_lhc_pencil(line, tw, n, beam, plane)
+            info.update(hashes=hashes, turns=args.turns, interpolation=args.interpolation)
             info['input_sha256'] = digest(p)
             info['p0c'] = float(host(p,'p0c')[0])
             initial_px = host(p,'px').copy()
             reset_counters(line.elements)
             line.track(p,num_turns=args.turns)
-            lm = make_lossmap(line,p,args.beam,args.interpolation)
+            lm = make_lossmap(line,p,beam,args.interpolation)
             coll = lm.summary
             aper = lm.aperture_losses
             save_case(out,case,p,n,initial_px,info,
@@ -154,8 +227,9 @@ def collect(args, *, allow_dirty=False):
                 coll_e=coll.e.to_numpy(),aper_bin=np.asarray(aper['idx_bins']),
                 aper_n=np.asarray(aper['n_bins']),aper_e=np.asarray(aper['e_bins']))
         else:
-            el = make_element(case,cpu)
-            p = make_particles(case,n,cpu)
+            el = make_element(family,cpu)
+            el.name = 'element'  # Match the explicit InteractionRecord name.
+            p = make_particles(family,n,cpu,energy_gev=energy)
             info['input_sha256'] = digest(p)
             info['p0c'] = float(host(p,'p0c')[0])
             initial_px = host(p,'px').copy()
@@ -182,7 +256,10 @@ def collect(args, *, allow_dirty=False):
                 rec.stop(elements=[el])
     if git('rev-parse','HEAD')!=sha or git('status','--porcelain') != initial_status:
         raise SystemExit('Checkout changed during collection; discard these snapshots.')
-    print(f'Saved {len(cases)} cases to {out}')
+    manifest = dict(workload_version=WORKLOAD_VERSION, sha=sha,
+                    python=platform.python_version(), deps=deps, cases=ids)
+    (out / 'reference.json').write_text(json.dumps(manifest, indent=2, sort_keys=True)+'\n')
+    print(f'Saved {len(ids)} cases to {out}')
 
 
 def mapping(z, k, v):
@@ -196,8 +273,9 @@ def l1(a,b):
 def compare(args, *, cases=None):
     from scipy.stats import ks_2samp
     base, cand = args.base,args.candidate
-    a_names={p.name for p in base.glob('*.npz')}
-    b_names={p.name for p in cand.glob('*.npz')}
+    ma, mb = load_manifest(base), load_manifest(cand)
+    a_names={f'{c}.npz' for c in ma['cases']}
+    b_names={f'{c}.npz' for c in mb['cases']}
     if cases is not None:
         selected = {f'{case}.npz' for case in cases}
         if not selected <= a_names or not selected <= b_names:
@@ -208,7 +286,8 @@ def compare(args, *, cases=None):
     failures=0
     for name in sorted(a_names):
         with np.load(base/name,allow_pickle=False) as a, np.load(cand/name,allow_pickle=False) as b:
-            ia,ib=json.loads(a['info'].item()),json.loads(b['info'].item())
+            ia = snapshot_info(base, Path(name).stem, ma)
+            ib = snapshot_info(cand, Path(name).stem, mb)
             if {k:v for k,v in ia.items() if k!='sha'}!={k:v for k,v in ib.items() if k!='sha'}:
                 raise SystemExit(f'Incompatible inputs or dependencies for {name}:\n{ia}\n{ib}')
             n=ia['n']; aa=a['state']>0; bb=b['state']>0
@@ -237,7 +316,7 @@ def compare(args, *, cases=None):
             if name.startswith('crystal-') and aa.any() and bb.any():
                 check('channelled fraction (of survivors)',abs(
                     np.mean(a['kick_x'][aa]>74.5e-6)-np.mean(b['kick_x'][bb]>74.5e-6)),args.fraction_tol)
-            if name=='lhc.npz':
+            if ia['family'] == 'lhc':
                 for k,v,label in [('coll_name','coll_n','collimator loss L1 / N'),
                                   ('aper_bin','aper_n','aperture-bin loss L1 / N')]:
                     x,y=mapping(a,k,v),mapping(b,k,v)
@@ -280,14 +359,21 @@ def reference(args):
             command = [sys.executable, str(Path(__file__).resolve()), 'collect',
                        '--checkout', str(worktree), '--output', str(staging),
                        '--data', str(args.data.resolve())]
-            for option in ('particles', 'lhc_particles', 'turns', 'beam', 'plane',
+            for option in ('particles', 'lhc_particles', 'turns',
                            'interpolation', 'events_per_particle'):
                 command += ['--'+option.replace('_','-'), str(getattr(args, option))]
             if args.cases:
                 command += ['--cases', *args.cases]
-            if args.crystals:
+            for option in ('element_energies', 'lhc_energies', 'beam', 'plane'):
+                command += ['--'+option.replace('_','-'), *map(str, getattr(args, option))]
+            if args.crystal_modes == [True]:
                 command += ['--crystals']
+            elif args.crystal_modes == [False]:
+                command += ['--no-crystals']
             env = os.environ.copy()
+            # A prebuilt kernel from the active environment might contain a
+            # different Xcoll revision than this detached worktree.
+            env['XSUITE_FORCE_KERNEL_COMPILATION'] = '1'
             env['PYTHONPATH'] = str(worktree) + (os.pathsep + env['PYTHONPATH']
                                                  if env.get('PYTHONPATH') else '')
             subprocess.run(command, env=env, cwd=worktree, check=True)
@@ -306,9 +392,14 @@ def add_collect_options(parser):
     parser.add_argument('--particles',type=int,default=100_000)
     parser.add_argument('--lhc-particles',type=int,default=12_000)
     parser.add_argument('--turns',type=int,default=10)
-    parser.add_argument('--beam',type=int,choices=[1,2],default=1)
-    parser.add_argument('--plane',choices=['H','V'],default='H')
-    parser.add_argument('--crystals',action='store_true')
+    parser.add_argument('--element-energies', nargs='+', type=int, choices=ELEMENT_ENERGIES, default=list(ELEMENT_ENERGIES))
+    parser.add_argument('--lhc-energies', nargs='+', type=int, choices=LHC_ENERGIES, default=list(LHC_ENERGIES))
+    parser.add_argument('--beam', nargs='+', type=int, choices=[1,2], default=[1,2])
+    parser.add_argument('--plane', nargs='+', choices=['H','V'], default=['H','V'])
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--crystals', dest='crystal_modes', action='store_const', const=[True])
+    modes.add_argument('--no-crystals', dest='crystal_modes', action='store_const', const=[False])
+    parser.set_defaults(crystal_modes=[False, True])
     parser.add_argument('--interpolation',type=float,default=0.2)
     parser.add_argument('--events-per-particle',type=int,default=40)
 
@@ -328,7 +419,7 @@ def main():
     d.add_argument('--map-tol',type=float,default=.05); d.add_argument('--event-tol',type=float,default=.03)
     args=p.parse_args()
     if args.action in ('collect', 'reference'):
-        if min(args.particles,args.lhc_particles,args.turns,args.events_per_particle)<1 or args.interpolation<=0:
+        if min(args.particles,args.lhc_particles,args.turns,args.events_per_particle)<1 or not np.isfinite(args.interpolation) or args.interpolation<=0:
             p.error('particle counts, turns, capacity and interpolation must be positive')
         if args.action == 'collect':
             collect(args)

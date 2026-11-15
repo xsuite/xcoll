@@ -33,7 +33,7 @@ def make_element(case, context):
     raise ValueError(f'Unknown element case: {case}')
 
 
-def make_particles(case, n, context):
+def make_particles(case, n, context, energy_gev=None):
     rng = np.random.default_rng(COORD_SEED)
     if case.startswith('crystal-'):
         kind = case.removeprefix('crystal-')
@@ -56,6 +56,8 @@ def make_particles(case, n, context):
              else rng.normal(1.025e-3, 8e-6, n))
         px = rng.normal(0, 3e-6, n)
         p0c, y_sigma, py_sigma = 450e9, 1e-4, 3e-6
+    if energy_gev is not None:
+        p0c = energy_gev * 1e9
     p = xp.Particles(p0c=p0c, x=x, px=px, y=rng.normal(0, y_sigma, n),
                      py=rng.normal(0, py_sigma, n), _context=context)
     seed_particles(p, n)
@@ -74,7 +76,8 @@ def reset_counters(elements):
             el._acc_ionisation_loss_sec = 0.
 
 
-def build_lhc(data=DEFAULT_DATA, beam=1, crystals=False, context=None):
+def build_lhc(data=DEFAULT_DATA, beam=1, crystals=False, context=None,
+              energy_gev=None):
     """Prepare real Run 3 optics on CPU. Reuse this line across particle counts."""
     data = Path(data)
     sequence = data / f'sequence_lhc_run3_b{beam}.json'
@@ -83,6 +86,11 @@ def build_lhc(data=DEFAULT_DATA, beam=1, crystals=False, context=None):
               for p in (sequence, database)}
     env = xt.load(sequence)
     line = env[f'lhcb{beam}']
+    if energy_gev is not None:
+        # Fixed normalised Run 3 lattice, with a new proton reference momentum.
+        # This is an energy scan, not a separately matched injection lattice.
+        line.particle_ref = xp.Particles(p0c=energy_gev * 1e9,
+                                         mass0=xp.PROTON_MASS_EV)
     db = xc.CollimatorDatabase.from_yaml(database, beam=beam,
                                          ignore_crystals=not crystals)
     db.install_everest_collimators(line=line)
