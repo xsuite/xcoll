@@ -170,6 +170,63 @@ Manual reference, FLUKA, and Geant4 runs upload their detailed artefacts but do 
 
 The website is regenerated from **all** permanent records. Scheduled profiles share one column only for the same host, UTC day, branch, tested commit, Xcoll release, and recorded common dependency versions (latest successful run per profile and configuration). Different configurations get separate columns, even on the same day. Engine-specific versions (FLUKA, LineBuilder, FlukaIO, Geant4, BDSIM) are retained per component rather than used to split compatible profiles. Published manual runs remain separate. Contributing revisions, timestamps, and versions are retained. History writes and deployments have separate concurrency queues. `xcoll-performance-publish.yml` is shared by the external engines; `xcoll-performance-dashboard.yml` deploys the existing history without running benchmarks. Pages must use **GitHub Actions** as its publishing source.
 
+## GPU performance
+
+The CUDA benchmarks are opt-in (`cd benchmarks; pytest -m gpu`). They cover
+collimators, blocks, crystals, and InteractionRecord export. They are not run
+by the scheduled CPU workflows.
+
+To choose a particle count for a GPU job, run from the repository root:
+
+```bash
+python benchmarks/profile_gpu.py --workload block --particles 100 1000 10000 100000 1000000
+python benchmarks/profile_gpu.py --workload lhc --particles 100 1000 10000 50000 --turns 3
+```
+
+Every run measures serial CPU, OpenMP (`omp_num_threads='auto'` by default),
+and CUDA on the same initial particle distribution. Use `--cpu-threads N`
+to change the OpenMP team size without removing the serial comparison. The
+script reports the observed OpenMP team size, runtime maximum, and available
+logical CPUs. Use `--device` to select CUDA, and `--beam`, `--plane`,
+`--crystals`, and `--turns` for the LHC workload.
+
+The script prints warmed medians and the first sampled count where CUDA stays
+faster than each CPU configuration, both for tracking and for input copy +
+tracking + loss-map analysis. Initial compilation, warm-up, and pencil
+generation are excluded from the warmed timings. Line/element preparation and
+excluded warm-up are reported separately. These are machine- and
+workload-specific measurements, not universal thresholds.
+
+## Physics validation
+
+For a CPU physics comparison, generate a reference from a branch, tag, or
+commit SHA using the same pinned dependencies as the candidate:
+
+```bash
+python benchmarks/compare_everest_physics.py reference --ref main --output /tmp/physics-main --crystals
+XCOLL_EVEREST_PHYSICS_REFERENCE=/tmp/physics-main python -m pytest tests/test_everest_physics_reference.py -v
+```
+
+The `reference` command resolves the ref to a full commit SHA, creates and
+removes a temporary detached Git worktree, and leaves the current checkout
+unchanged. The optional `XCOLL_EVEREST_PHYSICS_REF_SHA` environment variable
+pins the expected reference SHA during testing. Without a configured
+reference, the opt-in pytest test is skipped; a configured but invalid
+reference fails. It is also possible to collect two revisions manually with
+separate worktrees and compare their snapshots. See the module docstring of
+`compare_everest_physics.py` (or its `--help`) for the full commands.
+
+The comparison checks input-particle and RNG-state checksums, workload and
+LHC-data metadata, and dependency versions. It reports survival and state
+fractions, coordinate/energy/kick distributions, interaction counts, and
+collimator/aperture loss distributions. Its tolerances are initial screening
+criteria, not validated physics acceptance thresholds. The test uses the
+reference's recorded workload parameters; local uncommitted candidate changes
+are allowed. Keep reference NPZ files in a separate directory or ignored
+location. They are not permanent benchmark history. An accepted reference is
+immutable: update it deliberately when physics or the validation protocol
+changes, not whenever a candidate fails.
+
 ## Porting this to another Xsuite package
 
 Most of the tooling can be reused as is. The important parts to adapt are the following:

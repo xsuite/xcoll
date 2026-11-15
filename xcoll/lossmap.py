@@ -644,22 +644,22 @@ class LossMap:
                 refinement_line = line.copy(_context=xo.ContextCpu())
                 refinement_line.build_tracker()
 
-            time_dependent_was_enabled = False
-            if refinement_line.enable_time_dependent_vars:
-                refinement_line.enable_time_dependent_vars = False
-                if verbose:
-                    print("Temporarily disabled time-dependent variables in the line for loss location refinement.")
-                time_dependent_was_enabled = True
-            loss_loc_refinement = xt.LossLocationRefinement(
-                refinement_line,
-                n_theta = 360,            # Angular resolution
-                r_max = 0.5,              # Maximum transverse aperture [m]
-                dr = 50e-6,               # Transverse accuracy [m]
-                ds = self.interpolation   # Longitudinal accuracy [m]
-            )
-            loss_loc_refinement.refine_loss_location(part)
-            if time_dependent_was_enabled:
-                refinement_line.enable_time_dependent_vars = True
+            time_dependent_was_enabled = refinement_line.enable_time_dependent_vars
+            try:
+                if time_dependent_was_enabled:
+                    refinement_line.enable_time_dependent_vars = False
+                    if verbose:
+                        print("Temporarily disabled time-dependent variables in the line for loss location refinement.")
+                loss_loc_refinement = xt.LossLocationRefinement(
+                    refinement_line,
+                    n_theta = 360,            # Angular resolution
+                    r_max = 0.5,              # Maximum transverse aperture [m]
+                    dr = 50e-6,               # Transverse accuracy [m]
+                    ds = self.interpolation   # Longitudinal accuracy [m]
+                )
+                loss_loc_refinement.refine_loss_location(part)
+            finally:
+                refinement_line.enable_time_dependent_vars = time_dependent_was_enabled
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
