@@ -1,12 +1,17 @@
-"""Terminal-only serial CPU / OpenMP / CUDA crossover study.
+"""Serial CPU / OpenMP / CUDA crossover study with optional headless PNG.
 
 Run from the repository root: python benchmarks/profile_gpu.py --help
 All three contexts use identical seeded particles. Timings exclude initial
 compilation and preparation, include synchronous tracking, and report both
 tracking-only and copy + tracking + (for LHC) complete loss-map crossovers.
+Tables are repeated at the end. If Matplotlib is installed, a PNG is saved
+under benchmarks/results/ (or --plot PATH); --no-plot disables plotting.
+No GUI or display server is required.
 """
 import argparse
 import contextlib
+from datetime import datetime, timezone
+import sys
 from statistics import median
 from time import perf_counter
 import os
@@ -92,6 +97,115 @@ def crossover(rows, cpu, phase):
     return None
 
 
+CONTEXTS = ('CPU', 'OMP', 'GPU')
+
+
+def table_phases(workload):
+    phases = [('copy', 0), ('track', 1)]
+    if workload == 'lhc':
+        phases.append(('map', 2))
+    return phases + [('total', 3)]
+
+
+def print_table_header(workload):
+    print(f'{"N":>9s}' + ''.join(f'{name+" "+phase:>13s}'
+          for phase, _ in table_phases(workload) for name in CONTEXTS)
+          + f'{"CPU/G track":>13s}{"OMP/G track":>13s}'
+            f'{"CPU/G total":>13s}{"OMP/G total":>13s}', flush=True)
+
+
+def print_table_row(workload, n, results):
+    print(f'{n:9d}' + ''.join(f'{results[name][0][idx]:13.6f}'
+          for _, idx in table_phases(workload) for name in CONTEXTS)
+          + ''.join(f'{results[name][0][idx]/results["GPU"][0][idx]:13.2f}'
+                    for idx in (1, 3) for name in ('CPU', 'OMP')), flush=True)
+    print(' ' * 9 + 'losses CPU/OMP/GPU: ' + '/'.join(str(results[k][1]) for k in CONTEXTS)
+          + '; excluded warm-up (s): ' + '/'.join(f'{results[k][2]:.3f}' for k in CONTEXTS),
+          flush=True)
+
+
+def print_crossovers(rows):
+    for phase, label in [(1, 'tracking'), (3, 'input copy + tracking + analysis')]:
+        for name in ('CPU', 'OMP'):
+            n = crossover(rows, name, phase)
+            print(f'{label} crossover GPU vs {name} (first sustained sampled win): '
+                  + (str(n) if n is not None else 'not reached'))
+
+
+def print_summary(reports, args, description):
+    print('\n' + '=' * 78 + '\nFINAL GPU PROFILING SUMMARY\n' + '=' * 78)
+    print(description)
+    for workload, rows in reports.items():
+        print(f'\n{workload.upper()} — median of {args.rounds} warmed runs')
+        print_table_header(workload)
+        for n, results in rows:
+            print_table_row(workload, n, results)
+        print_crossovers(rows)
+    print('Times in seconds. Speed-ups > 1 favour CUDA. One-time preparation, warm-up, '
+          'and pencil generation excluded. Total includes input copy, tracking, and '
+          'loss-map analysis (including internal transfers and CPU refinement).')
+
+
+def save_plot(reports, path, args, gpu_name, omp_threads):
+    """Save the measured data without importing a GUI backend or showing a window."""
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        print(f'PNG not generated: Matplotlib unavailable ({exc}). '
+              'Install matplotlib to enable plotting.', file=sys.stderr)
+        return False
+
+    # One row per workload, with tracking, complete warmed job, and speed-up.
+    fig, axes = plt.subplots(len(reports), 3, squeeze=False,
+                             figsize=(15, 4.5*len(reports)), layout='constrained')
+    labels = {'CPU': 'Serial CPU', 'OMP': f'OpenMP ({omp_threads} threads)',
+              'GPU': 'CUDA'}
+    styles = {'CPU': ('C0', 'o'), 'OMP': ('C1', 's'), 'GPU': ('C2', '^')}
+    try:
+        for i, (workload, rows) in enumerate(reports.items()):
+            counts = [n for n, _ in rows]
+            title = ('EverestBlock' if workload == 'block' else
+                     f'LHC B{args.beam}{args.plane}, {args.turns} turns, '
+                     f'{"with" if args.crystals else "without"} crystals')
+            for j, (phase, heading) in enumerate(((1, 'Tracking'), (3, 'Total warmed job'))):
+                ax = axes[i, j]
+                for name in CONTEXTS:
+                    colour, marker = styles[name]
+                    ax.plot(counts, [r[name][0][phase] for _, r in rows],
+                            color=colour, marker=marker, label=labels[name])
+                ax.set_title(f'{title}\n{heading}')
+                ax.set_ylabel('Median runtime [s]')
+                ax.set_yscale('log')
+                ax.legend(fontsize='small')
+            ax = axes[i, 2]
+            for name in ('CPU', 'OMP'):
+                colour, marker = styles[name]
+                for phase, suffix, linestyle in ((1, 'track', '--'), (3, 'total', '-')):
+                    ax.plot(counts, [r[name][0][phase]/r['GPU'][0][phase]
+                                     for _, r in rows], color=colour, marker=marker,
+                            linestyle=linestyle, label=f'{labels[name]}/GPU {suffix}')
+            ax.axhline(1., color='0.5', linewidth=1, linestyle=':')
+            ax.set_title(f'{title}\nGPU speed-up')
+            ax.set_ylabel('CPU time / GPU time')
+            ax.set_yscale('log')
+            ax.legend(fontsize='small')
+            for ax in axes[i]:
+                ax.set_xscale('log')
+                ax.set_xlabel('Initial particles')
+                ax.grid(True, which='both', alpha=0.25)
+        fig.suptitle(f'Xcoll {xc.__version__} | {gpu_name} | '
+                     f'{args.rounds} warmed rounds (median)')
+        path = Path(path).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, dpi=150, format='png')
+        print(f'Saved GPU profiling plot to {path}')
+        return True
+    finally:
+        plt.close(fig)
+
+
 def report(workload, counts, cpu, omp, gpu, cp, args):
     is_lhc = workload == 'lhc'
     print(f'\n{workload.upper()} — median of {args.rounds} warmed runs')
@@ -116,14 +230,7 @@ def report(workload, counts, cpu, omp, gpu, cp, args):
     sync_gpu()
     print(f'One-time line/element preparation (all contexts): {perf_counter()-start:.2f} s '
           '(excluded from table)', flush=True)
-    phases = [('copy', 0), ('track', 1)]
-    if is_lhc:
-        phases.append(('map', 2))
-    phases.append(('total', 3))
-    print(f'{"N":>9s}' + ''.join(f'{name+" "+phase:>13s}'
-          for phase, _ in phases for name in contexts)
-          + f'{"CPU/G track":>13s}{"OMP/G track":>13s}'
-            f'{"CPU/G total":>13s}{"OMP/G total":>13s}', flush=True)
+    print_table_header(workload)
     rows = []
     for n in counts:
         initial = quiet_call(lambda: make_lhc_pencil(line, tw, n, args.beam,
@@ -138,21 +245,9 @@ def report(workload, counts, cpu, omp, gpu, cp, args):
                  contexts[name], syncs[name], args.rounds,
                  args.turns if is_lhc else None, args.beam, args.interpolation))
         rows.append((n, results))
-        print(f'{n:9d}' + ''.join(f'{results[name][0][idx]:13.6f}'
-              for _, idx in phases for name in contexts)
-              + ''.join(f'{results[name][0][idx]/results["GPU"][0][idx]:13.2f}'
-                        for idx in (1, 3) for name in ('CPU', 'OMP')), flush=True)
-        print(' ' * 9 + 'losses CPU/OMP/GPU: ' + '/'.join(str(results[k][1]) for k in contexts)
-              + '; excluded warm-up (s): ' + '/'.join(f'{results[k][2]:.3f}' for k in contexts),
-              flush=True)
-    for phase, label in [(1,'tracking'), (3,'input copy + tracking + analysis')]:
-        for name in ('CPU', 'OMP'):
-            n = crossover(rows, name, phase)
-            print(f'{label} crossover GPU vs {name} (first sustained sampled win): '
-                  + (str(n) if n is not None else 'not reached'))
-    print('Times in seconds. Speed-ups > 1 favour CUDA. One-time preparation, warm-up, '
-          'and pencil generation excluded. Total includes input copy, tracking, and '
-          'loss-map analysis (including internal transfers and CPU refinement).')
+        print_table_row(workload, n, results)
+    print_crossovers(rows)
+    return rows
 
 
 def main():
@@ -169,6 +264,11 @@ def main():
     parser.add_argument('--crystals', action='store_true')
     parser.add_argument('--interpolation', type=float, default=0.2)
     parser.add_argument('--data', type=Path, default=DEFAULT_DATA)
+    plot_group = parser.add_mutually_exclusive_group()
+    plot_group.add_argument('--plot', type=Path, metavar='PATH',
+                            help='PNG output path (default benchmarks/results/gpu-profile-<UTC timestamp>.png)')
+    plot_group.add_argument('--no-plot', action='store_true',
+                            help='Do not generate a PNG')
     args = parser.parse_args()
     try:
         threads = 'auto' if args.cpu_threads == 'auto' else int(args.cpu_threads)
@@ -188,17 +288,28 @@ def main():
     name = cp.cuda.runtime.getDeviceProperties(args.device)['name']
     if isinstance(name, bytes):
         name = name.decode()
-    print(f'Xcoll {xc.__version__}; {platform.platform()}; serial CPU=1 thread; '
+    description = (f'Xcoll {xc.__version__}; {platform.platform()}; serial CPU=1 thread; '
           f'OpenMP requested={threads}, observed team={team}, runtime maximum={maximum}, '
           f'available logical CPUs={available}; CUDA device={args.device} {name}; '
           f'turns={args.turns}; beam={args.beam}; plane={args.plane}; '
           f'crystals={args.crystals}; interpolation={args.interpolation} m')
+    print(description)
     print('OpenMP team size is measured in a parallel region, not a count of distinct '
           'physical cores. Runtime affinity and dynamic teams can affect tracking.')
+    reports = {}
     for workload in (['block','lhc'] if args.workload=='both' else [args.workload]):
         counts = args.particles or ([100,1000,10000,100000,1000000] if workload=='block'
                                     else [100,1000,10000,50000,100000])
-        report(workload, sorted(set(counts)), cpu, omp, gpu, cp, args)
+        reports[workload] = report(workload, sorted(set(counts)), cpu, omp, gpu, cp, args)
+    if not args.no_plot:
+        stamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-%f')
+        path = args.plot or Path(__file__).resolve().parent / 'results' / f'gpu-profile-{stamp}.png'
+        try:
+            save_plot(reports, path, args, name, team)
+        except (OSError, RuntimeError, ValueError) as exc:
+            print(f'PNG not generated: {exc}', file=sys.stderr)
+    # Print the tables last, even if the optional plot could not be saved.
+    print_summary(reports, args, description)
 
 
 if __name__ == '__main__':
