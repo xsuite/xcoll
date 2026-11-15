@@ -35,14 +35,19 @@ def main(argv: list[str] | None = None) -> None:
                         help="Do not build tracking kernels with radiation")
     parser.add_argument("--n-threads", type=int, default=None,
                         help="Number of threads to use for kernel compilation")
+    parser.add_argument("--clear-existing", action='store_true',
+                        help="Clear the existing prebuilt-kernel cache "
+                             "before rebuilding for this checkout")
     args = parser.parse_args(argv)
 
     from xsuite.kernel_definitions import kernel_definitions
-    from xsuite.prebuild_kernels import regenerate_kernels
+    from xsuite.prebuild_kernels import clear_kernels, regenerate_kernels
 
     selected = select_kernel_names(kernel_definitions, skip_tpsa=args.skip_tpsa, skip_synrad=args.skip_synrad)
     if not selected:
         raise RuntimeError("No kernel definitions selected")
+    if args.clear_existing:
+        clear_kernels()
 
     print(f"Rebuilding Xsuite serial prebuilt kernels (compiler workers: {args.n_threads}):", flush=True)
     for name in selected:

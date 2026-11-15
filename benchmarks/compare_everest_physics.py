@@ -75,6 +75,14 @@ import xcoll as xc
 from everest_workloads import (DEFAULT_DATA, ELEMENT_CASES, COORD_SEED,
     PARTICLE_SEED, make_element, make_particles, build_lhc, make_lhc_pencil,
     make_lossmap, reset_counters, host)
+from everest_interaction_statistics import (
+    RECORD_COLUMNS,
+    interaction_snapshot,
+    compare_interactions,
+)
+from xcoll.interaction_record.interaction_record import (
+    interaction_names,
+)
 
 FIELDS = ('x','px','y','py','zeta','delta','energy','s','state','at_element')
 WORKLOAD_VERSION = 3
@@ -168,13 +176,43 @@ def save_case(out, case, p, n, initial_px, info, **extra):
                         info=np.array(json.dumps(info, sort_keys=True)))
 
 
-def collect(args, *, allow_dirty=False):
-    # Scope the compilation policy to this collection (pytest may run other tests).
-    with xo.settings.override(force_kernel_compilation=True):
-        return _collect(args, allow_dirty=allow_dirty)
+def particle_counts(args, specs):
+    """Resolve default populations and explicit case overrides."""
+    counts = {
+        case: args.lhc_particles if spec['family'] == 'lhc' else args.particles
+        for case, spec in specs}
+    seen = set()
+    for case, n in getattr(args, 'case_particles', []):
+        if case not in counts:
+            raise ValueError(f'Particle override refers to an unselected '
+                             f'case: {case}')
+        if case in seen:
+            raise ValueError(f'Duplicate particle override: {case}')
+        if n < 1:
+            raise ValueError(f'Invalid particle count for {case}: {n}')
+        counts[case] = n
+        seen.add(case)
+    return counts
 
 
-def _collect(args, *, allow_dirty=False):
+def collect(args, *, allow_dirty=False, context=None,
+            use_prebuilt=False):
+    """Collect physics snapshots.
+
+    By default, compile kernels from the imported Xcoll checkout.
+    Prebuilt kernels may be used when they have explicitly been
+    regenerated for that checkout.
+    """
+    with xo.settings.override(
+        force_kernel_compilation=not use_prebuilt,
+    ):
+        return _collect(
+            args,
+            allow_dirty=allow_dirty,
+            context=context,
+        )
+
+def _collect(args, *, allow_dirty=False, context=None):
     root = args.checkout.resolve()
     if not Path(xc.__file__).resolve().is_relative_to(root):
         raise SystemExit(f'Imported {xc.__file__}, expected Xcoll from {root}. '
@@ -194,8 +232,9 @@ def _collect(args, *, allow_dirty=False):
             pass
     out = args.output.resolve()
     out.mkdir(parents=True,exist_ok=True)
-    cpu = xo.ContextCpu()
+    cpu = context if context is not None else xo.ContextCpu()
     specs = list(case_specs(args))
+    counts = particle_counts(args, specs)
     ids = [case for case, _ in specs]
     if len(set(ids)) != len(ids):
         raise ValueError('Duplicate physics cases')
@@ -205,7 +244,7 @@ def _collect(args, *, allow_dirty=False):
         family = spec['family']
         energy = spec['energy_gev']
         print(f'Collecting {case} on {sha[:12]}', flush=True)
-        n = args.lhc_particles if family == 'lhc' else args.particles
+        n = counts[case]
         info = dict(case=case, n=n, sha=sha, deps=deps,
                     python=platform.python_version(), workload_version=WORKLOAD_VERSION,
                     coordinate_seed=COORD_SEED, particle_seed=PARTICLE_SEED, **spec)
@@ -239,19 +278,23 @@ def _collect(args, *, allow_dirty=False):
             # main still calls this argument capacity; EverestGPU calls it num_rows.
             size_key = ('num_rows' if 'num_rows' in inspect.signature(
                 xc.InteractionRecord.__init__).parameters else 'capacity')
-            rec = xc.InteractionRecord(elements=[el], names=['element'],
-                **{size_key: capacity}, columns=[], record_impacts=True,
-                record_exits=True, record_scatterings=True)
+            rec = xc.InteractionRecord(
+                elements=[el],
+                names=['element'],
+                **{size_key: capacity},
+                columns=RECORD_COLUMNS,
+                record_impacts=True,
+                record_exits=True,
+                record_scatterings=True,
+            )
             try:
                 el.track(p)
                 nr = int(rec._index.num_recorded)
                 if nr>=capacity:
                     raise ValueError('Record full; increase --events-per-particle')
-                events = rec.to_pandas()['interaction_type'].value_counts()
-                save_case(out,case,p,n,initial_px,info,
-                    event_name=events.index.to_numpy(dtype=str),
-                    event_n=events.to_numpy(),
-                    deposited_energy=np.array(float(el._acc_ionisation_loss)))
+                events = interaction_snapshot(rec, n=n, length=el.length, names=interaction_names)
+                save_case(out, case, p, n, initial_px, info, **events,
+                          deposited_energy=np.array(float(el._acc_ionisation_loss)))
             finally:
                 rec.stop(elements=[el])
     if git('rev-parse','HEAD')!=sha or git('status','--porcelain') != initial_status:
@@ -268,6 +311,17 @@ def mapping(z, k, v):
 
 def l1(a,b):
     return sum(abs(a.get(k,0)-b.get(k,0)) for k in a.keys()|b.keys())
+
+
+def interaction_count_limit(count_ref, count_new, *, relative_tol=0.05, sigma=5.):
+    """Screen differences in interaction counts.
+
+    Approximate statistical allowance for independent
+    Poisson counts; not a formal acceptance test.
+    """
+    statistical = sigma * np.sqrt(count_ref + count_new)
+    relative = relative_tol * count_ref
+    return max(statistical, relative)
 
 
 def compare(args, *, cases=None):
@@ -328,10 +382,7 @@ def compare(args, *, cases=None):
                     print(f'  {k} total (eV): {x:.6g} / {y:.6g}')
                     check(f'{k} energy difference / initial',abs(x-y)/(n*ia['p0c']),args.fraction_tol)
             else:
-                x,y=mapping(a,'event_name','event_n'),mapping(b,'event_name','event_n')
-                for k in sorted(x.keys()|y.keys()):
-                    # Counts per incident proton, not probabilities (multiple events possible).
-                    check(f'{k} events / primary',abs(x.get(k,0)-y.get(k,0))/n,args.event_tol)
+                compare_interactions(a, b, n, check, relative_tol=0.05, sigma=5.0)
                 print(f'  deposited energy (eV): {a["deposited_energy"].item():.6g} / {b["deposited_energy"].item():.6g}')
                 check('deposited energy difference / initial',abs(float(a['deposited_energy'])-float(b['deposited_energy']))/(n*ia['p0c']),args.fraction_tol)
     print(f'\n{failures} screening checks need review. Thresholds are not physics acceptance criteria.')
@@ -370,6 +421,8 @@ def reference(args):
                 command += ['--crystals']
             elif args.crystal_modes == [False]:
                 command += ['--no-crystals']
+            for case, count in args.case_particles:
+                command += ['--case-particles', f'{case}={count}']
             env = os.environ.copy()
             # A prebuilt kernel from the active environment might contain a
             # different Xcoll revision than this detached worktree.
@@ -383,6 +436,21 @@ def reference(args):
         finally:
             git('worktree', 'remove', '--force', str(worktree))
     print(f'Reference {sha} saved in {output}')
+
+
+def parse_case_particles(value):
+    """Parse CASE=N, e.g. block-cfc-7000gev=500000."""
+    try:
+        case, count = value.rsplit('=', 1)
+        count = int(count)
+        if not case or count < 1:
+            raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            'Expected CASE=POSITIVE_INTEGER, e.g. '
+            'block-cfc-7000gev=500000'
+        ) from None
+    return case, count
 
 
 def add_collect_options(parser):
@@ -402,6 +470,10 @@ def add_collect_options(parser):
     parser.set_defaults(crystal_modes=[False, True])
     parser.add_argument('--interpolation',type=float,default=0.2)
     parser.add_argument('--events-per-particle',type=int,default=40)
+    parser.add_argument('--case-particles', action='append', type=parse_case_particles,
+                        default=[], metavar='CASE=N',
+                        help='Override the particle population for a specific '
+                             'case. Can be specified multiple times.')
 
 
 def main():
@@ -410,6 +482,7 @@ def main():
     sub=p.add_subparsers(dest='action',required=True)
     c=sub.add_parser('collect'); c.add_argument('--checkout',type=Path,required=True)
     add_collect_options(c)
+    c.add_argument('--use-prebuilt', action='store_true', help='Use kernels already rebuilt for the selected checkout')
     r=sub.add_parser('reference', help='Generate reference from a Git ref in a temporary worktree')
     r.add_argument('--repo',type=Path,default=Path(__file__).resolve().parents[1])
     r.add_argument('--ref',required=True)
@@ -422,7 +495,7 @@ def main():
         if min(args.particles,args.lhc_particles,args.turns,args.events_per_particle)<1 or not np.isfinite(args.interpolation) or args.interpolation<=0:
             p.error('particle counts, turns, capacity and interpolation must be positive')
         if args.action == 'collect':
-            collect(args)
+            collect(args, use_prebuilt=args.use_prebuilt)
         else:
             reference(args)
         return 0

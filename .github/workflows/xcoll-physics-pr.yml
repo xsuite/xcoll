@@ -24,8 +24,17 @@ jobs:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
-      XSUITE_FORCE_KERNEL_COMPILATION: '1'
       XCOLL_EVEREST_PHYSICS_FULL_MATRIX: '1'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: elements
+            selection: "not lhc"
+          - name: lhc-b1
+            selection: "lhc and b1"
+          - name: lhc-b2
+            selection: "lhc and b2"
     steps:
       - name: Check out main baseline (read-only)
         uses: actions/checkout@v4
@@ -129,10 +138,28 @@ jobs:
           set -euo pipefail
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
           python benchmarks/compare_everest_physics.py reference \
-            --repo "$GITHUB_WORKSPACE/baseline" --ref "$PHYSICS_REF_SHA" \
+            --repo "$GITHUB_WORKSPACE/baseline" \
+            --ref "$PHYSICS_REF_SHA" \
             --data "$GITHUB_WORKSPACE/baseline/tests/data" \
             --output "$PHYSICS_REFERENCE" \
-            --particles 20000 --lhc-particles 3000 --turns 5
+            --particles 20000 \
+            --lhc-particles 20000 \
+            --turns 10 \
+            --case-particles block-tungsten-26gev=500000 \
+            --case-particles crystal-amorphous-26gev=100000 \
+            --case-particles block-cfc-7000gev=100000
+
+      - name: Prebuild candidate physics kernels
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
+          python -m benchmarks.perf.prebuild_cpu \
+            --skip-tpsa \
+            --skip-synrad \
+            --n-threads 2 \
+            --clear-existing
 
       - name: Test PR physics against reference
         working-directory: candidate/tests
@@ -140,10 +167,13 @@ jobs:
         env:
           XCOLL_EVEREST_PHYSICS_REFERENCE: ${{ steps.reference.outputs.path }}
           XCOLL_EVEREST_PHYSICS_REF_SHA: ${{ steps.reference.outputs.sha }}
+          XCOLL_EVEREST_PHYSICS_USE_PREBUILT: '1'
         run: |
           set -euo pipefail
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
           python -m pytest test_everest_physics_reference.py -v \
+            -k "${{ matrix.selection }}" \
+            --durations=0 \
             --junitxml="$RUNNER_TEMP/physics-pr.xml"
 
       - name: Upload physics validation report
