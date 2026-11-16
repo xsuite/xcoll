@@ -1,0 +1,73 @@
+name: Publish Xcoll supplementary PR results
+
+on:
+  workflow_run:
+    workflows: ['Xcoll physics (PR)', 'Xcoll external performance (PR)']
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'xsuite/xcoll'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: xcoll-history-writer
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+      statuses: write
+    outputs:
+      published: ${{ steps.append.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Validate source provenance and collect compact results
+        id: record
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m benchmarks.perf.pr_extra publish
+      - name: Append immutable PR record
+        id: append
+        if: steps.record.outputs.record != ''
+        shell: bash
+        env:
+          RECORD: ${{ steps.record.outputs.record }}
+          PR_NUMBER: ${{ steps.record.outputs.pr }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+          SOURCE_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin benchmark-results >/dev/null; then
+            git fetch origin benchmark-results
+            git switch -C benchmark-results FETCH_HEAD
+          else
+            git switch --orphan benchmark-results
+          fi
+          target="pr-runs/$PR_NUMBER/$SOURCE_RUN-$SOURCE_ATTEMPT.json"
+          if [ ! -e "$target" ]; then
+            mkdir -p "$(dirname "$target")"
+            cp -- "$RECORD" "$target"
+            git add "$target"
+            git commit -m "PR #$PR_NUMBER supplementary comparison $SOURCE_RUN/$SOURCE_ATTEMPT"
+            git push origin HEAD:benchmark-results
+          fi
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: publish
+    if: needs.publish.outputs.published == 'true'
+    uses: ./.github/workflows/xcoll-performance-dashboard.yml
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write

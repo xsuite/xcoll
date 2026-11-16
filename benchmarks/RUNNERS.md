@@ -2,6 +2,8 @@
 
 This runbook describes the workflows in `xsuite/xcoll` on `main` (reviewed at `cbf03dc7`). It covers the CERN reference machine, GitHub-hosted PR and publication jobs, external engines, history, Pages, and local development. Repository and organisation settings are not stored in Git: verify the settings below when rebuilding the service. The VM flavour, hostname, project, and FLUKA installation paths are site-specific; the examples below are recommendations, not a record of the current VM's exact settings.
 
+For independent manual physics validation, PR dashboard results, and administrator-approved FLUKA/Geant4 PR runs on the same CERN VM, see [PR_WORKFLOWS.md](PR_WORKFLOWS.md). Complete its opt-in and runner-group setup before enabling external PR execution.
+
 ## 1. Workflow architecture
 
 | Workflow (`.github/workflows/`) | Trigger | Runner |

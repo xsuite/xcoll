@@ -14,7 +14,8 @@ authors = [
     {name="Giovanni Iadarola",         email="giovanni.iadarola@cern.ch"}
 ]
 readme = "README.md"
-license = {text="Apache-2.0"}
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 
 requires-python = ">=3.11"
 
@@ -50,5 +51,5 @@ xaux = ">=0.3.12"
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)
-requires = ["poetry-core>=2.0"]
+requires = ["poetry-core>=2.2"]
 build-backend = "poetry.core.masonry.api"

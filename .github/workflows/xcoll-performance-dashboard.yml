@@ -2,6 +2,7 @@ name: Deploy Xcoll benchmark dashboard
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read

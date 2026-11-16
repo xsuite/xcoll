@@ -1,0 +1,167 @@
+name: Xcoll external performance (PR)
+run-name: "${{ inputs.engine }} benchmark for PR #${{ inputs.pr_number }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Open pull request targeting main'
+        required: true
+        type: number
+      approved_head_sha:
+        description: 'Full, explicitly reviewed PR head SHA (not a branch name)'
+        required: true
+        type: string
+      engine:
+        description: 'External engine'
+        required: true
+        type: choice
+        options: [fluka, geant4]
+      compile_workers:
+        description: 'Compiler workers (0 = sequential)'
+        type: choice
+        options: ['0', '2']
+        default: '2'
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    # This gate runs on GitHub, never on the CERN machine. Fail closed.
+    if: >-
+      github.repository == 'xsuite/xcoll' && github.ref == 'refs/heads/main' &&
+      vars.XCOLL_EXTERNAL_PR_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base: ${{ steps.resolve.outputs.base }}
+      candidate: ${{ steps.resolve.outputs.candidate }}
+      head: ${{ steps.resolve.outputs.head }}
+      pr: ${{ steps.resolve.outputs.pr }}
+      authorised_attempt: ${{ steps.resolve.outputs.authorised_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify administrator and resolve approved revision
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          APPROVED_HEAD: ${{ inputs.approved_head_sha }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          KIND: ${{ inputs.engine }}
+        run: python -m benchmarks.perf.pr_extra resolve
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-pr-context-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pr-context.json
+          if-no-files-found: error
+
+  benchmark_external_pr:
+    needs: resolve
+    if: >-
+      needs.resolve.result == 'success' &&
+      needs.resolve.outputs.authorised_attempt == format('{0}', github.run_attempt) &&
+      vars.XCOLL_EXTERNAL_PR_ENABLED == 'true'
+    # Configure this environment with required admin reviewers and main only.
+    # This is authorisation, NOT a sandbox for arbitrary contributor code.
+    environment: xcoll-external-pr
+    runs-on:
+      group: xcoll-benchmarks
+      labels: [self-hosted, linux, x64, xcoll-bench-cpu]
+    timeout-minutes: 300
+    concurrency:
+      group: xcoll-cern-benchmark-cpu
+      cancel-in-progress: false
+      queue: max
+    env:
+      MINIFORGE_ROOT: /home/xcollrunner/miniforge3
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      BENCHMARK_PHYSICAL_HOST: cern-openstack-xcoll-vm-v1
+      XCOLL_FLUKA_ROOT: ${{ vars.XCOLL_FLUKA_ROOT }}
+      XCOLL_FLUKA_SERVER: ${{ vars.XCOLL_FLUKA_SERVER }}
+      XCOLL_FLUKAIO_LIB: ${{ vars.XCOLL_FLUKAIO_LIB }}
+      XCOLL_LINEBUILDER_ROOT: ${{ vars.XCOLL_LINEBUILDER_ROOT }}
+      XCOLL_FLUKA_FEDB: ${{ vars.XCOLL_FLUKA_FEDB }}
+      BENCHMARK_FLUKA_VERSION: ${{ vars.BENCHMARK_FLUKA_VERSION }}
+      BENCHMARK_LINEBUILDER_VERSION: ${{ vars.BENCHMARK_LINEBUILDER_VERSION }}
+      BENCHMARK_FLUKAIO_VERSION: ${{ vars.BENCHMARK_FLUKAIO_VERSION }}
+      ENGINE: ${{ inputs.engine }}
+      COMPILE_WORKERS: ${{ inputs.compile_workers }}
+      BASE_SHA: ${{ needs.resolve.outputs.base }}
+      CANDIDATE_SHA: ${{ needs.resolve.outputs.candidate }}
+      HEAD_SHA: ${{ needs.resolve.outputs.head }}
+      PR_NUMBER: ${{ needs.resolve.outputs.pr }}
+    steps:
+      - name: Check out trusted orchestration
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Check out pinned main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.base }}
+          path: baseline
+          persist-credentials: false
+      - name: Check out pinned, reviewed PR merge
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.candidate }}
+          path: candidate
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify immutable pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C baseline rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(git -C candidate rev-parse HEAD^1)" = "$BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD^2)" = "$HEAD_SHA"
+      - uses: actions/download-artifact@v4
+        with:
+          name: xcoll-pr-context-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/xcoll-external-pr-context-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Run paired external benchmarks
+        shell: bash
+        run: bash control/benchmarks/perf/run_external_pr.sh
+      - name: Upload paired comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-external-pr-comparison-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/xcoll-external-pr-${{ github.run_id }}-${{ github.run_attempt }}/pr-comparison.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Archive measurements and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-external-pr-raw-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            baseline/benchmarks/results/
+            candidate/benchmarks/results/
+            ${{ runner.temp }}/xcoll-external-pr-${{ github.run_id }}-${{ github.run_attempt }}/*.txt
+            ${{ runner.temp }}/xcoll-external-pr-${{ github.run_id }}-${{ github.run_attempt }}/*.md
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Remove disposable environments and state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/xcoll-external-pr-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          for env in "$work"/base-env "$work"/candidate-env; do
+            if [ -d "$env/conda-meta" ]; then
+              "$MINIFORGE_ROOT/bin/mamba" env remove --yes --prefix "$env" || true
+            fi
+          done
+          rm -rf -- "$work" "$RUNNER_TEMP/xcoll-external-pr-context-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"

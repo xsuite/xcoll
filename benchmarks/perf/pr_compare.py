@@ -60,15 +60,17 @@ def compare(base, candidate, scheduled=None, *, config=None):
     return rows
 
 
-def markdown(rows, base_sha, candidate_sha, *, scheduled_available):
+def markdown(rows, base_sha, candidate_sha, *, scheduled_available, profile='cpu'):
     def ms(value):
         return f'{value * 1000:.4g}' if value is not None else '—'
     def status(result):
         return result.status if result is not None else 'NOT_CHECKED'
-    lines = ['## Paired Xcoll CPU benchmarks', '',
+    label = {'cpu': 'CPU', 'fluka': 'FLUKA', 'geant4': 'Geant4'}[profile]
+    runner = 'GitHub-hosted' if profile == 'cpu' else 'CERN'
+    lines = [f'## Paired Xcoll {label} benchmarks', '',
              f'Main: `{base_sha}` · PR merge: `{candidate_sha}`', '',
-             'Both revisions ran sequentially on the same GitHub-hosted runner, with separate environments and freshly compiled kernels. Physics changes are informational; missing or incompatible measurements are not agreement.', '',
-             'Scheduled CPU physics reference: ' + ('available' if scheduled_available else 'not yet available'), '',
+             f'Both revisions ran sequentially on the same {runner} runner, with separate environments and freshly compiled kernels. Physics changes are informational; missing or incompatible measurements are not agreement.', '',
+             ('Scheduled CPU physics reference: ' + ('available' if scheduled_available else 'not yet available')) if profile == 'cpu' else 'External-engine physics comparison: paired base and candidate only.', '',
              '| Benchmark | Main (ms) | PR (ms) | Runtime change | Physics vs main | Physics vs scheduled |',
              '|---|---:|---:|---:|---|---|']
     for row in rows:
@@ -142,6 +144,7 @@ def main(argv=None):
     p.add_argument('--base', required=True, type=Path)
     p.add_argument('--candidate', required=True, type=Path)
     p.add_argument('--scheduled', type=Path)
+    p.add_argument('--profile', choices=('cpu', 'fluka', 'geant4'), default='cpu')
     p.add_argument('--base-sha', required=True)
     p.add_argument('--candidate-sha', required=True)
     p.add_argument('--output', required=True, type=Path)
@@ -158,7 +161,8 @@ def main(argv=None):
     left, right = _load(a.base), _load(a.candidate)
     rows = compare(left, right, baseline)
     a.output.write_text(markdown(rows, a.base_sha, a.candidate_sha,
-                                 scheduled_available=baseline is not None), encoding='utf-8')
+                                 scheduled_available=baseline is not None,
+                                 profile=a.profile), encoding='utf-8')
     if a.json_output is not None:
         from hashlib import sha256
         if not all((a.pr_number, a.branch, a.head_sha, a.run_id, a.attempt)):
