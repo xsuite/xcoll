@@ -4,21 +4,57 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Open PR number to validate against current main'
+        required: true
+        type: number
 
 permissions:
   contents: read
 
 concurrency:
-  group: xcoll-physics-pr-${{ github.event.pull_request.number }}
+  group: xcoll-physics-pr-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
+  resolve:
+    if: >-
+      github.repository == 'xsuite/xcoll' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+        github.base_ref == 'main' && !startsWith(github.head_ref, 'release/')))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base: ${{ steps.resolve.outputs.base }}
+      candidate: ${{ steps.resolve.outputs.candidate }}
+      head: ${{ steps.resolve.outputs.head }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Resolve and pin PR revisions
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          KIND: physics
+        run: python -m benchmarks.perf.pr_extra resolve
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xcoll-pr-context-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pr-context.json
+          if-no-files-found: error
+
   physics_pr:
     # Independent runner: physics validation must not disturb performance timings.
-    if: >-
-      github.event.pull_request.draft == false &&
-      github.base_ref == 'main' &&
-      !startsWith(github.head_ref, 'release/')
+    needs: resolve
+    if: needs.resolve.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
@@ -40,7 +76,7 @@ jobs:
       - name: Check out main baseline (read-only)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.resolve.outputs.base }}
           path: baseline
           persist-credentials: false
           lfs: true
@@ -48,13 +84,17 @@ jobs:
       - name: Check out PR merge commit (read-only)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.resolve.outputs.candidate }}
           path: candidate
           fetch-depth: 2
           persist-credentials: false
 
       - name: Verify base of tested merge
-        run: test "$(git -C candidate rev-parse HEAD^1)" = "$(git -C baseline rev-parse HEAD)"
+        env:
+          HEAD_SHA: ${{ needs.resolve.outputs.head }}
+        run: |
+          test "$(git -C candidate rev-parse HEAD^1)" = "$(git -C baseline rev-parse HEAD)"
+          test "$(git -C candidate rev-parse HEAD^2)" = "$HEAD_SHA"
 
       - name: Select immutable reference and environment
         id: reference
@@ -185,6 +225,7 @@ jobs:
           python -m pytest test_everest_physics_reference.py -v \
             -k "${{ matrix.selection }}" \
             --durations=0 \
+            -o junit_logging=system-out -o junit_log_passing_tests=true \
             --junitxml="$RUNNER_TEMP/physics-pr.xml"
 
       - name: Upload physics validation report
