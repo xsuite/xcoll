@@ -5,9 +5,10 @@
 """CPU physics regression against an accepted (or explicitly selected) reference.
 
 If the codebase has changed and the references will no longer match, one can
-regenerate them by running (from the Xcoll root)
+regenerate them by running (from the Xcoll root on a clean checkout):
 
     rm -r tests/data/everest_physics_reference
+    python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 12 --clear-existing
     python benchmarks/compare_everest_physics.py reference --ref main \
         --output tests/data/everest_physics_reference \
         --particles 20000 --lhc-particles 20000 --turns 10 \
