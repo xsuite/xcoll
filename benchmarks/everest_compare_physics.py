@@ -50,9 +50,11 @@ Candidates replay the stored initial particle coordinates and RNG states. The
 comparison rejects incompatible workload parameters or initial inputs, but not
 environment differences. --input-reference selects stored inputs for collect
 and reference; particle counts, turns, interpolation and record capacity then
-come from the selected reference cases. The PR workflow reads the
-committed reference from the base checkout, never from the candidate; before
-one exists it collects from the exact PR base SHA in a fresh worktree.
+come from the selected reference cases. The PR workflow reads the accepted
+reference and validation tools from a pinned main checkout, independently
+of the candidate's tested merge/base SHA. CI never generates a reference.
+XCOLL_EVEREST_PHYSICS_CHECKOUT selects the candidate source/data checkout
+when the test harness lives in a different checkout.
 
 For a permanent reference, generate from a validated commit (macOS or Linux),
 inspect and review the results, then copy the entire reference directory
