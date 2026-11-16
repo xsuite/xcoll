@@ -266,8 +266,9 @@ class XcollCollimatorAPI(XcollLineAccessor):
             sigma_z=sigma_z, twiss=twiss, longitudinal=longitudinal,
             longitudinal_betatron_cut=longitudinal_betatron_cut, tw=tw, **kwargs)
 
-    def generate_delta(self, name, *, plane, position_mm, nemitt_x=None, nemitt_y=None,
-                       betatron_cut=0, match_at_front=True, twiss=None, gemitt_x=None, gemitt_y=None):
+    def generate_delta(self, name, *, plane, position_mm,
+                       nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                       betatron_cut=0, match_at_front=True, twiss=None):
         """Generate momentum offsets from dispersion at the named collimator."""
         from .initial_distribution import generate_delta_from_dispersion
         return generate_delta_from_dispersion(
@@ -690,8 +691,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
                   if coll.reference_optics is not None]
         return _combine_reference_optics(tables)
 
-    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET, names=None,
-                               gemitt_x=_UNSET, gemitt_y=_UNSET):
+    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET,
+                               gemitt_x=_UNSET, gemitt_y=_UNSET, names=None):
         """Set reference emittances without calculating Twiss.
 
         Geometric ``gemitt_x``/``gemitt_y`` can be supplied instead of the
@@ -730,9 +731,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
         for coll, (ex, ey) in zip(collimators, emittances):
             coll.set_reference_emittance(nemitt_x=ex, nemitt_y=ey)
 
-    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None, names=None,
-                      positions=None, reference_optics=None,
-                      gemitt_x=None, gemitt_y=None):
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                      twiss=None, names=None, positions=None, reference_optics=None):
         """Assign optics to all collimators, or to the specified name(s).
 
         By default store the upstream, centre and downstream optics.

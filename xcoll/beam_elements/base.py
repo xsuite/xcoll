@@ -741,9 +741,9 @@ class BaseCollimator(BaseBlock):
         return (len(ref) > 0 and ref.nemitt_x is not None
                 and ref.nemitt_y is not None and ref.beta_gamma_rel is not None)
 
-    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
-                      twiss_upstream=None, twiss_downstream=None, reference_optics=None,
-                      gemitt_x=None, gemitt_y=None):
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                      beta_gamma_rel=None, name=None, twiss=None,
+                      twiss_upstream=None, twiss_downstream=None, reference_optics=None):
         """Assign precomputed optics without accessing a line.
 
         `reference_optics` is a combined or local Xsuite table with position
@@ -1141,8 +1141,9 @@ class BaseCollimator(BaseBlock):
                         longitudinal=longitudinal, longitudinal_betatron_cut=longitudinal_betatron_cut,
                         **kwargs)
 
-    def generate_delta(self, *, plane, position_mm, nemitt_x=None, nemitt_y=None, betatron_cut=0,
-                       match_at_front=True, twiss=None, gemitt_x=None, gemitt_y=None):
+    def generate_delta(self, *, plane, position_mm,
+                       nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                       betatron_cut=0, match_at_front=True, twiss=None):
         warn("Element.generate_delta() is deprecated and will be removed in a future release. "
              "Use line.xcoll.collimators.generate_delta(name, ...) instead.",
              FutureWarning, stacklevel=2)

@@ -132,8 +132,9 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     return part
 
 
-def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemitt_x=None, nemitt_y=None,
-                                   twiss=None, betatron_cut=0, match_at_front=True, gemitt_x=None, gemitt_y=None):
+def generate_delta_from_dispersion(line, at_element, *, plane, position_mm,
+                                   nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                                   twiss=None, betatron_cut=0, match_at_front=True):
     if line.tracker is None:
         raise ValueError("Need to build tracker first!")
     if not hasattr(betatron_cut, '__iter__'):
