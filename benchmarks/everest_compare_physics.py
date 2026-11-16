@@ -59,7 +59,7 @@ inspect and review the results, then copy the entire reference directory
 (including inputs/arrays.npz) into tests/data. Commit it
 explicitly; never update an accepted reference merely to make a test pass.
 Use a temporary directory or ignored location for ordinary generated output.
-Compact existing schema-4 snapshots without rerunning physics:
+Compact existing schema-4 or schema-5 snapshots without rerunning physics:
 
     python benchmarks/everest_compare_physics.py compact /tmp/physics-v4 \
         --output /tmp/physics-v5
@@ -89,7 +89,7 @@ from everest_initial_particles import (
     initial_snapshot, initial_digest, restore_initial, read_initial,
 )
 from everest_snapshot_storage import (
-    BANK_PATH, FINAL_FIELDS, SURVIVOR_FIELDS, compact_final, survivor_data,
+    BANK_PATH, INPUT_STORAGE_VERSION, FINAL_FIELDS, SURVIVOR_FIELDS, compact_final, survivor_data,
     store_initial, load_initial,
 )
 from everest_interaction_statistics import (
@@ -188,6 +188,8 @@ def load_manifest(path, *, version=WORKLOAD_VERSION):
     actual = {p.stem for p in path.glob('*.npz')}
     if set(cases) != actual:
         raise ValueError(f'Incomplete reference {path}: {set(cases) ^ actual}')
+    if version == WORKLOAD_VERSION and manifest.get("input_storage_version", 1) not in (1, INPUT_STORAGE_VERSION):
+        raise ValueError(f'Unsupported input storage version in {path}')
     if version == WORKLOAD_VERSION and not (path / BANK_PATH).is_file():
         raise ValueError(f'Missing shared initial-particle bank in {path}')
     return manifest
@@ -228,7 +230,7 @@ def snapshot_particles(p, n):
 
 def save_case(out, case, p, n, initial, info, **extra):
     arrays = snapshot_particles(p, n)
-    refs = store_initial(out, initial, n)
+    refs = store_initial(out, initial, n, rng_seed=info.get('particle_seed'))
     np.savez_compressed(out/f'{case}.npz', **arrays, **extra,
                         initial_refs=refs,
                         info=np.array(json.dumps(info, sort_keys=True)))
@@ -279,9 +281,10 @@ def _collect(args, *, allow_dirty=False, context=None):
                          'Set PYTHONPATH to the selected checkout.')
     def git(*a):
         return subprocess.check_output(['git','-C',str(root),*a], text=True).strip()
-    initial_status = git('status','--porcelain')
-    if initial_status and not allow_dirty:
-        raise SystemExit('Physics comparison requires a clean checkout.')
+    if not allow_dirty:
+        initial_status = git('status', '--porcelain')
+        if initial_status:
+            raise SystemExit('Physics comparison requires a clean checkout.')
     sha = git('rev-parse','HEAD')
     provenance = environment_metadata()
     out = args.output.resolve()
@@ -378,10 +381,13 @@ def _collect(args, *, allow_dirty=False, context=None):
                           deposited_energy=np.array(float(el._acc_ionisation_loss)))
             finally:
                 rec.stop(elements=[el])
-    if git('rev-parse','HEAD')!=sha or git('status','--porcelain') != initial_status:
-        raise SystemExit('Checkout changed during collection; discard these snapshots.')
+    if not allow_dirty:
+        if (git('rev-parse', 'HEAD') != sha
+                or git('status', '--porcelain') != initial_status):
+            raise SystemExit('Checkout changed during collection; discard these snapshots.')
     manifest = dict(workload_version=WORKLOAD_VERSION, sha=sha,
                     **provenance, cases=ids)
+    manifest['input_storage_version'] = INPUT_STORAGE_VERSION
     (out / 'reference.json').write_text(json.dumps(manifest, indent=2, sort_keys=True)+'\n')
     print(f'Saved {len(ids)} cases to {out}')
 
@@ -472,11 +478,14 @@ def compare(args, *, cases=None):
 
 
 def compact_reference(source, output):
-    """Migrate schema 4 to 5 without tracking or changing physical inputs."""
+    """Migrate schema 4, or repack schema 5, without tracking."""
     source, output = Path(source).resolve(), Path(output).resolve()
     if output.exists():
         raise FileExistsError(f'Choose a new output directory: {output}')
-    manifest = load_manifest(source, version=4)
+    version = json.loads((source / 'reference.json').read_text())['workload_version']
+    if version not in (4, WORKLOAD_VERSION):
+        raise ValueError(f'Unsupported source workload version {version}')
+    manifest = load_manifest(source, version=version)
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='xcoll-compact-', dir=output.parent) as tmp:
         staging = Path(tmp) / 'snapshots'
@@ -485,13 +494,18 @@ def compact_reference(source, output):
             info = snapshot_info(source, case, manifest)
             n = info['n']
             with np.load(source / f'{case}.npz', allow_pickle=False) as old:
-                initial = read_initial(old, info)
-                final = compact_final(old, n)
-                refs = store_initial(staging, initial, n)
+                if version == 4:
+                    initial = read_initial(old, info)
+                    final = compact_final(old, n)
+                else:
+                    initial = load_initial(source, old, info)
+                    final = {key: old[key] for key in ('state', 'at_element',
+                             *(f'survivor_{f}' for f in SURVIVOR_FIELDS))}
+                refs = store_initial(staging, initial, n, rng_seed=info.get('particle_seed'))
                 new_info = dict(info, workload_version=WORKLOAD_VERSION)
                 extra = {key: old[key] for key in old.files
                          if key not in FINAL_FIELDS and key != 'info'
-                         and not key.startswith('initial_')}
+                         and not key.startswith(('initial_', 'survivor_'))}
                 dest = staging / f'{case}.npz'
                 np.savez_compressed(dest, **final, **extra, initial_refs=refs,
                                     info=np.array(json.dumps(new_info, sort_keys=True)))
@@ -499,8 +513,14 @@ def compact_reference(source, output):
                 with np.load(dest, allow_pickle=False) as new:
                     recovered = load_initial(staging, new, new_info)
                     ids, values = survivor_data(new, recovered, n)
+                    if version == 4:
+                        original = {key: old[key][ids] for key in values}
+                    else:
+                        old_ids, original = survivor_data(old, initial, n)
+                        if not np.array_equal(ids, old_ids):
+                            raise ValueError(f'{case}: changed survivor IDs')
                     for key, value in values.items():
-                        if not np.array_equal(value, old[key][ids], equal_nan=True):
+                        if not np.array_equal(value, original[key], equal_nan=True):
                             raise ValueError(f'{case}: changed survivor observable {key}')
                     for key in ('state', 'at_element', *extra):
                         if not np.array_equal(new[key], old[key],
@@ -508,6 +528,7 @@ def compact_reference(source, output):
                             raise ValueError(f'{case}: changed observable {key}')
             print(f'Compacted {case}', flush=True)
         manifest['workload_version'] = WORKLOAD_VERSION
+        manifest['input_storage_version'] = INPUT_STORAGE_VERSION
         (staging / 'reference.json').write_text(json.dumps(manifest, indent=2, sort_keys=True)+'\n')
         load_manifest(staging)
         if output.exists():
@@ -623,7 +644,7 @@ def main():
     d.add_argument('--fraction-tol',type=float,default=.01);
     d.add_argument('--ks-tol',type=float,default=.02)
     d.add_argument('--map-tol',type=float,default=.05);
-    m = sub.add_parser('compact', help='Migrate a schema-4 reference without retracking')
+    m = sub.add_parser('compact', help='Migrate schema 4 or optimise schema 5 without retracking')
     m.add_argument('source', type=Path)
     m.add_argument('--output', type=Path, required=True)
     args=p.parse_args()

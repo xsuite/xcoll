@@ -48,7 +48,7 @@ def test_shared_initial_chunks(tmp_path, monkeypatch):
     with ZipFile(tmp_path / storage.BANK_PATH) as bank:
         expected = {key + '.npy' for refs in (ar, br)
                     for keys in refs.values() for key in keys}
-        assert set(bank.namelist()) == expected
+        assert {name.split('.')[0] + '.npy' for name in bank.namelist()} == expected
         assert len(bank.namelist()) == len(expected)
     for data, refs, n in ((small, a, 8), (large, b, 12)):
         restored = storage.load_initial(tmp_path, {'initial_refs': refs}, input_info(data, n))
@@ -122,7 +122,7 @@ def test_migrate_v4(tmp_path):
     output = tmp_path / 'new'
     compact_reference(source, output)
     assert path.read_bytes() == original
-    assert load_manifest(output) == dict(manifest, workload_version=5)
+    assert load_manifest(output) == dict(manifest, workload_version=5, input_storage_version=storage.INPUT_STORAGE_VERSION)
     assert compare(SimpleNamespace(base=output, candidate=output,
                                    fraction_tol=0.01, ks_tol=0.02, map_tol=0.05)) == 0
     with np.load(output / path.name, allow_pickle=False) as new:
@@ -136,3 +136,98 @@ def test_migrate_v4(tmp_path):
     with pytest.raises(ValueError, match='changed survivor observable kick_x'):
         compact_reference(source, invalid)
     assert not invalid.exists()
+
+
+def test_frozen_rng_v1():
+    # Golden vectors from the unsigned C rng_set in Xtrack v0.118.7.
+    expected = np.array([
+        [1140625589, 3309989534, 2086142281, 3610630185],
+    ], dtype=np.uint32)
+    np.testing.assert_array_equal(np.array(storage.frozen_rng_v1(13579, 1)).T, expected)
+
+
+def test_codec_exactness_and_fallback(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, 'CHUNK_SIZE', 1000)
+    n = 2000
+    initial = make_initial(n)
+    for i, value in enumerate(storage.frozen_rng_v1(13579, n), 1):
+        initial[f'initial__rng_s{i}'][:] = value
+    initial['initial_px'][:] = np.random.default_rng(2).normal(size=n)
+    initial['initial_y'][0] = -0.0  # bitwise equality, not merely numerical
+    refs = storage.store_initial(tmp_path, initial, n, rng_seed=13579)
+    with ZipFile(tmp_path / storage.BANK_PATH) as bank:
+        assert any('.rng-v1.npy' in name for name in bank.namelist())
+        assert any('.shuffle-v1.npy' in name for name in bank.namelist())
+        assert any('.range-v1.npy' in name for name in bank.namelist())
+        assert any('.constant-v1.npy' in name for name in bank.namelist())
+    restored = storage.load_initial(tmp_path, {'initial_refs': refs}, input_info(initial, n))
+    for key in initial:
+        assert storage.same_bytes(restored[key], initial[key])
+    # Deliberately change one RNG word. Its chunk must not use the frozen codec.
+    initial['initial__rng_s1'][0] ^= np.uint32(1)
+    refs = storage.store_initial(tmp_path, initial, n, rng_seed=13579)
+    key = json.loads(refs.item())['initial__rng_s1'][0]
+    with ZipFile(tmp_path / storage.BANK_PATH) as bank:
+        assert key + '.rng-v1.npy' not in bank.namelist()
+    restored = storage.load_initial(tmp_path, {'initial_refs': refs}, input_info(initial, n))
+    assert storage.same_bytes(restored['initial__rng_s1'], initial['initial__rng_s1'])
+
+
+def test_legacy_bank_readable(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, 'CHUNK_SIZE', 4)
+    initial = make_initial(8)
+    bank_path = tmp_path / storage.BANK_PATH
+    bank_path.parent.mkdir()
+    refs = {}
+    with ZipFile(bank_path, 'w') as bank:
+        for name, array in initial.items():
+            chunks = [array] if array.ndim == 0 else [array[:4], array[4:]]
+            refs[name] = []
+            for chunk in chunks:
+                key = storage.chunk_key(chunk)
+                if key + '.npy' not in bank.namelist():
+                    bank.writestr(key + '.npy', storage.npy_bytes(chunk))
+                refs[name].append(key)
+    restored = storage.load_initial(tmp_path, {'initial_refs': np.array(json.dumps(refs))},
+                                    input_info(initial, 8))
+    assert initial_digest(restored, 8) == initial_digest(initial, 8)
+
+
+def test_repack_v5(tmp_path):
+    from everest_compare_physics import compact_reference, compare, load_manifest
+    source = tmp_path / 'old'
+    source.mkdir()
+    n = 4
+    case = 'block-cfc-26gev'
+    initial = make_initial(n)
+    for i, value in enumerate(storage.frozen_rng_v1(13579, n), 1):
+        initial[f'initial__rng_s{i}'][:] = value
+    final = storage.compact_final(make_final(initial, [1, -1, 1, -2]), n)
+    provenance = dict(sha='a' * 40, python='3.12.0', deps={}, platform={'system': 'test'})
+    manifest = dict(workload_version=5, cases=[case], **provenance)
+    info = dict(input_info(initial, n), case=case, family='block-cfc',
+                energy_gev=26, p0c=26e9, workload_version=5, particle_seed=13579, **provenance)
+    events = dict(event_code=np.array([16]), event_name=np.array(['Single Diffractive']),
+                  event_n=np.array([2]), event_count_by_particle=np.array([[1, 0, 1, 0]], dtype=np.uint32),
+                  event_length_code=np.array([], dtype=np.int64),
+                  event_length_by_particle=np.empty((0, n)), deposited_energy=np.array(0.0))
+    # Construct an actual legacy raw-chunk bank.
+    path = source / storage.BANK_PATH
+    path.parent.mkdir()
+    refs = {}
+    with ZipFile(path, 'w') as bank:
+        for key, array in initial.items():
+            digest = storage.chunk_key(array)
+            if digest + '.npy' not in bank.namelist():
+                bank.writestr(digest + '.npy', storage.npy_bytes(array))
+            refs[key] = [digest]
+    np.savez_compressed(source / f'{case}.npz', **final, **events,
+                        initial_refs=np.array(json.dumps(refs)), info=np.array(json.dumps(info)))
+    (source / 'reference.json').write_text(json.dumps(manifest))
+    output = tmp_path / 'new'
+    compact_reference(source, output)
+    assert load_manifest(output) == dict(manifest, input_storage_version=2)
+    with np.load(output / f'{case}.npz', allow_pickle=False) as new:
+        assert json.loads(new['info'].item()) == info
+    assert compare(SimpleNamespace(base=source, candidate=output,
+                                   fraction_tol=0.01, ks_tol=0.02, map_tol=0.05)) == 0
