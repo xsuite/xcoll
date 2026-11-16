@@ -51,8 +51,8 @@ comparison rejects incompatible workload parameters or initial inputs, but not
 environment differences. --input-reference selects stored inputs for collect
 and reference; particle counts, turns, interpolation and record capacity then
 come from the selected reference cases. The PR workflow reads the
-committed reference from the base checkout, never from the candidate; before
-one exists it collects from the exact PR base SHA in a fresh worktree.
+committed reference from the base checkout, never from the candidate. A missing
+committed reference is an error in PR CI; reference generation is explicit.
 
 For a permanent reference, generate from a validated commit (macOS or Linux),
 inspect and review the results, then copy the entire reference directory

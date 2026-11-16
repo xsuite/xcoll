@@ -1,5 +1,7 @@
 """Unit tests for the trusted PR resolver and dashboard publication records."""
+import base64
 import json
+import subprocess
 
 import pytest
 
@@ -16,7 +18,8 @@ def sample_pr():
 
 def test_resolve_requires_exact_reviewed_head(monkeypatch):
     pr = sample_pr()
-    monkeypatch.setattr(p, 'api', lambda _: pr)
+    monkeypatch.setattr(p, 'api', lambda path: (
+        {'object': {'sha': BASE}} if path == 'git/ref/heads/main' else pr))
     monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
     assert p.current_merge(12, HEAD)[1:] == (BASE, HEAD, MERGE)
     with pytest.raises(ValueError, match='head changed'):
@@ -24,6 +27,101 @@ def test_resolve_requires_exact_reviewed_head(monkeypatch):
     pr['draft'] = True
     with pytest.raises(ValueError, match='non-draft'):
         p.current_merge(12, HEAD)
+
+
+
+def test_current_merge_rejects_stale_pr_base(monkeypatch):
+    pr = sample_pr()
+    new_base = 'd' * 40
+    monkeypatch.setattr(p, 'api', lambda path: (
+        {'object': {'sha': new_base}} if path == 'git/ref/heads/main' else
+        {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else pr))
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
+    monkeypatch.setattr(p.time, 'sleep', lambda _: None)
+    with pytest.raises(ValueError, match='Refusing to test an older base'):
+        p.current_merge(12)
+
+
+def test_current_merge_waits_for_fresh_merge(monkeypatch):
+    pr = sample_pr()
+    new_base, new_merge = 'd' * 40, 'e' * 40
+    # The PR's base payload and mergeability initially refer to old main.
+    stale = dict(pr, mergeable=False)
+    fresh = dict(pr, merge_commit_sha=new_merge)
+    responses = iter([stale, pr, fresh])
+    monkeypatch.setattr(p, 'api', lambda path: (
+        {'object': {'sha': new_base}} if path == 'git/ref/heads/main' else
+        {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else next(responses)))
+    monkeypatch.setattr(p, 'parents', lambda merge: (
+        [BASE, HEAD] if merge == MERGE else [new_base, HEAD]))
+    monkeypatch.setattr(p.time, 'sleep', lambda _: None)
+    # Even if base.sha is stale, the verified parents and branch tip are enough.
+    assert p.current_merge(12, HEAD)[1:] == (new_base, HEAD, new_merge)
+
+
+
+def test_current_merge_uses_fresh_merge_ref_despite_stale_metadata(monkeypatch):
+    new_base, new_merge = 'd' * 40, 'e' * 40
+    pr = sample_pr()
+    monkeypatch.setattr(p, 'api', lambda path: (
+        {'object': {'sha': new_base}} if path == 'git/ref/heads/main' else
+        {'object': {'sha': new_merge}} if path == 'git/ref/pull/12/merge' else pr))
+    monkeypatch.setattr(p, 'parents', lambda merge: (
+        [BASE, HEAD] if merge == MERGE else [new_base, HEAD]))
+    assert p.current_merge(12, HEAD)[1:] == (new_base, HEAD, new_merge)
+
+
+def test_current_merge_retries_if_main_moves_during_resolution(monkeypatch):
+    new_base, new_merge = 'd' * 40, 'e' * 40
+    main_tips = iter([BASE, new_base, new_base, new_base])
+    prs = iter([sample_pr(), dict(sample_pr(), merge_commit_sha=new_merge)])
+    monkeypatch.setattr(p, 'api', lambda path: (
+        {'object': {'sha': next(main_tips)}} if path == 'git/ref/heads/main' else
+        {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else next(prs)))
+    monkeypatch.setattr(p, 'parents', lambda merge: (
+        [BASE, HEAD] if merge == MERGE else [new_base, HEAD]))
+    monkeypatch.setattr(p.time, 'sleep', lambda _: None)
+    assert p.current_merge(12)[1:] == (new_base, HEAD, new_merge)
+
+
+def test_reference_manifest_required(monkeypatch):
+    source = 'd' * 40
+    encoded = base64.b64encode(json.dumps({'sha': source}).encode()).decode()
+    monkeypatch.setattr(p.subprocess, 'run', lambda *a, **kw:
+        subprocess.CompletedProcess(a, 0, stdout=json.dumps({'content': encoded})))
+    assert p.reference_sha(BASE) == source
+    monkeypatch.setattr(p.subprocess, 'run', lambda *a, **kw:
+        subprocess.CompletedProcess(a, 1, stderr='gh: Not Found (HTTP 404)'))
+    with pytest.raises(ValueError, match='No committed physics reference'):
+        p.reference_sha(BASE)
+    monkeypatch.setattr(p.subprocess, 'run', lambda *a, **kw:
+        subprocess.CompletedProcess(a, 1, stderr='gh: Forbidden (HTTP 403)'))
+    with pytest.raises(ValueError, match='Cannot read baseline manifest'):
+        p.reference_sha(BASE)
+
+
+@pytest.mark.parametrize('event_name', ['workflow_dispatch', 'pull_request'])
+def test_resolve_physics_stops_before_context_when_reference_missing(tmp_path, monkeypatch, event_name):
+    env = dict(GITHUB_REPOSITORY=p.REPO, KIND='physics', PR_NUMBER='12',
+               GITHUB_EVENT_NAME=event_name, GITHUB_REF='refs/heads/main',
+               GITHUB_SHA=MERGE, GITHUB_RUN_ID='100', GITHUB_RUN_ATTEMPT='1',
+               RUNNER_TEMP=str(tmp_path), GITHUB_OUTPUT=str(tmp_path / 'output'))
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    pr = sample_pr()
+    monkeypatch.setattr(p, 'current_merge', lambda *a: (pr, BASE, HEAD, MERGE))
+    monkeypatch.setattr(p, 'event', lambda: {'pull_request': pr})
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
+
+    def missing(base):
+        assert base == BASE
+        raise ValueError('No committed physics reference')
+
+    monkeypatch.setattr(p, 'reference_sha', missing)
+    with pytest.raises(ValueError, match='No committed physics reference'):
+        p.resolve()
+    assert not (tmp_path / 'pr-context.json').exists()
+    assert not (tmp_path / 'output').exists()
 
 
 def test_admin_gate_fails_closed(monkeypatch):

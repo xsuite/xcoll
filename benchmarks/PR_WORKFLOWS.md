@@ -12,8 +12,13 @@ On GitHub Actions, select **Xcoll physics (PR)** → **Run workflow**, choose
 gh workflow run xcoll-physics-pr.yml --repo xsuite/xcoll --ref main -f pr_number=123
 ```
 
-The hosted resolver pins the current PR head, base, and merge SHA, and checks
-both parents of the merge. Automatic PR runs retain their original event SHAs.
+The hosted resolver queries the actual `main` branch tip independently of PR
+metadata, pins the PR head and merge SHA, and verifies both parents of the
+merge. If GitHub still reports a stale merge, it retries for a bounded period
+and then fails rather than testing an older base. Automatic PR runs retain
+their original event SHAs. The committed reference manifest must exist in
+the pinned base; CI never regenerates it. The accepted reference source SHA
+may differ from the pinned base SHA.
 The three physics matrix jobs use the pinned pair; the CPU benchmark workflow
 is not triggered or cancelled. A new physics dispatch may cancel an older
 physics run for the same PR. Use a fresh dispatch (or rerun all jobs), not a

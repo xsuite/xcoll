@@ -108,32 +108,29 @@ jobs:
           base = Path('baseline/tests/data/everest_physics_reference').resolve()
           tmp = Path(os.environ['RUNNER_TEMP'])
           output = Path(os.environ['GITHUB_OUTPUT'])
-          if base.exists():
-              # Fail on a corrupt/incomplete committed reference, never silently
-              # regenerate from current main. The pytest test checks the matrix.
-              manifest = json.loads((base / 'reference.json').read_text())
-              sha = manifest['sha']
-              version = manifest['python']
-              deps = manifest['deps']
-              if not re.fullmatch(r'[0-9a-f]{40}', sha):
-                  raise ValueError('Invalid reference SHA')
-              if not re.fullmatch(r'3\.\d+\.\d+', version):
-                  raise ValueError('Invalid reference Python version')
-              required = {'xobjects','xtrack','xpart','xdeps','numpy','scipy','pandas'}
-              allowed = required | {'xsuite','xfields'}
-              if not required <= deps.keys() <= allowed:
-                  raise ValueError('Invalid reference dependency inventory')
-              if any(not re.fullmatch(r'[0-9][A-Za-z0-9.+!_-]*', v) for v in deps.values()):
-                  raise ValueError('Invalid pinned package version')
-              (tmp / 'physics-constraints.txt').write_text(''.join(
-                  f'{name}=={v}\n' for name, v in sorted(deps.items())))
-              values = dict(path=str(base), sha=sha, python=version, committed='true')
-          else:
-              # Bootstrap the first PR introducing reference-based tests.
-              import subprocess
-              sha = subprocess.check_output(['git','-C','baseline','rev-parse','HEAD'], text=True).strip()
-              values = dict(path=str(tmp / 'physics-main'), sha=sha,
-                            python='3.12', committed='false')
+          manifest_path = base / 'reference.json'
+          if not manifest_path.is_file():
+              raise ValueError('Missing committed physics reference: ' + str(manifest_path)
+                               + '. CI will not generate one.')
+          # Fail before installing dependencies or compiling candidate kernels.
+          # The full pytest matrix validates the accepted reference's contents.
+          manifest = json.loads(manifest_path.read_text())
+          sha = manifest['sha']
+          version = manifest['python']
+          deps = manifest['deps']
+          if not re.fullmatch(r'[0-9a-f]{40}', sha):
+              raise ValueError('Invalid reference SHA')
+          if not re.fullmatch(r'3\.\d+\.\d+', version):
+              raise ValueError('Invalid reference Python version')
+          required = {'xobjects','xtrack','xpart','xdeps','numpy','scipy','pandas'}
+          allowed = required | {'xsuite','xfields'}
+          if not required <= deps.keys() <= allowed:
+              raise ValueError('Invalid reference dependency inventory')
+          if any(not re.fullmatch(r'[0-9][A-Za-z0-9.+!_-]*', v) for v in deps.values()):
+              raise ValueError('Invalid pinned package version')
+          (tmp / 'physics-constraints.txt').write_text(''.join(
+              f'{name}=={v}\n' for name, v in sorted(deps.items())))
+          values = dict(path=str(base), sha=sha, python=version)
           with output.open('a') as f:
               for key, value in values.items():
                   print(f'{key}={value}', file=f)
@@ -147,49 +144,19 @@ jobs:
       - name: Prepare physics environment
         working-directory: candidate
         shell: bash
-        env:
-          COMMITTED_REFERENCE: ${{ steps.reference.outputs.committed }}
         run: |
           set -euo pipefail
           python -m venv "$RUNNER_TEMP/xcoll-pr-physics"
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
           python -m pip install --upgrade pip
-          if [ "$COMMITTED_REFERENCE" = true ]; then
-            # Xsuite is a metapackage with release pins. The physics dependencies
-            # are pinned independently and Xcoll is deliberately editable.
-            grep -v '^xsuite==' "$RUNNER_TEMP/physics-constraints.txt" > "$RUNNER_TEMP/physics-core.txt"
-            python -m pip install -r "$RUNNER_TEMP/physics-core.txt"
-            if grep -q '^xsuite==' "$RUNNER_TEMP/physics-constraints.txt"; then
-              python -m pip install --no-deps "$(grep '^xsuite==' "$RUNNER_TEMP/physics-constraints.txt")"
-            fi
-            python -m pip install -c "$RUNNER_TEMP/physics-constraints.txt" -e '.[tests,benchmarks]' cython xaux
-          else
-            python -m pip install --upgrade xsuite
-            python -m pip install -e '.[tests,benchmarks]' cython xaux
+          # Xsuite is a metapackage with release pins. The physics dependencies
+          # are pinned independently and Xcoll is deliberately editable.
+          grep -v '^xsuite==' "$RUNNER_TEMP/physics-constraints.txt" > "$RUNNER_TEMP/physics-core.txt"
+          python -m pip install -r "$RUNNER_TEMP/physics-core.txt"
+          if grep -q '^xsuite==' "$RUNNER_TEMP/physics-constraints.txt"; then
+            python -m pip install --no-deps "$(grep '^xsuite==' "$RUNNER_TEMP/physics-constraints.txt")"
           fi
-
-      - name: Generate reference from the exact PR base (bootstrap only)
-        if: steps.reference.outputs.committed == 'false'
-        working-directory: candidate
-        shell: bash
-        env:
-          PHYSICS_REFERENCE: ${{ steps.reference.outputs.path }}
-          PHYSICS_REF_SHA: ${{ steps.reference.outputs.sha }}
-        run: |
-          set -euo pipefail
-          source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
-          python benchmarks/everest_compare_physics.py reference \
-            --repo "$GITHUB_WORKSPACE/baseline" \
-            --ref "$PHYSICS_REF_SHA" \
-            --data "$GITHUB_WORKSPACE/baseline/tests/data" \
-            --output "$PHYSICS_REFERENCE" \
-            --particles 20000 \
-            --lhc-particles 20000 \
-            --turns 10 \
-            --events-per-particle 12 \
-            --case-particles block-tungsten-26gev=500000 \
-            --case-particles crystal-amorphous-26gev=100000 \
-            --case-particles block-cfc-7000gev=100000
+          python -m pip install -c "$RUNNER_TEMP/physics-constraints.txt" -e '.[tests,benchmarks]' cython xaux
 
       - name: Prebuild candidate physics kernels
         id: prebuild
@@ -234,14 +201,5 @@ jobs:
         with:
           name: xcoll-pr-physics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.name }}
           path: ${{ runner.temp }}/physics-pr.xml
-          if-no-files-found: warn
-          retention-days: 90
-
-      - name: Archive generated base reference for review (bootstrap only)
-        if: always() && steps.reference.outputs.committed == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: xcoll-physics-base-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.name }}
-          path: ${{ steps.reference.outputs.path }}
           if-no-files-found: warn
           retention-days: 90

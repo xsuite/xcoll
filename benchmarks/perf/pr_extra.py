@@ -73,21 +73,51 @@ def assert_admin(actor):
             f'{actor} is not a repository administrator')
 
 
+def main_sha():
+    """Resolve the actual branch tip independently of the PR metadata."""
+    return sha(api('git/ref/heads/main')['object']['sha'])
+
+
 def current_merge(pr_number, approved_head=None):
-    """GitHub computes merge refs asynchronously: wait for exact parent SHAs."""
-    for _ in range(10):
+    """Wait for GitHub's test merge to have the current main and PR head parents."""
+    # A pull request's base.sha and merge_commit_sha can both be stale after
+    # main advances. Their agreement alone does not establish current main.
+    for attempt in range(20):
+        base = main_sha()
         pr = api(f'pulls/{pr_number}')
         require(eligible(pr), 'PR must be open, non-draft, and target main (not release/)')
-        head, base = sha(pr['head']['sha']), sha(pr['base']['sha'])
+        head = sha(pr['head']['sha'])
+        reported_base = sha(pr['base']['sha'])
         if approved_head is not None:
             require(head == approved_head, 'PR head changed since approval; review and dispatch again')
         merge = pr.get('merge_commit_sha')
-        if merge and pr.get('mergeable') is True and parents(merge) == [base, head]:
-            return pr, base, head, sha(merge)
-        if pr.get('mergeable') is False:
-            raise ValueError('PR has merge conflicts')
-        time.sleep(3)
-    raise ValueError('GitHub did not produce a merge commit with the expected parents')
+        if merge and pr.get('mergeable') is True:
+            merge = sha(merge)
+            if parents(merge) == [base, head] and main_sha() == base:
+                return pr, base, head, merge
+        # A conflict computed against a stale base need not be a conflict
+        # against current main. Wait for GitHub to refresh mergeability too.
+        if pr.get('mergeable') is False and reported_base == base and main_sha() == base:
+            raise ValueError('PR has merge conflicts against current main')
+        # The Git ref can already be refreshed while the PR payload is stale.
+        # Never use it without checking both exact parents and the branch tip.
+        try:
+            merge_ref = sha(api(f'git/ref/pull/{pr_number}/merge')['object']['sha'])
+        except subprocess.CalledProcessError:
+            # The test merge ref may not exist while GitHub is computing it.
+            merge_ref = None
+        if (merge_ref and (merge_ref != merge or pr.get('mergeable') is not True)
+                and parents(merge_ref) == [base, head] and main_sha() == base):
+            return pr, base, head, merge_ref
+        print(f'Waiting for PR #{pr_number} merge against main {base}; '
+              f'PR reports base {reported_base}, merge {merge}, merge ref {merge_ref} '
+              f'(attempt {attempt + 1}/20)', flush=True)
+        if attempt < 19:
+            time.sleep(3)
+    raise ValueError(
+        f'GitHub did not produce a merge commit with current main {base} '
+        f'and PR head {head} as parents. The PR merge ref may be stale; '
+        'check mergeability and dispatch again. Refusing to test an older base.')
 
 
 def resolve():
@@ -112,6 +142,10 @@ def resolve():
         require(pr['number'] == pr_number and eligible(pr), 'Ineligible PR')
         base, head, merge = sha(pr['base']['sha']), sha(pr['head']['sha']), sha(os.environ['GITHUB_SHA'])
         require(parents(merge) == [base, head], 'PR merge parents differ from event')
+    if kind == 'physics':
+        # Fail on the hosted resolver before scheduling any matrix jobs.
+        # The manifest's SHA is the accepted physics source, not the base SHA.
+        print(f'Using committed physics reference {reference_sha(base)}', flush=True)
     context = dict(schema=1, kind=kind, pr=pr_number, branch=pr['head']['ref'],
                    base_sha=base, head_sha=head, candidate_sha=merge,
                    run_id=str(number(os.environ['GITHUB_RUN_ID'])),
@@ -231,12 +265,16 @@ def xml_rows(path, expected):
 
 
 def reference_sha(base):
-    # The trusted base manifest is authoritative; absence means bootstrap.
+    # The trusted base manifest is mandatory. CI must never generate a reference.
     path = f'contents/tests/data/everest_physics_reference/reference.json?ref={sha(base)}'
     proc = subprocess.run(['gh', 'api', f'repos/{REPO}/{path}'], capture_output=True, text=True)
     if proc.returncode:
-        require('HTTP 404' in proc.stderr, 'Cannot read baseline manifest: ' + proc.stderr)
-        return base
+        if 'HTTP 404' in proc.stderr:
+            raise ValueError(
+                f'No committed physics reference at PR base {base}. '
+                'Update the PR against main with the accepted reference, '
+                'or manually dispatch against current main. CI will not generate one.')
+        raise ValueError('Cannot read baseline manifest: ' + proc.stderr)
     return sha(json.loads(base64.b64decode(json.loads(proc.stdout)['content']))['sha'])
 
 
@@ -300,18 +338,19 @@ def publish():
         # A manual dispatch has its own check suite on main. Attach an explicit
         # status to the tested merge only if it is still the current PR merge.
         if ctx['kind'] == 'physics' and run['event'] == 'workflow_dispatch':
-            pr = api(f"pulls/{ctx['pr']}")
-            if (pr['state'] == 'open' and pr['head']['sha'] == ctx['head_sha']
-                    and pr['base']['sha'] == ctx['base_sha']
-                    and pr.get('merge_commit_sha') == ctx['candidate_sha']):
-                state = 'success' if record['conclusion'] == 'success' else 'failure'
-                try:
+            try:
+                pr = api(f"pulls/{ctx['pr']}")
+                merge_ref = sha(api(f"git/ref/pull/{ctx['pr']}/merge")['object']['sha'])
+                if (pr['state'] == 'open' and pr['head']['sha'] == ctx['head_sha']
+                        and main_sha() == ctx['base_sha']
+                        and merge_ref == ctx['candidate_sha']):
+                    state = 'success' if record['conclusion'] == 'success' else 'failure'
                     gh('api', '--method', 'POST', f"repos/{REPO}/statuses/{ctx['candidate_sha']}",
                        '-f', f'state={state}', '-f', 'context=Xcoll physics (manual)',
                        '-f', f"target_url=https://github.com/{REPO}/actions/runs/{run['id']}",
                        '-f', 'description=Everest reference validation (manual)')
-                except subprocess.CalledProcessError:
-                    print('::warning::Could not publish manual commit status; retaining dashboard record')
+            except subprocess.CalledProcessError:
+                print('::warning::Could not verify/publish manual commit status; retaining dashboard record')
 
 
 def main():
