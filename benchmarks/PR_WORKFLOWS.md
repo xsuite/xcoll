@@ -12,13 +12,20 @@ On GitHub Actions, select **Xcoll physics (PR)** → **Run workflow**, choose
 gh workflow run xcoll-physics-pr.yml --repo xsuite/xcoll --ref main -f pr_number=123
 ```
 
-The hosted resolver queries the actual `main` branch tip independently of PR
-metadata, pins the PR head and merge SHA, and verifies both parents of the
-merge. If GitHub still reports a stale merge, it retries for a bounded period
-and then fails rather than testing an older base. Automatic PR runs retain
-their original event SHAs. The committed reference manifest must exist in
-the pinned base; CI never regenerates it. The accepted reference source SHA
-may differ from the pinned base SHA.
+Manual physics validates the PR's existing GitHub test merge, without asking
+GitHub to refresh it or modifying any branch. The resolver verifies that the
+merge's second parent is the current PR head and records its actual first
+parent as the tested base. It fails immediately if the merge ref is missing,
+conflicted, or belongs to an older PR head. Automatic PR runs retain their
+original event SHAs. Independently, the resolver pins a reviewed main checkout
+(the dispatch SHA for manual runs) for the accepted reference and validation
+harness. Its committed manifest is mandatory; CI never regenerates a reference.
+The reference source SHA, tooling SHA, and tested base SHA are distinct.
+The candidate's editable Xcoll package and lattice data are used for tracking;
+the trusted harness supplies the collector, comparison, and snapshot decoder.
+A candidate with an incompatible physics API or changed lattice data can fail
+rather than silently substituting main's physics. The external-engine workflow
+continues to require a merge with current main and its reviewed head.
 The three physics matrix jobs use the pinned pair; the CPU benchmark workflow
 is not triggered or cancelled. A new physics dispatch may cancel an older
 physics run for the same PR. Use a fresh dispatch (or rerun all jobs), not a
@@ -32,7 +39,7 @@ and the screening value/limit/status for each available captured comparison.
 The helper tests still contribute to the overall workflow conclusion.
 
 A manual dispatch is a new check suite on main. When the tested merge is still
-current, the publisher also attempts to post a distinct **Xcoll physics
+current and its base is current main, the publisher also attempts to post a distinct **Xcoll physics
 (manual)** commit status on that merge. This does not replace old failed
 matrix checks or satisfy a different required-check name. If a required
 automatic check is still blocking merging, use the normal branch-update/PR
@@ -139,7 +146,7 @@ separate; the dashboard can show the physics result alongside the benchmark with
 
 The new publication schema for physics is separate from the existing benchmark
 rows. It includes the PR, branch, run ID, attempt, tested revisions, reference
-SHA, overall conclusion, and per-case statuses/checks. It excludes raw particle
+SHA, trusted tooling SHA, overall conclusion, and per-case statuses/checks. It excludes raw particle
 snapshots, full captured logs, and full XML reports. The original artifacts
 remain available in Actions for investigation. External benchmark records keep
 the existing schema with a profile label, so all timing/physics detail rows

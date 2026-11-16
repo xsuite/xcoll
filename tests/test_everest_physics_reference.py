@@ -107,9 +107,12 @@ def test_everest_physics_against_reference(physics_case, tmp_path, physics_conte
     n = info['n']
     energy = info['energy_gev']
     candidate = tmp_path / 'candidate'
+    # CI runs this trusted harness from main while importing the separately
+    # pinned candidate package. Local tests still use their own checkout.
+    checkout = Path(os.environ.get('XCOLL_EVEREST_PHYSICS_CHECKOUT', ROOT)).resolve()
     args = SimpleNamespace(
-        checkout=ROOT, output=candidate, input_reference=reference,
-        data=ROOT/'tests'/'data', cases=[info['family']],
+        checkout=checkout, output=candidate, input_reference=reference,
+        data=checkout/'tests'/'data', cases=[info['family']],
         particles=n, lhc_particles=n, turns=info.get('turns', 10),
         element_energies=[energy], lhc_energies=[energy],
         beam=[info.get('beam', 1)], plane=[info.get('plane', 'H')],

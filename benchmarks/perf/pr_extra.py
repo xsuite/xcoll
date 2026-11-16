@@ -78,6 +78,38 @@ def main_sha():
     return sha(api('git/ref/heads/main')['object']['sha'])
 
 
+def existing_merge(pr_number):
+    """Pin the PR's existing GitHub test merge; never update or merge a branch."""
+    pr = api(f'pulls/{pr_number}')
+    require(eligible(pr), 'PR must be open, non-draft, and target main (not release/)')
+    head = sha(pr['head']['sha'])
+    # Read the actual merge ref, not potentially stale merge_commit_sha metadata.
+    # If the head has advanced without a corresponding merge, fail immediately.
+    try:
+        merge = sha(api(f'git/ref/pull/{pr_number}/merge')['object']['sha'])
+    except subprocess.CalledProcessError as exc:
+        raise ValueError('No existing PR merge ref; check mergeability and dispatch again') from exc
+    pair = parents(merge)
+    require(len(pair) == 2 and pair[1] == head,
+            'Existing PR merge does not match current PR head; dispatch again')
+    base = sha(pair[0])
+    require(pr.get('mergeable') is not False, 'PR has merge conflicts')
+    return pr, base, head, merge
+
+
+def tools_checkout_sha():
+    """Pin the trusted main checkout that supplies validation tools and data."""
+    root = Path(__file__).resolve().parents[2]
+    return sha(subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'],
+                                       text=True).strip())
+
+
+def main_contains(commit):
+    """Only allow physics tooling revisions in the protected main history."""
+    tip = main_sha()
+    return commit == tip or api(f'compare/{commit}...{tip}?per_page=1')['merge_base_commit']['sha'] == commit
+
+
 def current_merge(pr_number, approved_head=None):
     """Wait for GitHub's test merge to have the current main and PR head parents."""
     # A pull request's base.sha and merge_commit_sha can both be stale after
@@ -134,7 +166,10 @@ def resolve():
             for actor in {os.environ['GITHUB_ACTOR'], os.environ['TRIGGERING_ACTOR']}:
                 assert_admin(actor)
             approved = sha(os.environ['APPROVED_HEAD'])
-        pr, base, head, merge = current_merge(pr_number, approved)
+        if kind == 'physics':
+            pr, base, head, merge = existing_merge(pr_number)
+        else:
+            pr, base, head, merge = current_merge(pr_number, approved)
     else:
         require(kind == 'physics' and os.environ['GITHUB_EVENT_NAME'] == 'pull_request',
                 'External PR benchmarks are manual only')
@@ -142,20 +177,30 @@ def resolve():
         require(pr['number'] == pr_number and eligible(pr), 'Ineligible PR')
         base, head, merge = sha(pr['base']['sha']), sha(pr['head']['sha']), sha(os.environ['GITHUB_SHA'])
         require(parents(merge) == [base, head], 'PR merge parents differ from event')
-    if kind == 'physics':
-        # Fail on the hosted resolver before scheduling any matrix jobs.
-        # The manifest's SHA is the accepted physics source, not the base SHA.
-        print(f'Using committed physics reference {reference_sha(base)}', flush=True)
     context = dict(schema=1, kind=kind, pr=pr_number, branch=pr['head']['ref'],
                    base_sha=base, head_sha=head, candidate_sha=merge,
                    run_id=str(number(os.environ['GITHUB_RUN_ID'])),
                    attempt=number(os.environ['GITHUB_RUN_ATTEMPT']))
+    if kind == 'physics':
+        # The accepted reference lives in the trusted tooling checkout, which
+        # can be newer than the first parent of the tested PR merge.
+        tools = tools_checkout_sha()
+        require(main_contains(tools), 'Physics tools are not from main history')
+        require(main_contains(base), 'Tested PR base is not from main history')
+        if manual:
+            require(tools == sha(os.environ['GITHUB_SHA']),
+                    'Physics tools differ from the dispatched main revision')
+        ref = reference_sha(tools)
+        context.update(tools_sha=tools, reference_sha=ref)
+        print(f'Using physics tools {tools}, accepted reference {ref}', flush=True)
     path = Path(os.environ['RUNNER_TEMP']) / 'pr-context.json'
     path.write_text(json.dumps(context, indent=2) + '\n')
     with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
         print(f'base={base}\ncandidate={merge}\nhead={head}', file=f)
         print(f'pr={pr_number}', file=f)
         print(f"authorised_attempt={context['attempt']}", file=f)
+        if kind == 'physics':
+            print(f'tools={tools}\nreference={ref}', file=f)
     print(f'PR #{pr_number}: base {base}, head {head}, merge {merge}, kind {kind}')
 
 
@@ -189,10 +234,21 @@ def load_context(path, run):
     else:
         require(run['event'] == 'workflow_dispatch' and run['head_branch'] == 'main',
                 'Not a manual main workflow')
-    # Canonical record: discard all other artifact fields.
-    return dict(schema=1, kind=kind, pr=pr, branch=actual['head']['ref'],
-                base_sha=base, head_sha=head, candidate_sha=merge,
-                run_id=str(run['id']), attempt=run['run_attempt'])
+    # Canonical record: discard all other artifact fields. Historical records
+    # predating the separate tooling checkout used their PR base as reference.
+    context = dict(schema=1, kind=kind, pr=pr, branch=actual['head']['ref'],
+                   base_sha=base, head_sha=head, candidate_sha=merge,
+                   run_id=str(run['id']), attempt=run['run_attempt'])
+    if kind == 'physics' and 'tools_sha' in obj:
+        tools = sha(obj['tools_sha'])
+        require(main_contains(tools), 'Physics tools are not from main history')
+        require(main_contains(base), 'Tested PR base is not from main history')
+        if run['event'] == 'workflow_dispatch':
+            require(tools == run['head_sha'], 'Physics tools differ from dispatched main')
+        ref = reference_sha(tools)
+        require(sha(obj['reference_sha']) == ref, 'Reference source differs from tooling manifest')
+        context.update(tools_sha=tools, reference_sha=ref)
+    return context
 
 
 def download(run, name, directory, *, optional=False):
@@ -264,16 +320,15 @@ def xml_rows(path, expected):
     return rows
 
 
-def reference_sha(base):
-    # The trusted base manifest is mandatory. CI must never generate a reference.
-    path = f'contents/tests/data/everest_physics_reference/reference.json?ref={sha(base)}'
+def reference_sha(tools):
+    # The trusted tooling manifest is mandatory. CI must never generate a reference.
+    path = f'contents/tests/data/everest_physics_reference/reference.json?ref={sha(tools)}'
     proc = subprocess.run(['gh', 'api', f'repos/{REPO}/{path}'], capture_output=True, text=True)
     if proc.returncode:
         if 'HTTP 404' in proc.stderr:
             raise ValueError(
-                f'No committed physics reference at PR base {base}. '
-                'Update the PR against main with the accepted reference, '
-                'or manually dispatch against current main. CI will not generate one.')
+                f'No committed physics reference at tooling revision {tools}. '
+                'Dispatch from main with the accepted reference. CI will not generate one.')
         raise ValueError('Cannot read baseline manifest: ' + proc.stderr)
     return sha(json.loads(base64.b64decode(json.loads(proc.stdout)['content']))['sha'])
 
@@ -293,7 +348,9 @@ def physics_record(context, run, directory):
     if conclusion == 'success' and any(r['status'] != 'PASSED' for r in rows.values()):
         conclusion = 'failure'
     return dict(context, datetime=run['updated_at'].removesuffix('Z'), conclusion=conclusion,
-                reference_sha=reference_sha(context['base_sha']), rows=[rows[k] for k in sorted(rows)])
+                reference_sha=(context['reference_sha'] if 'reference_sha' in context
+                               else reference_sha(context.get('tools_sha', context['base_sha']))),
+                rows=[rows[k] for k in sorted(rows)])
 
 
 def benchmark_record(context, run, directory):
@@ -336,7 +393,8 @@ def publish():
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             print(f"pr={ctx['pr']}\nrecord={dest}\nkind={ctx['kind']}", file=f)
         # A manual dispatch has its own check suite on main. Attach an explicit
-        # status to the tested merge only if it is still the current PR merge.
+        # status to the tested merge only if it is still the current PR merge
+        # against current main. Historical merge results remain dashboard-only.
         if ctx['kind'] == 'physics' and run['event'] == 'workflow_dispatch':
             try:
                 pr = api(f"pulls/{ctx['pr']}")

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'Open PR number to validate against current main'
+        description: 'Open PR number: test its existing merge against the accepted reference'
         required: true
         type: number
 
@@ -33,10 +33,13 @@ jobs:
       base: ${{ steps.resolve.outputs.base }}
       candidate: ${{ steps.resolve.outputs.candidate }}
       head: ${{ steps.resolve.outputs.head }}
+      tools: ${{ steps.resolve.outputs.tools }}
+      reference: ${{ steps.resolve.outputs.reference }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          # Manual runs pin the dispatch SHA; automatic runs use reviewed main.
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || 'main' }}
           persist-credentials: false
       - name: Resolve and pin PR revisions
         id: resolve
@@ -73,11 +76,11 @@ jobs:
           - name: lhc-b2
             selection: "lhc and b2"
     steps:
-      - name: Check out main baseline (read-only)
+      - name: Check out trusted validation tools and reference (read-only)
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.resolve.outputs.base }}
-          path: baseline
+          ref: ${{ needs.resolve.outputs.tools }}
+          path: harness
           persist-credentials: false
           lfs: true
 
@@ -91,21 +94,29 @@ jobs:
 
       - name: Verify base of tested merge
         env:
+          BASE_SHA: ${{ needs.resolve.outputs.base }}
           HEAD_SHA: ${{ needs.resolve.outputs.head }}
+          CANDIDATE_SHA: ${{ needs.resolve.outputs.candidate }}
+          TOOLS_SHA: ${{ needs.resolve.outputs.tools }}
         run: |
-          test "$(git -C candidate rev-parse HEAD^1)" = "$(git -C baseline rev-parse HEAD)"
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(git -C candidate rev-parse HEAD^1)" = "$BASE_SHA"
           test "$(git -C candidate rev-parse HEAD^2)" = "$HEAD_SHA"
+          test "$(git -C harness rev-parse HEAD)" = "$TOOLS_SHA"
 
       - name: Select immutable reference and environment
         id: reference
         shell: bash
+        env:
+          EXPECTED_REFERENCE_SHA: ${{ needs.resolve.outputs.reference }}
         run: |
           set -euo pipefail
           python - <<'PY'
           import json, os, re
           from pathlib import Path
 
-          base = Path('baseline/tests/data/everest_physics_reference').resolve()
+          base = Path('harness/tests/data/everest_physics_reference').resolve()
           tmp = Path(os.environ['RUNNER_TEMP'])
           output = Path(os.environ['GITHUB_OUTPUT'])
           manifest_path = base / 'reference.json'
@@ -116,6 +127,8 @@ jobs:
           # The full pytest matrix validates the accepted reference's contents.
           manifest = json.loads(manifest_path.read_text())
           sha = manifest['sha']
+          if sha != os.environ['EXPECTED_REFERENCE_SHA']:
+              raise ValueError('Reference SHA differs from pinned tooling manifest')
           version = manifest['python']
           deps = manifest['deps']
           if not re.fullmatch(r'[0-9a-f]{40}', sha):
@@ -172,7 +185,19 @@ jobs:
             echo 'use_prebuilt=0' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          python -m benchmarks.perf.prebuild_cpu \
+          # Use the reviewed helper, but compile only the candidate package.
+          export PYTHONPATH="$GITHUB_WORKSPACE/candidate"
+          python - <<'PYCODE'
+          import os
+          from pathlib import Path
+          import xcoll
+          candidate = (Path(os.environ['GITHUB_WORKSPACE']) / 'candidate').resolve()
+          source = Path(xcoll.__file__).resolve()
+          if not source.is_relative_to(candidate):
+              raise RuntimeError(f'Expected candidate Xcoll, imported {source}')
+          print(f'Compiling candidate Xcoll from {source}')
+          PYCODE
+          python "$GITHUB_WORKSPACE/harness/benchmarks/perf/prebuild_cpu.py" \
             --skip-tpsa \
             --skip-synrad \
             --n-threads 2 \
@@ -180,16 +205,22 @@ jobs:
           echo 'use_prebuilt=1' >> "$GITHUB_OUTPUT"
 
       - name: Test PR physics against reference
-        working-directory: candidate/tests
+        working-directory: candidate
         shell: bash
         env:
+          XCOLL_EVEREST_PHYSICS_CHECKOUT: ${{ github.workspace }}/candidate
           XCOLL_EVEREST_PHYSICS_REFERENCE: ${{ steps.reference.outputs.path }}
           XCOLL_EVEREST_PHYSICS_REF_SHA: ${{ steps.reference.outputs.sha }}
           XCOLL_EVEREST_PHYSICS_USE_PREBUILT: ${{ steps.prebuild.outputs.use_prebuilt }}
         run: |
           set -euo pipefail
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
-          python -m pytest test_everest_physics_reference.py -v \
+          export PYTHONPATH="$GITHUB_WORKSPACE/candidate"
+          # Run only the trusted physics harness; do not load unrelated tests or
+          # conftest hooks from either checkout. Import candidate Xcoll explicitly.
+          python -m pytest -c "$GITHUB_WORKSPACE/harness/tests/pytest.ini" \
+            --noconftest --import-mode=importlib -o addopts='' \
+            "$GITHUB_WORKSPACE/harness/tests/test_everest_physics_reference.py" -v \
             -k "${{ matrix.selection }}" \
             --durations=0 \
             -o junit_logging=system-out -o junit_log_passing_tests=true \

@@ -104,17 +104,20 @@ def test_reference_manifest_required(monkeypatch):
 def test_resolve_physics_stops_before_context_when_reference_missing(tmp_path, monkeypatch, event_name):
     env = dict(GITHUB_REPOSITORY=p.REPO, KIND='physics', PR_NUMBER='12',
                GITHUB_EVENT_NAME=event_name, GITHUB_REF='refs/heads/main',
-               GITHUB_SHA=MERGE, GITHUB_RUN_ID='100', GITHUB_RUN_ATTEMPT='1',
+               GITHUB_SHA=('d' * 40 if event_name == 'workflow_dispatch' else MERGE),
+               GITHUB_RUN_ID='100', GITHUB_RUN_ATTEMPT='1',
                RUNNER_TEMP=str(tmp_path), GITHUB_OUTPUT=str(tmp_path / 'output'))
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     pr = sample_pr()
-    monkeypatch.setattr(p, 'current_merge', lambda *a: (pr, BASE, HEAD, MERGE))
+    monkeypatch.setattr(p, 'existing_merge', lambda *a: (pr, BASE, HEAD, MERGE))
+    monkeypatch.setattr(p, 'tools_checkout_sha', lambda: 'd' * 40)
+    monkeypatch.setattr(p, 'main_contains', lambda _: True)
     monkeypatch.setattr(p, 'event', lambda: {'pull_request': pr})
     monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
 
     def missing(base):
-        assert base == BASE
+        assert base == 'd' * 40
         raise ValueError('No committed physics reference')
 
     monkeypatch.setattr(p, 'reference_sha', missing)
@@ -206,3 +209,85 @@ def test_external_record_cannot_change_approved_revision(tmp_path, monkeypatch):
     artifact.write_text(json.dumps(dict(record, head_sha='d' * 40)))
     with pytest.raises(ValueError, match='head_sha differs'):
         p.benchmark_record(context, run, tmp_path)
+
+
+def test_existing_merge_does_not_wait_for_current_main(monkeypatch):
+    pr = sample_pr()
+    calls = []
+
+    def api(path):
+        calls.append(path)
+        return {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else pr
+
+    monkeypatch.setattr(p, 'api', api)
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
+    monkeypatch.setattr(p.time, 'sleep', lambda _: pytest.fail('Must not poll'))
+    assert p.existing_merge(12)[1:] == (BASE, HEAD, MERGE)
+    assert calls == ['pulls/12', 'git/ref/pull/12/merge']
+    # The actual merge first parent wins over stale PR API base metadata.
+    pr['base']['sha'] = 'e' * 40
+    assert p.existing_merge(12)[1:] == (BASE, HEAD, MERGE)
+
+
+def test_existing_merge_rejects_old_head_and_conflict(monkeypatch):
+    pr = sample_pr()
+    monkeypatch.setattr(p, 'api', lambda path: (
+        {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else pr))
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, 'd' * 40])
+    with pytest.raises(ValueError, match='does not match current PR head'):
+        p.existing_merge(12)
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
+    pr['mergeable'] = False
+    with pytest.raises(ValueError, match='merge conflicts'):
+        p.existing_merge(12)
+
+
+@pytest.mark.parametrize('event_name', ['workflow_dispatch', 'pull_request'])
+def test_resolve_separate_tools_and_reference(tmp_path, monkeypatch, event_name):
+    tools, source = 'd' * 40, 'e' * 40
+    env = dict(GITHUB_REPOSITORY=p.REPO, KIND='physics', PR_NUMBER='12',
+               GITHUB_EVENT_NAME=event_name, GITHUB_REF='refs/heads/main',
+               GITHUB_SHA=(tools if event_name == 'workflow_dispatch' else MERGE),
+               GITHUB_RUN_ID='100', GITHUB_RUN_ATTEMPT='1',
+               RUNNER_TEMP=str(tmp_path), GITHUB_OUTPUT=str(tmp_path / 'output'))
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    pr = sample_pr()
+    monkeypatch.setattr(p, 'existing_merge', lambda *a: (pr, BASE, HEAD, MERGE))
+    monkeypatch.setattr(p, 'event', lambda: {'pull_request': pr})
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
+    monkeypatch.setattr(p, 'tools_checkout_sha', lambda: tools)
+    monkeypatch.setattr(p, 'main_contains', lambda commit: commit in (tools, BASE))
+
+    def reference_sha(commit):
+        assert commit == tools
+        return source
+
+    monkeypatch.setattr(p, 'reference_sha', reference_sha)
+    p.resolve()
+    ctx = json.loads((tmp_path / 'pr-context.json').read_text())
+    assert (ctx['base_sha'], ctx['head_sha'], ctx['candidate_sha']) == (BASE, HEAD, MERGE)
+    assert (ctx['tools_sha'], ctx['reference_sha']) == (tools, source)
+    assert f'tools={tools}\nreference={source}' in (tmp_path / 'output').read_text()
+    # A separate reference/tooling revision survives publisher validation.
+    monkeypatch.setattr(p, 'api', lambda _: pr)
+    run = dict(id=100, run_attempt=1, name='Xcoll physics (PR)', event=event_name,
+               head_sha=env['GITHUB_SHA'], head_branch='main', pull_requests=[{'number': 12}])
+    assert p.load_context(tmp_path / 'pr-context.json', run) == ctx
+    monkeypatch.setattr(p, 'download', lambda *args, **kwargs: False)
+    record = p.physics_record(ctx, dict(run, conclusion='failure',
+                             updated_at='2026-11-16T10:00:00Z'), tmp_path)
+    assert (record['base_sha'], record['tools_sha'], record['reference_sha']) == (BASE, tools, source)
+    # The artifact cannot substitute its own reference SHA.
+    (tmp_path / 'pr-context.json').write_text(json.dumps(dict(ctx, reference_sha=BASE)))
+    with pytest.raises(ValueError, match='Reference source differs'):
+        p.load_context(tmp_path / 'pr-context.json', run)
+
+
+def test_main_contains_checks_ancestry(monkeypatch):
+    tip = 'd' * 40
+    monkeypatch.setattr(p, 'main_sha', lambda: tip)
+    monkeypatch.setattr(p, 'api', lambda path: {'merge_base_commit': {'sha': BASE}})
+    assert p.main_contains(tip)
+    assert p.main_contains(BASE)
+    assert not p.main_contains(HEAD)
