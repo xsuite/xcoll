@@ -34,7 +34,6 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
     while (aran > everest->cprob[ichoix]) {
         ichoix += 1;
     }
-
     // Do the interaction
     // Scattered angle is cos theta = 1 + t / (2p^2) for elastic scattering
     //    from Mandelstam t = (p1-p3)^2) = 2m^2 - 2E1E3 + 2p1.p3
@@ -49,7 +48,7 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
         }
 
     } else {
-        double sqrt_t_p;
+        double sqrt_t_p=0;
         if (ichoix==2) {
             // p-n elastic
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC, everest->shape_id);
@@ -89,7 +88,7 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
                 sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
             }
 
-        } else {
+        } else if (ichoix==5) {
             // Coulomb
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB, everest->shape_id);
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
