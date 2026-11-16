@@ -742,12 +742,16 @@ class BaseCollimator(BaseBlock):
                 and ref.nemitt_y is not None and ref.beta_gamma_rel is not None)
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
-                      twiss_upstream=None, twiss_downstream=None, reference_optics=None):
+                      twiss_upstream=None, twiss_downstream=None, reference_optics=None,
+                      gemitt_x=None, gemitt_y=None):
         """Assign precomputed optics without accessing a line.
 
         `reference_optics` is a combined or local Xsuite table with position
         labels and s_rel measured from the entrance. `twiss` also accepts a
-        full line Twiss table (with `name`).
+        full line Twiss table (with `name`). ``gemitt_x`` and ``gemitt_y``
+        are geometric alternatives to ``nemitt_x`` and ``nemitt_y``, converted
+        using ``beta_gamma_rel`` (explicit or from the optics metadata).
+        Provide only one form per plane.
         """
         if reference_optics is not None:
             if twiss is not None or twiss_upstream is not None or twiss_downstream is not None:
@@ -768,6 +772,9 @@ class BaseCollimator(BaseBlock):
             if 'beta_gamma_rel' not in metadata:
                 raise ValueError("Need to provide `beta_gamma_rel`.")
             beta_gamma_rel = optics['beta_gamma_rel']
+        from ..optics import _normalized_emittance
+        nemitt_x = _normalized_emittance(nemitt_x, gemitt_x, beta_gamma_rel, 'x')
+        nemitt_y = _normalized_emittance(nemitt_y, gemitt_y, beta_gamma_rel, 'y')
         if nemitt_x is None and 'nemitt_x' in metadata:
             nemitt_x = optics['nemitt_x']
         if nemitt_y is None and 'nemitt_y' in metadata:
@@ -789,15 +796,28 @@ class BaseCollimator(BaseBlock):
         self._optics = optics
         self._apply_optics()
 
-    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET):
+    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET,
+                               gemitt_x=_UNSET, gemitt_y=_UNSET):
         """Set reference normalised emittances and reapply the current optics.
 
+        Geometric ``gemitt_x``/``gemitt_y`` can be supplied instead of the
+        corresponding normalized input when the reference optics include
+        ``beta_gamma_rel``. Explicit None clears either form.
         Omitted planes are unchanged; None clears a plane. No line or Twiss
         calculation is needed. Without optics rows only metadata is updated.
         """
+        from ..optics import _normalized_emittance
+        ref = self.reference_optics
+        for plane, nemitt, gemitt in (('x', nemitt_x, gemitt_x),
+                                     ('y', nemitt_y, gemitt_y)):
+            if gemitt is not _UNSET and nemitt is not _UNSET:
+                raise ValueError(f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+        if gemitt_x is not _UNSET:
+            nemitt_x = _normalized_emittance(None, gemitt_x, ref.beta_gamma_rel, 'x')
+        if gemitt_y is not _UNSET:
+            nemitt_y = _normalized_emittance(None, gemitt_y, ref.beta_gamma_rel, 'y')
         if nemitt_x is _UNSET and nemitt_y is _UNSET:
             return
-        ref = self.reference_optics
         ex = ref.nemitt_x if nemitt_x is _UNSET else _validate_reference_emittance(nemitt_x, 'x')
         ey = ref.nemitt_y if nemitt_y is _UNSET else _validate_reference_emittance(nemitt_y, 'y')
         ref._set_metadata(nemitt_x=ex, nemitt_y=ey)
@@ -1121,8 +1141,8 @@ class BaseCollimator(BaseBlock):
                         longitudinal=longitudinal, longitudinal_betatron_cut=longitudinal_betatron_cut,
                         **kwargs)
 
-    def generate_delta(self, *, plane, position_mm, nemitt_x, nemitt_y, betatron_cut=0,
-                       match_at_front=True, twiss=None):
+    def generate_delta(self, *, plane, position_mm, nemitt_x=None, nemitt_y=None, betatron_cut=0,
+                       match_at_front=True, twiss=None, gemitt_x=None, gemitt_y=None):
         warn("Element.generate_delta() is deprecated and will be removed in a future release. "
              "Use line.xcoll.collimators.generate_delta(name, ...) instead.",
              FutureWarning, stacklevel=2)
@@ -1130,7 +1150,8 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Collimator is missing a pointer to the line. Use "
                              "line.xcoll.collimators.generate_delta(name, ...) instead.")
         return self._line.xcoll.collimators.generate_delta(self._name, plane=plane,
-                        position_mm=position_mm, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss,
+                        position_mm=position_mm, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                        gemitt_x=gemitt_x, gemitt_y=gemitt_y, twiss=twiss,
                         betatron_cut=betatron_cut, match_at_front=match_at_front)
 
     def _verify_consistency(self):

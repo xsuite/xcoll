@@ -230,7 +230,17 @@ class CollimatorDatabase:
 
 
     @classmethod
-    def from_dict(cls, dct, beam=None, _yaml_merged=False, nemitt_x=None, nemitt_y=None, ignore_crystals=True):
+    def from_dict(cls, dct, beam=None, _yaml_merged=False, nemitt_x=None, nemitt_y=None, ignore_crystals=True, *,
+                  gemitt_x=None, gemitt_y=None, beta_gamma_rel=None):
+        """Load a database with normalized or geometric reference emittances.
+
+        Geometric inputs require ``beta_gamma_rel`` at the reference energy.
+        The database stores normalized emittances, including on serialization.
+        Provide only one form per plane.
+        """
+        from .optics import _normalized_emittance
+        nemitt_x = _normalized_emittance(nemitt_x, gemitt_x, beta_gamma_rel, 'x')
+        nemitt_y = _normalized_emittance(nemitt_y, gemitt_y, beta_gamma_rel, 'y')
         # We make all keys case-insensitive to avoid confusion between different conventions
         # The families are optional
         fam = {}
@@ -247,7 +257,8 @@ class CollimatorDatabase:
         elif nemitt_x is None or nemitt_y is None:
             raise ValueError("Need to provide both 'nemitt_x' and 'nemitt_y'!")
         elif 'emittance' in dct.keys():
-            if dct['emittance']['x'] != nemitt_x or dct['emittance']['y'] != nemitt_y:
+            if (not np.isclose(dct['emittance']['x'], nemitt_x, rtol=1e-12, atol=0)
+                    or not np.isclose(dct['emittance']['y'], nemitt_y, rtol=1e-12, atol=0)):
                 raise ValueError("Emittance in CollimatorDatabase file different from "
                                + "'nemitt_x' and 'nemitt_y'!")
 
