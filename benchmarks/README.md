@@ -1,6 +1,6 @@
 # Benchmarks
 
-We use [pytest-benchmark](https://pytest-benchmark.readthedocs.io/) to measure the performance of our code while developing, and to keep track of how it evolves over time. We also store physical observables, such that we can check that a change in performance does not come at the expense of the physics.
+We use [pytest-benchmark](https://pytest-benchmark.readthedocs.io/) to measure the performance of our code while developing, and to keep track of how it evolves over time. We also store physical observables, such that we can check that a change in performance does not come at the expense of the physics. In addition to these benchmark diagnostics, we maintain an accepted Everest physics reference for more detailed regression testing (see [Physics validation](#physics-validation)).
 
 ## Quick start
 
@@ -138,35 +138,59 @@ The `vs first` column and absolute-runtime plot show longer-term evolution.
 
 ## Automated benchmarks and publication
 
-The workflows are in `.github/workflows/`. There are three types of measurement:
+The workflows are in `.github/workflows/`. Scheduled benchmarks, PR benchmarks, and physics validation are separate workflows:
 
 | Workflow | What it runs | Where |
 |---|---|---|
 | `xcoll-performance.yml` | Full ordinary CPU suite daily (03:17 UTC); manual quick or full | Dedicated CERN VM for main; GitHub-hosted for other refs |
 | `xcoll-performance-fluka.yml` | FLUKA daily (05:37 UTC) or manual | CERN VM |
 | `xcoll-performance-geant4.yml` | Geant4/BDSIM daily (08:57 UTC) or manual | CERN VM |
-| `xcoll-performance-pr.yml` | Full CPU main vs PR, sequentially on the same machine | GitHub-hosted |
+| `xcoll-performance-pr.yml` | Full CPU PR base vs PR merge, sequentially on the same machine | GitHub-hosted |
+| `xcoll-physics-pr.yml` | Everest physics against the committed reference, automatically on PRs or manually by PR number | GitHub-hosted |
+| `xcoll-performance-external-pr.yml` | Paired FLUKA or Geant4 PR benchmarks, manual only, administrator-authorised | CERN VM |
 
-GitHub schedules in UTC by default, and can start late. The CERN jobs share the same concurrency group, with a queue, to ensure that two benchmarks never run on the VM at the same time. The runner is restricted to reviewed main code. See [RUNNERS.md](RUNNERS.md) for the installation and security considerations. In particular, do not run arbitrary PR code on a persistent CERN runner.
+GitHub schedules in UTC by default, and can start late. The CERN jobs share the same concurrency group, with a queue, to ensure that two benchmarks never run on the VM at the same time. The scheduled workflows run reviewed main code. Manual external PR benchmarks use the same CERN VM, but only after the explicit administrator approval described below. See [RUNNERS.md](RUNNERS.md) for the installation and security considerations, and [PR_WORKFLOWS.md](PR_WORKFLOWS.md) for the additional PR workflow configuration. In particular, do not run arbitrary PR code on a persistent CERN runner.
 
 Each CERN run creates a disposable Conda environment, installs released Xsuite and the current Xcoll checkout, and prebuilds the selected serial Xsuite kernels. FLUKA and Geant4 also compile their interfaces. The compiler-worker count (`0` for sequential compilation, `2` for two workers) is independent of the serial tracking context. Scheduled runs use `0`; manual runs can choose. The CPU workflow pins Conda GCC/G++ 16.2. We save the compiler and dependency versions and remove the environment afterwards. Released dependencies can change between days.
 
 For FLUKA the machine needs a working installation (including system `tree` and `gfortran`), with the repository Actions variables `XCOLL_FLUKA_ROOT`, `XCOLL_FLUKA_SERVER`, `XCOLL_FLUKAIO_LIB`, `XCOLL_LINEBUILDER_ROOT`, and optionally `XCOLL_FLUKA_FEDB` pointing to the relevant paths. Geant4/BDSIM is installed in its Conda environment. See the respective workflows for the exact package specifications.
 
-For PRs targeting main, we run the PR base revision first, then the PR merge commit on the **same** GitHub-hosted machine, in separate environments with shared dependency constraints and fresh kernels. This gives a direct performance comparison, unlike comparing to the CERN VM. The job summary and artefact contain timing changes and physics comparisons against both the paired main result and the scheduled CPU reference. New commits cancel older runs; draft PRs and `release/` PRs are skipped. Benchmark failures fail the job, while physics comparison flags are informational.
+For the automatic CPU benchmarks on PRs targeting main, we run the PR base revision first, then the PR merge commit on the **same** GitHub-hosted machine, in separate environments with shared dependency constraints and fresh kernels. This gives a direct performance comparison, unlike comparing to the CERN VM. The job summary and artefact contain timing changes and physics comparisons against both the paired main result and the scheduled CPU reference. New commits cancel older runs; draft PRs and `release/` PRs are skipped. Benchmark failures fail the job, while physics comparison flags are informational.
 
-Successful paired comparisons are also saved under `pr-runs/<PR number>/` on `benchmark-results` and shown in the **Pull Requests** tab of the online dashboard. Select a PR and a workflow run to inspect its saved comparison, including the workload parameters and physical observables. The results are frozen as measured: revisiting an old PR does not compare it again against today's physics baseline. The PR runner remains read-only; a separate, trusted `workflow_run` publisher validates the artefact, writes the compact record, and updates the website. The raw timing samples remain available only in the 90-day Actions artefact.
+Successful paired comparisons are also saved under `pr-runs/<PR number>/` on `benchmark-results` and shown in the **Pull Requests** tab of the online dashboard. Select a PR and a workflow run to inspect its saved comparison, including the workload parameters and physical observables. The results are frozen as measured: revisiting an old PR does not compare it again against today's physics baseline. The PR measurement jobs use read-only repository permissions; separate, trusted `workflow_run` publishers validate the artefacts, write the compact records, and update the website. The raw timing samples remain available only in the 90-day Actions artefact.
+
+### Physics and external-engine PR workflows
+
+The Everest reference-validation workflow is independent of the CPU performance workflow. It runs automatically for eligible PRs targeting main, and can also be dispatched manually from main with a PR number:
+
+```bash
+gh workflow run xcoll-physics-pr.yml --repo xsuite/xcoll --ref main -f pr_number=123
+```
+
+A manual dispatch tests the existing PR merge commit, without requiring the contributor's branch or GitHub's merge ref to be updated to the latest main. Automatic runs retain the merge revision from the PR event. Both use a separately pinned checkout of main for the accepted reference and validation tools, and compile kernels from the candidate checkout. No reference generation is performed in PR CI. A manual physics dispatch does not restart the CPU performance workflow; the physics jobs have their own concurrency group.
+
+The FLUKA and Geant4 PR benchmarks are manual only. Once the administrator-only workflow has been configured and enabled (see [PR_WORKFLOWS.md](PR_WORKFLOWS.md)), a repository administrator can dispatch a run from main with the PR number, the engine, and the full reviewed head SHA:
+
+```bash
+gh workflow run xcoll-performance-external-pr.yml --repo xsuite/xcoll --ref main \
+    -f pr_number=123 -f engine=fluka \
+    -f approved_head_sha=REPLACE_WITH_REVIEWED_40_CHARACTER_SHA
+```
+
+Use `engine=geant4` for Geant4/BDSIM. These workflows require a merge against current main, the exact reviewed PR head, and the configured approval gate before scheduling on CERN. Both revisions are benchmarked sequentially in separate environments on the existing VM, with the same dependency configuration and freshly compiled kernels and interfaces. The CERN jobs share the scheduled benchmark queue; no additional runner is needed. Administrator approval is not a sandbox: approve only code that you trust to execute on the persistent VM.
+
+The supplementary publisher automatically saves physics validation (including failed or incomplete runs) and successful external-engine PR comparisons in the same permanent PR history, and redeploys the dashboard. No manual history update is needed. The **Pull Requests** view distinguishes CPU, FLUKA, Geant4, and Everest physics runs. Results for identical base, head, and merge SHAs are linked; results from different tested revisions are labelled accordingly. The physics panel shows the per-case outcome, duration, and available screening values and limits, together with the reference-source and validation-tooling SHAs. See [PR_WORKFLOWS.md](PR_WORKFLOWS.md) for details, including the separate status posted for a manual physics run when its tested merge is still current.
 
 ### What is stored, and what is the baseline?
 
-There are two levels of storage:
+For performance benchmarks and PR results there are two levels of storage:
 
-- GitHub Actions artefacts contain the detailed pytest-benchmark JSON and the dependency manifests (90 days). This also applies to PRs.
-- The `benchmark-results` branch contains permanent, compact JSON records under `runs/`, frozen PR comparisons under `pr-runs/<PR number>/`, and compressed rolling physics snapshots under `baselines/<physical-host>/`. These are written by the separate publication jobs, not by the benchmark runner. Individual timing samples and unnecessary bulky diagnostics are omitted from the permanent records.
+- GitHub Actions artefacts contain the detailed pytest-benchmark JSON and the dependency manifests (90 days). This also applies to PR benchmarks. The separate Everest physics workflow uploads JUnit reports, including the captured screening results.
+- The `benchmark-results` branch contains permanent, compact JSON records under `runs/`, frozen PR comparisons and Everest validation records under `pr-runs/<PR number>/`, and compressed rolling physics snapshots under `baselines/<physical-host>/`. These are written by the separate publication jobs, not by the benchmark runner. Individual timing samples and unnecessary bulky diagnostics are omitted from the permanent records.
 
 Only the scheduled full CPU, FLUKA, and Geant4 runs replace their respective physics snapshots. The first successful run establishes a reference, and the next is compared to it before updating it. Published manual runs read the latest scheduled snapshot (quick CPU uses the full CPU reference), but do not modify it. The PR comparison reads the CPU snapshot too. The snapshots contain configured observables and workload information, not particle arrays. This is a rolling reference, not an immutable scientific validation target: an intentional physics change will also become the next scheduled reference.
 
-Manual reference, FLUKA, and Geant4 runs upload their detailed artefacts but do not publish to permanent history by default. Enable the `publish_history` checkbox when dispatching a run to publish its compact record, compare to the scheduled physics snapshot, and redeploy the dashboard. Scheduled runs always publish on success (external engines must have measurements).
+Manual runs of the scheduled reference, FLUKA, and Geant4 benchmark workflows upload their detailed artefacts but do not publish to permanent history by default. Enable the `publish_history` checkbox when dispatching a run to publish its compact record, compare to the scheduled physics snapshot, and redeploy the dashboard. Scheduled runs always publish on success (external engines must have measurements). The separate PR workflows publish automatically as described above. The accepted Everest reference is different from these rolling benchmark snapshots: it is committed to the source branch, under `tests/data/everest_physics_reference/`, and is only updated deliberately.
 
 The website is regenerated from **all** permanent records. Scheduled profiles share one column only for the same host, UTC day, branch, tested commit, Xcoll release, and recorded common dependency versions (latest successful run per profile and configuration). Different configurations get separate columns, even on the same day. Engine-specific versions (FLUKA, LineBuilder, FlukaIO, Geant4, BDSIM) are retained per component rather than used to split compatible profiles. Published manual runs remain separate. Contributing revisions, timestamps, and versions are retained. History writes and deployments have separate concurrency queues. `xcoll-performance-publish.yml` is shared by the external engines; `xcoll-performance-dashboard.yml` deploys the existing history without running benchmarks. Pages must use **GitHub Actions** as its publishing source.
 
@@ -195,37 +219,97 @@ faster than each CPU configuration, both for tracking and for input copy +
 tracking + loss-map analysis. Initial compilation, warm-up, and pencil
 generation are excluded from the warmed timings. Line/element preparation and
 excluded warm-up are reported separately. These are machine- and
-workload-specific measurements, not universal thresholds.
+workload-specific measurements, not universal thresholds. Repeated timing tables are printed together at the end, and the crossover plot is saved to a timestamped PNG in `benchmarks/results/`. Use `--plot PATH` to select the output location or `--no-plot` to disable plotting.
 
 ## Physics validation
 
-For a CPU physics comparison, generate a reference from a branch, tag, or
-commit SHA using the same pinned dependencies as the candidate:
+The Everest reference-validation tests compare the candidate's CPU physics against an accepted reference committed in `tests/data/everest_physics_reference/`. This is distinct from the scalar physics observables stored with the performance benchmarks: it is a fixed validation target, not a rolling reference that is replaced on every successful run.
+
+### Run the physics tests
+
+From the repository root, with the candidate installed in editable mode and the test dependencies available:
 
 ```bash
-python benchmarks/compare_everest_physics.py reference --ref main --output /tmp/physics-main --crystals
-XCOLL_EVEREST_PHYSICS_REFERENCE=/tmp/physics-main python -m pytest tests/test_everest_physics_reference.py -v
+python -m pip install -e '.[tests,benchmarks]'
+
+# Rebuild the serial Xsuite kernels for this checkout (adjust the number of compiler workers).
+python -m benchmarks.perf.prebuild_cpu \
+    --skip-tpsa --skip-synrad --n-threads 12 --clear-existing
+
+XCOLL_EVEREST_PHYSICS_FULL_MATRIX=1 \
+XCOLL_EVEREST_PHYSICS_USE_PREBUILT=1 \
+python -m pytest tests/test_everest_physics_reference.py -v --durations=0
 ```
 
-The `reference` command resolves the ref to a full commit SHA, creates and
-removes a temporary detached Git worktree, and leaves the current checkout
-unchanged. The optional `XCOLL_EVEREST_PHYSICS_REF_SHA` environment variable
-pins the expected reference SHA during testing. Without a configured
-reference, the opt-in pytest test is skipped; a configured but invalid
-reference fails. It is also possible to collect two revisions manually with
-separate worktrees and compare their snapshots. See the module docstring of
-`compare_everest_physics.py` (or its `--help`) for the full commands.
+No reference generation is needed. Without an explicit reference override, the test uses the committed dataset and checks the full matrix. The prebuild step compiles kernels against the current candidate; only enable `XCOLL_EVEREST_PHYSICS_USE_PREBUILT=1` after rebuilding for that exact checkout. Otherwise the tests force kernel compilation, to avoid using a prebuilt kernel containing an older implementation of Xcoll. Rebuild after changing kernel sources or relevant dependencies. Prebuilding excludes TPSA and synchrotron-radiation configurations, but auxiliary kernels not covered by the prebuild may still be compiled during the tests.
 
-The comparison checks input-particle and RNG-state checksums, workload and
-LHC-data metadata, and dependency versions. It reports survival and state
-fractions, coordinate/energy/kick distributions, interaction counts, and
-collimator/aperture loss distributions. Its tolerances are initial screening
-criteria, not validated physics acceptance thresholds. The test uses the
-reference's recorded workload parameters; local uncommitted candidate changes
-are allowed. Keep reference NPZ files in a separate directory or ignored
-location. They are not permanent benchmark history. An accepted reference is
-immutable: update it deliberately when physics or the validation protocol
-changes, not whenever a candidate fails.
+To run a subset, add a pytest expression, e.g. `-k "not lhc"`, `-k "lhc and b1"`, or `-k "block and tungsten"`. The full reference remains unchanged. Local uncommitted candidate changes are allowed; the imported Xcoll package must come from the checkout being tested.
+
+The default matrix contains 40 physics cases:
+
+- 24 standalone cases: CFC and tungsten blocks and collimators, and four silicon crystal regimes (channelling, volume reflection, amorphous transport, and miss), each at 26, 450, and 7000 GeV/c.
+- 16 LHC cases: both beams, both planes, with and without crystals, at 450 and 7000 GeV/c. This is an energy scan of the same normalised Run 3 lattice, not a comparison of independently matched injection and flat-top optics.
+
+The tests replay the stored initial coordinates and RNG states exactly, including on a different machine. They use the reference's recorded particle populations, momenta, tracking turns, and other workload parameters. The reference manifest records the source commit, Python, dependencies, and platform. Environment differences are reported but do not themselves invalidate a comparison; incompatible physical inputs, workload parameters, or LHC data do. The physics PR workflow installs the reference's pinned Python and dependencies, apart from the editable candidate Xcoll package.
+
+### What is compared?
+
+The comparison checks survival and particle-state fractions, survivor coordinate, energy, and kick distributions (with sample-size-aware KS screening limits), and channelled fractions where applicable. For the standalone elements we also compare per-primary interaction multiplicities, incidences, and the total longitudinal extent of continuous interactions. The paired statistics use differences between the same incident primaries, rather than treating repeated interactions as independent particles. For continuous processes, comparing the accumulated extent makes the check insensitive to how a trajectory is split into recorded segments. Deposited energy and, for the LHC cases, collimator and aperture loss distributions are checked as well.
+
+The tolerances are screening criteria, not validated physics acceptance thresholds. A failed comparison requires investigation: do not replace the accepted reference simply to make a candidate pass. The standalone comparison script prints the individual measured differences and limits; the PR dashboard preserves these results from the workflow reports.
+
+### Generate or update an accepted reference
+
+Use [everest_compare_physics.py](everest_compare_physics.py), not the former `compare_everest_physics.py` script. A new permanent reference should be generated only from an explicitly validated revision, with the full matrix and the intended environment. The current reference uses 20,000 particles for most standalone cases and all LHC cases, ten LHC turns, and higher populations for selected rare-event workloads.
+
+For example, on a clean checkout of the validated revision, rebuild the kernels as above and run:
+
+```bash
+ts=$(date "+%Y%m%d-%H%M%S")
+python benchmarks/everest_compare_physics.py collect \
+    --checkout "$PWD" --use-prebuilt \
+    --output "/tmp/everest-physics-$ts" \
+    --particles 20000 --lhc-particles 20000 --turns 10 \
+    --events-per-particle 12 \
+    --case-particles block-tungsten-26gev=500000 \
+    --case-particles crystal-amorphous-26gev=100000 \
+    --case-particles block-cfc-7000gev=100000
+```
+
+Validate the generated dataset before replacing the committed reference:
+
+```bash
+XCOLL_EVEREST_PHYSICS_REFERENCE="/tmp/everest-physics-$ts" \
+XCOLL_EVEREST_PHYSICS_FULL_MATRIX=1 \
+XCOLL_EVEREST_PHYSICS_USE_PREBUILT=1 \
+python -m pytest tests/test_everest_physics_reference.py -v --durations=0
+```
+
+Inspect and review the physics results, including the comparison with the previously accepted dataset where the workload remains compatible. Then deliberately replace the entire `tests/data/everest_physics_reference/` directory, including `reference.json`, the case NPZ files, and `inputs/arrays.npz`, and commit the new reference. Keep ordinary generated results in temporary or ignored locations. The compact storage shares identical initial-particle chunks between cases and losslessly encodes the inputs; the accepted reference must be retained as a complete dataset.
+
+### Compare other revisions or existing snapshots
+
+The `reference` command resolves a branch, tag, or commit to a full SHA, creates and removes a temporary detached worktree, and leaves the current checkout unchanged. It deliberately forces compilation from that revision; for efficient reference generation on a validated checkout, prefer the explicit prebuild and `collect --use-prebuilt` recipe above.
+
+The `collect` and `reference` commands accept `--input-reference` to replay exactly the initial particles and settings of an existing reference. For example, to compare the current editable checkout against the committed reference, after rebuilding its kernels:
+
+```bash
+python benchmarks/everest_compare_physics.py collect \
+    --checkout "$PWD" --use-prebuilt \
+    --input-reference tests/data/everest_physics_reference \
+    --output /tmp/physics-candidate
+
+python benchmarks/everest_compare_physics.py compare \
+    tests/data/everest_physics_reference /tmp/physics-candidate
+```
+
+Choose a new output directory for each collection. `XCOLL_EVEREST_PHYSICS_REFERENCE` selects an alternative reference for pytest, and `XCOLL_EVEREST_PHYSICS_REF_SHA` can enforce its expected source SHA. External references may contain a subset of the matrix unless `XCOLL_EVEREST_PHYSICS_FULL_MATRIX=1` is set. See the module docstring and `--help` for case and energy selection, separate worktrees, and the lossless `compact` command for existing schema-4 or schema-5 snapshots.
+
+### Physics validation in CI
+
+Both automatic and manually dispatched physics PR runs load the accepted snapshots from a separately pinned main checkout and run the current validation harness against the pinned PR candidate. The candidate's Xcoll source and lattice data are used for tracking; the harness's latest snapshot decoder reads the reference. Each of the three hosted matrix jobs (standalone elements, LHC B1, and LHC B2) rebuilds its candidate serial kernels independently. A missing accepted reference is an error, not a reason to generate one in CI.
+
+The tested base, head, merge, validation-tooling SHA, and accepted reference-source SHA are recorded separately. This allows a physics run to validate an existing historical-base PR merge without requiring a branch update or restarting the CPU performance benchmarks. The separate publisher saves the outcomes and deploys the dashboard automatically. See [PR_WORKFLOWS.md](PR_WORKFLOWS.md) for the manual dispatch commands and the publication details.
 
 ## Porting this to another Xsuite package
 
