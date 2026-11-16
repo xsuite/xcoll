@@ -138,7 +138,7 @@ jobs:
         run: |
           set -euo pipefail
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
-          python benchmarks/compare_everest_physics.py reference \
+          python benchmarks/everest_compare_physics.py reference \
             --repo "$GITHUB_WORKSPACE/baseline" \
             --ref "$PHYSICS_REF_SHA" \
             --data "$GITHUB_WORKSPACE/baseline/tests/data" \
