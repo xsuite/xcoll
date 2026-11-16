@@ -1,0 +1,4855 @@
+{
+  "schema": 1,
+  "kind": "physics",
+  "pr": 241,
+  "branch": "EverestGPU",
+  "base_sha": "759a4fe399d1bfb88764940ee1dab4d7a9d48c8a",
+  "head_sha": "215244c5d27a3539b6fb0a111a6631d6e327deae",
+  "candidate_sha": "3f75490a3639e2cf80119d7cca03dc453db2eab3",
+  "run_id": "43852522660",
+  "attempt": 1,
+  "tools_sha": "759a4fe399d1bfb88764940ee1dab4d7a9d48c8a",
+  "reference_sha": "3d6e76cfb50b458fbea11778aa3c6a8eca6199e9",
+  "datetime": "2026-11-16T11:15:55",
+  "conclusion": "success",
+  "rows": [
+    {
+      "name": "block-cfc-26gev",
+      "status": "PASSED",
+      "seconds": 0.696,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000155183,
+          "limit": 0.0352344,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.03389,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.03389,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 1.05818e-20,
+          "limit": 0.0179645,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00789,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0071925,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00414,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0039325,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00306,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.002945,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 1.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "block-cfc-450gev",
+      "status": "PASSED",
+      "seconds": 0.244,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000161943,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000161943,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000161943,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000161943,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000161943,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000161943,
+          "limit": 0.0359937,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0345625,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0345625,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 4.68375e-21,
+          "limit": 0.0176883,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0080375,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.007315,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0038575,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0036625,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0034525,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0033125,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 1.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 4.34028e-19,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "block-cfc-7000gev",
+      "status": "PASSED",
+      "seconds": 0.98,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 3.53794e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 3.53794e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 3.53794e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 3.53794e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 3.53794e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 3.53794e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0358675,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0358675,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 5.87204e-21,
+          "limit": 0.0170319,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0078195,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0070295,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0045545,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0042875,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00379,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0035965,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 9e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 9e-06,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "block-tungsten-26gev",
+      "status": "PASSED",
+      "seconds": 4.389,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000801282,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000801282,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000801282,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000801282,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000801282,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000801282,
+          "limit": 0.0800641,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0498752,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0498752,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 1.72171e-22,
+          "limit": 0.00500972,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0330097,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0199362,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0021736,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0020836,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0016012,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0015544,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0002469,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 0.0002454,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "block-tungsten-450gev",
+      "status": "PASSED",
+      "seconds": 0.209,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.027027,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.027027,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.027027,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.027027,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.027027,
+          "limit": 0.464991,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0499075,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0499075,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 5.59448e-21,
+          "limit": 0.0049876,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.033055,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0198925,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.001965,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0018575,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.001825,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0017825,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0002675,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 0.0002675,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "block-tungsten-7000gev",
+      "status": "PASSED",
+      "seconds": 0.211,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.037037,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.037037,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.037037,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.037037,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.037037,
+          "limit": 0.544331,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0499325,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0499325,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 2.39958e-17,
+          "limit": 0.00486042,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.03242,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0196225,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0024175,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.00228,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0019925,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0019375,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0002625,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 0.0002625,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "collimator-cfc-26gev",
+      "status": "PASSED",
+      "seconds": 0.33,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 9.12409e-05,
+          "limit": 0.0270172,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0226,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0226,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 1.15492e-16,
+          "limit": 0.0122355,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04998,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0055325,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.005215,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0029325,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0028325,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00211,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0020525,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 2.5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 2.5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 1.4085e-18,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "collimator-cfc-450gev",
+      "status": "PASSED",
+      "seconds": 0.297,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000144383,
+          "limit": 0.0339863,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.032685,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.032685,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 1.26635e-20,
+          "limit": 0.0167358,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04998,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.007495,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0069425,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.003725,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.00357,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.003405,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0032925,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 4.34028e-19,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "collimator-cfc-7000gev",
+      "status": "PASSED",
+      "seconds": 0.278,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000177085,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000177085,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000177085,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000177085,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000177085,
+          "limit": 0.0376388,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0358825,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0358825,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 3.75568e-20,
+          "limit": 0.0169699,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04998,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00769,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0069825,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00454,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0043025,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0037825,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0036025,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 1e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 1e-05,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "collimator-tungsten-26gev",
+      "status": "PASSED",
+      "seconds": 0.346,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.00013132,
+          "limit": 0.0324123,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0309625,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0309625,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 2.25993e-18,
+          "limit": 0.00312419,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04998,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.020355,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0141175,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00143,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0013775,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00098,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.000965,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00015,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 0.00015,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 9.39002e-19,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "collimator-tungsten-450gev",
+      "status": "PASSED",
+      "seconds": 0.26,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000637755,
+          "limit": 0.0714286,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.04608,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.04608,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 4.41053e-20,
+          "limit": 0.00458567,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04998,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.03033,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.019175,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00181,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.001735,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0016625,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.00163,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0002525,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 0.0002525,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "collimator-tungsten-7000gev",
+      "status": "PASSED",
+      "seconds": 0.242,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.0181818,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0181818,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.0181818,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.0181818,
+          "limit": 0.381385,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0498625,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0498625,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 2.39385e-17,
+          "limit": 0.0048587,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04998,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.03247,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 0.0196275,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.002415,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 0.002275,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.002,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 0.0019425,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00026,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 0.00026,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-amorphous-26gev",
+      "status": "PASSED",
+      "seconds": 1.561,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 1.00432e-05,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.000215,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.000215,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 2.35533e-17,
+          "limit": 5.80523e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.04746,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 8.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 8.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.45e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 1.45e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.35e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.35e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb multiplicity / primary",
+          "value": 0.0,
+          "limit": 5e-07,
+          "status": "OK"
+        },
+        {
+          "label": "Coulomb incidence",
+          "value": 0.0,
+          "limit": 5e-07,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling longitudinal extent / primary [m]",
+          "value": 9.82618e-18,
+          "limit": 7.08528e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.0048575,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0008895,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling incidence",
+          "value": 0.0,
+          "limit": 0.0008845,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0058765,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH incidence",
+          "value": 0.0,
+          "limit": 0.0058765,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.014974,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.014974,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans MCS multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.004435,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans MCS incidence",
+          "value": 0.0,
+          "limit": 0.004435,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Trans VR longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 3.465e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Trans VR nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.0182265,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.001713,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture incidence",
+          "value": 0.0,
+          "limit": 0.0017045,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 1.64325e-19,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-amorphous-450gev",
+      "status": "PASSED",
+      "seconds": 0.329,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.02311e-05,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.02311e-05,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.02311e-05,
+          "limit": 0.0200462,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00023,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.00023,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 9.96762e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 7e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 7e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 8.08002e-08,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling nonzero-length incidence",
+          "value": 0.0,
+          "limit": 6e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling multiplicity / primary",
+          "value": 0.0,
+          "limit": 1e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling incidence",
+          "value": 0.0,
+          "limit": 1e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.02491,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.0249075,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture multiplicity / primary",
+          "value": 0.0,
+          "limit": 6e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture incidence",
+          "value": 0.0,
+          "limit": 6e-05,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-amorphous-7000gev",
+      "status": "PASSED",
+      "seconds": 0.328,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.01781e-05,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.01781e-05,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.01781e-05,
+          "limit": 0.0200356,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0001775,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0001775,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 9.9798e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 4.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 4.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 2e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 2e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.02497,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.02497,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-channeling-26gev",
+      "status": "PASSED",
+      "seconds": 0.337,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.00651e-05,
+          "limit": 0.020013,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 6.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 6.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 1.46212e-16,
+          "limit": 1.96273e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.012505,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 2.5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 2.5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling longitudinal extent / primary [m]",
+          "value": 4.92345e-16,
+          "limit": 8.03077e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.0468325,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.009395,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling incidence",
+          "value": 0.0,
+          "limit": 0.00933,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0031675,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH incidence",
+          "value": 0.0,
+          "limit": 0.0031675,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0040925,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.0040925,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00033,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture incidence",
+          "value": 0.0,
+          "limit": 0.00033,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 9.39002e-19,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-channeling-450gev",
+      "status": "PASSED",
+      "seconds": 0.334,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.01178e-05,
+          "limit": 0.0200235,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0001175,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0001175,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 9.01321e-16,
+          "limit": 3.49769e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.018695,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 3e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 3e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling longitudinal extent / primary [m]",
+          "value": 7.23574e-16,
+          "limit": 6.48963e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.03455,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0032225,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling incidence",
+          "value": 0.0,
+          "limit": 0.0032225,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0112225,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH incidence",
+          "value": 0.0,
+          "limit": 0.0112225,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.003645,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.0036425,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture multiplicity / primary",
+          "value": 0.0,
+          "limit": 5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture incidence",
+          "value": 0.0,
+          "limit": 5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 2.50922e-19,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-channeling-7000gev",
+      "status": "PASSED",
+      "seconds": 0.329,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.01731e-05,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.01731e-05,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.01731e-05,
+          "limit": 0.0200346,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0001725,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0001725,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 9.98234e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 8e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 8e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 2.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 2.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.25e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0249825,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.0249775,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-miss-26gev",
+      "status": "PASSED",
+      "seconds": 0.24,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-miss-450gev",
+      "status": "PASSED",
+      "seconds": 0.242,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-miss-7000gev",
+      "status": "PASSED",
+      "seconds": 0.242,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.0,
+          "limit": 0.02,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-volume-reflection-26gev",
+      "status": "PASSED",
+      "seconds": 0.33,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.02134e-05,
+          "limit": 0.0200426,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0002125,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0002125,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 5.46655e-20,
+          "limit": 9.61984e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.0498975,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 8e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 8e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 2e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 2e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling longitudinal extent / primary [m]",
+          "value": 3.20015e-17,
+          "limit": 3.57892e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.003985,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0006725,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling incidence",
+          "value": 0.0,
+          "limit": 0.00067,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00022,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH incidence",
+          "value": 0.0,
+          "limit": 0.00022,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0458725,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.0458725,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00386,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture incidence",
+          "value": 0.0,
+          "limit": 0.00385,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 7.33596e-21,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-volume-reflection-450gev",
+      "status": "PASSED",
+      "seconds": 0.34,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.02235e-05,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.02235e-05,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.02235e-05,
+          "limit": 0.0200446,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0002225,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0002225,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 9.96353e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 8.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 8.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 1.37343e-07,
+          "status": "OK"
+        },
+        {
+          "label": "Channelling nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.00014,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Dechannelling incidence",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH multiplicity / primary",
+          "value": 0.0,
+          "limit": 2.5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection Trans CH incidence",
+          "value": 0.0,
+          "limit": 2.5e-06,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0496925,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.04969,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.00014,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Capture incidence",
+          "value": 0.0,
+          "limit": 0.00014,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "crystal-volume-reflection-7000gev",
+      "status": "PASSED",
+      "seconds": 0.32,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.0,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 5.0163e-05,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.0,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 5.0163e-05,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.0,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.0,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 5.0163e-05,
+          "limit": 0.0200326,
+          "status": "OK"
+        },
+        {
+          "label": "channelled fraction (of survivors)",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.0001625,
+          "status": "OK"
+        },
+        {
+          "label": "Absorbed incidence",
+          "value": 0.0,
+          "limit": 0.0001625,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering longitudinal extent / primary [m]",
+          "value": 0.0,
+          "limit": 9.98012e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Multiple Coulomb Scattering nonzero-length incidence",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 5.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PN Elastic incidence",
+          "value": 0.0,
+          "limit": 5.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "PP Elastic incidence",
+          "value": 0.0,
+          "limit": 1.5e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive multiplicity / primary",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Single Diffractive incidence",
+          "value": 0.0,
+          "limit": 1.75e-05,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection multiplicity / primary",
+          "value": 0.0,
+          "limit": 0.04989,
+          "status": "OK"
+        },
+        {
+          "label": "Volume Reflection incidence",
+          "value": 0.0,
+          "limit": 0.0498775,
+          "status": "OK"
+        },
+        {
+          "label": "deposited energy difference / initial",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-h-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 36.921,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 2.05376e-11,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 2.05334e-11,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-h-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 137.789,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000231054,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000231054,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000115527,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000231054,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000231054,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000231054,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000231054,
+          "limit": 0.0304009,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0001,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.30731e-12,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 8.45312e-16,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-h-no-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 36.633,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.25036e-11,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.2517e-11,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-h-no-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 142.096,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000220095,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000220095,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000110047,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000110047,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000220095,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000220095,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000220095,
+          "limit": 0.0296712,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 2.58057e-13,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.12835e-16,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-v-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 47.173,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 5e-05,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 5e-05,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0001,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0001,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 6.81899e-12,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 6.81522e-12,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-v-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 132.224,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000160849,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 8.04246e-05,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000160849,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000160849,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000160849,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000160849,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000160849,
+          "limit": 0.0253653,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0003,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 3.312e-13,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 5.56819e-15,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-v-no-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 44.904,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0001,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 9.66192e-12,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 9.65578e-12,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b1-v-no-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 137.482,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000135007,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000135007,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000202511,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000135007,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000135007,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000135007,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000135007,
+          "limit": 0.0232385,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.5144e-12,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.51002e-14,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-h-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 54.296,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0003,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 3.10363e-11,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 3.09971e-11,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-h-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 145.674,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000213675,
+          "limit": 0.0292353,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 3.77257e-13,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 9.07812e-16,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-h-no-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 51.944,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0001,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.99311e-12,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.993e-12,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-h-no-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 146.099,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000213038,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 0.000213038,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000106519,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000213038,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000213038,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000213038,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000213038,
+          "limit": 0.0291916,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.15771e-13,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.3983e-14,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-v-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 41.717,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0001,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.01329e-11,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.01296e-11,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-v-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 147.756,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 6.33473e-05,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 6.33473e-05,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 6.33473e-05,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 6.33473e-05,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000126695,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000126695,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 6.33473e-05,
+          "limit": 0.0225117,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 1.12886e-13,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 2.89955e-16,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-v-no-crystals-450gev",
+      "status": "PASSED",
+      "seconds": 40.851,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 5.40651e-12,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 5.40089e-12,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "name": "lhc-b2-v-no-crystals-7000gev",
+      "status": "PASSED",
+      "seconds": 148.364,
+      "details": "",
+      "checks": [
+        {
+          "label": "survival fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state -330 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 0 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "state 1 fraction difference",
+          "value": 0.0,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "x survivor KS",
+          "value": 0.000126654,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "px survivor KS",
+          "value": 6.33272e-05,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "y survivor KS",
+          "value": 0.000126654,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "py survivor KS",
+          "value": 0.000126654,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "delta survivor KS",
+          "value": 0.000126654,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "energy survivor KS",
+          "value": 0.000126654,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "kick_x survivor KS",
+          "value": 0.000126654,
+          "limit": 0.0225082,
+          "status": "OK"
+        },
+        {
+          "label": "collimator loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "aperture-bin loss L1 / N",
+          "value": 0.0,
+          "limit": 0.05,
+          "status": "OK"
+        },
+        {
+          "label": "coll_e energy difference / initial",
+          "value": 9.04343e-13,
+          "limit": 0.01,
+          "status": "OK"
+        },
+        {
+          "label": "aper_e energy difference / initial",
+          "value": 1.9216e-15,
+          "limit": 0.01,
+          "status": "OK"
+        }
+      ]
+    }
+  ]
+}
