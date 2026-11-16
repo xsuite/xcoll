@@ -105,16 +105,16 @@
 <div class="table-scroll"><table><thead><tr><th>Benchmark</th><th>Baseline median</th><th>Candidate median</th><th>Change</th><th>Compatibility</th><th>Physics (daily)</th><th>Machine</th></tr></thead><tbody id="compareTable"></tbody></table></div></section>
 </div>
 <div id="prPanel" hidden>
-<section class="panel"><div class="panel-header"><div><h2>Pull request comparisons</h2><p>Choose a PR, then select its benchmark and Everest physics runs independently.</p></div></div>
-<div class="toolbar pr-controls"><label class="control">Pull request<select id="prNumber"></select></label><label class="control wide">Benchmark workflow run<select id="prRun"></select></label><label class="control wide">Physics workflow run<select id="prPhysicsRun"></select></label></div>
+<section class="panel"><div class="panel-header"><div><h2>Pull request comparisons</h2><p>Choose a PR, then select its benchmark revision and Everest physics run independently.</p></div></div>
+<div class="toolbar pr-controls"><label class="control">Pull request<select id="prNumber"></select></label><label class="control wide">Benchmark revision<select id="prRun"></select></label><label class="control wide">Physics workflow run<select id="prPhysicsRun"></select></label></div>
 <div id="prMetadata" class="subtitle pr-meta"></div></section>
-<section class="panel" id="prOverviewPanel"><div class="panel-header"><div><h2>Overview</h2><p>Full selected runs, independent of the benchmark filter. Timing changes are relative to the tested base.</p></div></div>
+<section class="panel" id="prOverviewPanel"><div class="panel-header"><div><h2>Overview</h2><p>Latest CPU, FLUKA, and Geant4 results for the selected revision, independent of the benchmark filter.</p></div></div>
 <div id="prRevisionNotice" class="pr-revision-notice" hidden></div>
 <div class="pr-overview-grid" id="prSummary"></div></section>
 <section class="panel" id="prPhysicsPanel"><div class="panel-header"><div><h2>Everest reference validation</h2><p id="prPhysicsMeta"></p></div></div><div id="prPhysicsResults" style="padding:14px 20px 20px"></div></section>
-<section class="panel" id="prBenchmarkPanel"><div class="panel-header"><div><h2>Changes relative to main</h2><p>Positive percentages mean slower PR performance. Select a row for workload and physics details.</p><p id="prBenchmarkMeta"></p></div><label class="control">Filter<input id="prFilter" type="search" placeholder="Filter benchmarks…"></label></div>
+<section class="panel" id="prBenchmarkPanel"><div class="panel-header"><div><h2>Changes relative to tested base</h2><p>Positive percentages mean slower PR performance. Each engine retains its own paired measurements. Select a row for workload and physics details.</p><p id="prBenchmarkMeta"></p></div><label class="control">Filter<input id="prFilter" type="search" placeholder="Filter benchmarks…"></label></div>
 <div id="prBars" style="padding:14px 20px"></div>
-<div class="table-scroll"><table><thead><tr><th>Benchmark</th><th>Main median</th><th>PR median</th><th>Change</th><th>Timing</th><th>Physics vs main</th><th>Physics vs scheduled</th></tr></thead><tbody id="prTable"></tbody></table></div></section>
+<div class="table-scroll"><table><thead><tr><th>Engine</th><th>Benchmark</th><th>Base median</th><th>PR median</th><th>Change</th><th>Timing</th><th>Physics vs main</th><th>Physics vs scheduled</th></tr></thead><tbody id="prTable"></tbody></table></div></section>
 </div>
 <p class="note">Screening is not a scientific validation suite. Missing/unverified physics results are not treated as agreement. Hardware and differing workloads cannot be compared as if equivalent. Full raw physics references are retained only for the next scheduled comparison.</p>
 </main>
@@ -289,11 +289,29 @@ function compareSets(){const left=latestPerName(setRuns('base')),right=latestPer
 function prRunKey(r){return r?`${r.run_id}-${r.attempt}`:'';}
 function prRunLabel(r){return r.kind==='physics'?'Everest physics':({fluka:'FLUKA',geant4:'Geant4'}[r.profile]||'CPU');}
 function samePRRevision(a,b){return !!a&&!!b&&a.pr===b.pr&&a.head_sha===b.head_sha&&a.base_sha===b.base_sha&&a.candidate_sha===b.candidate_sha;}
-// Input order is newest first. Prefer CPU and a matching physics revision;
-// once selected, the two controls remain independent.
+const PR_ENGINES=['CPU','FLUKA','Geant4'];
+function prRevisionKey(r){return r?JSON.stringify([r.pr,r.base_sha,r.head_sha,r.candidate_sha]):'';}
+// Input order is newest first. Each component is an original paired measurement;
+// never pool timings across engines, machines, or different revision pairs.
+function benchmarkPRGroups(relevant){
+ const groups=new Map();
+ for(const run of relevant){
+  if(run.kind==='physics')continue;
+  const key=prRevisionKey(run);
+  if(!groups.has(key))groups.set(key,{...run,components:[],rows:[]});
+  const group=groups.get(key),engine=prRunLabel(run);
+  if(!group.components.some(x=>prRunLabel(x)===engine))group.components.push(run);
+ }
+ for(const group of groups.values()){
+  group.components.sort((a,b)=>PR_ENGINES.indexOf(prRunLabel(a))-PR_ENGINES.indexOf(prRunLabel(b)));
+  group.rows=group.components.flatMap(run=>run.rows.map(row=>({...row,engine:prRunLabel(run),sourceRun:run.run_id,sourceAttempt:run.attempt,sourceMachine:run.machine})));
+ }
+ return [...groups.values()];
+}
 function defaultPRSelection(relevant,benchmarkKey='',physicsKey=''){
- const benchmarks=relevant.filter(r=>r.kind!=='physics'),physics=relevant.filter(r=>r.kind==='physics');
- const benchmark=benchmarks.find(r=>prRunKey(r)===benchmarkKey)||benchmarks.find(r=>prRunLabel(r)==='CPU')||benchmarks[0];
+ const benchmarks=benchmarkPRGroups(relevant),physics=relevant.filter(r=>r.kind==='physics');
+ const latestCPU=relevant.find(r=>r.kind!=='physics'&&prRunLabel(r)==='CPU');
+ const benchmark=benchmarks.find(r=>prRevisionKey(r)===benchmarkKey)||benchmarks.find(r=>samePRRevision(r,latestCPU))||benchmarks[0];
  const validation=physics.find(r=>prRunKey(r)===physicsKey)||physics.find(r=>samePRRevision(r,benchmark))||physics.find(r=>benchmark&&r.head_sha===benchmark.head_sha)||physics[0];
  return {benchmark,validation};
 }
@@ -330,17 +348,22 @@ function fillPRRuns(){
  const relevant=prRuns.filter(r=>String(r.pr)===$('prNumber').value).slice().reverse();
  const benchmark=$('prRun'),physics=$('prPhysicsRun');
  const selected=defaultPRSelection(relevant,benchmark.value,physics.value);
- for(const [select,list,run] of [[benchmark,relevant.filter(r=>r.kind!=='physics'),selected.benchmark],[physics,relevant.filter(r=>r.kind==='physics'),selected.validation]]){
-  select.replaceChildren();
-  for(const r of list)option(select,prRunKey(r),`${prRunLabel(r)} · ${r.datetime} UTC · head ${short(r.head_sha)} / base ${short(r.base_sha)} · run ${r.run_id} / ${r.attempt}`);
-  if(!list.length)option(select,'','No published runs');
-  select.disabled=!list.length;
-  select.value=prRunKey(run);
- }
+ const groups=benchmarkPRGroups(relevant),validations=relevant.filter(r=>r.kind==='physics');
+ benchmark.replaceChildren();
+ for(const r of groups)option(benchmark,prRevisionKey(r),`${r.components.map(prRunLabel).join(' + ')} · head ${short(r.head_sha)} / base ${short(r.base_sha)} / merge ${short(r.candidate_sha)}`);
+ if(!groups.length)option(benchmark,'','No published benchmarks');
+ benchmark.disabled=!groups.length;benchmark.value=prRevisionKey(selected.benchmark);
+ physics.replaceChildren();
+ for(const r of validations)option(physics,prRunKey(r),`${prRunLabel(r)} · ${r.datetime} UTC · head ${short(r.head_sha)} / base ${short(r.base_sha)} · run ${r.run_id} / ${r.attempt}`);
+ if(!validations.length)option(physics,'','No published physics runs');
+ physics.disabled=!validations.length;physics.value=prRunKey(selected.validation);
  $('prFilter').value='';
  renderPR();
 }
-function selectedPRRun(id){return prRuns.find(r=>String(r.pr)===$('prNumber').value&&prRunKey(r)===$(id).value);}
+function selectedPRRun(id){
+ const relevant=prRuns.filter(r=>String(r.pr)===$('prNumber').value).slice().reverse();
+ return id==='prRun'?benchmarkPRGroups(relevant).find(r=>prRevisionKey(r)===$(id).value):relevant.find(r=>r.kind==='physics'&&prRunKey(r)===$(id).value);
+}
 function prLink(label,url){const a=elem('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;}
 function prRevision(label,sha){
  const line=elem('div',undefined,'pr-revision');line.append(elem('span',label));
@@ -358,13 +381,17 @@ function prOverviewCard(title,run,status,metrics,notes=[]){
  const revisions=elem('div',undefined,'pr-revisions');
  for(const [label,sha] of [['Base',run.base_sha],['Head',run.head_sha],['Merge',run.candidate_sha],...(run.kind==='physics'?[['Reference',run.reference_sha],['Tools',run.tools_sha]]:[])])revisions.append(prRevision(label,sha));
  card.append(revisions);
- const footer=elem('div',undefined,'pr-card-footer');footer.append(prLink('Open workflow run',`https://github.com/xsuite/xcoll/actions/runs/${run.run_id}`),elem('span',run.datetime+' UTC'));card.append(footer);
+ const footer=elem('div',undefined,'pr-card-footer');
+ if(run.components){
+  for(const component of run.components){const link=prLink(prRunLabel(component)+' workflow',`https://github.com/xsuite/xcoll/actions/runs/${component.run_id}`);link.title=component.datetime+' UTC · '+(component.machine||'unknown machine')+' · attempt '+component.attempt;footer.append(link);}
+ }else footer.append(prLink('Open workflow run',`https://github.com/xsuite/xcoll/actions/runs/${run.run_id}`),elem('span',run.datetime+' UTC'));
+ card.append(footer);
  return card;
 }
 function renderPROverview(physics,benchmark){
  const summary=$('prSummary'),notice=$('prRevisionNotice');summary.replaceChildren();
  notice.hidden=!physics||!benchmark;
- if(physics&&benchmark){const same=samePRRevision(physics,benchmark);notice.textContent=same?'Matching revisions: both runs tested the same base, head, and merge.':'Different tested revisions: these runs do not describe the same base, head, and merge. Select matching runs for a direct combined assessment.';notice.classList.toggle('mismatch',!same);}
+ if(physics&&benchmark){const same=samePRRevision(physics,benchmark);notice.textContent=same?'Matching revisions: physics and all displayed benchmarks tested the same base, head, and merge.':'Different tested revisions: these runs do not describe the same base, head, and merge. Select matching runs for a direct combined assessment.';notice.classList.toggle('mismatch',!same);}
  if(physics){
   const s=physicsPROverview(physics),metrics=[['Passed',`${s.passed}/${physics.rows.length}`,'negative'],['Failed / errors',s.failed,s.failed?'positive':''],['Not run',s.notRun]];
   if(s.skipped)metrics.push(['Skipped',s.skipped]);
@@ -373,9 +400,10 @@ function renderPROverview(physics,benchmark){
  }else summary.append(prOverviewCard('Everest physics',null,['No run',''],[]));
  if(benchmark){
   const s=benchmarkPROverview(benchmark);
-  const metrics=[['Comparable',`${s.comparable}/${benchmark.rows.length}`],['Slowdowns ≥10%',s.slow,s.slow?'positive':''],['Speed-ups ≥10%',s.fast,s.fast?'negative':''],['Physics flags',s.flags,s.flags?'positive':''],['Largest slowdown',s.worst?fmtPct(s.worst.delta):'—',s.worst?'positive':'',s.worst?.name],['Largest speed-up',s.best?fmtPct(s.best.delta):'—',s.best?'negative':'',s.best?.name]];
-  const notes=[`${s.unverified} paired physics comparison(s) without a verified result. Flags include paired and scheduled comparisons.`];
-  summary.append(prOverviewCard(prRunLabel(benchmark)+' benchmarks',benchmark,s.status,metrics,notes));
+  const metrics=[['Comparable',`${s.comparable}/${benchmark.rows.length}`],['Slowdowns ≥10%',s.slow,s.slow?'positive':''],['Speed-ups ≥10%',s.fast,s.fast?'negative':''],['Physics flags',s.flags,s.flags?'positive':''],['Largest slowdown',s.worst?fmtPct(s.worst.delta):'—',s.worst?'positive':'',s.worst?`${s.worst.engine} · ${nameShort(s.worst.name)}`:undefined],['Largest speed-up',s.best?fmtPct(s.best.delta):'—',s.best?'negative':'',s.best?`${s.best.engine} · ${nameShort(s.best.name)}`:undefined]];
+  const available=benchmark.components.map(prRunLabel),missing=PR_ENGINES.filter(x=>!available.includes(x));
+  const notes=[`Included: ${benchmark.components.map(x=>prRunLabel(x)+' ('+x.rows.length+')').join(', ')}.`+(missing.length?` Not published for this revision: ${missing.join(', ')}.`:''),`${s.unverified} paired physics comparison(s) without a verified result. Flags include paired and scheduled comparisons.`];
+  summary.append(prOverviewCard('Benchmarks',benchmark,s.status,metrics,notes));
  }else summary.append(prOverviewCard('Benchmarks',null,['No run',''],[]));
 }
 function renderPRPhysics(r){
@@ -399,35 +427,39 @@ function renderPRBenchmarks(r=selectedPRRun('prRun')){
  const meta=$('prBenchmarkMeta'),bars=$('prBars'),table=$('prTable');
  for(const x of [meta,bars,table])x.replaceChildren();
  if(!r){meta.textContent='No paired benchmark run published for this PR.';return;}
- meta.append(prLink('Open benchmark workflow',`https://github.com/xsuite/xcoll/actions/runs/${r.run_id}`),document.createTextNode(` · ${prRunLabel(r)} · base ${short(r.base_sha)} → merge ${short(r.candidate_sha)} · ${r.machine||'unknown machine'}`));
- if(r.scheduled_reference)meta.append(elem('span',' · Scheduled physics reference SHA256: '+r.scheduled_reference));
- const query=$('prFilter').value.toLowerCase();
- const rows=r.rows.filter(x=>x.name.toLowerCase().includes(query));
+ for(const run of r.components){
+  const line=elem('span');line.style.display='block';
+  line.append(prLink(prRunLabel(run)+' workflow',`https://github.com/xsuite/xcoll/actions/runs/${run.run_id}`),document.createTextNode(` · ${run.datetime} UTC · attempt ${run.attempt} · ${run.machine||'unknown machine'}`));
+  if(run.scheduled_reference){const ref=elem('span',' · Scheduled physics reference SHA256: '+run.scheduled_reference);line.append(ref);}
+  meta.append(line);
+ }
+ const query=$('prFilter').value.trim().toLowerCase();
+ const rows=r.rows.filter(x=>(x.engine+' '+x.name).toLowerCase().includes(query));
  const comparable=rows.filter(x=>Number.isFinite(x.delta));
  const sorted=rows.slice().sort((a,b)=>(b.delta??-Infinity)-(a.delta??-Infinity));
  const max=Math.max(10,...comparable.map(x=>Math.abs(x.delta)));
  for(const row of sorted.slice(0,30)){
   if(!Number.isFinite(row.delta))continue;
   const line=elem('div',undefined,'pr-bar-row');line.style.cssText='display:grid;grid-template-columns:minmax(160px,1fr) 3fr 75px;gap:12px;align-items:center;margin-bottom:7px;font-size:11px';
-  const name=elem('div',nameShort(row.name));name.title=row.name;
+  const name=elem('div',row.engine+' · '+nameShort(row.name));name.title=row.engine+' · '+row.name;
   const slot=elem('div');slot.style.cssText='position:relative;background:#f4f6fa;height:13px;border-radius:3px';
   const center=elem('div');center.style.cssText='position:absolute;left:50%;top:0;height:100%;border-left:1px solid #8c9bb0';slot.append(center);
   const bar=elem('div');const extent=50*Math.abs(row.delta)/max;
   bar.style.cssText=`position:absolute;top:1px;height:11px;border-radius:3px;left:${row.delta<0?50-extent:50}%;width:${extent}%;background:${row.delta<0?'#65b5a5':'#e4a28b'}`;
   slot.append(bar);line.append(name,slot,elem('div',fmtPct(row.delta),'mono'));bars.append(line);
  }
- if(!comparable.length)bars.append(elem('div','No comparable timing measurements in this run.','empty'));
+ if(!comparable.length)bars.append(elem('div','No comparable timing measurements match the filter.','empty'));
  for(const row of sorted){
   const tr=elem('tr',undefined,'clickable');
-  tr.append(elem('td',row.name,'name'),elem('td',secs(row.base),'mono'),elem('td',secs(row.candidate),'mono'),
+  tr.append(elem('td',row.engine,'mini'),elem('td',row.name,'name'),elem('td',secs(row.base),'mono'),elem('td',secs(row.candidate),'mono'),
     elem('td',fmtPct(row.delta),'mono '+(row.delta>3?'positive':row.delta< -3?'negative':'')),
     elem('td',row.timing_status,'mini'),elem('td',row.pair?.status||'NOT_CHECKED','mini'),
     elem('td',row.scheduled?.status||'NOT_CHECKED','mini'));
   tr.onclick=()=>{
    const sibling=tr.nextElementSibling;
    if(sibling?.classList.contains('pr-expand')){sibling.remove();return;}
-   const detail=elem('tr',undefined,'pr-expand'),td=elem('td');td.colSpan=7;
-   const pre=elem('pre',JSON.stringify({main:{median:row.base,stddev:row.base_stddev,workload:row.base_workload,observables:row.base_observables},
+   const detail=elem('tr',undefined,'pr-expand'),td=elem('td');td.colSpan=8;
+   const pre=elem('pre',JSON.stringify({source:{engine:row.engine,run_id:row.sourceRun,attempt:row.sourceAttempt,machine:row.sourceMachine},main:{median:row.base,stddev:row.base_stddev,workload:row.base_workload,observables:row.base_observables},
     candidate:{median:row.candidate,stddev:row.candidate_stddev,workload:row.candidate_workload,observables:row.candidate_observables},
     physics_vs_main:row.pair,physics_vs_scheduled:row.scheduled},null,2));
    pre.style.cssText='white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.5;max-height:380px;overflow:auto';

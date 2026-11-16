@@ -14,7 +14,6 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
-import time
 import xml.etree.ElementTree as ET
 
 from .pr_store import validate as validate_benchmarks
@@ -78,11 +77,13 @@ def main_sha():
     return sha(api('git/ref/heads/main')['object']['sha'])
 
 
-def existing_merge(pr_number):
+def existing_merge(pr_number, approved_head=None):
     """Pin the PR's existing GitHub test merge; never update or merge a branch."""
     pr = api(f'pulls/{pr_number}')
     require(eligible(pr), 'PR must be open, non-draft, and target main (not release/)')
     head = sha(pr['head']['sha'])
+    if approved_head is not None:
+        require(head == approved_head, 'PR head changed since approval; review and dispatch again')
     # Read the actual merge ref, not potentially stale merge_commit_sha metadata.
     # If the head has advanced without a corresponding merge, fail immediately.
     try:
@@ -105,51 +106,9 @@ def tools_checkout_sha():
 
 
 def main_contains(commit):
-    """Only allow physics tooling revisions in the protected main history."""
+    """Check whether a pinned base or tooling revision belongs to main history."""
     tip = main_sha()
     return commit == tip or api(f'compare/{commit}...{tip}?per_page=1')['merge_base_commit']['sha'] == commit
-
-
-def current_merge(pr_number, approved_head=None):
-    """Wait for GitHub's test merge to have the current main and PR head parents."""
-    # A pull request's base.sha and merge_commit_sha can both be stale after
-    # main advances. Their agreement alone does not establish current main.
-    for attempt in range(20):
-        base = main_sha()
-        pr = api(f'pulls/{pr_number}')
-        require(eligible(pr), 'PR must be open, non-draft, and target main (not release/)')
-        head = sha(pr['head']['sha'])
-        reported_base = sha(pr['base']['sha'])
-        if approved_head is not None:
-            require(head == approved_head, 'PR head changed since approval; review and dispatch again')
-        merge = pr.get('merge_commit_sha')
-        if merge and pr.get('mergeable') is True:
-            merge = sha(merge)
-            if parents(merge) == [base, head] and main_sha() == base:
-                return pr, base, head, merge
-        # A conflict computed against a stale base need not be a conflict
-        # against current main. Wait for GitHub to refresh mergeability too.
-        if pr.get('mergeable') is False and reported_base == base and main_sha() == base:
-            raise ValueError('PR has merge conflicts against current main')
-        # The Git ref can already be refreshed while the PR payload is stale.
-        # Never use it without checking both exact parents and the branch tip.
-        try:
-            merge_ref = sha(api(f'git/ref/pull/{pr_number}/merge')['object']['sha'])
-        except subprocess.CalledProcessError:
-            # The test merge ref may not exist while GitHub is computing it.
-            merge_ref = None
-        if (merge_ref and (merge_ref != merge or pr.get('mergeable') is not True)
-                and parents(merge_ref) == [base, head] and main_sha() == base):
-            return pr, base, head, merge_ref
-        print(f'Waiting for PR #{pr_number} merge against main {base}; '
-              f'PR reports base {reported_base}, merge {merge}, merge ref {merge_ref} '
-              f'(attempt {attempt + 1}/20)', flush=True)
-        if attempt < 19:
-            time.sleep(3)
-    raise ValueError(
-        f'GitHub did not produce a merge commit with current main {base} '
-        f'and PR head {head} as parents. The PR merge ref may be stale; '
-        'check mergeability and dispatch again. Refusing to test an older base.')
 
 
 def resolve():
@@ -166,10 +125,10 @@ def resolve():
             for actor in {os.environ['GITHUB_ACTOR'], os.environ['TRIGGERING_ACTOR']}:
                 assert_admin(actor)
             approved = sha(os.environ['APPROVED_HEAD'])
-        if kind == 'physics':
-            pr, base, head, merge = existing_merge(pr_number)
-        else:
-            pr, base, head, merge = current_merge(pr_number, approved)
+        pr, base, head, merge = existing_merge(pr_number, approved)
+        if kind in ENGINES:
+            # The historical first parent must still belong to main's history.
+            require(main_contains(base), 'Tested PR base is not from main history')
     else:
         require(kind == 'physics' and os.environ['GITHUB_EVENT_NAME'] == 'pull_request',
                 'External PR benchmarks are manual only')

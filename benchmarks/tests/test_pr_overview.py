@@ -1,4 +1,4 @@
-"""Regression tests for independent PR selectors and overview statistics."""
+"""Regression tests for PR revision groups, independent physics selection, and overview statistics."""
 from pathlib import Path
 import shutil
 import subprocess
@@ -20,12 +20,24 @@ const cpu={...base,run_id:'1',rows:[{name:'slow',delta:24.9,pair:{status:'OK'}},
  {name:'missing',delta:null,pair:{status:'NOT_CHECKED'}}]};
 const oldPhysics={...base,run_id:'2',kind:'physics',conclusion:'success',rows:[{status:'PASSED'}]};
 const newPhysics={...oldPhysics,run_id:'3',base_sha:'new-base',candidate_sha:'new-merge'};
-const fluka={...cpu,run_id:'4',profile:'fluka'};
-const geant4={...cpu,run_id:'5',profile:'geant4'};
+const fluka={...cpu,run_id:'4',profile:'fluka',machine:'CERN',rows:[{name:'slow',delta:15,pair:{status:'OK'}}]};
+const geant4={...cpu,run_id:'5',profile:'geant4',machine:'CERN',rows:[{name:'fast',delta:-20,pair:{status:'OK'}}]};
+const oldFluka={...fluka,run_id:'6',rows:[{name:'old',delta:99}]};
+const other={...fluka,run_id:'7',base_sha:'new-base',candidate_sha:'new-merge'};
+const groups=benchmarkPRGroups([geant4,fluka,other,oldFluka,cpu]);
+assert.equal(groups.length,2);assert.deepEqual(groups[0].components,[cpu,fluka,geant4]);
+assert.equal(groups[0].rows.length,6);assert.equal(groups[0].rows.filter(x=>x.name==='slow').length,2);
+assert.equal(groups[0].rows.find(x=>x.engine==='FLUKA').sourceRun,'4');
+assert.equal(groups[0].rows.find(x=>x.engine==='FLUKA').sourceMachine,'CERN');
+assert.equal(groups[1].rows.length,1);assert.equal(groups[1].candidate_sha,'new-merge');
+assert.equal(benchmarkPROverview(groups[0]).slow,2);assert.equal(benchmarkPROverview(groups[0]).fast,2);
+assert.equal(benchmarkPROverview(groups[0]).comparable,5);
+assert.equal(benchmarkPROverview(groups[0]).worst.delta,24.9);
 let chosen=defaultPRSelection([geant4,fluka,newPhysics,oldPhysics,cpu]);
-assert.equal(chosen.benchmark,cpu);assert.equal(chosen.validation,oldPhysics);
-chosen=defaultPRSelection([geant4,fluka,newPhysics,oldPhysics,cpu],'4-1','3-1');
-assert.equal(chosen.benchmark,fluka);assert.equal(chosen.validation,newPhysics);
+assert.deepEqual(chosen.benchmark.components,[cpu,fluka,geant4]);assert.equal(chosen.validation,oldPhysics);
+chosen=defaultPRSelection([other,geant4,fluka,newPhysics,oldPhysics,cpu],prRevisionKey(cpu),'3-1');
+assert.deepEqual(chosen.benchmark.components,[cpu,fluka,geant4]);assert.equal(chosen.validation,newPhysics);
+assert.equal(defaultPRSelection([other,cpu],prRevisionKey(other)).benchmark.candidate_sha,'new-merge');
 assert(!samePRRevision(chosen.benchmark,chosen.validation));
 assert.equal(defaultPRSelection([newPhysics,cpu]).validation,newPhysics);
 assert.equal(defaultPRSelection([oldPhysics]).benchmark,undefined);
