@@ -7,14 +7,26 @@
 If the codebase has changed and the references will no longer match, one can
 regenerate them by running (from the Xcoll root on a clean checkout):
 
-    rm -r tests/data/everest_physics_reference
+    ts=$(date "+%Y%m%d-%H%M%S")
     python -m benchmarks.perf.prebuild_cpu --skip-tpsa --skip-synrad --n-threads 12 --clear-existing
-    python benchmarks/compare_everest_physics.py collect --checkout "$PWD" --use-prebuilt \
-        --output tests/data/everest_physics_reference \
+    python benchmarks/everest_compare_physics.py collect --checkout "$PWD" --use-prebuilt \
+        --output /tmp/everest-physics-$ts \
         --particles 20000 --lhc-particles 20000 --turns 10 \
         --case-particles block-tungsten-26gev=500000 \
         --case-particles crystal-amorphous-26gev=100000 \
         --case-particles block-cfc-7000gev=100000
+
+validate it:
+
+    XCOLL_EVEREST_PHYSICS_REFERENCE=/tmp/everest-physics-$ts \
+    XCOLL_EVEREST_PHYSICS_FULL_MATRIX=1 \
+    XCOLL_EVEREST_PHYSICS_USE_PREBUILT=1 \
+    python -m pytest tests/test_everest_physics_reference.py \
+        -v --durations=0
+
+and finally store it permanently if it is correct:
+
+    mv /tmp/everest-physics-$ts tests/data/everest_physics_reference
 """
 
 
@@ -31,7 +43,7 @@ import xobjects as xo
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'benchmarks'))
-from compare_everest_physics import (
+from everest_compare_physics import (
     collect, compare, case_specs, load_manifest, snapshot_info,
     DEFAULT_REFERENCE, ELEMENT_ENERGIES, LHC_ENERGIES,
     environment_metadata, environment_differences, assert_compatible,

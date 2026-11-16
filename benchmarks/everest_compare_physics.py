@@ -9,7 +9,7 @@ both momenta; it is not an injection/flat-top optics comparison.
 
 Generate a reference from a branch, tag, or commit (resolved to a full SHA):
 
-    python benchmarks/compare_everest_physics.py reference \
+    python benchmarks/everest_compare_physics.py reference \
         --ref main --output /tmp/physics-main
 
 Use --ref v0.13.1 or --ref <full-sha> for an immutable revision. The command
@@ -27,7 +27,7 @@ Manual worktrees (run from the candidate repository root):
     ROOT="$PWD"
     git worktree add --detach /tmp/xcoll-main main
     git worktree add --detach /tmp/xcoll-gpu EverestGPU
-    SCRIPT="$ROOT/benchmarks/compare_everest_physics.py"
+    SCRIPT="$ROOT/benchmarks/everest_compare_physics.py"
     DATA="$ROOT/tests/data"
     PYTHONPATH=/tmp/xcoll-main python "$SCRIPT" collect \
         --checkout /tmp/xcoll-main --data "$DATA" --output /tmp/physics-main
@@ -55,9 +55,15 @@ committed reference from the base checkout, never from the candidate; before
 one exists it collects from the exact PR base SHA in a fresh worktree.
 
 For a permanent reference, generate from a validated commit (macOS or Linux),
-inspect and review the results, then copy the reference directory (manifest and all NPZ files) into tests/data. Commit it
+inspect and review the results, then copy the entire reference directory
+(including inputs/arrays.npz) into tests/data. Commit it
 explicitly; never update an accepted reference merely to make a test pass.
 Use a temporary directory or ignored location for ordinary generated output.
+Compact existing schema-4 snapshots without rerunning physics:
+
+    python benchmarks/everest_compare_physics.py compact /tmp/physics-v4 \
+        --output /tmp/physics-v5
+
 The comparison thresholds are screening criteria, not validated acceptance
 criteria. Keep a higher-statistics reference for detailed studies.
 """
@@ -82,6 +88,10 @@ from everest_workloads import (DEFAULT_DATA, ELEMENT_CASES, COORD_SEED,
 from everest_initial_particles import (
     initial_snapshot, initial_digest, restore_initial, read_initial,
 )
+from everest_snapshot_storage import (
+    BANK_PATH, FINAL_FIELDS, SURVIVOR_FIELDS, compact_final, survivor_data,
+    store_initial, load_initial,
+)
 from everest_interaction_statistics import (
     RECORD_COLUMNS,
     interaction_snapshot,
@@ -91,8 +101,7 @@ from xcoll.interaction_record.interaction_record import (
     interaction_names,
 )
 
-FIELDS = ('x','px','y','py','zeta','delta','energy','s','state','at_element')
-WORKLOAD_VERSION = 4
+WORKLOAD_VERSION = 5
 DEFAULT_REFERENCE = DEFAULT_DATA / 'everest_physics_reference'
 ELEMENT_ENERGIES = (26, 450, 7000)
 LHC_ENERGIES = (450, 7000)
@@ -164,12 +173,12 @@ def case_specs(args):
                 yield case_id(family, energy), dict(family=family, energy_gev=energy)
 
 
-def load_manifest(path):
+def load_manifest(path, *, version=WORKLOAD_VERSION):
     """Validate inventory and provenance before a test or comparison starts."""
     path = Path(path)
     manifest = json.loads((path / 'reference.json').read_text())
     cases = manifest.get('cases')
-    if (manifest.get('workload_version') != WORKLOAD_VERSION
+    if (manifest.get('workload_version') != version
             or not all(k in manifest for k in PROVENANCE_FIELDS)
             or not isinstance(cases, list) or not cases
             or any(not isinstance(c, str) or Path(c).name != c for c in cases)
@@ -179,6 +188,8 @@ def load_manifest(path):
     actual = {p.stem for p in path.glob('*.npz')}
     if set(cases) != actual:
         raise ValueError(f'Incomplete reference {path}: {set(cases) ^ actual}')
+    if version == WORKLOAD_VERSION and not (path / BANK_PATH).is_file():
+        raise ValueError(f'Missing shared initial-particle bank in {path}')
     return manifest
 
 
@@ -200,22 +211,26 @@ def snapshot_info(path, case, manifest):
     return info
 
 
-def snapshot_particles(p, n, initial_px):
-    ids = host(p,'particle_id')
+def snapshot_particles(p, n):
+    ids = host(p, 'particle_id')
     keep = (ids >= 0) & (ids < n)
     order = np.argsort(ids[keep])
-    ids = ids[keep][order]
-    if not np.array_equal(ids, np.arange(n)):
+    rows = np.flatnonzero(keep)[order]
+    if not np.array_equal(ids[rows], np.arange(n)):
         raise ValueError('Expected exactly one output row for every input primary')
-    out = {f: host(p,f)[keep][order] for f in FIELDS}
-    out['particle_id'] = ids
-    out['kick_x'] = out['px']-initial_px[ids]
+    state = host(p, 'state')[rows]
+    out = dict(state=state, at_element=host(p, 'at_element')[rows])
+    survivor_rows = rows[state > 0]
+    for field in SURVIVOR_FIELDS:
+        out[f'survivor_{field}'] = host(p, field)[survivor_rows]
     return out
 
 
 def save_case(out, case, p, n, initial, info, **extra):
-    arrays = snapshot_particles(p,n,initial['initial_px'])
-    np.savez_compressed(out/f'{case}.npz', **arrays, **initial, **extra,
+    arrays = snapshot_particles(p, n)
+    refs = store_initial(out, initial, n)
+    np.savez_compressed(out/f'{case}.npz', **arrays, **extra,
+                        initial_refs=refs,
                         info=np.array(json.dumps(info, sort_keys=True)))
 
 
@@ -284,7 +299,7 @@ def _collect(args, *, allow_dirty=False, context=None):
     ids = [case for case, _ in specs]
     if len(set(ids)) != len(ids):
         raise ValueError('Duplicate physics cases')
-    if (out / 'reference.json').exists() or any(out.glob('*.npz')):
+    if (out / 'reference.json').exists() or (out / BANK_PATH).exists() or any(out.glob('*.npz')):
         raise FileExistsError(f'Use a new output directory: {out}')
     for case, spec in specs:
         family = spec['family']
@@ -294,7 +309,7 @@ def _collect(args, *, allow_dirty=False, context=None):
         if input_reference is not None:
             source_info = snapshot_info(input_reference, case, input_manifest)
             with np.load(input_reference/f'{case}.npz', allow_pickle=False) as z:
-                initial = read_initial(z, source_info)
+                initial = load_initial(input_reference, z, source_info)
         n = source_info['n'] if source_info else counts[case]
         info = dict(case=case, n=n, sha=sha, **provenance,
                     workload_version=WORKLOAD_VERSION,
@@ -405,9 +420,14 @@ def compare(args, *, cases=None):
             ia = snapshot_info(base, Path(name).stem, ma)
             ib = snapshot_info(cand, Path(name).stem, mb)
             assert_compatible(ia, ib)
-            read_initial(a, ia)
-            read_initial(b, ib)
-            n=ia['n']; aa=a['state']>0; bb=b['state']>0
+            initial_a = load_initial(base, a, ia)
+            initial_b = load_initial(cand, b, ib)
+            n = ia['n']
+            ida, sa = survivor_data(a, initial_a, n)
+            idb, sb = survivor_data(b, initial_b, n)
+            aa, bb = a['state'] > 0, b['state'] > 0
+            _, common_a, common_b = np.intersect1d(
+                ida, idb, assume_unique=True, return_indices=True)
             print(f'\n{name}: {ia["sha"][:12]} → {ib["sha"][:12]} (N={n})')
             def check(label, value, limit):
                 nonlocal failures
@@ -420,19 +440,18 @@ def compare(args, *, cases=None):
             for code in np.union1d(a['state'],b['state']):
                 check(f'state {code} fraction difference',abs(
                     np.mean(a['state']==code)-np.mean(b['state']==code)),args.fraction_tol)
-            for field in ('x','px','y','py','delta','energy','kick_x'):
-                x,y=a[field][aa],b[field][bb]
+            for field in (*SURVIVOR_FIELDS, 'kick_x'):
+                x, y = sa[field], sb[field]
                 if len(x) and len(y):
                     check(f'{field} survivor KS', ks_2samp(x, y).statistic, ks_screening_limit(len(x), len(y), args.ks_tol))
                     print(f'    mean {field}: {x.mean():.6g} / {y.mean():.6g}')
-                    common=aa&bb
-                    if common.any():
-                        print(f'    same-ID max |difference|: {np.max(np.abs(a[field][common]-b[field][common])):.6g}')
+                    if len(common_a):
+                        print(f'    same-ID max |difference|: {np.max(np.abs(x[common_a]-y[common_b])):.6g}')
                 elif len(x)!=len(y):
                     check(f'{field} survivor KS',1.,args.ks_tol)
             if name.startswith('crystal-') and aa.any() and bb.any():
                 check('channelled fraction (of survivors)',abs(
-                    np.mean(a['kick_x'][aa]>74.5e-6)-np.mean(b['kick_x'][bb]>74.5e-6)),args.fraction_tol)
+                    np.mean(sa['kick_x'] > 74.5e-6)-np.mean(sb['kick_x'] > 74.5e-6)),args.fraction_tol)
             if ia['family'] == 'lhc':
                 for k,v,label in [('coll_name','coll_n','collimator loss L1 / N'),
                                   ('aper_bin','aper_n','aperture-bin loss L1 / N')]:
@@ -450,6 +469,51 @@ def compare(args, *, cases=None):
                 check('deposited energy difference / initial',abs(float(a['deposited_energy'])-float(b['deposited_energy']))/(n*ia['p0c']),args.fraction_tol)
     print(f'\n{failures} screening checks need review. Thresholds are not physics acceptance criteria.')
     return int(failures>0)
+
+
+def compact_reference(source, output):
+    """Migrate schema 4 to 5 without tracking or changing physical inputs."""
+    source, output = Path(source).resolve(), Path(output).resolve()
+    if output.exists():
+        raise FileExistsError(f'Choose a new output directory: {output}')
+    manifest = load_manifest(source, version=4)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='xcoll-compact-', dir=output.parent) as tmp:
+        staging = Path(tmp) / 'snapshots'
+        staging.mkdir()
+        for case in manifest['cases']:
+            info = snapshot_info(source, case, manifest)
+            n = info['n']
+            with np.load(source / f'{case}.npz', allow_pickle=False) as old:
+                initial = read_initial(old, info)
+                final = compact_final(old, n)
+                refs = store_initial(staging, initial, n)
+                new_info = dict(info, workload_version=WORKLOAD_VERSION)
+                extra = {key: old[key] for key in old.files
+                         if key not in FINAL_FIELDS and key != 'info'
+                         and not key.startswith('initial_')}
+                dest = staging / f'{case}.npz'
+                np.savez_compressed(dest, **final, **extra, initial_refs=refs,
+                                    info=np.array(json.dumps(new_info, sort_keys=True)))
+                # Verify every retained observable, including the derived kick.
+                with np.load(dest, allow_pickle=False) as new:
+                    recovered = load_initial(staging, new, new_info)
+                    ids, values = survivor_data(new, recovered, n)
+                    for key, value in values.items():
+                        if not np.array_equal(value, old[key][ids], equal_nan=True):
+                            raise ValueError(f'{case}: changed survivor observable {key}')
+                    for key in ('state', 'at_element', *extra):
+                        if not np.array_equal(new[key], old[key],
+                                              equal_nan=new[key].dtype.kind in 'fc'):
+                            raise ValueError(f'{case}: changed observable {key}')
+            print(f'Compacted {case}', flush=True)
+        manifest['workload_version'] = WORKLOAD_VERSION
+        (staging / 'reference.json').write_text(json.dumps(manifest, indent=2, sort_keys=True)+'\n')
+        load_manifest(staging)
+        if output.exists():
+            raise FileExistsError(f'Output destination now exists: {output}')
+        staging.rename(output)
+    print(f'Compacted {len(manifest["cases"])} cases to {output}')
 
 
 def reference(args):
@@ -559,7 +623,13 @@ def main():
     d.add_argument('--fraction-tol',type=float,default=.01);
     d.add_argument('--ks-tol',type=float,default=.02)
     d.add_argument('--map-tol',type=float,default=.05);
+    m = sub.add_parser('compact', help='Migrate a schema-4 reference without retracking')
+    m.add_argument('source', type=Path)
+    m.add_argument('--output', type=Path, required=True)
     args=p.parse_args()
+    if args.action == 'compact':
+        compact_reference(args.source, args.output)
+        return 0
     if args.action in ('collect', 'reference'):
         if min(args.particles,args.lhc_particles)<2 or min(args.turns,args.events_per_particle)<1 or not np.isfinite(args.interpolation) or args.interpolation<=0:
             p.error('particle counts must be >= 2; turns, capacity and interpolation must be positive')
