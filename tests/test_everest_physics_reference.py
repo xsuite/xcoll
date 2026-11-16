@@ -8,7 +8,7 @@ If the codebase has changed and the references will no longer match, one can
 regenerate them by running (from the Xcoll root)
 
     rm -r tests/data/everest_physics_reference
-    python benchmarks/compare_everest_physics.py reference --ref main --use-prebuilt \
+    python benchmarks/compare_everest_physics.py reference --ref main \
         --output tests/data/everest_physics_reference \
         --particles 20000 --lhc-particles 20000 --turns 10 \
         --case-particles block-tungsten-26gev=500000 \
@@ -33,8 +33,11 @@ sys.path.insert(0, str(ROOT / 'benchmarks'))
 from compare_everest_physics import (
     collect, compare, case_specs, load_manifest, snapshot_info,
     DEFAULT_REFERENCE, ELEMENT_ENERGIES, LHC_ENERGIES,
+    environment_metadata, environment_differences, assert_compatible,
+    lhc_start_names,
 )
 from everest_interaction_statistics import paired_statistics
+from everest_initial_particles import initial_snapshot, initial_digest, restore_initial, read_initial
 
 
 @pytest.fixture(scope='session')
@@ -55,6 +58,13 @@ def pytest_generate_tests(metafunc):
         return
     try:
         manifest = load_manifest(path)
+        reporter = metafunc.config.pluginmanager.get_plugin('terminalreporter')
+        for difference in environment_differences(manifest, environment_metadata()):
+            message = f'Physics reference environment difference (informational): {difference}'
+            if reporter is not None:
+                reporter.write_line(message)
+            else:
+                print(message)
         sha = manifest['sha']
         expected_sha = os.environ.get('XCOLL_EVEREST_PHYSICS_REF_SHA')
         if not re.fullmatch('[0-9a-f]{40}', sha):
@@ -85,18 +95,19 @@ def test_everest_physics_against_reference(physics_case, tmp_path, physics_conte
     energy = info['energy_gev']
     candidate = tmp_path / 'candidate'
     args = SimpleNamespace(
-        checkout=ROOT, output=candidate, data=ROOT/'tests'/'data', cases=[info['family']],
+        checkout=ROOT, output=candidate, input_reference=reference,
+        data=ROOT/'tests'/'data', cases=[info['family']],
         particles=n, lhc_particles=n, turns=info.get('turns', 10),
         element_energies=[energy], lhc_energies=[energy],
         beam=[info.get('beam', 1)], plane=[info.get('plane', 'H')],
         crystal_modes=[info.get('crystals', False)], interpolation=info.get('interpolation', 0.2),
-        events_per_particle=info.get('events_per_particle', 40),
+        events_per_particle=info.get('events_per_particle', 12),
     )
     # A developer must be able to test uncommitted changes against a clean reference.
     use_prebuilt = os.environ.get('XCOLL_EVEREST_PHYSICS_USE_PREBUILT') == '1'
     collect(args, allow_dirty=True, context=physics_context, use_prebuilt=use_prebuilt)
     result = compare(SimpleNamespace(base=reference, candidate=candidate,
-        fraction_tol=0.01, ks_tol=0.02, map_tol=0.05, event_tol=0.03), cases=[case])
+                     fraction_tol=0.01, ks_tol=0.02, map_tol=0.05), cases=[case])
     assert result == 0, f'Physics regression screening failed for {case} against {info["sha"]}'
 
 
@@ -124,3 +135,48 @@ def test_channelling_segment_splitting():
     new = np.bincount(new_pid, weights=new_ds, minlength=100)
     result = paired_statistics(ref, new)
     assert result['difference'] < 1e-15
+
+
+def test_initial_particles_roundtrip(tmp_path, physics_context):
+    """Public Particles reconstruction preserves inputs and RNG exactly."""
+    import xpart as xp
+    p = xp.Particles(p0c=450e9, x=[1e-3, 2e-3, 3e-3],
+                     px=[1e-6, -2e-6, 3e-6], delta=[0., 1e-4, -2e-4],
+                     s=[10., 10., 10.], at_element=2, at_turn=3,
+                     start_tracking_at_element=2, _context=physics_context)
+    p._init_random_number_generator(seeds=np.array([1, 2, 3], dtype=np.uint32))
+    initial = initial_snapshot(p, 3)
+    digest = initial_digest(initial, 3)
+    path = tmp_path / 'inputs.npz'
+    np.savez_compressed(path, **initial)
+    info = {'n': 3, 'case': 'test', 'input_sha256': digest}
+    with np.load(path, allow_pickle=False) as z:
+        loaded = read_initial(z, info)
+    restored = restore_initial(loaded, 3, physics_context)
+    assert initial_digest(initial_snapshot(restored, 3), 3) == digest
+    assert restored.start_tracking_at_element == 2
+    loaded['initial_px'][0] += 1e-9
+    with pytest.raises(ValueError, match='digest mismatch'):
+        read_initial(loaded, info)
+
+
+def test_physics_environment_is_informational():
+    ref = dict(case='test', n=2, input_sha256='abc', sha='a',
+               python='3.12', deps={'xtrack': '1'}, platform={'system': 'Darwin'})
+    new = dict(ref, sha='b', python='3.14', deps={'xtrack': '2'},
+               platform={'system': 'Linux'})
+    assert len(environment_differences(ref, new)) == 3
+    assert_compatible(ref, new)
+    with pytest.raises(ValueError, match='Incompatible physical inputs'):
+        assert_compatible(ref, dict(new, input_sha256='changed'))
+    with pytest.raises(ValueError, match='Incompatible physical inputs'):
+        assert_compatible(ref, dict(new, n=3))
+
+
+def test_initial_tracking_location_guard():
+    initial = {'initial_at_element': np.array([1, 1]),
+               'initial_start_tracking_at_element': np.array(1)}
+    line = SimpleNamespace(element_names=['a', 'tcp', 'b'])
+    assert lhc_start_names(line, initial) == dict(at_element='tcp', start_tracking_at_element='tcp')
+    with pytest.raises(ValueError, match='single valid'):
+        lhc_start_names(line, dict(initial, initial_at_element=np.array([1, 2])))

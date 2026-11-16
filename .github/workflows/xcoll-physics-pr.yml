@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: xcoll-physics-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   physics_pr:
     # Independent runner: physics validation must not disturb performance timings.
@@ -17,9 +21,6 @@ jobs:
       !startsWith(github.head_ref, 'release/')
     runs-on: ubuntu-24.04
     timeout-minutes: 180
-    concurrency:
-      group: xcoll-physics-pr-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
     env:
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
@@ -145,21 +146,31 @@ jobs:
             --particles 20000 \
             --lhc-particles 20000 \
             --turns 10 \
+            --events-per-particle 12 \
             --case-particles block-tungsten-26gev=500000 \
             --case-particles crystal-amorphous-26gev=100000 \
             --case-particles block-cfc-7000gev=100000
 
       - name: Prebuild candidate physics kernels
+        id: prebuild
         working-directory: candidate
         shell: bash
         run: |
           set -euo pipefail
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
+          # Xsuite and Xfields are optional in a developer's reference environment.
+          # Use forced JIT in that case rather than failing the physics test.
+          if ! python -c 'import importlib.util as u, sys; sys.exit(not all(u.find_spec(p) is not None for p in ("xsuite", "xfields")))'; then
+            echo 'Xsuite or Xfields not installed; using forced JIT compilation.'
+            echo 'use_prebuilt=0' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           python -m benchmarks.perf.prebuild_cpu \
             --skip-tpsa \
             --skip-synrad \
             --n-threads 2 \
             --clear-existing
+          echo 'use_prebuilt=1' >> "$GITHUB_OUTPUT"
 
       - name: Test PR physics against reference
         working-directory: candidate/tests
@@ -167,7 +178,7 @@ jobs:
         env:
           XCOLL_EVEREST_PHYSICS_REFERENCE: ${{ steps.reference.outputs.path }}
           XCOLL_EVEREST_PHYSICS_REF_SHA: ${{ steps.reference.outputs.sha }}
-          XCOLL_EVEREST_PHYSICS_USE_PREBUILT: '1'
+          XCOLL_EVEREST_PHYSICS_USE_PREBUILT: ${{ steps.prebuild.outputs.use_prebuilt }}
         run: |
           set -euo pipefail
           source "$RUNNER_TEMP/xcoll-pr-physics/bin/activate"
@@ -180,7 +191,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xcoll-pr-physics-${{ github.run_id }}-${{ github.run_attempt }}
+          name: xcoll-pr-physics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.name }}
           path: ${{ runner.temp }}/physics-pr.xml
           if-no-files-found: warn
           retention-days: 90
@@ -189,7 +200,7 @@ jobs:
         if: always() && steps.reference.outputs.committed == 'false'
         uses: actions/upload-artifact@v4
         with:
-          name: xcoll-physics-base-${{ github.run_id }}-${{ github.run_attempt }}
+          name: xcoll-physics-base-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.name }}
           path: ${{ steps.reference.outputs.path }}
           if-no-files-found: warn
           retention-days: 90

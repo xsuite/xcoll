@@ -14,8 +14,9 @@ Generate a reference from a branch, tag, or commit (resolved to a full SHA):
 
 Use --ref v0.13.1 or --ref <full-sha> for an immutable revision. The command
 creates and removes a temporary detached worktree. The output directory must
-not exist. Both collections must use the same workload definitions, data,
-Python and dependency versions. For a smaller reference use e.g.
+not exist. Both collections must use the same workload definitions, data, and
+initial particles. Python, dependency and platform differences are reported,
+not rejected. For a smaller reference use e.g.
 --particles 20000 --lhc-particles 3000 --turns 5. To select a subset use
 --cases crystal-channeling lhc --element-energies 450 7000
 --lhc-energies 450 --beam 2 --plane H --crystals (only crystals).
@@ -31,7 +32,8 @@ Manual worktrees (run from the candidate repository root):
     PYTHONPATH=/tmp/xcoll-main python "$SCRIPT" collect \
         --checkout /tmp/xcoll-main --data "$DATA" --output /tmp/physics-main
     PYTHONPATH=/tmp/xcoll-gpu python "$SCRIPT" collect \
-        --checkout /tmp/xcoll-gpu --data "$DATA" --output /tmp/physics-gpu
+        --checkout /tmp/xcoll-gpu --data "$DATA" --output /tmp/physics-gpu \
+        --input-reference /tmp/physics-main
     python "$SCRIPT" compare /tmp/physics-main /tmp/physics-gpu
     git worktree remove /tmp/xcoll-main
     git worktree remove /tmp/xcoll-gpu
@@ -43,14 +45,17 @@ Automated test (current editable checkout, including uncommitted changes):
 
 Without an override the test reads tests/data/everest_physics_reference.
 Use XCOLL_EVEREST_PHYSICS_REF_SHA to enforce an expected reference commit.
-A manifest records the exact cases, Python and dependency versions. The test
-rejects incomplete or incompatible snapshots. The PR workflow reads the
+A manifest records the exact cases, Python, dependency versions and platform.
+Candidates replay the stored initial particle coordinates and RNG states. The
+comparison rejects incompatible workload parameters or initial inputs, but not
+environment differences. --input-reference selects stored inputs for collect
+and reference; particle counts, turns, interpolation and record capacity then
+come from the selected reference cases. The PR workflow reads the
 committed reference from the base checkout, never from the candidate; before
 one exists it collects from the exact PR base SHA in a fresh worktree.
 
-For a permanent reference, generate from a validated commit in the CI Python
-and dependency environment, inspect and review the results, then copy the
-reference directory (manifest and all NPZ files) into tests/data. Commit it
+For a permanent reference, generate from a validated commit (macOS or Linux),
+inspect and review the results, then copy the reference directory (manifest and all NPZ files) into tests/data. Commit it
 explicitly; never update an accepted reference merely to make a test pass.
 Use a temporary directory or ignored location for ordinary generated output.
 The comparison thresholds are screening criteria, not validated acceptance
@@ -62,7 +67,6 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import hashlib
 import inspect
 import os
 import tempfile
@@ -75,6 +79,9 @@ import xcoll as xc
 from everest_workloads import (DEFAULT_DATA, ELEMENT_CASES, COORD_SEED,
     PARTICLE_SEED, make_element, make_particles, build_lhc, make_lhc_pencil,
     make_lossmap, reset_counters, host)
+from everest_initial_particles import (
+    initial_snapshot, initial_digest, restore_initial, read_initial,
+)
 from everest_interaction_statistics import (
     RECORD_COLUMNS,
     interaction_snapshot,
@@ -85,11 +92,52 @@ from xcoll.interaction_record.interaction_record import (
 )
 
 FIELDS = ('x','px','y','py','zeta','delta','energy','s','state','at_element')
-WORKLOAD_VERSION = 3
+WORKLOAD_VERSION = 4
 DEFAULT_REFERENCE = DEFAULT_DATA / 'everest_physics_reference'
 ELEMENT_ENERGIES = (26, 450, 7000)
 LHC_ENERGIES = (450, 7000)
 DEPENDENCIES = ('xobjects', 'xtrack', 'xpart', 'xdeps', 'numpy', 'scipy', 'pandas')
+PROVENANCE_FIELDS = ('python', 'deps', 'platform')
+
+
+def environment_metadata():
+    deps = {p: metadata.version(p) for p in DEPENDENCIES}
+    for package in ('xfields', 'xsuite'):
+        try:
+            deps[package] = metadata.version(package)
+        except metadata.PackageNotFoundError:
+            pass
+    return dict(python=platform.python_version(), deps=deps,
+                platform=dict(system=platform.system(), machine=platform.machine(),
+                              release=platform.release()))
+
+
+def environment_differences(ref, candidate):
+    """Environment provenance is informational; physical inputs are not."""
+    return [f'{key}: {ref.get(key)!r} -> {candidate.get(key)!r}'
+            for key in PROVENANCE_FIELDS if ref.get(key) != candidate.get(key)]
+
+
+def assert_compatible(ref, candidate):
+    ignored = {'sha', *PROVENANCE_FIELDS}
+    a = {k:v for k,v in ref.items() if k not in ignored}
+    b = {k:v for k,v in candidate.items() if k not in ignored}
+    if a != b:
+        raise ValueError(f'Incompatible physical inputs for {ref.get("case")}:\n{a}\n{b}')
+
+
+def lhc_start_names(line, initial):
+    """Guard against silently tracking stored numeric indices in a changed line."""
+    names = line.element_names
+    indices = np.unique(initial['initial_at_element'])
+    if len(indices) != 1 or not 0 <= indices[0] < len(names):
+        raise ValueError('Expected a single valid LHC initial element index')
+    start = int(initial['initial_start_tracking_at_element'])
+    if not -1 <= start < len(names):
+        raise ValueError('Invalid LHC tracking start index')
+    return dict(at_element=names[int(indices[0])],
+                start_tracking_at_element=names[start] if start >= 0 else None)
+
 
 
 def case_id(family, energy_gev, beam=None, plane=None, crystals=None):
@@ -122,6 +170,7 @@ def load_manifest(path):
     manifest = json.loads((path / 'reference.json').read_text())
     cases = manifest.get('cases')
     if (manifest.get('workload_version') != WORKLOAD_VERSION
+            or not all(k in manifest for k in PROVENANCE_FIELDS)
             or not isinstance(cases, list) or not cases
             or any(not isinstance(c, str) or Path(c).name != c for c in cases)
             or len(set(cases)) != len(cases)
@@ -136,25 +185,19 @@ def load_manifest(path):
 def snapshot_info(path, case, manifest):
     with np.load(Path(path) / f'{case}.npz', allow_pickle=False) as z:
         info = json.loads(z['info'].item())
-    for key in ('sha', 'python', 'deps', 'workload_version'):
+    for key in ('sha', *PROVENANCE_FIELDS, 'workload_version'):
         if info.get(key) != manifest.get(key):
             raise ValueError(f'{case}: {key} differs from manifest')
     family = info.get('family')
     if family not in (*ELEMENT_CASES, 'lhc'):
         raise ValueError(f'Unknown family in {case}')
+    if not isinstance(info.get('n'), int) or info['n'] < 2:
+        raise ValueError(f'Invalid particle count in {case}')
     if info.get('case') != case or case != case_id(
             family, info['energy_gev'], info.get('beam'), info.get('plane'),
             info.get('crystals')):
         raise ValueError(f'Inconsistent case metadata in {case}')
     return info
-
-
-def digest(p):
-    h = hashlib.sha256()
-    for field in ('particle_id','x','px','y','py','zeta','delta','p0c','state','at_element',
-                  '_rng_s1','_rng_s2','_rng_s3','_rng_s4'):
-        h.update(np.ascontiguousarray(host(p,field)).tobytes())
-    return h.hexdigest()
 
 
 def snapshot_particles(p, n, initial_px):
@@ -170,9 +213,9 @@ def snapshot_particles(p, n, initial_px):
     return out
 
 
-def save_case(out, case, p, n, initial_px, info, **extra):
-    arrays = snapshot_particles(p,n,initial_px)
-    np.savez_compressed(out/f'{case}.npz', **arrays, **extra,
+def save_case(out, case, p, n, initial, info, **extra):
+    arrays = snapshot_particles(p,n,initial['initial_px'])
+    np.savez_compressed(out/f'{case}.npz', **arrays, **initial, **extra,
                         info=np.array(json.dumps(info, sort_keys=True)))
 
 
@@ -181,6 +224,8 @@ def particle_counts(args, specs):
     counts = {
         case: args.lhc_particles if spec['family'] == 'lhc' else args.particles
         for case, spec in specs}
+    if any(n < 2 for n in counts.values()):
+        raise ValueError('Physics particle populations must be >= 2')
     seen = set()
     for case, n in getattr(args, 'case_particles', []):
         if case not in counts:
@@ -188,7 +233,7 @@ def particle_counts(args, specs):
                              f'case: {case}')
         if case in seen:
             raise ValueError(f'Duplicate particle override: {case}')
-        if n < 1:
+        if n < 2:
             raise ValueError(f'Invalid particle count for {case}: {n}')
         counts[case] = n
         seen.add(case)
@@ -223,18 +268,19 @@ def _collect(args, *, allow_dirty=False, context=None):
     if initial_status and not allow_dirty:
         raise SystemExit('Physics comparison requires a clean checkout.')
     sha = git('rev-parse','HEAD')
-    deps = {p: metadata.version(p) for p in DEPENDENCIES}
-    # Record optional packages when installed, too.
-    for package in ('xfields', 'xsuite'):
-        try:
-            deps[package] = metadata.version(package)
-        except metadata.PackageNotFoundError:
-            pass
+    provenance = environment_metadata()
     out = args.output.resolve()
     out.mkdir(parents=True,exist_ok=True)
     cpu = context if context is not None else xo.ContextCpu()
     specs = list(case_specs(args))
     counts = particle_counts(args, specs)
+    input_reference = getattr(args, 'input_reference', None)
+    if input_reference is not None:
+        input_reference = Path(input_reference).resolve()
+        input_manifest = load_manifest(input_reference)
+        missing = set(counts) - set(input_manifest['cases'])
+        if missing:
+            raise ValueError(f'Input reference lacks selected cases: {sorted(missing)}')
     ids = [case for case, _ in specs]
     if len(set(ids)) != len(ids):
         raise ValueError('Duplicate physics cases')
@@ -244,37 +290,57 @@ def _collect(args, *, allow_dirty=False, context=None):
         family = spec['family']
         energy = spec['energy_gev']
         print(f'Collecting {case} on {sha[:12]}', flush=True)
-        n = counts[case]
-        info = dict(case=case, n=n, sha=sha, deps=deps,
-                    python=platform.python_version(), workload_version=WORKLOAD_VERSION,
-                    coordinate_seed=COORD_SEED, particle_seed=PARTICLE_SEED, **spec)
+        source_info = None
+        if input_reference is not None:
+            source_info = snapshot_info(input_reference, case, input_manifest)
+            with np.load(input_reference/f'{case}.npz', allow_pickle=False) as z:
+                initial = read_initial(z, source_info)
+        n = source_info['n'] if source_info else counts[case]
+        info = dict(case=case, n=n, sha=sha, **provenance,
+                    workload_version=WORKLOAD_VERSION,
+                    coordinate_seed=source_info['coordinate_seed'] if source_info else COORD_SEED,
+                    particle_seed=source_info['particle_seed'] if source_info else PARTICLE_SEED,
+                    **spec)
         if family == 'lhc':
             beam, plane, crystals = spec['beam'], spec['plane'], spec['crystals']
             line,tw,hashes = build_lhc(args.data, beam, crystals, cpu, energy_gev=energy)
-            p = make_lhc_pencil(line, tw, n, beam, plane)
-            info.update(hashes=hashes, turns=args.turns, interpolation=args.interpolation)
-            info['input_sha256'] = digest(p)
-            info['p0c'] = float(host(p,'p0c')[0])
-            initial_px = host(p,'px').copy()
+            turns = source_info['turns'] if source_info else args.turns
+            interpolation = source_info['interpolation'] if source_info else args.interpolation
+            if source_info is None:
+                p = make_lhc_pencil(line, tw, n, beam, plane)
+                initial = initial_snapshot(p, n)
+            p = restore_initial(initial, n, cpu)
+            info.update(hashes=hashes, turns=turns, interpolation=interpolation,
+                        start_names=lhc_start_names(line, initial),
+                        input_sha256=initial_digest(initial, n),
+                        p0c=float(initial['initial_p0c'][0]))
+            if source_info:
+                assert_compatible(source_info, info)
+            line.xcoll.scattering.enable()
             reset_counters(line.elements)
-            line.track(p,num_turns=args.turns)
-            lm = make_lossmap(line,p,beam,args.interpolation)
+            line.track(p,num_turns=turns)
+            lm = make_lossmap(line,p,beam,interpolation)
             coll = lm.summary
             aper = lm.aperture_losses
-            save_case(out,case,p,n,initial_px,info,
+            save_case(out,case,p,n,initial,info,
                 coll_name=coll.name.to_numpy(dtype=str),coll_n=coll.n.to_numpy(),
                 coll_e=coll.e.to_numpy(),aper_bin=np.asarray(aper['idx_bins']),
                 aper_n=np.asarray(aper['n_bins']),aper_e=np.asarray(aper['e_bins']))
         else:
             el = make_element(family,cpu)
             el.name = 'element'  # Match the explicit InteractionRecord name.
-            p = make_particles(family,n,cpu,energy_gev=energy)
-            info['input_sha256'] = digest(p)
-            info['p0c'] = float(host(p,'p0c')[0])
-            initial_px = host(p,'px').copy()
-            # Minimal record columns: count each physical event, not the full coordinates.
-            info['events_per_particle'] = args.events_per_particle
-            capacity = args.events_per_particle*n
+            if source_info is None:
+                p = make_particles(family,n,cpu,energy_gev=energy)
+                initial = initial_snapshot(p, n)
+            p = restore_initial(initial, n, cpu)
+            info['input_sha256'] = initial_digest(initial, n)
+            info['p0c'] = float(initial['initial_p0c'][0])
+            # Record per-primary multiplicity and continuous longitudinal extent.
+            info['events_per_particle'] = (source_info['events_per_particle']
+                                           if source_info else args.events_per_particle)
+            if source_info:
+                assert_compatible(source_info, info)
+            capacity = info['events_per_particle']*n
             # main still calls this argument capacity; EverestGPU calls it num_rows.
             size_key = ('num_rows' if 'num_rows' in inspect.signature(
                 xc.InteractionRecord.__init__).parameters else 'capacity')
@@ -293,14 +359,14 @@ def _collect(args, *, allow_dirty=False, context=None):
                 if nr>=capacity:
                     raise ValueError('Record full; increase --events-per-particle')
                 events = interaction_snapshot(rec, n=n, length=el.length, names=interaction_names)
-                save_case(out, case, p, n, initial_px, info, **events,
+                save_case(out, case, p, n, initial, info, **events,
                           deposited_energy=np.array(float(el._acc_ionisation_loss)))
             finally:
                 rec.stop(elements=[el])
     if git('rev-parse','HEAD')!=sha or git('status','--porcelain') != initial_status:
         raise SystemExit('Checkout changed during collection; discard these snapshots.')
     manifest = dict(workload_version=WORKLOAD_VERSION, sha=sha,
-                    python=platform.python_version(), deps=deps, cases=ids)
+                    **provenance, cases=ids)
     (out / 'reference.json').write_text(json.dumps(manifest, indent=2, sort_keys=True)+'\n')
     print(f'Saved {len(ids)} cases to {out}')
 
@@ -313,21 +379,17 @@ def l1(a,b):
     return sum(abs(a.get(k,0)-b.get(k,0)) for k in a.keys()|b.keys())
 
 
-def interaction_count_limit(count_ref, count_new, *, relative_tol=0.05, sigma=5.):
-    """Screen differences in interaction counts.
-
-    Approximate statistical allowance for independent
-    Poisson counts; not a formal acceptance test.
-    """
-    statistical = sigma * np.sqrt(count_ref + count_new)
-    relative = relative_tol * count_ref
-    return max(statistical, relative)
+def ks_screening_limit(n_ref, n_new, tolerance=0.02):
+    # Approximate independent-sample allowance.
+    return max(tolerance, 2.0 * np.sqrt(1/n_ref + 1/n_new))
 
 
 def compare(args, *, cases=None):
     from scipy.stats import ks_2samp
     base, cand = args.base,args.candidate
     ma, mb = load_manifest(base), load_manifest(cand)
+    for difference in environment_differences(ma, mb):
+        print(f'Environment difference (informational): {difference}')
     a_names={f'{c}.npz' for c in ma['cases']}
     b_names={f'{c}.npz' for c in mb['cases']}
     if cases is not None:
@@ -342,8 +404,9 @@ def compare(args, *, cases=None):
         with np.load(base/name,allow_pickle=False) as a, np.load(cand/name,allow_pickle=False) as b:
             ia = snapshot_info(base, Path(name).stem, ma)
             ib = snapshot_info(cand, Path(name).stem, mb)
-            if {k:v for k,v in ia.items() if k!='sha'}!={k:v for k,v in ib.items() if k!='sha'}:
-                raise SystemExit(f'Incompatible inputs or dependencies for {name}:\n{ia}\n{ib}')
+            assert_compatible(ia, ib)
+            read_initial(a, ia)
+            read_initial(b, ib)
             n=ia['n']; aa=a['state']>0; bb=b['state']>0
             print(f'\n{name}: {ia["sha"][:12]} → {ib["sha"][:12]} (N={n})')
             def check(label, value, limit):
@@ -360,7 +423,7 @@ def compare(args, *, cases=None):
             for field in ('x','px','y','py','delta','energy','kick_x'):
                 x,y=a[field][aa],b[field][bb]
                 if len(x) and len(y):
-                    check(f'{field} survivor KS',ks_2samp(x,y).statistic,args.ks_tol)
+                    check(f'{field} survivor KS', ks_2samp(x, y).statistic, ks_screening_limit(len(x), len(y), args.ks_tol))
                     print(f'    mean {field}: {x.mean():.6g} / {y.mean():.6g}')
                     common=aa&bb
                     if common.any():
@@ -423,6 +486,8 @@ def reference(args):
                 command += ['--no-crystals']
             for case, count in args.case_particles:
                 command += ['--case-particles', f'{case}={count}']
+            if args.input_reference is not None:
+                command += ['--input-reference', str(args.input_reference.resolve())]
             env = os.environ.copy()
             # A prebuilt kernel from the active environment might contain a
             # different Xcoll revision than this detached worktree.
@@ -443,11 +508,11 @@ def parse_case_particles(value):
     try:
         case, count = value.rsplit('=', 1)
         count = int(count)
-        if not case or count < 1:
+        if not case or count < 2:
             raise ValueError
     except ValueError:
         raise argparse.ArgumentTypeError(
-            'Expected CASE=POSITIVE_INTEGER, e.g. '
+            'Expected CASE=INTEGER_AT_LEAST_2, e.g. '
             'block-cfc-7000gev=500000'
         ) from None
     return case, count
@@ -455,6 +520,8 @@ def parse_case_particles(value):
 
 def add_collect_options(parser):
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--input-reference', type=Path,
+                        help='Replay stored initial particles and per-case settings from this reference')
     parser.add_argument('--data',type=Path,default=DEFAULT_DATA)
     parser.add_argument('--cases',nargs='+',choices=[*ELEMENT_CASES,'lhc'])
     parser.add_argument('--particles',type=int,default=100_000)
@@ -469,7 +536,7 @@ def add_collect_options(parser):
     modes.add_argument('--no-crystals', dest='crystal_modes', action='store_const', const=[False])
     parser.set_defaults(crystal_modes=[False, True])
     parser.add_argument('--interpolation',type=float,default=0.2)
-    parser.add_argument('--events-per-particle',type=int,default=40)
+    parser.add_argument('--events-per-particle',type=int,default=12)
     parser.add_argument('--case-particles', action='append', type=parse_case_particles,
                         default=[], metavar='CASE=N',
                         help='Override the particle population for a specific '
@@ -487,20 +554,22 @@ def main():
     r.add_argument('--repo',type=Path,default=Path(__file__).resolve().parents[1])
     r.add_argument('--ref',required=True)
     add_collect_options(r)
-    d=sub.add_parser('compare'); d.add_argument('base',type=Path); d.add_argument('candidate',type=Path)
-    d.add_argument('--fraction-tol',type=float,default=.01); d.add_argument('--ks-tol',type=float,default=.02)
-    d.add_argument('--map-tol',type=float,default=.05); d.add_argument('--event-tol',type=float,default=.03)
+    d=sub.add_parser('compare'); d.add_argument('base',type=Path);
+    d.add_argument('candidate',type=Path)
+    d.add_argument('--fraction-tol',type=float,default=.01);
+    d.add_argument('--ks-tol',type=float,default=.02)
+    d.add_argument('--map-tol',type=float,default=.05);
     args=p.parse_args()
     if args.action in ('collect', 'reference'):
-        if min(args.particles,args.lhc_particles,args.turns,args.events_per_particle)<1 or not np.isfinite(args.interpolation) or args.interpolation<=0:
-            p.error('particle counts, turns, capacity and interpolation must be positive')
+        if min(args.particles,args.lhc_particles)<2 or min(args.turns,args.events_per_particle)<1 or not np.isfinite(args.interpolation) or args.interpolation<=0:
+            p.error('particle counts must be >= 2; turns, capacity and interpolation must be positive')
         if args.action == 'collect':
             collect(args, use_prebuilt=args.use_prebuilt)
         else:
             reference(args)
         return 0
     if any(not np.isfinite(tol) or tol < 0 for tol in
-           (args.fraction_tol,args.ks_tol,args.map_tol,args.event_tol)):
+           (args.fraction_tol,args.ks_tol,args.map_tol)):
         p.error('comparison tolerances must be finite and non-negative')
     return compare(args)
 
