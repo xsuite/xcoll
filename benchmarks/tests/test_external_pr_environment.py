@@ -29,9 +29,16 @@ case "$name" in
     conda)
         test "$1" = list
         test "$2" = --prefix
-        test "$4" = --explicit
-        test "$5" = --md5
-        printf '%s' "$SPEC"
+        case "$4" in
+            --explicit)
+                test "$5" = --md5
+                printf '%s' "$SPEC"
+                ;;
+            --json)
+                printf '%s\n' '[{"name":"cffi","version":"2.0.0","channel":"conda-forge"}]'
+                ;;
+            *) exit 2 ;;
+        esac
         ;;
     mamba)
         test "$1" = create
@@ -43,7 +50,22 @@ case "$name" in
         mkdir -p "$4"
         ;;
     python)
-        if [ "$1" = -m ] && [ "$2" = pytest ]; then
+        if [[ "$1" = */benchmarks/perf/pip_lock.py ]]; then
+            shift
+            while (( $# )); do
+                case "$1" in
+                    --output)
+                        printf 'xsuite==0.68.0\n' > "$2"
+                        shift 2
+                        ;;
+                    --constraints)
+                        printf 'cffi==2.0.0\nxsuite==0.68.0\n' > "$2"
+                        shift 2
+                        ;;
+                    *) shift ;;
+                esac
+            done
+        elif [ "$1" = -m ] && [ "$2" = pytest ]; then
             mkdir -p results
             printf '{}\n' > results/benchmark.json
         elif [ "$1" = -m ] && [ "$2" = benchmarks.perf.pr_compare ]; then
@@ -90,11 +112,17 @@ esac
 def test_exact_conda_lock_created_before_benchmark(fake_runner, engine):
     result, trace = fake_runner(ENGINE=engine)
     assert result.returncode == 0, result.stderr
-    assert [x[0] for x in trace[:3]] == ['mamba', 'conda', 'mamba']
-    assert '--file' in trace[2][1]
+    assert [x[0] for x in trace[:4]] == ['mamba', 'conda', 'conda', 'mamba']
+    assert trace[2][1][3] == '--json'
+    assert '--file' in trace[3][1]
     assert trace[1][1][2].endswith('/base-env')
-    assert trace[2][1][3].endswith('/candidate-env')
-    tracking = [x for x in trace if x[0] == 'python' and x[1][:2] == ['-m', 'pytest']]
+    assert trace[3][1][3].endswith('/candidate-env')
+    lock_command = next(i for i, x in enumerate(trace) if x[0] == 'python'
+                        and x[1] and x[1][0].endswith('/benchmarks/perf/pip_lock.py'))
+    tracking_indices = [i for i, x in enumerate(trace) if x[0] == 'python'
+                        and x[1][:2] == ['-m', 'pytest']]
+    assert lock_command < tracking_indices[0]
+    tracking = [trace[i] for i in tracking_indices]
     assert len(tracking) == 2
     assert tracking[0][2].endswith('/base-env')
     assert tracking[1][2].endswith('/candidate-env')
@@ -111,10 +139,10 @@ def test_invalid_conda_lock_fails_before_compilation(fake_runner, spec):
     result, trace = fake_runner(SPEC=spec)
     assert result.returncode != 0
     assert 'Invalid Conda explicit package lock' in result.stderr
-    assert [x[0] for x in trace] == ['mamba', 'conda']
+    assert [x[0] for x in trace] == ['mamba', 'conda', 'conda']
 
 
 def test_candidate_create_failure_prevents_baseline_run(fake_runner):
     result, trace = fake_runner(FAIL_CREATE='1')
     assert result.returncode != 0
-    assert [x[0] for x in trace] == ['mamba', 'conda', 'mamba']
+    assert [x[0] for x in trace] == ['mamba', 'conda', 'conda', 'mamba']

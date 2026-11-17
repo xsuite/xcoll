@@ -28,13 +28,15 @@ def normalise(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
-def portable_lock(conda_inventory, frozen, *, installed_version=metadata.version):
+def portable_lock(conda_inventory, frozen, *, installed_version=None):
     """Return requirements not already provided by the identical Conda lock.
 
     Fail closed on local/editable pip sources, including sources that would only
     exist on the baseline machine. Do not silently substitute PyPI packages for
     Conda builds or erase pip-installed upgrades to Conda packages.
     """
+    if installed_version is None:
+        installed_version = metadata.version
     conda = {}
     for entry in conda_inventory:
         if not isinstance(entry, dict) or not isinstance(entry.get('name'), str):
