@@ -176,6 +176,8 @@ def test_context_parent_and_run_validation(tmp_path, monkeypatch):
     path = tmp_path / 'pr-context.json'
     path.write_text(json.dumps(ctx))
     run = dict(id=100, run_attempt=1, name='Xcoll physics (PR)', event='pull_request',
+               path='.github/workflows/xcoll-physics-pr.yml',
+               repository={'full_name': p.REPO},
                head_sha=HEAD, pull_requests=[{'number': 12}])
     monkeypatch.setattr(p, 'api', lambda _: sample_pr())
     monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
@@ -265,6 +267,8 @@ def test_resolve_separate_tools_and_reference(tmp_path, monkeypatch, event_name)
     # A separate reference/tooling revision survives publisher validation.
     monkeypatch.setattr(p, 'api', lambda _: pr)
     run = dict(id=100, run_attempt=1, name='Xcoll physics (PR)', event=event_name,
+               path='.github/workflows/xcoll-physics-pr.yml',
+               repository={'full_name': p.REPO},
                head_sha=env['GITHUB_SHA'], head_branch='main', pull_requests=[{'number': 12}])
     assert p.load_context(tmp_path / 'pr-context.json', run) == ctx
     monkeypatch.setattr(p, 'download', lambda *args, **kwargs: False)

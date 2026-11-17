@@ -21,8 +21,10 @@ from .pr_store import validate as validate_benchmarks
 REPO = 'xsuite/xcoll'
 SHA = re.compile(r'[0-9a-f]{40}')
 ENGINES = ('fluka', 'geant4')
-WORKFLOWS = {'Xcoll physics (PR)': 'physics',
-             'Xcoll external performance (PR)': 'external'}
+# `workflow_run.name` is the dynamic `run-name` for external benchmarks,
+# e.g. "geant4 benchmark for PR #241". Identify by workflow file instead.
+WORKFLOWS = {'.github/workflows/xcoll-physics-pr.yml': 'physics',
+             '.github/workflows/xcoll-performance-external-pr.yml': 'external'}
 MATRIX = ('elements', 'lhc-b1', 'lhc-b2')
 MAX_XML = 20_000_000
 
@@ -41,6 +43,16 @@ def number(value):
     value = str(value)
     require(re.fullmatch(r'[1-9][0-9]{0,11}', value), 'Invalid positive integer')
     return int(value)
+
+
+def source_workflow(run):
+    """Verify the workflow's repository and file path, never its display name."""
+    require(run.get('repository', {}).get('full_name') == REPO,
+            'Unexpected source repository')
+    path = str(run.get('path') or '').split('@', 1)[0]
+    kind = WORKFLOWS.get(path)
+    require(kind is not None, 'Unexpected source workflow')
+    return kind
 
 
 def gh(*args):
@@ -172,8 +184,9 @@ def load_context(path, run):
     require(obj['run_id'] == str(run['id']) and obj['attempt'] == run['run_attempt'],
             'Context belongs to another workflow attempt')
     kind = obj['kind']
-    require((run['name'] == 'Xcoll physics (PR)' and kind == 'physics') or
-            (run['name'] == 'Xcoll external performance (PR)' and kind in ENGINES),
+    source = source_workflow(run)
+    require((source == 'physics' and kind == 'physics') or
+            (source == 'external' and kind in ENGINES),
             'Unexpected workflow/kind')
     base, head, merge = (sha(obj[k]) for k in ('base_sha', 'head_sha', 'candidate_sha'))
     require(parents(merge) == [base, head], 'Recorded merge parents do not match')
@@ -325,13 +338,7 @@ def benchmark_record(context, run, directory):
 
 def publish():
     run = event()['workflow_run']
-    require(run['name'] in WORKFLOWS and run['repository']['full_name'] == REPO,
-            'Unexpected source workflow')
-    expected_path = {
-        'physics': '.github/workflows/xcoll-physics-pr.yml',
-        'external': '.github/workflows/xcoll-performance-external-pr.yml',
-    }[WORKFLOWS[run['name']]]
-    require(run['path'].split('@', 1)[0] == expected_path, 'Unexpected source workflow path')
+    source_workflow(run)
     suffix = f"{number(run['id'])}-{number(run['run_attempt'])}"
     with tempfile.TemporaryDirectory(dir=os.environ['RUNNER_TEMP']) as tmp:
         directory = Path(tmp)

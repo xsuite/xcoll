@@ -20,9 +20,11 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
+from .compare_physics import compare_documents
 from .dependencies import EXTERNAL_NAMES
 from .metrics import load_config, limits, observables, workload
 from .paths import results_dir
+from . import results as result_selection
 
 
 ONLINE_PROFILES = frozenset({'full', 'fluka', 'geant4'})
@@ -171,8 +173,37 @@ def read_pr_records(paths):
     return sorted(records, key=lambda r: (r['datetime'], r['run_id'], r['attempt']))
 
 
-def create_dashboard(paths, output, config=None, *, online=False, pr_runs=None):
-    runs = read_runs(paths, config=config, online=online)
+def local_comparison_runs(paths, config):
+    """Compare two local JSON runs without modifying their saved data.
+
+    The later run is always the candidate, regardless of the order in which
+    run numbers or tags were entered. Keep dashboard chronology meaningful.
+    """
+    files = _files(paths)
+    if len(files) != 2:
+        raise ValueError('A local comparison requires exactly two distinct result files')
+    pair = []
+    for path in files:
+        runs = read_runs([path], config=config)
+        if len(runs) != 1:
+            raise ValueError(f'Not a valid benchmark run: {path}')
+        pair.append((runs[0], json.loads(path.read_text(encoding='utf-8'))))
+    pair.sort(key=lambda item: (item[0]['datetime'], item[0]['id']))
+    (baseline, before), (candidate, after) = pair
+    checks = {r.name: r for r in compare_documents(before, after, config)}
+    for entry in candidate['entries']:
+        check = checks.get(entry['name'])
+        if check is not None:
+            entry['physics'] = {'status': check.status, 'summary': check.summary,
+                                'details': list(check.differences)}
+    return [baseline, candidate]
+
+
+def create_dashboard(paths, output, config=None, *, online=False, pr_runs=None,
+                     local_compare=False):
+    config = config or load_config()
+    runs = (local_comparison_runs(paths, config) if local_compare
+            else read_runs(paths, config=config, online=online))
     if not runs:
         raise ValueError('No valid benchmark results found')
     template = (Path(__file__).resolve().parent / 'templates' / 'dashboard.html').read_text(encoding='utf-8')
@@ -193,16 +224,28 @@ def create_dashboard(paths, output, config=None, *, online=False, pr_runs=None):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('paths', nargs='*', type=Path)
+    p.add_argument('paths', nargs='*', help='Result paths, run numbers, or local tags')
     p.add_argument('-o', '--output', type=Path, default=results_dir() / 'dashboard.html')
+    p.add_argument('--results', type=Path, default=results_dir(),
+                   help='Result directory for run numbers and tags')
     p.add_argument('--config', type=Path)
     p.add_argument('--online', action='store_true', help='Group scheduled CERN profiles per UTC day and software configuration')
     p.add_argument('--pr-runs', type=Path, help='Optional permanent PR comparison directory')
     a = p.parse_args(argv)
     try:
-        output = create_dashboard(a.paths or [results_dir()], a.output,
-                                  load_config(a.config), online=a.online,
-                                  pr_runs=a.pr_runs)
+        saved = a.results.resolve()
+        rows = result_selection.entries(saved)
+        tags = result_selection._load_labels(saved)
+        paths = []
+        for selection in a.paths or [str(saved)]:
+            if Path(selection).is_dir():
+                paths.append(Path(selection))
+            else:
+                paths.append(result_selection.resolve(selection, saved, rows, tags))
+        pair = len(a.paths) == 2 and not a.online
+        output = create_dashboard(paths, a.output, load_config(a.config),
+                                  online=a.online, pr_runs=a.pr_runs,
+                                  local_compare=pair)
     except (FileNotFoundError, ValueError) as err:
         p.error(str(err))
     print(f'Dashboard: {output}')
