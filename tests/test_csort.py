@@ -7,7 +7,7 @@ import pytest
 import numpy as np
 
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, allow_kernel_compilation
 
 
 class SortTest(xo.HybridClass):
@@ -87,6 +87,7 @@ GPUKERN void SortTest_sort_rows_desc_int64_t(GPUGLMEM int64_t* values,
 
 
 @pytest.mark.gpu
+@allow_kernel_compilation
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("descending", [False, True])
@@ -107,6 +108,7 @@ def test_fixed_sorting_networks_exhaustive(test_context, descending, double):
 
 
 @pytest.mark.gpu
+@allow_kernel_compilation
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("descending", [False, True])
@@ -142,6 +144,7 @@ def test_sort_random_lengths(test_context, descending, double, length, num_rows)
 
 
 @pytest.mark.gpu
+@allow_kernel_compilation
 @pytest.mark.xcother
 @for_all_test_contexts
 @pytest.mark.parametrize("descending", [False, True])
