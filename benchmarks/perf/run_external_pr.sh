@@ -10,6 +10,7 @@ candidate="$GITHUB_WORKSPACE/candidate"
 control="$GITHUB_WORKSPACE/control"
 ctx="$RUNNER_TEMP/xcoll-external-pr-context-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/pr-context.json"
 mamba="$MINIFORGE_ROOT/bin/mamba"
+conda_exe="$MINIFORGE_ROOT/bin/conda"
 export BENCHMARK_TESTBED="cern-openstack-xcoll-${ENGINE}-pr-paired"
 # Prevent state reuse; the shared CERN concurrency group excludes daily jobs.
 set +u
@@ -32,8 +33,25 @@ else
     extra=(cython pybind11 rpyc)
 fi
 "$mamba" create --yes --prefix "$work/base-env" --override-channels --channel conda-forge "${packages[@]}"
+# Export a machine-readable lock from Conda, not Mamba's display-oriented
+# listing, which may contain non-package lines such as an environment prefix.
+"$conda_exe" list --prefix "$work/base-env" --explicit --md5 > "$work/conda-spec.txt"
+# Reject malformed or empty locks before doing any compilation or tracking.
+# Conda's explicit format allows comments, an @EXPLICIT marker, and package
+# URLs. In particular, a bare environment path must never become a MatchSpec.
+if ! awk '
+    /^#/ || /^[[:space:]]*$/ { next }
+    $0 == "@EXPLICIT" && !marker { marker = 1; next }
+    marker && /^(https?|file):\/\// { packages++; next }
+    { invalid = 1 }
+    END { exit !(marker && packages && !invalid) }
+' "$work/conda-spec.txt"; then
+    echo "Invalid Conda explicit package lock: $work/conda-spec.txt" >&2
+    exit 1
+fi
+# Recreate the exact Conda builds before spending time on the baseline.
+"$mamba" create --yes --prefix "$work/candidate-env" --file "$work/conda-spec.txt"
 activate "$work/base-env"
-"$mamba" list --prefix "$CONDA_PREFIX" --explicit > "$work/conda-spec.txt"
 python -m pip install --upgrade pip
 python -m pip install --upgrade xsuite
 (cd "$base"; python -m pip install -e '.[benchmarks]' "${extra[@]}")
@@ -54,7 +72,6 @@ run_one() {
     test -n "$(find benchmarks/results -name '*.json' -print -quit)"
 }
 run_one "$base" base "$work/base-env"
-"$mamba" create --yes --prefix "$work/candidate-env" --file "$work/conda-spec.txt"
 activate "$work/candidate-env"
 python -m pip install -r "$work/pip-lock.txt"
 (cd "$candidate"; python -m pip install -c "$work/pip-lock.txt" -e '.[benchmarks]' "${extra[@]}")

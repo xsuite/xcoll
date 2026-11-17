@@ -119,9 +119,7 @@ def test_everest_physics_against_reference(physics_case, tmp_path, physics_conte
         crystal_modes=[info.get('crystals', False)], interpolation=info.get('interpolation', 0.2),
         events_per_particle=info.get('events_per_particle', 12),
     )
-    # A developer must be able to test uncommitted changes against a clean reference.
-    use_prebuilt = os.environ.get('XCOLL_EVEREST_PHYSICS_USE_PREBUILT') == '1'
-    collect(args, allow_dirty=True, context=physics_context, use_prebuilt=use_prebuilt)
+    collect(args, allow_dirty=True, context=physics_context, use_prebuilt=True)
     result = compare(SimpleNamespace(base=reference, candidate=candidate,
                      fraction_tol=0.01, ks_tol=0.02, map_tol=0.05), cases=[case])
     assert result == 0, f'Physics regression screening failed for {case} against {info["sha"]}'

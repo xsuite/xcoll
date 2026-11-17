@@ -19,69 +19,63 @@ def sample_pr():
 def test_resolve_requires_exact_reviewed_head(monkeypatch):
     pr = sample_pr()
     monkeypatch.setattr(p, 'api', lambda path: (
-        {'object': {'sha': BASE}} if path == 'git/ref/heads/main' else pr))
-    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
-    assert p.current_merge(12, HEAD)[1:] == (BASE, HEAD, MERGE)
-    with pytest.raises(ValueError, match='head changed'):
-        p.current_merge(12, 'd' * 40)
-    pr['draft'] = True
-    with pytest.raises(ValueError, match='non-draft'):
-        p.current_merge(12, HEAD)
-
-
-
-def test_current_merge_rejects_stale_pr_base(monkeypatch):
-    pr = sample_pr()
-    new_base = 'd' * 40
-    monkeypatch.setattr(p, 'api', lambda path: (
-        {'object': {'sha': new_base}} if path == 'git/ref/heads/main' else
         {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else pr))
     monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
-    monkeypatch.setattr(p.time, 'sleep', lambda _: None)
-    with pytest.raises(ValueError, match='Refusing to test an older base'):
-        p.current_merge(12)
+    assert p.existing_merge(12, HEAD)[1:] == (BASE, HEAD, MERGE)
+    with pytest.raises(ValueError, match='head changed'):
+        p.existing_merge(12, 'd' * 40)
+    pr['draft'] = True
+    with pytest.raises(ValueError, match='non-draft'):
+        p.existing_merge(12, HEAD)
 
 
-def test_current_merge_waits_for_fresh_merge(monkeypatch):
+@pytest.mark.parametrize('kind', ['fluka', 'geant4'])
+def test_external_resolves_historical_merge(tmp_path, monkeypatch, kind):
+    env = dict(GITHUB_REPOSITORY=p.REPO, KIND=kind, PR_NUMBER='12',
+               GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REF='refs/heads/main',
+               GITHUB_ACTOR='admin1', TRIGGERING_ACTOR='admin2', APPROVED_HEAD=HEAD,
+               GITHUB_RUN_ID='100', GITHUB_RUN_ATTEMPT='1',
+               RUNNER_TEMP=str(tmp_path), GITHUB_OUTPUT=str(tmp_path / 'output'))
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    tip = 'd' * 40
     pr = sample_pr()
-    new_base, new_merge = 'd' * 40, 'e' * 40
-    # The PR's base payload and mergeability initially refer to old main.
-    stale = dict(pr, mergeable=False)
-    fresh = dict(pr, merge_commit_sha=new_merge)
-    responses = iter([stale, pr, fresh])
-    monkeypatch.setattr(p, 'api', lambda path: (
-        {'object': {'sha': new_base}} if path == 'git/ref/heads/main' else
-        {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else next(responses)))
-    monkeypatch.setattr(p, 'parents', lambda merge: (
-        [BASE, HEAD] if merge == MERGE else [new_base, HEAD]))
-    monkeypatch.setattr(p.time, 'sleep', lambda _: None)
-    # Even if base.sha is stale, the verified parents and branch tip are enough.
-    assert p.current_merge(12, HEAD)[1:] == (new_base, HEAD, new_merge)
+    calls = []
 
+    def api(path):
+        calls.append(path)
+        if path.startswith('collaborators/'):
+            return {'permission': 'admin'}
+        if path == 'pulls/12':
+            return pr
+        if path == 'git/ref/pull/12/merge':
+            return {'object': {'sha': MERGE}}
+        if path == 'git/ref/heads/main':
+            return {'object': {'sha': tip}}
+        if path == f'compare/{BASE}...{tip}?per_page=1':
+            return {'merge_base_commit': {'sha': BASE}}
+        pytest.fail(f'Unexpected API call: {path}')
 
-
-def test_current_merge_uses_fresh_merge_ref_despite_stale_metadata(monkeypatch):
-    new_base, new_merge = 'd' * 40, 'e' * 40
-    pr = sample_pr()
-    monkeypatch.setattr(p, 'api', lambda path: (
-        {'object': {'sha': new_base}} if path == 'git/ref/heads/main' else
-        {'object': {'sha': new_merge}} if path == 'git/ref/pull/12/merge' else pr))
-    monkeypatch.setattr(p, 'parents', lambda merge: (
-        [BASE, HEAD] if merge == MERGE else [new_base, HEAD]))
-    assert p.current_merge(12, HEAD)[1:] == (new_base, HEAD, new_merge)
-
-
-def test_current_merge_retries_if_main_moves_during_resolution(monkeypatch):
-    new_base, new_merge = 'd' * 40, 'e' * 40
-    main_tips = iter([BASE, new_base, new_base, new_base])
-    prs = iter([sample_pr(), dict(sample_pr(), merge_commit_sha=new_merge)])
-    monkeypatch.setattr(p, 'api', lambda path: (
-        {'object': {'sha': next(main_tips)}} if path == 'git/ref/heads/main' else
-        {'object': {'sha': MERGE}} if path == 'git/ref/pull/12/merge' else next(prs)))
-    monkeypatch.setattr(p, 'parents', lambda merge: (
-        [BASE, HEAD] if merge == MERGE else [new_base, HEAD]))
-    monkeypatch.setattr(p.time, 'sleep', lambda _: None)
-    assert p.current_merge(12)[1:] == (new_base, HEAD, new_merge)
+    monkeypatch.setattr(p, 'api', api)
+    monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
+    p.resolve()
+    ctx = json.loads((tmp_path / 'pr-context.json').read_text())
+    assert (ctx['base_sha'], ctx['head_sha'], ctx['candidate_sha']) == (BASE, HEAD, MERGE)
+    assert ctx['kind'] == kind
+    assert 'tools_sha' not in ctx
+    assert calls.count('git/ref/pull/12/merge') == 1
+    assert 'collaborators/admin1/permission' in calls
+    assert 'collaborators/admin2/permission' in calls
+    (tmp_path / 'pr-context.json').unlink()
+    monkeypatch.setenv('APPROVED_HEAD', 'e' * 40)
+    with pytest.raises(ValueError, match='head changed'):
+        p.resolve()
+    assert not (tmp_path / 'pr-context.json').exists()
+    monkeypatch.setenv('APPROVED_HEAD', HEAD)
+    monkeypatch.setattr(p, 'main_contains', lambda _: False)
+    with pytest.raises(ValueError, match='not from main history'):
+        p.resolve()
+    assert not (tmp_path / 'pr-context.json').exists()
 
 
 def test_reference_manifest_required(monkeypatch):
@@ -221,7 +215,6 @@ def test_existing_merge_does_not_wait_for_current_main(monkeypatch):
 
     monkeypatch.setattr(p, 'api', api)
     monkeypatch.setattr(p, 'parents', lambda _: [BASE, HEAD])
-    monkeypatch.setattr(p.time, 'sleep', lambda _: pytest.fail('Must not poll'))
     assert p.existing_merge(12)[1:] == (BASE, HEAD, MERGE)
     assert calls == ['pulls/12', 'git/ref/pull/12/merge']
     # The actual merge first parent wins over stale PR API base metadata.

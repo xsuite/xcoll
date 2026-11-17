@@ -24,8 +24,8 @@ The reference source SHA, tooling SHA, and tested base SHA are distinct.
 The candidate's editable Xcoll package and lattice data are used for tracking;
 the trusted harness supplies the collector, comparison, and snapshot decoder.
 A candidate with an incompatible physics API or changed lattice data can fail
-rather than silently substituting main's physics. The external-engine workflow
-continues to require a merge with current main and its reviewed head.
+rather than silently substituting main's physics. Manual external-engine runs
+also use the existing verified merge and its actual base (see below).
 The three physics matrix jobs use the pinned pair; the CPU benchmark workflow
 is not triggered or cancelled. A new physics dispatch may cancel an older
 physics run for the same PR. Use a fresh dispatch (or rerun all jobs), not a
@@ -112,8 +112,11 @@ gh workflow run xcoll-performance-external-pr.yml --repo xsuite/xcoll --ref main
 ```
 
 Repeat with `engine=geant4` if both engines are needed. Approve the environment
-job once the resolver has reported the exact base/head/merge pair. If the PR
-head changes before resolution, the run fails; if it changes afterwards, only
+job once the resolver has reported the exact base/head/merge pair. The merge
+can have a historical first parent, provided it belongs to main history and
+its second parent is the explicitly reviewed current PR head. No branch is
+modified and no fresh GitHub test merge is required. If the PR head changes
+before resolution, the run fails; if it changes afterwards, only
 the already pinned revision can be checked out. A new revision needs a new
 review and dispatch. Use a fresh dispatch for retries, not rerun-failed-jobs.
 
@@ -138,11 +141,16 @@ The new publisher appends independent immutable JSON records to the existing
 `benchmark-results:pr-runs/<PR>/<run-id>-<attempt>.json` directory, with the
 same history-writer queue as the CPU publisher. It reuses the existing Pages
 deployment workflow and its queue. Existing CPU PR records remain readable
-without conversion. Choose **Pull Requests**, the PR number, and the labelled
-CPU / FLUKA / Geant4 / Everest physics workflow run. Related runs for identical
-head, base, and merge SHAs link to one another. If main moved between the CPU
-benchmark and the manually dispatched physics run, the two records remain
-separate; the dashboard can show the physics result alongside the benchmark with an explicit different-revision warning, never as the same tested pair.
+without conversion. Choose **Pull Requests**, the PR number, and a benchmark
+revision. The overview and benchmark details automatically combine the latest
+published CPU, FLUKA, and Geant4 run for the exact same base, head, and merge
+SHAs. Missing profiles are explicitly listed; an older or newer tested pair
+gets its own revision choice rather than being silently mixed in. Each profile
+retains its original machine, workflow link, timestamp, and scheduled physics
+reference. The combined overview counts measurements, not pooled timings.
+Reruns replace only the displayed component for that profile; all original
+records remain in history and Actions. Choose the Everest physics workflow
+independently. If its tested pair differs, the dashboard warns explicitly.
 
 The new publication schema for physics is separate from the existing benchmark
 rows. It includes the PR, branch, run ID, attempt, tested revisions, reference
