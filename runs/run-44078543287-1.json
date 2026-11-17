@@ -1,0 +1,2642 @@
+{
+  "machine_info": {
+    "node": "xsuite-benchmark.cern.ch",
+    "processor": "",
+    "machine": "x86_64",
+    "python_compiler": "GCC 15.3.0",
+    "python_implementation": "CPython",
+    "python_implementation_version": "3.12.16",
+    "python_version": "3.12.16",
+    "python_build": [
+      "main",
+      "Oct 26 2026 11:37:43"
+    ],
+    "release": "6.12.0-211.67.1.el10_2.x86_64",
+    "system": "Linux",
+    "cpu": {
+      "python_version": "3.12.16.final.0 (64 bit)",
+      "cpuinfo_version": [
+        10,
+        1,
+        1
+      ],
+      "cpuinfo_version_string": "10.1.1",
+      "arch": "X86_64",
+      "bits": 64,
+      "count": 4,
+      "arch_string_raw": "x86_64",
+      "vendor_id_raw": "GenuineIntel",
+      "brand_raw": "Intel Xeon Processor (Icelake)",
+      "hz_advertised_friendly": "2.9000 GHz",
+      "hz_actual_friendly": "2.9000 GHz",
+      "hz_advertised": [
+        2899996000,
+        0
+      ],
+      "hz_actual": [
+        2899996000,
+        0
+      ],
+      "model": 106,
+      "family": 6,
+      "flags": [
+        "3dnowprefetch",
+        "abm",
+        "adx",
+        "aes",
+        "apic",
+        "arat",
+        "arch_capabilities",
+        "avx",
+        "avx2",
+        "avx512_bitalg",
+        "avx512_vbmi2",
+        "avx512_vnni",
+        "avx512_vpopcntdq",
+        "avx512bw",
+        "avx512cd",
+        "avx512dq",
+        "avx512f",
+        "avx512ifma",
+        "avx512vbmi",
+        "avx512vl",
+        "bmi1",
+        "bmi2",
+        "clflush",
+        "clflushopt",
+        "clwb",
+        "cmov",
+        "constant_tsc",
+        "cpuid",
+        "cpuid_fault",
+        "cx16",
+        "cx8",
+        "de",
+        "ept",
+        "ept_ad",
+        "erms",
+        "f16c",
+        "flexpriority",
+        "fma",
+        "fpu",
+        "fsgsbase",
+        "fsrm",
+        "fxsr",
+        "gfni",
+        "hle",
+        "hypervisor",
+        "ibpb",
+        "ibrs",
+        "ibrs_enhanced",
+        "invpcid",
+        "la57",
+        "lahf_lm",
+        "lm",
+        "mca",
+        "mce",
+        "md_clear",
+        "mmx",
+        "movbe",
+        "msr",
+        "mtrr",
+        "nopl",
+        "nx",
+        "ospke",
+        "pae",
+        "pat",
+        "pcid",
+        "pclmulqdq",
+        "pdpe1gb",
+        "pge",
+        "pku",
+        "pni",
+        "popcnt",
+        "pse",
+        "pse36",
+        "rdpid",
+        "rdrand",
+        "rdseed",
+        "rdtscp",
+        "rep_good",
+        "rtm",
+        "sep",
+        "sha_ni",
+        "smap",
+        "smep",
+        "ss",
+        "ssbd",
+        "sse",
+        "sse2",
+        "sse4_1",
+        "sse4_2",
+        "ssse3",
+        "stibp",
+        "syscall",
+        "tpr_shadow",
+        "tsc",
+        "tsc_adjust",
+        "tsc_deadline_timer",
+        "tsc_known_freq",
+        "umip",
+        "vaes",
+        "vme",
+        "vmx",
+        "vnmi",
+        "vpclmulqdq",
+        "vpid",
+        "wbnoinvd",
+        "x2apic",
+        "xgetbv1",
+        "xsave",
+        "xsavec",
+        "xsaveopt",
+        "xsaves",
+        "xtopology"
+      ],
+      "l3_cache_size": 16777216,
+      "l2_cache_size": 16777216,
+      "l1_data_cache_size": 131072,
+      "l1_instruction_cache_size": 131072
+    }
+  },
+  "commit_info": {
+    "id": "ebdbc72dbd09aa0a92ac98aa6e0e32c65e598140",
+    "time": "2026-11-17T12:45:14+01:00",
+    "author_time": "2026-11-17T12:45:14+01:00",
+    "dirty": false,
+    "project": "xcoll",
+    "branch": "main"
+  },
+  "benchmarks": [
+    {
+      "group": "BlowUp | CPU tracking",
+      "name": "bench_blowup_cpu[common-kick]",
+      "fullname": "bench_blowup.py::bench_blowup_cpu[common-kick]",
+      "params": {
+        "individual": false
+      },
+      "param": "common-kick",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "particle_seed": 20261110,
+        "physics_case": "blowup-common",
+        "individual_kicks": false,
+        "rms_kick": 1.616727913335647e-07,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0004670389462262392,
+        "max": 0.0005428170552477241,
+        "mean": 0.0005053068045526743,
+        "stddev": 3.0676938863094164e-05,
+        "rounds": 5,
+        "median": 0.0005125189200043678,
+        "iqr": 4.931731382384896e-05,
+        "q1": 0.00047813300625421107,
+        "q3": 0.00052745032007806,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.0004670389462262392,
+        "hd15iqr": 0.0005428170552477241,
+        "ops": 1978.995713080206,
+        "total": 0.0025265340227633715,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "BlowUp | CPU tracking",
+      "name": "bench_blowup_cpu[individual-kicks]",
+      "fullname": "bench_blowup.py::bench_blowup_cpu[individual-kicks]",
+      "params": {
+        "individual": true
+      },
+      "param": "individual-kicks",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "particle_seed": 20261110,
+        "physics_case": "blowup-individual",
+        "individual_kicks": true,
+        "rms_kick": 5.762691062283061e-07,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0007516060722991824,
+        "max": 0.0007966620614752173,
+        "mean": 0.0007697728462517262,
+        "stddev": 1.678845756223905e-05,
+        "rounds": 5,
+        "median": 0.000765544013120234,
+        "iqr": 1.8486491171643138e-05,
+        "q1": 0.0007599348027724773,
+        "q3": 0.0007784212939441204,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.0007516060722991824,
+        "hd15iqr": 0.0007966620614752173,
+        "ops": 1299.084534962911,
+        "total": 0.0038488642312586308,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "EmittanceMonitor | CPU accumulation",
+      "name": "bench_emittance_monitor_accumulate[H]",
+      "fullname": "bench_emittance_monitor.py::bench_emittance_monitor_accumulate[H]",
+      "params": {
+        "planes": "H"
+      },
+      "param": "H",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "emittance-monitor-accumulate",
+        "planes": "H",
+        "recorded_particles": 100000,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.001448121969588101,
+        "max": 0.0015900220023468137,
+        "mean": 0.0014936466235667468,
+        "stddev": 5.693066340339902e-05,
+        "rounds": 5,
+        "median": 0.0014744190266355872,
+        "iqr": 6.421052967198193e-05,
+        "q1": 0.0014560390263795853,
+        "q3": 0.0015202495560515672,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.001448121969588101,
+        "hd15iqr": 0.0015900220023468137,
+        "ops": 669.5024005156283,
+        "total": 0.0074682331178337336,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "EmittanceMonitor | CPU accumulation",
+      "name": "bench_emittance_monitor_accumulate[6D]",
+      "fullname": "bench_emittance_monitor.py::bench_emittance_monitor_accumulate[6D]",
+      "params": {
+        "planes": "6D"
+      },
+      "param": "6D",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "emittance-monitor-accumulate",
+        "planes": "6D",
+        "recorded_particles": 100000,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0031557190231978893,
+        "max": 0.0032031870214268565,
+        "mean": 0.003178413026034832,
+        "stddev": 1.865929105657271e-05,
+        "rounds": 5,
+        "median": 0.0031732310308143497,
+        "iqr": 2.803097595460713e-05,
+        "q1": 0.003165820788126439,
+        "q3": 0.003193851764081046,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.0031557190231978893,
+        "hd15iqr": 0.0032031870214268565,
+        "ops": 314.6224206259093,
+        "total": 0.01589206513017416,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "EmittanceMonitor | analysis",
+      "name": "bench_emittance_monitor_calculate_horizontal",
+      "fullname": "bench_emittance_monitor.py::bench_emittance_monitor_calculate_horizontal",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "emittance-monitor-reduce",
+        "planes": "H",
+        "geometric_emittance": 3.001999488578269e-09,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.00463180395308882,
+        "max": 0.004768214072100818,
+        "mean": 0.004711814725305885,
+        "stddev": 3.663944901787185e-05,
+        "rounds": 10,
+        "median": 0.00471451849443838,
+        "iqr": 2.4916953407227993e-05,
+        "q1": 0.004701564088463783,
+        "q3": 0.004726481041871011,
+        "iqr_outliers": 2,
+        "stddev_outliers": 3,
+        "outliers": "3;2",
+        "ld15iqr": 0.0046875959960743785,
+        "hd15iqr": 0.004750319989398122,
+        "ops": 212.23245358720706,
+        "total": 0.04711814725305885,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | block",
+      "name": "bench_block_cfc_1M",
+      "fullname": "bench_everest.py::bench_block_cfc_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "block-CFC",
+        "lost_fraction": 0.687742,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.9988631195998181,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.1689267880283296,
+        "max": 1.1728467070497572,
+        "mean": 1.1705835507949813,
+        "stddev": 0.001582891569974815,
+        "rounds": 5,
+        "median": 1.1699975120136514,
+        "iqr": 0.0024076595436781645,
+        "q1": 1.16944788719411,
+        "q3": 1.1718555467377882,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 1.1689267880283296,
+        "hd15iqr": 1.1728467070497572,
+        "ops": 0.8542747754492769,
+        "total": 5.852917753974907,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | block",
+      "name": "bench_block_tungsten_1M",
+      "fullname": "bench_everest.py::bench_block_tungsten_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "block-W",
+        "lost_fraction": 0.997574,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.9995877988458368,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.316760436980985,
+        "max": 1.3228951529599726,
+        "mean": 1.3199229855788872,
+        "stddev": 0.00234612177977345,
+        "rounds": 5,
+        "median": 1.320407512015663,
+        "iqr": 0.00334104843204841,
+        "q1": 1.3181183592532761,
+        "q3": 1.3214594076853245,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 1.316760436980985,
+        "hd15iqr": 1.3228951529599726,
+        "ops": 0.7576199603505075,
+        "total": 6.599614927894436,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | collimator",
+      "name": "bench_collimator_cfc_hit_1M",
+      "fullname": "bench_everest.py::bench_collimator_cfc_hit_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "collimator-CFC-hit",
+        "lost_fraction": 0.675234,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.9989161426996669,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.3634794830577448,
+        "max": 1.366785972029902,
+        "mean": 1.364977348409593,
+        "stddev": 0.0011976694042539684,
+        "rounds": 5,
+        "median": 1.3648706750245765,
+        "iqr": 0.0012898326676804572,
+        "q1": 1.364294745028019,
+        "q3": 1.3655845776956994,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 1.3634794830577448,
+        "hd15iqr": 1.366785972029902,
+        "ops": 0.7326128899978835,
+        "total": 6.8248867420479655,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | collimator",
+      "name": "bench_collimator_tungsten_hit_1M",
+      "fullname": "bench_everest.py::bench_collimator_tungsten_hit_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "collimator-W-hit",
+        "lost_fraction": 0.983152,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.9999406457739791,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.5848165940260515,
+        "max": 1.58741351403296,
+        "mean": 1.586381878424436,
+        "stddev": 0.0010078684811548372,
+        "rounds": 5,
+        "median": 1.58652690902818,
+        "iqr": 0.001362528739264235,
+        "q1": 1.5857796397758648,
+        "q3": 1.587142168515129,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 1.5848165940260515,
+        "hd15iqr": 1.58741351403296,
+        "ops": 0.6303652440818228,
+        "total": 7.931909392122179,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | collimator",
+      "name": "bench_collimator_cfc_miss_1M",
+      "fullname": "bench_everest.py::bench_collimator_cfc_miss_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "collimator-CFC-miss",
+        "lost_fraction": 0.0,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.0,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0959696969948709,
+        "max": 0.09617365896701813,
+        "mean": 0.09604082098230719,
+        "stddev": 7.85503369859341e-05,
+        "rounds": 5,
+        "median": 0.09602570894639939,
+        "iqr": 7.827699300833046e-05,
+        "q1": 0.0959919209999498,
+        "q3": 0.09607019799295813,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.0959696969948709,
+        "hd15iqr": 0.09617365896701813,
+        "ops": 10.412239189252888,
+        "total": 0.480204104911536,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | collimator",
+      "name": "bench_collimator_cfc_grazing_1M",
+      "fullname": "bench_everest.py::bench_collimator_cfc_grazing_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "collimator-CFC-grazing",
+        "lost_fraction": 0.271935,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.5455460707491776,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 3.328540939022787,
+        "max": 3.336180806043558,
+        "mean": 3.3317984703928234,
+        "stddev": 0.003209159934406736,
+        "rounds": 5,
+        "median": 3.3319736550329253,
+        "iqr": 0.005347353202523664,
+        "q1": 3.3287778984813485,
+        "q3": 3.334125251683872,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 3.328540939022787,
+        "hd15iqr": 3.336180806043558,
+        "ops": 0.3001382013006623,
+        "total": 16.658992351964116,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | crystal",
+      "name": "bench_crystal_silicon_channeling_1M",
+      "fullname": "bench_everest.py::bench_crystal_silicon_channeling_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "crystal-channel-Si",
+        "lost_fraction": 0.001957,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.99765941948393,
+        "channeling_proxy_fraction_of_survivors": 0.6643691704666032,
+        "physics_check": {
+          "status": "OK",
+          "summary": "3 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.1502163299592212,
+        "max": 1.1532752909697592,
+        "mean": 1.1520839635748417,
+        "stddev": 0.0014862163046035807,
+        "rounds": 5,
+        "median": 1.1530851760180667,
+        "iqr": 0.0025624985282775015,
+        "q1": 1.1505963361996692,
+        "q3": 1.1531588347279467,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 1.1502163299592212,
+        "hd15iqr": 1.1532752909697592,
+        "ops": 0.8679922918960394,
+        "total": 5.760419817874208,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | crystal",
+      "name": "bench_crystal_silicon_volume_reflection_1M",
+      "fullname": "bench_everest.py::bench_crystal_silicon_volume_reflection_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "crystal-vr-Si",
+        "lost_fraction": 0.004264,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.9994074734668627,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.2680793929612264,
+        "max": 1.2777928629657254,
+        "mean": 1.271905109612271,
+        "stddev": 0.003595019393267316,
+        "rounds": 5,
+        "median": 1.2716172570362687,
+        "iqr": 0.0033396632061339915,
+        "q1": 1.2698277135496028,
+        "q3": 1.2731673767557368,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 1.2680793929612264,
+        "hd15iqr": 1.2777928629657254,
+        "ops": 0.7862221736846713,
+        "total": 6.359525548061356,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | crystal",
+      "name": "bench_crystal_silicon_amorphous_1M",
+      "fullname": "bench_everest.py::bench_crystal_silicon_amorphous_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "crystal-am-Si",
+        "lost_fraction": 0.004301,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.9916802166116467,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.106088915024884,
+        "max": 1.1105711730197072,
+        "mean": 1.108686924027279,
+        "stddev": 0.0018932184246762877,
+        "rounds": 5,
+        "median": 1.1091110430425033,
+        "iqr": 0.003192312695318833,
+        "q1": 1.1071101630514022,
+        "q3": 1.110302475746721,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 1.106088915024884,
+        "hd15iqr": 1.1105711730197072,
+        "ops": 0.9019678850071792,
+        "total": 5.543434620136395,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Everest CPU | crystal",
+      "name": "bench_crystal_silicon_miss_1M",
+      "fullname": "bench_everest.py::bench_crystal_silicon_miss_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "particles": 1000000,
+        "physics_case": "crystal-miss-Si",
+        "lost_fraction": 0.0,
+        "coordinate_seed": 20261109,
+        "particle_seed": 13579,
+        "survivors_with_kick_gt_0.1urad": 0.0,
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.06466251006349921,
+        "max": 0.0663820180343464,
+        "mean": 0.06572216462809592,
+        "stddev": 0.0007686386178289143,
+        "rounds": 5,
+        "median": 0.06608552602119744,
+        "iqr": 0.0012995223223697394,
+        "q1": 0.06503609323408455,
+        "q3": 0.06633561555645429,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.06466251006349921,
+        "hd15iqr": 0.0663820180343464,
+        "ops": 15.21556701089703,
+        "total": 0.3286108231404796,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "geometry CPU | absorber",
+      "name": "bench_geometry_absorber_parallel_hit_1M",
+      "fullname": "bench_geometry.py::bench_geometry_absorber_parallel_hit_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "geometry": "parallel-hit",
+        "particles": 1000000,
+        "lost_fraction": 1.0,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.1294250279897824,
+        "max": 0.13004357705358416,
+        "mean": 0.12974806220736354,
+        "stddev": 0.0002687466516131154,
+        "rounds": 5,
+        "median": 0.12980556499678642,
+        "iqr": 0.00047889904817566276,
+        "q1": 0.12949392898008227,
+        "q3": 0.12997282802825794,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.1294250279897824,
+        "hd15iqr": 0.13004357705358416,
+        "ops": 7.707244200701807,
+        "total": 0.6487403110368177,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "geometry CPU | absorber",
+      "name": "bench_geometry_absorber_parallel_miss_1M",
+      "fullname": "bench_geometry.py::bench_geometry_absorber_parallel_miss_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "geometry": "parallel-miss",
+        "particles": 1000000,
+        "lost_fraction": 0.0,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.06961037497967482,
+        "max": 0.07038997299969196,
+        "mean": 0.07005191079806536,
+        "stddev": 0.00033084048241215254,
+        "rounds": 5,
+        "median": 0.07008315401617438,
+        "iqr": 0.0005698950262740254,
+        "q1": 0.06978111548232846,
+        "q3": 0.07035101050860249,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.06961037497967482,
+        "hd15iqr": 0.07038997299969196,
+        "ops": 14.275128095829432,
+        "total": 0.3502595539903268,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "geometry CPU | absorber",
+      "name": "bench_geometry_absorber_tilted_1M",
+      "fullname": "bench_geometry.py::bench_geometry_absorber_tilted_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "geometry": "tilted-two-jaw",
+        "particles": 1000000,
+        "lost_fraction": 0.747975,
+        "tilt_radians": 0.002,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.14622112305369228,
+        "max": 0.14657631400041282,
+        "mean": 0.1464276470243931,
+        "stddev": 0.00015520551254085996,
+        "rounds": 5,
+        "median": 0.14645303902216256,
+        "iqr": 0.00027381908148527145,
+        "q1": 0.14629567973315716,
+        "q3": 0.14656949881464243,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.14622112305369228,
+        "hd15iqr": 0.14657631400041282,
+        "ops": 6.82931140615414,
+        "total": 0.7321382351219654,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "geometry CPU | crystal",
+      "name": "bench_geometry_black_crystal_curved_1M",
+      "fullname": "bench_geometry.py::bench_geometry_black_crystal_curved_1M",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "geometry": "curved-crystal",
+        "particles": 1000000,
+        "lost_fraction": 0.500213,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.12108192790765315,
+        "max": 0.12248832697514445,
+        "mean": 0.12193561838939786,
+        "stddev": 0.0006739559951489271,
+        "rounds": 5,
+        "median": 0.12238584400620311,
+        "iqr": 0.0011515039077494293,
+        "q1": 0.1212662773032207,
+        "q3": 0.12241778121097013,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.12108192790765315,
+        "hd15iqr": 0.12248832697514445,
+        "ops": 8.20104915371429,
+        "total": 0.6096780919469893,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Xcoll | startup",
+      "name": "bench_import_xcoll_fresh_process",
+      "fullname": "bench_import.py::bench_import_xcoll_fresh_process",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "physics_case": "fresh-process-import",
+        "fresh_interpreter": true,
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.9615278149722144,
+        "max": 1.0224194000475109,
+        "mean": 0.9860981694489185,
+        "stddev": 0.02491268760436013,
+        "rounds": 7,
+        "median": 0.977204867056571,
+        "iqr": 0.04575475543970242,
+        "q1": 0.9641214917937759,
+        "q3": 1.0098762472334784,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.9615278149722144,
+        "hd15iqr": 1.0224194000475109,
+        "ops": 1.0140978160002574,
+        "total": 6.90268718614243,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | installation",
+      "name": "bench_lhc_install_everest_b1",
+      "fullname": "bench_integration.py::bench_lhc_install_everest_b1",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "installation",
+        "beam": 1,
+        "crystals": true,
+        "physics_case": "install-everest-ir7",
+        "installed_collimators": 12,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 15.030996985035017,
+        "max": 15.715748358983546,
+        "mean": 15.368275871616788,
+        "stddev": 0.28108598500028315,
+        "rounds": 5,
+        "median": 15.455338277039118,
+        "iqr": 0.4502723452751525,
+        "q1": 15.107942896749591,
+        "q3": 15.558215242024744,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 15.030996985035017,
+        "hd15iqr": 15.715748358983546,
+        "ops": 0.06506910783966796,
+        "total": 76.84137935808394,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | installation",
+      "name": "bench_lhc_install_everest_b2",
+      "fullname": "bench_integration.py::bench_lhc_install_everest_b2",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "installation",
+        "beam": 2,
+        "crystals": false,
+        "physics_case": "install-everest-ir7",
+        "installed_collimators": 10,
+        "sequence_sha256": "9ddab60dab8c2c88823dabe6d7f7375ae141ca140e7e98997446c6194bb05d40",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 14.491704322979786,
+        "max": 14.818104226025753,
+        "mean": 14.70328833782114,
+        "stddev": 0.15062921570519314,
+        "rounds": 5,
+        "median": 14.794600405031815,
+        "iqr": 0.24746152554871514,
+        "q1": 14.569507581501966,
+        "q3": 14.816969107050681,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 14.491704322979786,
+        "hd15iqr": 14.818104226025753,
+        "ops": 0.06801199684207435,
+        "total": 73.5164416891057,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | line tools",
+      "name": "bench_lhc_collimator_family_and_gap_lookup",
+      "fullname": "bench_integration.py::bench_lhc_collimator_family_and_gap_lookup",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "line-tools",
+        "beam": 1,
+        "crystals": false,
+        "physics_case": "family-gap-snapshot",
+        "num_collimators": 10,
+        "num_families": 2,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0605738835898228,
+        "max": 0.07114656642894261,
+        "mean": 0.0673855962270006,
+        "stddev": 0.004453719649436357,
+        "rounds": 7,
+        "median": 0.06995157097000629,
+        "iqr": 0.007644482114701534,
+        "q1": 0.0631254910028656,
+        "q3": 0.07076997311756714,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.0605738835898228,
+        "hd15iqr": 0.07114656642894261,
+        "ops": 14.83996663962605,
+        "total": 0.4716991735890042,
+        "iterations": 100
+      }
+    },
+    {
+      "group": "InteractionRecord | transparent tracking",
+      "name": "bench_interaction_record_transparent[off]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_transparent[off]",
+      "params": {
+        "mode": "off"
+      },
+      "param": "off",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "transparent-jaw-record",
+        "lost_fraction": 0.0,
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.009616606053896248,
+        "max": 0.00974027393385768,
+        "mean": 0.009667629213072359,
+        "stddev": 6.108695317931304e-05,
+        "rounds": 5,
+        "median": 0.00963256903924048,
+        "iqr": 0.00011117980466224253,
+        "q1": 0.009619781485525891,
+        "q3": 0.009730961290188134,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.009616606053896248,
+        "hd15iqr": 0.00974027393385768,
+        "ops": 103.437976153225,
+        "total": 0.0483381460653618,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | transparent tracking",
+      "name": "bench_interaction_record_transparent[impacts]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_transparent[impacts]",
+      "params": {
+        "mode": "impacts"
+      },
+      "param": "impacts",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "transparent-jaw-record",
+        "lost_fraction": 0.0,
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.013343757949769497,
+        "max": 0.013568418100476265,
+        "mean": 0.013411426614038647,
+        "stddev": 9.021327085485043e-05,
+        "rounds": 5,
+        "median": 0.01337951805908233,
+        "iqr": 8.345529204234481e-05,
+        "q1": 0.013359333970583975,
+        "q3": 0.01344278926262632,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 0.013343757949769497,
+        "hd15iqr": 0.013400912983343005,
+        "ops": 74.563283144929,
+        "total": 0.06705713307019323,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | transparent tracking",
+      "name": "bench_interaction_record_transparent[impacts-and-exits]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_transparent[impacts-and-exits]",
+      "params": {
+        "mode": "impacts-exits"
+      },
+      "param": "impacts-and-exits",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "transparent-jaw-record",
+        "lost_fraction": 0.0,
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.015090305008925498,
+        "max": 0.015886947978287935,
+        "mean": 0.015342728001996875,
+        "stddev": 0.0003127051252201977,
+        "rounds": 5,
+        "median": 0.015249935095198452,
+        "iqr": 0.00025561932125128806,
+        "q1": 0.015176766435615718,
+        "q3": 0.015432385756867006,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 0.015090305008925498,
+        "hd15iqr": 0.015280865016393363,
+        "ops": 65.17745735112092,
+        "total": 0.07671364000998437,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | transparent tracking",
+      "name": "bench_interaction_record_transparent[selected-columns]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_transparent[selected-columns]",
+      "params": {
+        "mode": "compact"
+      },
+      "param": "selected-columns",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 100000,
+        "physics_case": "transparent-jaw-record",
+        "lost_fraction": 0.0,
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.013241608976386487,
+        "max": 0.013468208024278283,
+        "mean": 0.013355129421688617,
+        "stddev": 9.090927031619988e-05,
+        "rounds": 5,
+        "median": 0.013364145066589117,
+        "iqr": 0.00014706308138556778,
+        "q1": 0.01327832747483626,
+        "q3": 0.013425390556221828,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.013241608976386487,
+        "hd15iqr": 0.013468208024278283,
+        "ops": 74.87759709584009,
+        "total": 0.06677564710844308,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | Everest tracking",
+      "name": "bench_interaction_record_everest[off]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_everest[off]",
+      "params": {
+        "mode": "off"
+      },
+      "param": "off",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 15000,
+        "physics_case": "everest-cfc-jaw-record",
+        "lost_fraction": 0.6577333333333333,
+        "coordinate_seed": 20261110,
+        "particle_seed": 314159,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.028268406982533634,
+        "max": 0.028891004039905965,
+        "mean": 0.028631131793372334,
+        "stddev": 0.00024532712448883373,
+        "rounds": 5,
+        "median": 0.02861519204452634,
+        "iqr": 0.00035216883406974375,
+        "q1": 0.028486737923230976,
+        "q3": 0.02883890675730072,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.028268406982533634,
+        "hd15iqr": 0.028891004039905965,
+        "ops": 34.92701606128908,
+        "total": 0.14315565896686167,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | Everest tracking",
+      "name": "bench_interaction_record_everest[impacts-and-exits]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_everest[impacts-and-exits]",
+      "params": {
+        "mode": "impacts-exits"
+      },
+      "param": "impacts-and-exits",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 15000,
+        "physics_case": "everest-cfc-jaw-record",
+        "lost_fraction": 0.6577333333333333,
+        "coordinate_seed": 20261110,
+        "particle_seed": 314159,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.02880268800072372,
+        "max": 0.030214706086553633,
+        "mean": 0.029133481020107866,
+        "stddev": 0.0006067403672046959,
+        "rounds": 5,
+        "median": 0.028869639034383,
+        "iqr": 0.00043561551137827337,
+        "q1": 0.028827005997300148,
+        "q3": 0.02926262150867842,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 0.02880268800072372,
+        "hd15iqr": 0.028945259982720017,
+        "ops": 34.32476878783562,
+        "total": 0.14566740510053933,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | Everest tracking",
+      "name": "bench_interaction_record_everest[all-events]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_everest[all-events]",
+      "params": {
+        "mode": "all-events"
+      },
+      "param": "all-events",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 15000,
+        "physics_case": "everest-cfc-jaw-record",
+        "lost_fraction": 0.6577333333333333,
+        "coordinate_seed": 20261110,
+        "particle_seed": 314159,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.02992646594066173,
+        "max": 0.03006330202333629,
+        "mean": 0.029987031617201863,
+        "stddev": 4.975338135427363e-05,
+        "rounds": 5,
+        "median": 0.02997783408500254,
+        "iqr": 5.289752152748406e-05,
+        "q1": 0.029960105748614296,
+        "q3": 0.03001300327014178,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.02992646594066173,
+        "hd15iqr": 0.03006330202333629,
+        "ops": 33.34774887909734,
+        "total": 0.14993515808600932,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | Everest tracking",
+      "name": "bench_interaction_record_everest[selected-columns]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_everest[selected-columns]",
+      "params": {
+        "mode": "selected-columns"
+      },
+      "param": "selected-columns",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 15000,
+        "physics_case": "everest-cfc-jaw-record",
+        "lost_fraction": 0.6577333333333333,
+        "coordinate_seed": 20261110,
+        "particle_seed": 314159,
+        "physics_check": {
+          "status": "OK",
+          "summary": "1 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.029544863966293633,
+        "max": 0.029904769966378808,
+        "mean": 0.02964341137558222,
+        "stddev": 0.00014909944331475757,
+        "rounds": 5,
+        "median": 0.029579979949630797,
+        "iqr": 0.0001367052609566599,
+        "q1": 0.02955814273445867,
+        "q3": 0.02969484799541533,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 0.029544863966293633,
+        "hd15iqr": 0.02962487400509417,
+        "ops": 33.7343090284041,
+        "total": 0.1482170568779111,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | data extraction",
+      "name": "bench_interaction_record_to_pandas[all-columns-jaw]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_to_pandas[all-columns-jaw]",
+      "params": {
+        "format": "full-jaw"
+      },
+      "param": "all-columns-jaw",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 50000,
+        "physics_case": "transparent-jaw-record-export",
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.03423679305706173,
+        "max": 0.03473297297023237,
+        "mean": 0.03446248341351747,
+        "stddev": 0.0002149784629167387,
+        "rounds": 5,
+        "median": 0.034488909994252026,
+        "iqr": 0.0003784427244681865,
+        "q1": 0.03425215228344314,
+        "q3": 0.034630595007911325,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.03423679305706173,
+        "hd15iqr": 0.03473297297023237,
+        "ops": 29.017061481058633,
+        "total": 0.17231241706758738,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | data extraction",
+      "name": "bench_interaction_record_to_pandas[all-columns-lattice]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_to_pandas[all-columns-lattice]",
+      "params": {
+        "format": "full-lattice"
+      },
+      "param": "all-columns-lattice",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 50000,
+        "physics_case": "transparent-jaw-record-export",
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.05794063804205507,
+        "max": 0.05936889199074358,
+        "mean": 0.05871278101112694,
+        "stddev": 0.0006244564955438756,
+        "rounds": 5,
+        "median": 0.05851834500208497,
+        "iqr": 0.0010662770073395222,
+        "q1": 0.05828156400821172,
+        "q3": 0.05934784101555124,
+        "iqr_outliers": 0,
+        "stddev_outliers": 3,
+        "outliers": "3;0",
+        "ld15iqr": 0.05794063804205507,
+        "hd15iqr": 0.05936889199074358,
+        "ops": 17.03206666041735,
+        "total": 0.2935639050556347,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "InteractionRecord | data extraction",
+      "name": "bench_interaction_record_to_pandas[selected-columns-jaw]",
+      "fullname": "bench_interaction_record.py::bench_interaction_record_to_pandas[selected-columns-jaw]",
+      "params": {
+        "format": "selected-jaw"
+      },
+      "param": "selected-columns-jaw",
+      "extra_info": {
+        "protocol": 2,
+        "particles": 50000,
+        "physics_case": "transparent-jaw-record-export",
+        "coordinate_seed": 20261110,
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.03151887597050518,
+        "max": 0.03188045893330127,
+        "mean": 0.03170908140018582,
+        "stddev": 0.00015206513964781274,
+        "rounds": 5,
+        "median": 0.03166838502511382,
+        "iqr": 0.0002530579222366214,
+        "q1": 0.03160252055386081,
+        "q3": 0.031855578476097435,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.03151887597050518,
+        "hd15iqr": 0.03188045893330127,
+        "ops": 31.536706704917027,
+        "total": 0.15854540700092912,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | tracking",
+      "name": "bench_lhc_tracking_quick",
+      "fullname": "bench_lhc_lossmap.py::bench_lhc_tracking_quick",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "tracking",
+        "particles": 3000,
+        "turns": 3,
+        "crystals": false,
+        "beam": 1,
+        "plane": "H",
+        "interpolation_m": 0.2,
+        "coordinate_seed": 20261109,
+        "particle_seed": 24681357,
+        "reference_collimator_losses": 290,
+        "reference_aperture_losses": 1,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 6.50843197805807,
+        "max": 6.518409792915918,
+        "mean": 6.511317183403298,
+        "stddev": 0.004064562490896954,
+        "rounds": 5,
+        "median": 6.509479350992478,
+        "iqr": 0.0036888579779770225,
+        "q1": 6.509110090526519,
+        "q3": 6.512798948504496,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 6.50843197805807,
+        "hd15iqr": 6.5109286670340225,
+        "ops": 0.15357875708296023,
+        "total": 32.55658591701649,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | tracking",
+      "name": "bench_lhc_tracking_full",
+      "fullname": "bench_lhc_lossmap.py::bench_lhc_tracking_full",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "tracking",
+        "particles": 12000,
+        "turns": 10,
+        "crystals": true,
+        "beam": 1,
+        "plane": "H",
+        "interpolation_m": 0.2,
+        "coordinate_seed": 20261109,
+        "particle_seed": 24681357,
+        "reference_collimator_losses": 6794,
+        "reference_aperture_losses": 16,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 91.47111431497615,
+        "max": 91.61400206794497,
+        "mean": 91.55218365532346,
+        "stddev": 0.07336331611130772,
+        "rounds": 3,
+        "median": 91.57143458304927,
+        "iqr": 0.10716581472661346,
+        "q1": 91.49619438199443,
+        "q3": 91.60336019672104,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 91.47111431497615,
+        "hd15iqr": 91.61400206794497,
+        "ops": 0.010922732370478564,
+        "total": 274.6565509659704,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | analysis",
+      "name": "bench_lhc_lossmap_full",
+      "fullname": "bench_lhc_lossmap.py::bench_lhc_lossmap_full",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "lossmap-only",
+        "particles": 12000,
+        "turns": 10,
+        "crystals": true,
+        "beam": 1,
+        "plane": "H",
+        "interpolation_m": 0.2,
+        "coordinate_seed": 20261109,
+        "particle_seed": 24681357,
+        "reference_collimator_losses": 6794,
+        "reference_aperture_losses": 16,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 10.543464498012327,
+        "max": 11.437735311104916,
+        "mean": 10.96776501981076,
+        "stddev": 0.3985649823560781,
+        "rounds": 5,
+        "median": 10.973720258916728,
+        "iqr": 0.7357085820403881,
+        "q1": 10.586260071751894,
+        "q3": 11.321968653792283,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 10.543464498012327,
+        "hd15iqr": 11.437735311104916,
+        "ops": 0.0911762786851951,
+        "total": 54.83882509905379,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | combined",
+      "name": "bench_lhc_tracking_and_lossmap_full",
+      "fullname": "bench_lhc_lossmap.py::bench_lhc_tracking_and_lossmap_full",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "tracking+lossmap",
+        "particles": 12000,
+        "turns": 10,
+        "crystals": true,
+        "beam": 1,
+        "plane": "H",
+        "interpolation_m": 0.2,
+        "coordinate_seed": 20261109,
+        "particle_seed": 24681357,
+        "reference_collimator_losses": 6794,
+        "reference_aperture_losses": 16,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 101.83465126797091,
+        "max": 102.80085972405504,
+        "mean": 102.18890213267878,
+        "stddev": 0.5321646952586461,
+        "rounds": 3,
+        "median": 101.93119540601037,
+        "iqr": 0.7246563420630991,
+        "q1": 101.85878730248078,
+        "q3": 102.58344364454388,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 101.83465126797091,
+        "hd15iqr": 102.80085972405504,
+        "ops": 0.009785798449049117,
+        "total": 306.56670639803633,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Line tools | element copy",
+      "name": "bench_collimator_copy[standalone]",
+      "fullname": "bench_line_api.py::bench_collimator_copy[standalone]",
+      "params": {
+        "installed": false
+      },
+      "param": "standalone",
+      "extra_info": {
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.1763029508292675e-05,
+        "max": 0.00014108908362686634,
+        "mean": 2.4459418138793752e-05,
+        "stddev": 2.2956595439941535e-06,
+        "rounds": 11367,
+        "median": 2.3986096493899822e-05,
+        "iqr": 7.647322490811348e-07,
+        "q1": 2.3631262592971325e-05,
+        "q3": 2.439599484205246e-05,
+        "iqr_outliers": 863,
+        "stddev_outliers": 715,
+        "outliers": "715;863",
+        "ld15iqr": 2.2487016394734383e-05,
+        "hd15iqr": 2.5529065169394016e-05,
+        "ops": 40884.04696814739,
+        "total": 0.27803020598366857,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Line tools | element copy",
+      "name": "bench_collimator_copy[installed]",
+      "fullname": "bench_line_api.py::bench_collimator_copy[installed]",
+      "params": {
+        "installed": true
+      },
+      "param": "installed",
+      "extra_info": {
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.2521009668707848e-05,
+        "max": 0.001207091030664742,
+        "mean": 2.485884136928209e-05,
+        "stddev": 9.957076666219198e-06,
+        "rounds": 14910,
+        "median": 2.4357927031815052e-05,
+        "iqr": 7.390044629573822e-07,
+        "q1": 2.4017994292080402e-05,
+        "q3": 2.4756998755037785e-05,
+        "iqr_outliers": 970,
+        "stddev_outliers": 60,
+        "outliers": "60;970",
+        "ld15iqr": 2.2910069674253464e-05,
+        "hd15iqr": 2.5862944312393665e-05,
+        "ops": 40227.136299107384,
+        "total": 0.370645324815996,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Line tools | optics",
+      "name": "bench_collimator_optics_at_positions",
+      "fullname": "bench_line_api.py::bench_collimator_optics_at_positions",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.001098164007999003,
+        "max": 0.001351168961264193,
+        "mean": 0.0011503778434081868,
+        "stddev": 2.742742340208187e-05,
+        "rounds": 717,
+        "median": 0.0011474878992885351,
+        "iqr": 2.475854125805199e-05,
+        "q1": 0.0011356922041159123,
+        "q3": 0.0011604507453739643,
+        "iqr_outliers": 28,
+        "stddev_outliers": 144,
+        "outliers": "144;28",
+        "ld15iqr": 0.0011003570398315787,
+        "hd15iqr": 0.0011966349557042122,
+        "ops": 869.2796073308685,
+        "total": 0.82482091372367,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "LHC Run 3 | analysis",
+      "name": "bench_lhc_lossmap_without_interpolation",
+      "fullname": "bench_lossmap_variants.py::bench_lhc_lossmap_without_interpolation",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "phase": "lossmap-only",
+        "beam": 1,
+        "plane": "H",
+        "particles": 3000,
+        "turns": 3,
+        "crystals": false,
+        "interpolation_m": false,
+        "coordinate_seed": 20261109,
+        "particle_seed": 24681357,
+        "physics_case": "lossmap-without-interpolation",
+        "reference_collimator_losses": 290,
+        "reference_aperture_losses": 1,
+        "sequence_sha256": "cec7eeb41245bf796836a0db641cb7ec22286aeeb6c5088a3fc4b2c8ee1d2e75",
+        "collimator_database_sha256": "10fb6746913e508d12f758d7596221b5ec3d8656eed96bd41ef2373acfd00989",
+        "physics_check": {
+          "status": "OK",
+          "summary": "2 observables within tolerance",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.9981983189936727,
+        "max": 3.2829092119354755,
+        "mean": 3.075609042774886,
+        "stddev": 0.11790953299686474,
+        "rounds": 5,
+        "median": 3.0211900880094618,
+        "iqr": 0.10183670098194852,
+        "q1": 3.0126254389761016,
+        "q3": 3.11446213995805,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 2.9981983189936727,
+        "hd15iqr": 3.058313115965575,
+        "ops": 0.32513885415611105,
+        "total": 15.37804521387443,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "Materials | construction",
+      "name": "bench_material_elemental_construction",
+      "fullname": "bench_materials.py::bench_material_elemental_construction",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "physics_case": "material-elemental",
+        "material": "W",
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0008401159697677941,
+        "max": 0.001533018989721313,
+        "mean": 0.0009177063201786951,
+        "stddev": 0.0002162831863844324,
+        "rounds": 10,
+        "median": 0.0008486093149986118,
+        "iqr": 7.578700315207247e-06,
+        "q1": 0.0008461620204616338,
+        "q3": 0.0008537407207768411,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 0.0008401159697677941,
+        "hd15iqr": 0.0008623842999804766,
+        "ops": 1089.67321899372,
+        "total": 0.009177063201786951,
+        "iterations": 100
+      }
+    },
+    {
+      "group": "Materials | serialisation",
+      "name": "bench_material_to_dict",
+      "fullname": "bench_materials.py::bench_material_to_dict",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "physics_case": "material-to-dict",
+        "material": "CFC",
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.00015774705912917852,
+        "max": 0.00016029958031140267,
+        "mean": 0.0001587298708036542,
+        "stddev": 9.121298310540575e-07,
+        "rounds": 10,
+        "median": 0.00015845967980567368,
+        "iqr": 1.0133709292858882e-06,
+        "q1": 0.00015812136931344866,
+        "q3": 0.00015913474024273455,
+        "iqr_outliers": 0,
+        "stddev_outliers": 3,
+        "outliers": "3;0",
+        "ld15iqr": 0.00015774705912917852,
+        "hd15iqr": 0.00016029958031140267,
+        "ops": 6300.011427823694,
+        "total": 0.001587298708036542,
+        "iterations": 100
+      }
+    },
+    {
+      "group": "Materials | serialisation",
+      "name": "bench_material_from_dict",
+      "fullname": "bench_materials.py::bench_material_from_dict",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "physics_case": "material-from-dict",
+        "material": "W",
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.00022201451938599348,
+        "max": 0.0002303152100648731,
+        "mean": 0.00022352844290435313,
+        "stddev": 2.464714206912086e-06,
+        "rounds": 10,
+        "median": 0.0002227322896942496,
+        "iqr": 1.3940199278295083e-06,
+        "q1": 0.00022222558967769146,
+        "q3": 0.00022361960960552097,
+        "iqr_outliers": 1,
+        "stddev_outliers": 1,
+        "outliers": "1;1",
+        "ld15iqr": 0.00022201451938599348,
+        "hd15iqr": 0.00022400403046049177,
+        "ops": 4473.703601236536,
+        "total": 0.0022352844290435313,
+        "iterations": 100
+      }
+    },
+    {
+      "group": "RF sweep | preparation",
+      "name": "bench_rf_sweep_prepare_lhc",
+      "fullname": "bench_rf_sweep.py::bench_rf_sweep_prepare_lhc",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "physics_case": "rf-sweep-prepare-lhc",
+        "sweep_per_turn_hz": -0.05,
+        "beam": 1,
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 19.465632507926784,
+        "max": 20.226646450930275,
+        "mean": 19.798628013619844,
+        "stddev": 0.3893039603077525,
+        "rounds": 3,
+        "median": 19.70360508200247,
+        "iqr": 0.5707604572526179,
+        "q1": 19.525125651445705,
+        "q3": 20.095886108698323,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 19.465632507926784,
+        "hd15iqr": 20.226646450930275,
+        "ops": 0.05050855035571563,
+        "total": 59.39588404085953,
+        "iterations": 1
+      }
+    },
+    {
+      "group": "RF sweep | tracking",
+      "name": "bench_rf_sweep_tracking_lhc",
+      "fullname": "bench_rf_sweep.py::bench_rf_sweep_tracking_lhc",
+      "params": null,
+      "param": null,
+      "extra_info": {
+        "protocol": 2,
+        "physics_case": "rf-sweep-track-lhc",
+        "particles": 64,
+        "turns": 5,
+        "sweep_per_turn_hz": -0.05,
+        "physics_check": {
+          "status": "UNVERIFIED",
+          "summary": "No configured physical observables saved",
+          "details": []
+        }
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.347660857019946,
+        "max": 0.3491063790861517,
+        "mean": 0.34839877602644265,
+        "stddev": 0.0005863632772565143,
+        "rounds": 5,
+        "median": 0.34858756593894213,
+        "iqr": 0.0009244925749953836,
+        "q1": 0.34787331250845455,
+        "q3": 0.34879780508344993,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.347660857019946,
+        "hd15iqr": 0.3491063790861517,
+        "ops": 2.8702741479324323,
+        "total": 1.7419938801322132,
+        "iterations": 1
+      }
+    }
+  ],
+  "datetime": "2026-11-17T12:36:01.844073+00:00",
+  "version": "5.3.1",
+  "xsuite_versions": {
+    "xcoll": "0.13.1",
+    "xtrack": "0.119.0",
+    "xobjects": "0.7.3",
+    "xpart": "0.23.24",
+    "xdeps": "0.11.1",
+    "xfields": "0.28.0",
+    "numpy": "2.5.5",
+    "scipy": "1.18.1",
+    "pandas": "3.1.1",
+    "fluka": null,
+    "linebuilder": null,
+    "flukaio": null,
+    "geant4": null,
+    "bdsim": null
+  },
+  "external_version_sources": {
+    "fluka": null,
+    "linebuilder": null,
+    "flukaio": null,
+    "geant4": null,
+    "bdsim": null
+  },
+  "compiler": {
+    "command": "x86_64-conda-linux-gnu-cc",
+    "executable": "/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/bin/x86_64-conda-linux-gnu-cc",
+    "version": "x86_64-conda-linux-gnu-cc (conda-forge gcc 16.2.0-7) 16.2.0",
+    "environment_flags": {
+      "CFLAGS": "-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include",
+      "CPPFLAGS": "-DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include",
+      "CXXFLAGS": "-fvisibility-inlines-hidden -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include",
+      "LDFLAGS": "-Wl,-O2 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,--disable-new-dtags -Wl,--gc-sections -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,-rpath-link,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -L/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib"
+    },
+    "python_build_flags": {
+      "CFLAGS": "-fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2   -fno-merge-constants -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/python-split_1793013978562/work=/usr/local/src/conda/python-split-3.12.16 -fPIC -O2   -fno-merge-constants -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/python-split_1793013978562/work=/usr/local/src/conda/python-split-3.12.16 ",
+      "CPPFLAGS": "-IObjects -IInclude -IPython -I. -I/home/conda/feedstock_root/build_artifacts/python-split_1793013978562/work/Include -DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -I/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -I/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include",
+      "CXXFLAGS": null,
+      "LDFLAGS": "-Wl,--allow-shlib-undefined -Wl,-rpath,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,-rpath-link,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -L/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,-rpath-link,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -L/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib"
+    }
+  },
+  "machine_name": "xsuite-benchmark.cern.ch",
+  "testbed": "cern-openstack-xcoll-cpu-v1",
+  "benchmark_protocol": 2,
+  "ci": {
+    "run_id": "44078543287",
+    "run_attempt": 1,
+    "source_sha": "ebdbc72dbd09aa0a92ac98aa6e0e32c65e598140",
+    "source_branch": "main",
+    "profile": "full",
+    "trigger": "schedule",
+    "physical_host": "cern-openstack-xcoll-vm-v1",
+    "dependencies": [
+      "Python 3.12.16",
+      "certifi==2026.10.23",
+      "cffi==2.1.1",
+      "charset-normalizer==3.5.2",
+      "Cython==3.3.1",
+      "idna==3.20",
+      "iniconfig==2.3.1",
+      "lark==1.3.1",
+      "madng-tpsa==0.3.4",
+      "markdown-it-py==4.3.0",
+      "mdurl==0.1.2",
+      "meson==1.12.1",
+      "numpy==2.5.5",
+      "packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1785888127/work",
+      "pandas==3.1.1",
+      "pluggy==1.7.0",
+      "py-cpuinfo2==10.1.1",
+      "pycparser==3.12",
+      "Pygments==2.21.0",
+      "pytest==9.2.0",
+      "pytest-benchmark==5.3.1",
+      "python-dateutil==4.0.0",
+      "requests==2.34.2",
+      "rich==15.0.0",
+      "ruamel.yaml==0.19.1",
+      "scipy==1.18.1",
+      "setuptools==84.2.1",
+      "tqdm==4.70.1",
+      "tzdata==2026.6",
+      "urllib3==2.8.0",
+      "wheel==0.48.0",
+      "-e git+https://github.com/xsuite/xcoll@ebdbc72dbd09aa0a92ac98aa6e0e32c65e598140#egg=xcoll",
+      "xdeps==0.11.1",
+      "xfields==0.28.0",
+      "xobjects==0.7.3",
+      "xpart==0.23.24",
+      "xsuite==0.69.0",
+      "xtrack==0.119.0",
+      "{",
+      "  \"external_versions\": {",
+      "    \"fluka\": null,",
+      "    \"linebuilder\": null,",
+      "    \"flukaio\": null,",
+      "    \"geant4\": null,",
+      "    \"bdsim\": null",
+      "  },",
+      "  \"sources\": {",
+      "    \"fluka\": null,",
+      "    \"linebuilder\": null,",
+      "    \"flukaio\": null,",
+      "    \"geant4\": null,",
+      "    \"bdsim\": null",
+      "  },",
+      "  \"compiler\": {",
+      "    \"command\": \"x86_64-conda-linux-gnu-cc\",",
+      "    \"executable\": \"/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/bin/x86_64-conda-linux-gnu-cc\",",
+      "    \"version\": \"x86_64-conda-linux-gnu-cc (conda-forge gcc 16.2.0-7) 16.2.0\",",
+      "    \"environment_flags\": {",
+      "      \"CFLAGS\": \"-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include\",",
+      "      \"CPPFLAGS\": \"-DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include\",",
+      "      \"CXXFLAGS\": \"-fvisibility-inlines-hidden -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include\",",
+      "      \"LDFLAGS\": \"-Wl,-O2 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -Wl,--disable-new-dtags -Wl,--gc-sections -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,-rpath-link,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -L/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib\"",
+      "    },",
+      "    \"python_build_flags\": {",
+      "      \"CFLAGS\": \"-fno-strict-overflow -Wsign-compare -DNDEBUG -O2 -Wall -fPIC -O2   -fno-merge-constants -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/python-split_1793013978562/work=/usr/local/src/conda/python-split-3.12.16 -fPIC -O2   -fno-merge-constants -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -fdebug-prefix-map=/home/conda/feedstock_root/build_artifacts/python-split_1793013978562/work=/usr/local/src/conda/python-split-3.12.16 \",",
+      "      \"CPPFLAGS\": \"-IObjects -IInclude -IPython -I. -I/home/conda/feedstock_root/build_artifacts/python-split_1793013978562/work/Include -DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -I/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -DNDEBUG -D_FORTIFY_SOURCE=2 -O2 -isystem /home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include -I/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/include\",",
+      "      \"CXXFLAGS\": null,",
+      "      \"LDFLAGS\": \"-Wl,--allow-shlib-undefined -Wl,-rpath,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,-rpath-link,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -L/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -Wl,-rpath-link,/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib -L/home/xcollrunner/actions-runner/_work/_temp/xcoll-perf-44078543287-1/lib\"",
+      "    }",
+      "  }",
+      "}"
+    ]
+  }
+}
