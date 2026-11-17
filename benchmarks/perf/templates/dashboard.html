@@ -470,5 +470,15 @@ function renderPRBenchmarks(r=selectedPRRun('prRun')){
 }
 function changeMode(mode){state.mode=mode;const history=mode==='history',compare=mode==='compare';$('historyPanel').hidden=!history;$('comparePanel').hidden=!compare;$('prPanel').hidden=mode!=='pr';$('historyMode').classList.toggle('active',history);$('compareMode').classList.toggle('active',compare);$('prMode').classList.toggle('active',mode==='pr');if(history)renderHistory();else if(compare)compareSets();else renderPR();}
 function init(){if(!runs.length){$('historyPanel').textContent='No benchmark history available';return;}$('lastUpdated').textContent='Latest record · '+runs.at(-1).datetime.slice(0,19)+' UTC';selectBranch('branch','main');for(const side of ['base','cand']){selectBranch(side+'Branch',side==='base'?'main':(unique(runs.map(r=>r.branch)).filter(b=>b!=='main').at(-1)||'main'));fillRevision(side);$(side+'Branch').onchange=()=>{fillRevision(side);compareSets();};for(const key of ['Revision','From','To'])$(side+key).addEventListener('input',compareSets);}for(const id of ['branch','dateFrom','dateTo','search','heatReference'])$(id).addEventListener('input',()=>{state.selected=null;state.trend=false;renderHistory();});$('compareSearch').oninput=compareSets;$('historyMode').onclick=()=>changeMode('history');$('compareMode').onclick=()=>changeMode('compare');$('prMode').onclick=()=>changeMode('pr');$('prNumber').onchange=fillPRRuns;$('prRun').onchange=renderPR;$('prPhysicsRun').onchange=renderPR;$('prFilter').oninput=()=>renderPRBenchmarks();$('overviewBtn').onclick=()=>{state.selected=null;state.trend=false;renderHistory();};$('trendBtn').onclick=()=>{state.selected=state.selected||allNames(historyRuns(),$('search').value)[0]||null;state.trend=true;renderHistory();};$('backButton').onclick=()=>{state.selected=null;state.trend=false;renderHistory();};fillPRs();renderHistory();}
+// Each new heatmap or trend starts at the most recent (rightmost) run.
+// Observe only direct chart replacements: manual horizontal scrolling must
+// remain under the user's control until the chart is re-rendered.
+function initialiseTimelineScroll() {
+ const area=$('timeline');
+ const alignRight=()=>{area.scrollLeft=area.scrollWidth;};
+ new MutationObserver(()=>requestAnimationFrame(alignRight)).observe(area,{childList:true});
+ alignRight();
+}
 init();
+initialiseTimelineScroll();
 </script></body></html>
