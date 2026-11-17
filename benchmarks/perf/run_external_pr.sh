@@ -36,6 +36,9 @@ fi
 # Export a machine-readable lock from Conda, not Mamba's display-oriented
 # listing, which may contain non-package lines such as an environment prefix.
 "$conda_exe" list --prefix "$work/base-env" --explicit --md5 > "$work/conda-spec.txt"
+# Snapshot Conda-managed distributions before pip can modify or replace them.
+# A recreated candidate already has these exact Conda builds installed.
+"$conda_exe" list --prefix "$work/base-env" --json > "$work/conda-inventory.json"
 # Reject malformed or empty locks before doing any compilation or tracking.
 # Conda's explicit format allows comments, an @EXPLICIT marker, and package
 # URLs. In particular, a bare environment path must never become a MatchSpec.
@@ -55,7 +58,14 @@ activate "$work/base-env"
 python -m pip install --upgrade pip
 python -m pip install --upgrade xsuite
 (cd "$base"; python -m pip install -e '.[benchmarks]' "${extra[@]}")
-python -m pip freeze --exclude xcoll > "$work/pip-lock.txt"
+# pip freeze may include Conda's ephemeral feedstock paths (e.g. cffi @
+# file:///home/conda/feedstock_root/...). Such entries must not be installed
+# in the candidate. Only lock pip additions or actual pip replacements of
+# packages from the Conda snapshot. Fail on other non-portable local sources.
+python "$control/benchmarks/perf/pip_lock.py" \
+    --conda-inventory "$work/conda-inventory.json" \
+    --output "$work/pip-lock.txt" \
+    --constraints "$work/pip-constraints.txt"
 # Record and reuse the exact package solve, not a second independent solve.
 run_one() {
     local tree="$1" label="$2" env="$3"
@@ -73,8 +83,8 @@ run_one() {
 }
 run_one "$base" base "$work/base-env"
 activate "$work/candidate-env"
-python -m pip install -r "$work/pip-lock.txt"
-(cd "$candidate"; python -m pip install -c "$work/pip-lock.txt" -e '.[benchmarks]' "${extra[@]}")
+python -m pip install -c "$work/pip-constraints.txt" -r "$work/pip-lock.txt"
+(cd "$candidate"; python -m pip install -c "$work/pip-constraints.txt" -e '.[benchmarks]' "${extra[@]}")
 run_one "$candidate" candidate "$work/candidate-env"
 # Compare from trusted orchestration using the base environment. Never recompute
 # in the history publisher, and never publish through a write token on CERN.
