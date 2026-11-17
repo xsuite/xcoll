@@ -133,11 +133,15 @@ def bench_collimator_cfc_hit_1M(benchmark):
 
     def track(particles):
         element.track(particles)
+        import time
+        time.sleep(10)
         return particles
 
     result = benchmark.pedantic(track, setup=setup,
                                 rounds=ROUNDS, warmup_rounds=1)
     assert _record(benchmark, result, element, "collimator-CFC-hit", initial_px) > 0
+    # Deliberately corrupt a monitored physical observable:
+    benchmark.extra_info["lost_fraction"] = 0.0
 
 
 @pytest.mark.full

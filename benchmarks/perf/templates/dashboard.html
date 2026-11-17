@@ -20,15 +20,13 @@
     .segment button{border:0;border-radius:6px;padding:7px 12px;background:transparent;color:var(--muted);font-size:12px;font-weight:620}
     .segment button.active{background:white;color:var(--blue);box-shadow:0 1px 4px #233c6820}
     .legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted)}.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
-    .dot.saturated{width:13px;height:13px;color:white;text-align:center;font-size:12px;font-weight:700;line-height:13px;vertical-align:middle}
+    /* Saturated cells use shaded diagonal hatching (also reflected in the legend). */
+    .dot.saturated{width:13px;height:13px;vertical-align:middle;position:relative;color:transparent;font-size:0}
+    .dot.saturated::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,
+      transparent 0 3px,#e2e8efb3 3px 5px,#101720a6 5px 6px,transparent 6px 8px)}
+    .dot.physics-flag{width:14px;height:14px;background:transparent!important;color:#15283b;text-align:center;font-size:18px;font-weight:900;line-height:13px;vertical-align:middle;text-shadow:0 0 2px #fff,0 0 4px #fff}
     .timeline{overflow:auto;max-height:580px;scrollbar-gutter:stable;padding:0 0 5px;overscroll-behavior-inline:contain}
     .timeline svg{display:block;max-width:none;flex:none}
-    /* High-contrast physics flag: gold with a dark edge and a white halo.
-       Its distinctive corner shape stays visible even in red slowdown cells. */
-    #timeline svg path[fill="#b64030"]{
-      fill:#ffe075;stroke:#273244;stroke-width:1.5;stroke-linejoin:round;
-      paint-order:stroke fill;filter:drop-shadow(0 0 1.5px #fff)
-    }
     .chart-area{display:flex;align-items:flex-start;width:max-content;min-width:100%}
     .sticky-labels{flex:0 0 280px;width:280px;position:sticky;left:0;background:#fff;z-index:5;border-right:1px solid #e9edf4;box-shadow:5px 0 7px -8px #334b71}
     .trend-y-axis{flex:0 0 105px;width:105px;position:sticky;left:0;z-index:6;background:#fff;border-right:1px solid #dce4ef;box-shadow:5px 0 7px -8px #334b71}
@@ -86,6 +84,26 @@
   #prBenchmarkMeta{overflow-wrap:anywhere}
   @media(max-width:850px){.pr-overview-grid{grid-template-columns:1fr;padding:14px}.pr-controls{padding:0 14px 14px}.pr-controls .wide{min-width:0;flex-basis:100%}.pr-meta{padding:0 14px 14px}.pr-revision-notice{margin:14px 14px 0}}
   @media(max-width:480px){.pr-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.pr-revisions{grid-template-columns:1fr}.pr-overview-card{padding:13px}}
+  .heatmap-physics-popup {
+    position: fixed;
+    z-index: 100;
+    max-width: min(440px, calc(100vw - 24px));
+    max-height: min(400px, calc(100vh - 24px));
+    overflow: auto;
+    padding: 14px 18px;
+    background: white;
+    border: 1px solid #dce4ef;
+    border-left: 3px solid #b94c39;
+    border-radius: 8px;
+    box-shadow: 0 6px 24px #19263c25;
+    font-size: 11px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .heatmap-physics-popup strong {
+    display: block;
+    margin-bottom: 7px;
+  }
 </style></head>
 <body><main class="shell">
 <header><div><div class="eyebrow">Xsuite / Benchmarking</div><h1>Performance history</h1><div class="subtitle">Measurements across runs, revisions, branches, and hardware.</div></div><div class="subtitle" id="lastUpdated"></div></header>
@@ -234,11 +252,68 @@ function color(v){
 function heatmapSaturated(v){return Number.isFinite(v)&&(v<=-75||v>=300);}
 function markHeatmapSaturation(pic,rect,v){
   if(!heatmapSaturated(v)) return;
-  const x=Number(rect.getAttribute('x'))+Number(rect.getAttribute('width'))/2;
-  const y=Number(rect.getAttribute('y'))+Number(rect.getAttribute('height'))/2;
-  svg('path',{d:`M${x-5} ${y-5} L${x+5} ${y+5} M${x+5} ${y-5} L${x-5} ${y+5}`,
-    fill:'none',stroke:'#fff','stroke-width':2,'stroke-linecap':'round',
-    'pointer-events':'none','aria-hidden':'true'},pic);
+  // Diagonal hatching denotes a clipped colour scale, not changed physics.
+  const id='heatmap-saturation-hatch';
+  if(!pic.querySelector('pattern#'+id)){
+    const pattern=svg('pattern',{id,patternUnits:'userSpaceOnUse',width:8,height:8,
+      patternTransform:'rotate(45)'},svg('defs',{},pic));
+    // A fine, light-grey offset stroke adds contrast without overpowering the cell.
+    svg('path',{d:'M0 0 V8',fill:'none',stroke:'#e2e8ef',
+      'stroke-opacity':.7,'stroke-width':2.2,transform:'translate(1 0)'},pattern);
+    svg('path',{d:'M0 0 V8',fill:'none',stroke:'#101720',
+      'stroke-opacity':.65,'stroke-width':1.15},pattern);
+  }
+  svg('rect',{x:rect.getAttribute('x'),y:rect.getAttribute('y'),
+    width:rect.getAttribute('width'),height:rect.getAttribute('height'),rx:4,
+    fill:`url(#${id})`,'pointer-events':'none','aria-hidden':'true'},pic);
+}
+function showHeatmapPhysics(event, check, name, run) {
+  event.stopPropagation();
+  document.querySelector('.heatmap-physics-popup')?.remove();
+  const popup = elem('div', undefined, 'heatmap-physics-popup');
+  popup.append(
+    elem('strong', name),
+    elem('div', description(run), 'quiet'),
+    elem('strong', `${check.status} · ${check.summary || ''}`)
+  );
+  for (const detail of check.details || [])
+    popup.append(elem('div', detail));
+  document.body.append(popup);
+  const bounds = popup.getBoundingClientRect();
+  popup.style.left = Math.max(12,
+    Math.min(event.clientX + 12, window.innerWidth - bounds.width - 12)
+  ) + 'px';
+  popup.style.top = Math.max(12,
+    Math.min(event.clientY + 12, window.innerHeight - bounds.height - 12)
+  ) + 'px';
+  const dismiss = e => {
+    if (e.type === 'keydown' && e.key !== 'Escape') return;
+    if (e.type === 'pointerdown' && popup.contains(e.target)) return;
+    popup.remove();
+    document.removeEventListener('pointerdown', dismiss);
+    document.removeEventListener('keydown', dismiss);
+  };
+  document.addEventListener('pointerdown', dismiss);
+  document.addEventListener('keydown', dismiss);
+}
+function markHeatmapPhysics(pic,rect,check,onClick){
+  if(check.status!=='CHANGED') return;
+  const x=Number(rect.getAttribute('x'))+Number(rect.getAttribute('width'))-10;
+  const y=Number(rect.getAttribute('y'))+9;
+  const d=`M${x-4.5} ${y-4.5} L${x+4.5} ${y+4.5} M${x+4.5} ${y-4.5} L${x-4.5} ${y+4.5}`;
+  const mark=svg('g',{},pic);
+  // Transparent hit area covering the cross, including its interior.
+  svg('rect',{x:x-11,y:y-11,width:22,height:22,fill:'transparent',
+    'pointer-events':'all'},mark);
+  // Draw a white shadow/halo below a dark X, visible on both heatmap palettes.
+  svg('path',{d,fill:'none',stroke:'#fff','stroke-width':5,
+    'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',
+    'pointer-events':'none'},mark);
+  svg('path',{d,fill:'none',stroke:'#15283b','stroke-width':2.6,
+    'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',
+    'pointer-events':'none'},mark);
+  tooltip(mark,(check.details||[]).join('\n')||'Physics changed');
+  mark.style.cursor='pointer';mark.addEventListener('click',onClick);
 }
 const HEATMAP_LEGEND = [
   [color(-75),'≤−75% (scale limit)',true],
@@ -246,10 +321,10 @@ const HEATMAP_LEGEND = [
   [color(0),'within ±3%'],[color(10),'+10%'],[color(25),'+25%'],
   [color(50),'+50%'],[color(100),'+100%'],
   [color(300),'≥+300% (scale limit)',true],
-  [color(NaN),'no compatible reference'],['#ffe075','physics changed (gold corner)'],
+  [color(NaN),'no compatible reference'],[null,'physics changed (X)',false,true],
 ];
 function setSelected(name){state.selected=name;state.trend=true;renderHistory();}
-function heatmap(rr,names){const area=$('timeline');area.replaceChildren();const top=110,row=29,bottom=52,L=layout(rr,150),h=top+names.length*row+bottom,w=Math.max(area.clientWidth-280,L.total+35);const container=elem('div',undefined,'chart-area');area.append(container);const labels=elem('div',undefined,'sticky-labels');labels.style.height=h+'px';container.append(labels);const hd=elem('div','BENCHMARK');hd.style.cssText='position:absolute;top:17px;left:18px;font-size:11px;color:#8290a7;font-weight:700';labels.append(hd);const pic=svg('svg',{width:w,height:h,viewBox:`0 0 ${w} ${h}`,role:'img'},container);headers(pic,rr,L);for(let i=0;i<names.length;i++){const y=top+i*row,name=names[i];const label=elem('div',nameShort(name),'labelrow');label.title=name;label.style.top=(y+3)+'px';label.style.height=(row-4)+'px';label.onclick=()=>setSelected(name);labels.append(label);const p=psFor(name,rr),history=psFor(name,runs),mode=$('heatReference').value;for(let j=0;j<rr.length;j++){const e=bench(rr[j],name);if(!e)continue;const reference=heatReference({run:rr[j],e},p,history,mode);const val=reference?pct(reference.value,e.median):NaN;const r=svg('rect',{x:L.edges[j]+5,y:y+2,width:L.widths[j]-9,height:row-5,rx:4,fill:color(val),stroke:'#fff'},pic);tooltip(r,`${name}\n${description(rr[j])}\n${secs(e.median)} · ${reference?fmtPct(val)+' vs '+reference.label:'No compatible reference'}\nCompiler: ${e.compiler?.version||'not recorded'}\nPhysics: ${physics(e).status}`);r.style.cursor='pointer';r.addEventListener('click',()=>setSelected(name));markHeatmapSaturation(pic,r,val);if(physics(e).status==='CHANGED'){const x=L.edges[j]+L.widths[j]-6;const f=svg('path',{d:`M${x-12} ${y+3} L${x} ${y+3} L${x} ${y+15} Z`,fill:'#b64030'},pic);tooltip(f,(physics(e).details||[]).join('\n')||'Physics changed');}}}boundaries(pic,rr,L,0,top+names.length*row+4);axis(pic,rr,L,0,top+names.length*row+27);area.scrollLeft=0;}
+function heatmap(rr,names){const area=$('timeline');area.replaceChildren();const top=110,row=29,bottom=52,L=layout(rr,150),h=top+names.length*row+bottom,w=Math.max(area.clientWidth-280,L.total+35);const container=elem('div',undefined,'chart-area');area.append(container);const labels=elem('div',undefined,'sticky-labels');labels.style.height=h+'px';container.append(labels);const hd=elem('div','BENCHMARK');hd.style.cssText='position:absolute;top:17px;left:18px;font-size:11px;color:#8290a7;font-weight:700';labels.append(hd);const pic=svg('svg',{width:w,height:h,viewBox:`0 0 ${w} ${h}`,role:'img'},container);headers(pic,rr,L);for(let i=0;i<names.length;i++){const y=top+i*row,name=names[i];const label=elem('div',nameShort(name),'labelrow');label.title=name;label.style.top=(y+3)+'px';label.style.height=(row-4)+'px';label.onclick=()=>setSelected(name);labels.append(label);const p=psFor(name,rr),history=psFor(name,runs),mode=$('heatReference').value;for(let j=0;j<rr.length;j++){const e=bench(rr[j],name);if(!e)continue;const reference=heatReference({run:rr[j],e},p,history,mode);const val=reference?pct(reference.value,e.median):NaN;const r=svg('rect',{x:L.edges[j]+5,y:y+2,width:L.widths[j]-9,height:row-5,rx:4,fill:color(val),stroke:'#fff'},pic);tooltip(r,`${name}\n${description(rr[j])}\n${secs(e.median)} · ${reference?fmtPct(val)+' vs '+reference.label:'No compatible reference'}\nCompiler: ${e.compiler?.version||'not recorded'}\nPhysics: ${physics(e).status}`);r.style.cursor='pointer';r.addEventListener('click',()=>setSelected(name));markHeatmapSaturation(pic,r,val);markHeatmapPhysics(pic,r,physics(e),event=>showHeatmapPhysics(event,physics(e),name,rr[j]));}}boundaries(pic,rr,L,0,top+names.length*row+4);axis(pic,rr,L,0,top+names.length*row+27);area.scrollLeft=0;}
 function trend(rr,name){
  const area=$('timeline');area.replaceChildren();const p=psFor(name,rr);
  if(!p.length){area.append(elem('div','No matching series','empty'));return;}
@@ -287,7 +362,7 @@ function trend(rr,name){
 }
 
 function renderTable(rr,names){const tbody=$('tableBody');tbody.replaceChildren();const all=names.map(name=>{const pp=psFor(name,rr),now=pp.slice().sort(comparePointTime).at(-1),ref=selectedReference(name,now,pp),first=pp.filter(p=>compatible(p,now)).sort(comparePointTime)[0];return {name,pp,now,ref,first,delta:ref?pct(ref.value,now.e.median):NaN};});all.sort((a,b)=>(Number.isFinite(b.delta)?b.delta:-Infinity)-(Number.isFinite(a.delta)?a.delta:-Infinity)||a.name.localeCompare(b.name));for(const r of all){const tr=elem('tr',undefined,'clickable');tr.onclick=()=>setSelected(r.name);const n=elem('td',undefined,'name');n.append(elem('strong',r.name),elem('small',r.now.e.group));tr.append(n);tr.append(elem('td',secs(r.now.e.median),'mono'));const diff=elem('td',fmtPct(r.delta),'mono '+(r.delta>3?'positive':r.delta< -3?'negative':''));diff.title=r.ref?r.ref.label:'No compatible reference';tr.append(diff);tr.append(elem('td',r.first?fmtPct(pct(r.first.e.median,r.now.e.median)):'—','mono'));const status=elem('td');status.append(physicsCell(r.now.e));tr.append(status);tr.append(elem('td',r.pp.length,'mono'));tr.append(elem('td',short(r.now.run.sha)+' · '+labelMachine(r.now.run),'mono quiet'));tbody.append(tr);}return all;}
-function renderHistory(){const rr=historyRuns(),names=allNames(rr,$('search').value);if(state.selected&&!names.includes(state.selected))state.selected=null;if(!state.selected)state.trend=false;$('overviewBtn').classList.toggle('active',!state.trend);$('trendBtn').classList.toggle('active',state.trend);$('backButton').hidden=!state.selected;const latest=rr.at(-1);const rows=names.map(name=>{const pp=psFor(name,rr);const now=pp.slice().sort(comparePointTime).at(-1);return{pp,ref:selectedReference(name,now,pp),now};});const slow=rows.filter(x=>x.ref&&pct(x.ref.value,x.now.e.median)>=10).length;const fast=rows.filter(x=>x.ref&&pct(x.ref.value,x.now.e.median)<=-10).length;const failed=rows.filter(x=>physics(x.now.e).status==='CHANGED').length;const box=$('summary');box.replaceChildren();for(const [label,value] of [['Runs / days in view',rr.length],['Benchmark series',names.length],['Slowdowns ≥10%',slow],['Physics flags',failed]]){const card=elem('div',undefined,'metric panel');card.append(elem('strong',value),elem('span',label));box.append(card);}const title=$('timelineTitle');title.textContent=state.trend&&state.selected?state.selected:'All benchmarks · chronological overview';$('timelineSubtitle').textContent=state.trend?'Individual median runtimes; lines break across machines or different workloads.':'Each cell shows runtime change from '+$('heatReference').selectedOptions[0].text.toLowerCase()+'.';if(rr.length&&names.length){if(state.trend&&state.selected)trend(rr,state.selected);else heatmap(rr,names);}else $('timeline').replaceChildren(elem('div','No measurements match the filters.','empty'));const legend=$('legend');legend.replaceChildren();for(const[c,t,saturated]of HEATMAP_LEGEND){const e=elem('span'),dot=elem('i',undefined,'dot');dot.style.background=c;if(saturated){dot.classList.add('saturated');dot.textContent='×';}e.append(dot,document.createTextNode(t));legend.append(e);}renderTable(rr,names);$('tableCount').textContent=latest?`${dateOnly(latest)} · ${names.length} visible benchmarks`:'No runs';}
+function renderHistory(){const rr=historyRuns(),names=allNames(rr,$('search').value);if(state.selected&&!names.includes(state.selected))state.selected=null;if(!state.selected)state.trend=false;$('overviewBtn').classList.toggle('active',!state.trend);$('trendBtn').classList.toggle('active',state.trend);$('backButton').hidden=!state.selected;const latest=rr.at(-1);const rows=names.map(name=>{const pp=psFor(name,rr);const now=pp.slice().sort(comparePointTime).at(-1);return{pp,ref:selectedReference(name,now,pp),now};});const slow=rows.filter(x=>x.ref&&pct(x.ref.value,x.now.e.median)>=10).length;const fast=rows.filter(x=>x.ref&&pct(x.ref.value,x.now.e.median)<=-10).length;const failed=rows.filter(x=>physics(x.now.e).status==='CHANGED').length;const box=$('summary');box.replaceChildren();for(const [label,value] of [['Runs / days in view',rr.length],['Benchmark series',names.length],['Slowdowns ≥10%',slow],['Physics flags',failed]]){const card=elem('div',undefined,'metric panel');card.append(elem('strong',value),elem('span',label));box.append(card);}const title=$('timelineTitle');title.textContent=state.trend&&state.selected?state.selected:'All benchmarks · chronological overview';$('timelineSubtitle').textContent=state.trend?'Individual median runtimes; lines break across machines or different workloads.':'Each cell shows runtime change from '+$('heatReference').selectedOptions[0].text.toLowerCase()+'.';if(rr.length&&names.length){if(state.trend&&state.selected)trend(rr,state.selected);else heatmap(rr,names);}else $('timeline').replaceChildren(elem('div','No measurements match the filters.','empty'));const legend=$('legend');legend.replaceChildren();for(const[c,t,saturated,physicsFlag]of HEATMAP_LEGEND){const e=elem('span'),dot=elem('i',undefined,'dot');if(physicsFlag){dot.classList.add('physics-flag');dot.textContent='×';}else{dot.style.backgroundColor=c;if(saturated)dot.classList.add('saturated');}e.append(dot,document.createTextNode(t));legend.append(e);}renderTable(rr,names);$('tableCount').textContent=latest?`${dateOnly(latest)} · ${names.length} visible benchmarks`:'No runs';}
 function fillRevision(side){const branch=$(side+'Branch').value,choice=$(side+'Revision'),old=choice.value;choice.replaceChildren();option(choice,'__latest__','Latest available per benchmark');const relevant=runs.filter(r=>branch==='__all__'||r.branch===branch);let shas=unique(relevant.flatMap(r=>(r.components||[]).map(c=>c.sha)));if(!shas.length)shas=unique(relevant.map(r=>r.sha));shas.forEach(sha=>option(choice,sha,short(sha)));choice.value=shas.includes(old)?old:'__latest__';}
 function setRuns(side){const branch=$(side+'Branch').value,revision=$(side+'Revision').value,min=$(side+'From').value,max=$(side+'To').value;return runs.filter(r=>(branch==='__all__'||r.branch===branch)&&(!min||dateOnly(r)>=min)&&(!max||dateOnly(r)<=max)).flatMap(r=>r.entries.filter(e=>revision==='__latest__'||e.sha===revision||r.sha===revision||r.components?.some(c=>c.sha===revision)&&r.components.length===1).map(e=>({run:r,e})));}
 function latestPerName(points){const m=new Map();for(const p of points)m.set(p.e.name,p);return m;}

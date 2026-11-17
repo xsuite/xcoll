@@ -58,10 +58,12 @@ def _display_filename(path, results):
     """Abbreviate autosave filenames in `list`; never rename results or tags."""
     relative = path.relative_to(results)
     match = re.fullmatch(
-        r'(\d{4,})_([0-9a-fA-F]{40})_\d{8}_\d{6}\.json', relative.name)
+        r'(\d{4,})_([0-9a-fA-F]{40})_\d{8}_\d{6}(_uncommitted-changes)?\.json', relative.name)
     if match:
-        counter, commit = match.groups()
-        return str(relative.with_name(f'{counter}_{commit[:8]}….json'))
+        # counter, commit, dirty = match.groups()
+        # return str(relative.with_name(f'{counter}_{commit[:7]}…{dirty or ""}.json'))
+        counter, commit, _ = match.groups()
+        return str(relative.with_name(f'{counter}_{commit[:7]}….json'))
     return str(relative)
 
 
