@@ -7,6 +7,7 @@ import shutil
 import pytest
 
 import xobjects as xo
+from xobjects.test_helpers import allow_kernel_compilation
 import xcoll as xc
 from xcoll.beam_elements import element_classes
 
@@ -183,6 +184,7 @@ def test_compile_factory_coverage():
 
 @pytest.mark.gpu
 @pytest.mark.xcother
+@allow_kernel_compilation
 @pytest.mark.context_dependent
 @pytest.mark.parametrize(
     "prebuilt_kernel",
