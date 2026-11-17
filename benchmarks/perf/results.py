@@ -54,6 +54,17 @@ def _metadata(path):
             'n': len(data['benchmarks'])}
 
 
+def _display_filename(path, results):
+    """Abbreviate autosave filenames in `list`; never rename results or tags."""
+    relative = path.relative_to(results)
+    match = re.fullmatch(
+        r'(\d{4,})_([0-9a-fA-F]{40})_\d{8}_\d{6}\.json', relative.name)
+    if match:
+        counter, commit = match.groups()
+        return str(relative.with_name(f'{counter}_{commit[:8]}….json'))
+    return str(relative)
+
+
 def entries(results):
     if not results.exists():
         return []
@@ -151,7 +162,7 @@ def main(argv=None):
         for i, m in enumerate(rows, 1):
             rel = str(m['path'].relative_to(results))
             tags = ','.join(sorted(reverse_labels.get(rel, [])))
-            print(f"{i:>4}  {m['when'][:19]:19}  {m['branch'][:22]:22}  {m['sha'][:10]:10}  {m['n']:>5}  {tags:22}  {rel}")
+            print(f"{i:>4}  {m['when'][:19]:19}  {m['branch'][:22]:22}  {m['sha'][:10]:10}  {m['n']:>5}  {tags:22}  {_display_filename(m['path'], results)}")
         print(f'({len(rows)} saved run(s) in {results})')
         return 0
     if args.command == 'archive':

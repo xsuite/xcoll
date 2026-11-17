@@ -23,6 +23,12 @@
     .dot.saturated{width:13px;height:13px;color:white;text-align:center;font-size:12px;font-weight:700;line-height:13px;vertical-align:middle}
     .timeline{overflow:auto;max-height:580px;scrollbar-gutter:stable;padding:0 0 5px;overscroll-behavior-inline:contain}
     .timeline svg{display:block;max-width:none;flex:none}
+    /* High-contrast physics flag: gold with a dark edge and a white halo.
+       Its distinctive corner shape stays visible even in red slowdown cells. */
+    #timeline svg path[fill="#b64030"]{
+      fill:#ffe075;stroke:#273244;stroke-width:1.5;stroke-linejoin:round;
+      paint-order:stroke fill;filter:drop-shadow(0 0 1.5px #fff)
+    }
     .chart-area{display:flex;align-items:flex-start;width:max-content;min-width:100%}
     .sticky-labels{flex:0 0 280px;width:280px;position:sticky;left:0;background:#fff;z-index:5;border-right:1px solid #e9edf4;box-shadow:5px 0 7px -8px #334b71}
     .trend-y-axis{flex:0 0 105px;width:105px;position:sticky;left:0;z-index:6;background:#fff;border-right:1px solid #dce4ef;box-shadow:5px 0 7px -8px #334b71}
@@ -240,7 +246,7 @@ const HEATMAP_LEGEND = [
   [color(0),'within ±3%'],[color(10),'+10%'],[color(25),'+25%'],
   [color(50),'+50%'],[color(100),'+100%'],
   [color(300),'≥+300% (scale limit)',true],
-  [color(NaN),'no compatible reference'],['#b64030','physics changed (corner)'],
+  [color(NaN),'no compatible reference'],['#ffe075','physics changed (gold corner)'],
 ];
 function setSelected(name){state.selected=name;state.trend=true;renderHistory();}
 function heatmap(rr,names){const area=$('timeline');area.replaceChildren();const top=110,row=29,bottom=52,L=layout(rr,150),h=top+names.length*row+bottom,w=Math.max(area.clientWidth-280,L.total+35);const container=elem('div',undefined,'chart-area');area.append(container);const labels=elem('div',undefined,'sticky-labels');labels.style.height=h+'px';container.append(labels);const hd=elem('div','BENCHMARK');hd.style.cssText='position:absolute;top:17px;left:18px;font-size:11px;color:#8290a7;font-weight:700';labels.append(hd);const pic=svg('svg',{width:w,height:h,viewBox:`0 0 ${w} ${h}`,role:'img'},container);headers(pic,rr,L);for(let i=0;i<names.length;i++){const y=top+i*row,name=names[i];const label=elem('div',nameShort(name),'labelrow');label.title=name;label.style.top=(y+3)+'px';label.style.height=(row-4)+'px';label.onclick=()=>setSelected(name);labels.append(label);const p=psFor(name,rr),history=psFor(name,runs),mode=$('heatReference').value;for(let j=0;j<rr.length;j++){const e=bench(rr[j],name);if(!e)continue;const reference=heatReference({run:rr[j],e},p,history,mode);const val=reference?pct(reference.value,e.median):NaN;const r=svg('rect',{x:L.edges[j]+5,y:y+2,width:L.widths[j]-9,height:row-5,rx:4,fill:color(val),stroke:'#fff'},pic);tooltip(r,`${name}\n${description(rr[j])}\n${secs(e.median)} · ${reference?fmtPct(val)+' vs '+reference.label:'No compatible reference'}\nCompiler: ${e.compiler?.version||'not recorded'}\nPhysics: ${physics(e).status}`);r.style.cursor='pointer';r.addEventListener('click',()=>setSelected(name));markHeatmapSaturation(pic,r,val);if(physics(e).status==='CHANGED'){const x=L.edges[j]+L.widths[j]-6;const f=svg('path',{d:`M${x-12} ${y+3} L${x} ${y+3} L${x} ${y+15} Z`,fill:'#b64030'},pic);tooltip(f,(physics(e).details||[]).join('\n')||'Physics changed');}}}boundaries(pic,rr,L,0,top+names.length*row+4);axis(pic,rr,L,0,top+names.length*row+27);area.scrollLeft=0;}
