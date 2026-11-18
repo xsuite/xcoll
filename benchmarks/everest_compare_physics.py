@@ -53,8 +53,8 @@ and reference; particle counts, turns, interpolation and record capacity then
 come from the selected reference cases. The PR workflow reads the accepted
 reference and validation tools from a pinned main checkout, independently
 of the candidate's tested merge/base SHA. CI never generates a reference.
-XCOLL_EVEREST_PHYSICS_CHECKOUT selects the candidate source/data checkout
-when the test harness lives in a different checkout.
+XCOLL_EVEREST_PHYSICS_CHECKOUT selects the candidate source checkout.
+Test data comes from the test harness, independently of the package location.
 
 For a permanent reference, generate from a validated commit (macOS or Linux),
 inspect and review the results, then copy the entire reference directory
@@ -113,6 +113,7 @@ PROVENANCE_FIELDS = ('python', 'deps', 'platform')
 
 def environment_metadata():
     deps = {p: metadata.version(p) for p in DEPENDENCIES}
+    deps['xcoll'] = xc.__version__
     for package in ('xfields', 'xsuite'):
         try:
             deps[package] = metadata.version(package)
@@ -175,8 +176,12 @@ def case_specs(args):
                 yield case_id(family, energy), dict(family=family, energy_gev=energy)
 
 
-def load_manifest(path, *, version=WORKLOAD_VERSION):
-    """Validate inventory and provenance before a test or comparison starts."""
+def load_manifest(path, *, version=WORKLOAD_VERSION, allow_installed=False):
+    """Validate inventory and provenance before a test or comparison starts.
+
+    Set allow_installed=True to skip the SHA check for candidate results from
+    installed packages. Accepted references still require a Git SHA.
+    """
     path = Path(path)
     manifest = json.loads((path / 'reference.json').read_text())
     cases = manifest.get('cases')
@@ -185,7 +190,8 @@ def load_manifest(path, *, version=WORKLOAD_VERSION):
             or not isinstance(cases, list) or not cases
             or any(not isinstance(c, str) or Path(c).name != c for c in cases)
             or len(set(cases)) != len(cases)
-            or not re.fullmatch(r'[0-9a-f]{40}', str(manifest.get('sha', '')))):
+            or (not allow_installed
+                and not re.fullmatch(r'[0-9a-f]{40}', str(manifest.get('sha', ''))))):
         raise ValueError(f'Invalid reference manifest in {path}')
     actual = {p.stem for p in path.glob('*.npz')}
     if set(cases) != actual:
@@ -283,11 +289,12 @@ def _collect(args, *, allow_dirty=False, context=None):
                          'Set PYTHONPATH to the selected checkout.')
     def git(*a):
         return subprocess.check_output(['git','-C',str(root),*a], text=True).strip()
-    if not allow_dirty:
+    has_git = (root / '.git').exists()
+    if has_git and not allow_dirty:
         initial_status = git('status', '--porcelain')
         if initial_status:
             raise SystemExit('Physics comparison requires a clean checkout.')
-    sha = git('rev-parse','HEAD')
+    sha = git('rev-parse','HEAD') if has_git else None
     provenance = environment_metadata()
     out = args.output.resolve()
     out.mkdir(parents=True,exist_ok=True)
@@ -309,7 +316,7 @@ def _collect(args, *, allow_dirty=False, context=None):
     for case, spec in specs:
         family = spec['family']
         energy = spec['energy_gev']
-        print(f'Collecting {case} on {sha[:12]}', flush=True)
+        print(f'Collecting {case} on {str(sha)[:12]}', flush=True)
         source_info = None
         if input_reference is not None:
             source_info = snapshot_info(input_reference, case, input_manifest)
@@ -383,7 +390,7 @@ def _collect(args, *, allow_dirty=False, context=None):
                           deposited_energy=np.array(float(el._acc_ionisation_loss)))
             finally:
                 rec.stop(elements=[el])
-    if not allow_dirty:
+    if has_git and not allow_dirty:
         if (git('rev-parse', 'HEAD') != sha
                 or git('status', '--porcelain') != initial_status):
             raise SystemExit('Checkout changed during collection; discard these snapshots.')
@@ -410,7 +417,7 @@ def ks_screening_limit(n_ref, n_new, tolerance=0.02):
 def compare(args, *, cases=None):
     from scipy.stats import ks_2samp
     base, cand = args.base,args.candidate
-    ma, mb = load_manifest(base), load_manifest(cand)
+    ma, mb = load_manifest(base), load_manifest(cand, allow_installed=True)
     for difference in environment_differences(ma, mb):
         print(f'Environment difference (informational): {difference}')
     a_names={f'{c}.npz' for c in ma['cases']}
@@ -436,7 +443,7 @@ def compare(args, *, cases=None):
             aa, bb = a['state'] > 0, b['state'] > 0
             _, common_a, common_b = np.intersect1d(
                 ida, idb, assume_unique=True, return_indices=True)
-            print(f'\n{name}: {ia["sha"][:12]} → {ib["sha"][:12]} (N={n})')
+            print(f'\n{name}: {ia["sha"][:12]} → {str(ib["sha"])[:12]} (N={n})')
             def check(label, value, limit):
                 nonlocal failures
                 ok=np.isfinite(value) and value<=limit

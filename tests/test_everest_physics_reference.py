@@ -40,6 +40,7 @@ from types import SimpleNamespace
 
 
 import xobjects as xo
+import xcoll as xc
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'benchmarks'))
@@ -109,10 +110,11 @@ def test_everest_physics_against_reference(physics_case, tmp_path, physics_conte
     candidate = tmp_path / 'candidate'
     # CI runs this trusted harness from main while importing the separately
     # pinned candidate package. Local tests still use their own checkout.
-    checkout = Path(os.environ.get('XCOLL_EVEREST_PHYSICS_CHECKOUT', ROOT)).resolve()
+    checkout = Path(os.environ.get('XCOLL_EVEREST_PHYSICS_CHECKOUT',
+                                   Path(xc.__file__).resolve().parents[1])).resolve()
     args = SimpleNamespace(
         checkout=checkout, output=candidate, input_reference=reference,
-        data=checkout/'tests'/'data', cases=[info['family']],
+        data=Path(__file__).resolve().parent/'data', cases=[info['family']],
         particles=n, lhc_particles=n, turns=info.get('turns', 10),
         element_energies=[energy], lhc_energies=[energy],
         beam=[info.get('beam', 1)], plane=[info.get('plane', 'H')],
