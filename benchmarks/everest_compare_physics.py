@@ -53,8 +53,10 @@ and reference; particle counts, turns, interpolation and record capacity then
 come from the selected reference cases. The PR workflow reads the accepted
 reference and validation tools from a pinned main checkout, independently
 of the candidate's tested merge/base SHA. CI never generates a reference.
-XCOLL_EVEREST_PHYSICS_CHECKOUT selects the candidate source/data checkout
-when the test harness lives in a different checkout.
+XCOLL_EVEREST_PHYSICS_CHECKOUT selects and verifies the candidate source
+checkout when the test harness lives in a different checkout. Test data always
+comes from the test harness. Installed candidates record their Xcoll version
+instead of a Git SHA; accepted references still require a Git SHA.
 
 For a permanent reference, generate from a validated commit (macOS or Linux),
 inspect and review the results, then copy the entire reference directory
@@ -113,6 +115,7 @@ PROVENANCE_FIELDS = ('python', 'deps', 'platform')
 
 def environment_metadata():
     deps = {p: metadata.version(p) for p in DEPENDENCIES}
+    deps['xcoll'] = xc.__version__
     for package in ('xfields', 'xsuite'):
         try:
             deps[package] = metadata.version(package)
@@ -175,17 +178,21 @@ def case_specs(args):
                 yield case_id(family, energy), dict(family=family, energy_gev=energy)
 
 
-def load_manifest(path, *, version=WORKLOAD_VERSION):
+def load_manifest(path, *, version=WORKLOAD_VERSION, allow_installed=False):
     """Validate inventory and provenance before a test or comparison starts."""
     path = Path(path)
     manifest = json.loads((path / 'reference.json').read_text())
     cases = manifest.get('cases')
+    valid_revision = bool(re.fullmatch(r'[0-9a-f]{40}', str(manifest.get('sha', ''))))
+    if allow_installed and 'sha' in manifest and manifest['sha'] is None:
+        package_version = manifest.get('deps', {}).get('xcoll')
+        valid_revision = isinstance(package_version, str) and bool(package_version.strip())
     if (manifest.get('workload_version') != version
             or not all(k in manifest for k in PROVENANCE_FIELDS)
             or not isinstance(cases, list) or not cases
             or any(not isinstance(c, str) or Path(c).name != c for c in cases)
             or len(set(cases)) != len(cases)
-            or not re.fullmatch(r'[0-9a-f]{40}', str(manifest.get('sha', '')))):
+            or not valid_revision):
         raise ValueError(f'Invalid reference manifest in {path}')
     actual = {p.stem for p in path.glob('*.npz')}
     if set(cases) != actual:
@@ -259,6 +266,16 @@ def particle_counts(args, specs):
     return counts
 
 
+def imported_checkout():
+    """Find the imported package's checkout, or None for an installed package."""
+    root = Path(xc.__file__).resolve().parents[1]
+    return root if (root / '.git').exists() else None
+
+
+def revision_label(info):
+    return info['sha'][:12] if info['sha'] else f"xcoll {info['deps']['xcoll']}"
+
+
 def collect(args, *, allow_dirty=False, context=None,
             use_prebuilt=False):
     """Collect physics snapshots.
@@ -266,6 +283,7 @@ def collect(args, *, allow_dirty=False, context=None,
     By default, compile kernels from the imported Xcoll checkout.
     Prebuilt kernels may be used when they have explicitly been
     regenerated for that checkout.
+    Set args.checkout to None to test an installed package without Git metadata.
     """
     with xo.settings.override(
         force_kernel_compilation=not use_prebuilt,
@@ -277,17 +295,17 @@ def collect(args, *, allow_dirty=False, context=None,
         )
 
 def _collect(args, *, allow_dirty=False, context=None):
-    root = args.checkout.resolve()
-    if not Path(xc.__file__).resolve().is_relative_to(root):
+    root = args.checkout.resolve() if args.checkout is not None else None
+    if root is not None and not Path(xc.__file__).resolve().is_relative_to(root):
         raise SystemExit(f'Imported {xc.__file__}, expected Xcoll from {root}. '
                          'Set PYTHONPATH to the selected checkout.')
     def git(*a):
         return subprocess.check_output(['git','-C',str(root),*a], text=True).strip()
-    if not allow_dirty:
+    if root is not None and not allow_dirty:
         initial_status = git('status', '--porcelain')
         if initial_status:
             raise SystemExit('Physics comparison requires a clean checkout.')
-    sha = git('rev-parse','HEAD')
+    sha = git('rev-parse','HEAD') if root is not None else None
     provenance = environment_metadata()
     out = args.output.resolve()
     out.mkdir(parents=True,exist_ok=True)
@@ -309,7 +327,7 @@ def _collect(args, *, allow_dirty=False, context=None):
     for case, spec in specs:
         family = spec['family']
         energy = spec['energy_gev']
-        print(f'Collecting {case} on {sha[:12]}', flush=True)
+        print(f'Collecting {case} on {revision_label(dict(sha=sha, **provenance))}', flush=True)
         source_info = None
         if input_reference is not None:
             source_info = snapshot_info(input_reference, case, input_manifest)
@@ -383,7 +401,7 @@ def _collect(args, *, allow_dirty=False, context=None):
                           deposited_energy=np.array(float(el._acc_ionisation_loss)))
             finally:
                 rec.stop(elements=[el])
-    if not allow_dirty:
+    if root is not None and not allow_dirty:
         if (git('rev-parse', 'HEAD') != sha
                 or git('status', '--porcelain') != initial_status):
             raise SystemExit('Checkout changed during collection; discard these snapshots.')
@@ -410,7 +428,7 @@ def ks_screening_limit(n_ref, n_new, tolerance=0.02):
 def compare(args, *, cases=None):
     from scipy.stats import ks_2samp
     base, cand = args.base,args.candidate
-    ma, mb = load_manifest(base), load_manifest(cand)
+    ma, mb = load_manifest(base), load_manifest(cand, allow_installed=True)
     for difference in environment_differences(ma, mb):
         print(f'Environment difference (informational): {difference}')
     a_names={f'{c}.npz' for c in ma['cases']}
@@ -436,7 +454,7 @@ def compare(args, *, cases=None):
             aa, bb = a['state'] > 0, b['state'] > 0
             _, common_a, common_b = np.intersect1d(
                 ida, idb, assume_unique=True, return_indices=True)
-            print(f'\n{name}: {ia["sha"][:12]} → {ib["sha"][:12]} (N={n})')
+            print(f'\n{name}: {revision_label(ia)} → {revision_label(ib)} (N={n})')
             def check(label, value, limit):
                 nonlocal failures
                 ok=np.isfinite(value) and value<=limit
