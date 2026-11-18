@@ -179,7 +179,14 @@ def case_specs(args):
 
 
 def load_manifest(path, *, version=WORKLOAD_VERSION, allow_installed=False):
-    """Validate inventory and provenance before a test or comparison starts."""
+    """Validate inventory and provenance before a test or comparison starts.
+
+    By default, require a Git SHA identifying the Xcoll revision that produced
+    the results. Set allow_installed=True when loading candidate results to
+    also accept sha=None with a nonempty deps['xcoll'] package version, as used
+    for PyPI installations. Keep the default for accepted references, which
+    must retain their Git SHA. All other manifest checks apply in both modes.
+    """
     path = Path(path)
     manifest = json.loads((path / 'reference.json').read_text())
     cases = manifest.get('cases')
