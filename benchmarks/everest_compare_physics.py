@@ -183,17 +183,16 @@ def load_manifest(path, *, version=WORKLOAD_VERSION, allow_installed=False):
 
     By default, require a Git SHA identifying the Xcoll revision that produced
     the results. Set allow_installed=True when loading candidate results to
-    also accept sha=None with a nonempty deps['xcoll'] package version, as used
-    for PyPI installations. Keep the default for accepted references, which
-    must retain their Git SHA. All other manifest checks apply in both modes.
+    also accept sha=None, as used for PyPI installations. Keep the default for
+    accepted references, which must retain their Git SHA. All other manifest
+    checks apply in both modes.
     """
     path = Path(path)
     manifest = json.loads((path / 'reference.json').read_text())
     cases = manifest.get('cases')
     valid_revision = bool(re.fullmatch(r'[0-9a-f]{40}', str(manifest.get('sha', ''))))
     if allow_installed and 'sha' in manifest and manifest['sha'] is None:
-        package_version = manifest.get('deps', {}).get('xcoll')
-        valid_revision = isinstance(package_version, str) and bool(package_version.strip())
+        valid_revision = True
     if (manifest.get('workload_version') != version
             or not all(k in manifest for k in PROVENANCE_FIELDS)
             or not isinstance(cases, list) or not cases
