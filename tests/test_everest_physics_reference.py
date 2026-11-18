@@ -123,7 +123,8 @@ def test_everest_physics_against_reference(physics_case, tmp_path, physics_conte
     )
     collect(args, allow_dirty=True, context=physics_context, use_prebuilt=True)
     result = compare(SimpleNamespace(base=reference, candidate=candidate,
-                     fraction_tol=0.01, ks_tol=0.02, map_tol=0.05), cases=[case])
+                     fraction_tol=0.01, ks_tol=0.02, map_tol=0.05), cases=[case],
+                     allow_installed=not (checkout / '.git').exists())
     assert result == 0, f'Physics regression screening failed for {case} against {info["sha"]}'
 
 
