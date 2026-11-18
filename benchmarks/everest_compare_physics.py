@@ -414,10 +414,10 @@ def ks_screening_limit(n_ref, n_new, tolerance=0.02):
     return max(tolerance, 2.0 * np.sqrt(1/n_ref + 1/n_new))
 
 
-def compare(args, *, cases=None):
+def compare(args, *, cases=None, allow_installed=False):
     from scipy.stats import ks_2samp
     base, cand = args.base,args.candidate
-    ma, mb = load_manifest(base), load_manifest(cand, allow_installed=True)
+    ma, mb = load_manifest(base), load_manifest(cand, allow_installed=allow_installed)
     for difference in environment_differences(ma, mb):
         print(f'Environment difference (informational): {difference}')
     a_names={f'{c}.npz' for c in ma['cases']}
