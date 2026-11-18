@@ -40,13 +40,13 @@ from types import SimpleNamespace
 
 
 import xobjects as xo
+import xcoll as xc
 
 ROOT = Path(__file__).resolve().parents[1]
-TEST_DATA = Path(__file__).resolve().parent / 'data'
 sys.path.insert(0, str(ROOT / 'benchmarks'))
 from everest_compare_physics import (
     collect, compare, case_specs, load_manifest, snapshot_info,
-    ELEMENT_ENERGIES, LHC_ENERGIES, imported_checkout,
+    DEFAULT_REFERENCE, ELEMENT_ENERGIES, LHC_ENERGIES,
     environment_metadata, environment_differences, assert_compatible,
     lhc_start_names,
 )
@@ -63,7 +63,7 @@ def pytest_generate_tests(metafunc):
     if 'physics_case' not in metafunc.fixturenames:
         return
     configured = os.environ.get('XCOLL_EVEREST_PHYSICS_REFERENCE')
-    path = Path(configured).expanduser().resolve() if configured else TEST_DATA / 'everest_physics_reference'
+    path = Path(configured).expanduser().resolve() if configured else DEFAULT_REFERENCE
     if not configured and not path.exists():
         # Bootstrap only: once committed, the default is always exercised.
         metafunc.parametrize('physics_case', [pytest.param(None, marks=pytest.mark.skip(
@@ -108,14 +108,13 @@ def test_everest_physics_against_reference(physics_case, tmp_path, physics_conte
     n = info['n']
     energy = info['energy_gev']
     candidate = tmp_path / 'candidate'
-    # Test the imported package, which can be installed from PyPI or a checkout.
-    # An explicit candidate checkout must still match the imported package.
-    configured_checkout = os.environ.get('XCOLL_EVEREST_PHYSICS_CHECKOUT')
-    checkout = (Path(configured_checkout).resolve() if configured_checkout
-                else imported_checkout())
+    # CI runs this trusted harness from main while importing the separately
+    # pinned candidate package. Local tests still use their own checkout.
+    checkout = Path(os.environ.get('XCOLL_EVEREST_PHYSICS_CHECKOUT',
+                                   Path(xc.__file__).resolve().parents[1])).resolve()
     args = SimpleNamespace(
         checkout=checkout, output=candidate, input_reference=reference,
-        data=TEST_DATA, cases=[info['family']],
+        data=Path(__file__).resolve().parent/'data', cases=[info['family']],
         particles=n, lhc_particles=n, turns=info.get('turns', 10),
         element_energies=[energy], lhc_energies=[energy],
         beam=[info.get('beam', 1)], plane=[info.get('plane', 'H')],
