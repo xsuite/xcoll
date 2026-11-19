@@ -132,7 +132,8 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     return part
 
 
-def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemitt_x, nemitt_y,
+def generate_delta_from_dispersion(line, at_element, *, plane, position_mm,
+                                   nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
                                    twiss=None, betatron_cut=0, match_at_front=True):
     if line.tracker is None:
         raise ValueError("Need to build tracker first!")
@@ -149,7 +150,8 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
     if twiss is None:
         twiss = line.twiss()
 
-    beam_sizes = twiss.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+    beam_sizes = twiss.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                        gemitt_x=gemitt_x, gemitt_y=gemitt_y)
     beam_sizes = beam_sizes.rows[at_element:f'{at_element}>>1'][f'sigma_{plane}']
     sigma = beam_sizes[0] if match_at_front else beam_sizes[1]
     delta  = (position_mm - betatron_cut*sigma - twiss.rows[at_element][plane])

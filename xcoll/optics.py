@@ -293,3 +293,16 @@ def _combine_reference_optics(named_tables):
             if key not in cols:
                 cols.append(key)
     return CollimatorOpticsTable(data, col_names=cols)
+
+
+def _normalized_emittance(nemitt, gemitt, beta_gamma_rel, plane):
+    """Resolve an optional reference emittance in normalized units."""
+    if nemitt is not None and gemitt is not None:
+        raise ValueError(f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+    if gemitt is not None:
+        if (beta_gamma_rel is None or not np.isfinite(beta_gamma_rel)
+                or beta_gamma_rel <= 0):
+            raise ValueError('Geometric emittances require a finite positive beta_gamma_rel.')
+        gemitt = _validate_reference_emittance(gemitt, plane)
+        nemitt = gemitt * beta_gamma_rel
+    return _validate_reference_emittance(nemitt, plane)

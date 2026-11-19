@@ -266,13 +266,15 @@ class XcollCollimatorAPI(XcollLineAccessor):
             sigma_z=sigma_z, twiss=twiss, longitudinal=longitudinal,
             longitudinal_betatron_cut=longitudinal_betatron_cut, tw=tw, **kwargs)
 
-    def generate_delta(self, name, *, plane, position_mm, nemitt_x, nemitt_y,
+    def generate_delta(self, name, *, plane, position_mm,
+                       nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
                        betatron_cut=0, match_at_front=True, twiss=None):
         """Generate momentum offsets from dispersion at the named collimator."""
         from .initial_distribution import generate_delta_from_dispersion
         return generate_delta_from_dispersion(
             line=self.line, at_element=name, plane=plane, position_mm=position_mm,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, betatron_cut=betatron_cut,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            gemitt_x=gemitt_x, gemitt_y=gemitt_y, betatron_cut=betatron_cut,
             match_at_front=match_at_front, twiss=twiss)
 
     def open(self, names=None):
@@ -689,12 +691,22 @@ class XcollCollimatorAPI(XcollLineAccessor):
                   if coll.reference_optics is not None]
         return _combine_reference_optics(tables)
 
-    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET, names=None):
+    def set_reference_emittance(self, *, nemitt_x=_UNSET, nemitt_y=_UNSET,
+                               gemitt_x=_UNSET, gemitt_y=_UNSET, names=None):
         """Set reference emittances without calculating Twiss.
 
+        Geometric ``gemitt_x``/``gemitt_y`` can be supplied instead of the
+        corresponding normalized input when the reference optics include
+        ``beta_gamma_rel``. Explicit None clears either form.
         Omitted planes remain unchanged; an explicit None clears a plane.
         """
-        if nemitt_x is _UNSET and nemitt_y is _UNSET:
+        from .optics import _normalized_emittance
+        for plane, nemitt, gemitt in (('x', nemitt_x, gemitt_x),
+                                     ('y', nemitt_y, gemitt_y)):
+            if gemitt is not _UNSET and nemitt is not _UNSET:
+                raise ValueError(f'Cannot provide both nemitt_{plane} and gemitt_{plane}.')
+        if (nemitt_x is _UNSET and nemitt_y is _UNSET
+                and gemitt_x is _UNSET and gemitt_y is _UNSET):
             return
         if names is None:
             names = self.names
@@ -708,11 +720,19 @@ class XcollCollimatorAPI(XcollLineAccessor):
             nemitt_x = _validate_reference_emittance(nemitt_x, 'x')
         if nemitt_y is not _UNSET:
             nemitt_y = _validate_reference_emittance(nemitt_y, 'y')
+        emittances = []
         for coll in collimators:
-            coll.set_reference_emittance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+            bg = coll.reference_optics.beta_gamma_rel
+            ex = (nemitt_x if gemitt_x is _UNSET else
+                  _normalized_emittance(None, gemitt_x, bg, 'x'))
+            ey = (nemitt_y if gemitt_y is _UNSET else
+                  _normalized_emittance(None, gemitt_y, bg, 'y'))
+            emittances.append((ex, ey))
+        for coll, (ex, ey) in zip(collimators, emittances):
+            coll.set_reference_emittance(nemitt_x=ex, nemitt_y=ey)
 
-    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None, names=None,
-                      positions=None, reference_optics=None):
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, gemitt_x=None, gemitt_y=None,
+                      twiss=None, names=None, positions=None, reference_optics=None):
         """Assign optics to all collimators, or to the specified name(s).
 
         By default store the upstream, centre and downstream optics.
@@ -720,6 +740,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
         Upstream and downstream positions are required for jaw settings.
         Alternatively, supply an already prepared reference_optics table;
         its metadata is used unless explicit emittances are provided.
+        Geometric ``gemitt_x``/``gemitt_y`` are accepted in place of the
+        corresponding normalized emittances, using the optics reference energy.
         """
         if reference_optics is not None and (twiss is not None or positions is not None):
             raise ValueError("Provide either reference_optics or twiss/positions.")
@@ -747,6 +769,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
             beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for name, coll in collimators.items():
             coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                               gemitt_x=gemitt_x, gemitt_y=gemitt_y,
                                reference_optics=optics, beta_gamma_rel=beta_gamma_rel)
 
     def align_to_beam_divergence(self, *, names=None):

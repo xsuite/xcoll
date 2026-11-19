@@ -178,7 +178,12 @@ class BlowUp(InvalidXcoll):
         self._line = val
 
 
-    def calibrate_by_emittance(self, nemitt, *, twiss=None, beta_gamma_rel=None):
+    def calibrate_by_emittance(self, nemitt=None, *, twiss=None, beta_gamma_rel=None, gemitt=None):
+        """Calibrate using either normalized ``nemitt`` or geometric ``gemitt``."""
+        if nemitt is not None and gemitt is not None:
+            raise ValueError('Cannot provide both nemitt and gemitt.')
+        if nemitt is None and gemitt is None:
+            raise ValueError('Provide nemitt or gemitt.')
         # The emittance gained per turn of blow up can be calculated as follows:
         #     <px^2> = gamma * eps
         #     gamma * eps = <px^2> = <(px0 + dpx)^2>
@@ -203,7 +208,7 @@ class BlowUp(InvalidXcoll):
         #     deps = (eps-eps0)/eps0 = 2<px0> dpx/gamma/eps0
         name = self.name
         line = self.line
-        if beta_gamma_rel is None:
+        if gemitt is None and beta_gamma_rel is None:
             if not hasattr(line, 'particle_ref'):
                 raise ValueError("The provided line has no reference particle. Use the argument `beta_gamma_rel`")
             beta_gamma_rel = line.particle_ref.gamma0[0]*line.particle_ref.beta0[0]
@@ -214,7 +219,9 @@ class BlowUp(InvalidXcoll):
         # of around a factor 60. In practive, a ~50x increase is enough due to the covariance terms.
         # We want to do this slowly, over 1000 turns.
         deps = 50/1000
-        self.calibration = np.sqrt(3*gamma*nemitt/beta_gamma_rel*deps)
+        if gemitt is None:
+            gemitt = nemitt / beta_gamma_rel
+        self.calibration = np.sqrt(3*gamma*gemitt*deps)
 
     def activate(self):
         self._active = True
