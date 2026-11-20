@@ -512,7 +512,7 @@ class TestConfigure:
         for nn in markers(self.line):
             elem = self.line[nn]
             assert elem.p0c > 0
-            assert elem.betx > 0 and elem.bety > 0
+            assert elem.W_matrix[0, 0] > 0 and elem.W_matrix[2, 2] > 0
             assert elem.interaction_rate > 0
             assert elem.n_scattering_events == 200
             assert dict(elem.atomic_densities) == {'N': pytest.approx(
@@ -585,7 +585,9 @@ class TestGenerateParticles:
         assert np.isclose(particles.delta[allocated].std(), SIGMA_DELTA,
                           rtol=0.05)
         assert np.isclose(particles.zeta[allocated].std(), SIGMA_Z, rtol=0.05)
-        sigma_x = np.sqrt(elem.gemitt_x*elem.betx
+        W = elem.W_matrix
+        sigma_x = np.sqrt(elem.gemitt_x*(W[0, 0]**2 + W[0, 1]**2)
+                          + elem.gemitt_y*(W[0, 2]**2 + W[0, 3]**2)
                           + (elem.dx*SIGMA_DELTA)**2)
         assert np.isclose(particles.x[allocated].std(), sigma_x, rtol=0.05)
         assert np.isclose(particles.x[allocated].mean(), elem.x_co,
@@ -789,7 +791,7 @@ class TestBeamGasMarkerSerialization:
         for nn in names:
             marker = loaded[nn]
             assert isinstance(marker, xc.BeamGasMarker)
-            assert line[nn].betx > 0 and line[nn].interaction_rate > 0
+            assert line[nn].W_matrix[0, 0] > 0 and line[nn].interaction_rate > 0
             for field in xc.BeamGasMarker._xofields:
                 np.testing.assert_array_equal(
                     getattr(marker, field), getattr(line[nn], field),

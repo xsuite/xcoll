@@ -72,6 +72,10 @@ def _resolve_n_scattering_events(*, n_scattering_events, default):
     return int(n_scattering_events)
 
 
+# Fields of older versions, ignored when loading (see BeamGasMarker.__init__)
+_LEGACY_FIELDS = ('alfx', 'betx', 'alfy', 'bety')
+
+
 class BeamGasMarker(xt.BeamElement):
     """
     Passive marker of a beam-gas scattering location.
@@ -96,10 +100,6 @@ class BeamGasMarker(xt.BeamElement):
         Reference momentum at configuration [eV].
     bunch_intensity : float, optional
         Number of particles in the bunch.
-    alfx, betx : float, optional
-        Horizontal Twiss parameters at the marker.
-    alfy, bety : float, optional
-        Vertical Twiss parameters at the marker.
     W_matrix : array_like, optional
         Eigenvector matrix ``W`` of the one-turn map at the marker, as given
         by the twiss (``twiss['W_matrix', name]``), 6x6 or its 4x4 transverse
@@ -191,10 +191,6 @@ class BeamGasMarker(xt.BeamElement):
         'gemitt_x': xo.Float64,
         'gemitt_y': xo.Float64,
         '_W_matrix': xo.Float64[16],
-        'alfx': xo.Float64,
-        'betx': xo.Float64,
-        'alfy': xo.Float64,
-        'bety': xo.Float64,
         'dx': xo.Float64,
         'dpx': xo.Float64,
         'dy': xo.Float64,
@@ -229,7 +225,6 @@ class BeamGasMarker(xt.BeamElement):
     def __init__(self, ds=0.0,
                  p0c=0.0,
                  bunch_intensity=0.0,
-                 alfx=0.0, betx=0.0, alfy=0.0, bety=0.0,
                  W_matrix=None,
                  dx=0.0, dpx=0.0, dy=0.0, dpy=0.0,
                  x_co=0.0, px_co=0.0, y_co=0.0, py_co=0.0,
@@ -260,6 +255,11 @@ class BeamGasMarker(xt.BeamElement):
         """
         self.scatter_log = None
 
+        # Twiss parameters stored by older versions, superseded by W_matrix:
+        # ignored, so that lines saved before can still be loaded
+        for kk in _LEGACY_FIELDS:
+            kwargs.pop(kk, None)
+
         if '_xobject' in kwargs.keys():
             self.xoinitialize(**kwargs)
             return
@@ -269,10 +269,6 @@ class BeamGasMarker(xt.BeamElement):
         self.ds = ds
         self.p0c = p0c
         self.bunch_intensity = bunch_intensity
-        self.alfx = alfx
-        self.betx = betx
-        self.alfy = alfy
-        self.bety = bety
         if W_matrix is not None:
             self.W_matrix = W_matrix
         self.dx = dx
@@ -441,7 +437,7 @@ class BeamGasMarker(xt.BeamElement):
         """
         config_allowed = {
             'ds', 'p0c', 'bunch_intensity',
-            'alfx', 'betx', 'alfy', 'bety', 'W_matrix',
+            'W_matrix',
             'dx', 'dpx', 'dy', 'dpy',
             'x_co', 'px_co', 'y_co', 'py_co',
             'zeta_co', 'delta_co',

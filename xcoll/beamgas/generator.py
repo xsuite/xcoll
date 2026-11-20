@@ -810,8 +810,6 @@ class BeamGasGenerator:
                 p0c=p0c,
                 bunch_intensity=bunch_intensity,
                 ds=s - s_start,
-                alfx=twiss['alfx', nn], betx=twiss['betx', nn],
-                alfy=twiss['alfy', nn], bety=twiss['bety', nn],
                 W_matrix=twiss['W_matrix', nn],
                 dx=twiss['dx', nn], dpx=twiss['dpx', nn],
                 dy=twiss['dy', nn], dpy=twiss['dpy', nn],

@@ -249,8 +249,9 @@ def test_configure_stores_the_configuration_on_the_markers(ring, process):
         assert marker.process == process
         assert marker.p0c == p0c
         assert marker.ds == pytest.approx(s - s_before)
-        for name, col in [('betx', 'betx'), ('dx', 'dx'), ('x_co', 'x'),
-                          ('delta_co', 'delta')]:
+        np.testing.assert_allclose(marker.W_matrix, tw['W_matrix', nn][:4, :4],
+                                   rtol=1e-12, atol=1e-15)
+        for name, col in [('dx', 'dx'), ('x_co', 'x'), ('delta_co', 'delta')]:
             assert getattr(marker, name) == pytest.approx(
                 tw[col, nn], rel=1e-12, abs=1e-15)
         densities = marker.atomic_densities
