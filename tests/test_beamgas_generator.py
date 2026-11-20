@@ -249,8 +249,9 @@ def test_configure_stores_the_configuration_on_the_markers(ring, process):
         assert marker.process == process
         assert marker.p0c == p0c
         assert marker.ds == pytest.approx(s - s_before)
-        for name, col in [('betx', 'betx'), ('dx', 'dx'), ('x_co', 'x'),
-                          ('delta_co', 'delta')]:
+        np.testing.assert_allclose(marker.W_matrix, tw['W_matrix', nn][:4, :4],
+                                   rtol=1e-12, atol=1e-15)
+        for name, col in [('dx', 'dx'), ('x_co', 'x'), ('delta_co', 'delta')]:
             assert getattr(marker, name) == pytest.approx(
                 tw[col, nn], rel=1e-12, abs=1e-15)
         densities = marker.atomic_densities
@@ -427,6 +428,68 @@ def test_generated_particles(ring, process):
             assert np.all((log.theta >= 1e-6) & (log.theta <= 0.3))
         else:
             assert np.all(log.photon_energy >= 1e6)
+
+
+def test_beam_without_coupling_is_the_twiss_construction(ring):
+    # Without coupling, the beam built from W_matrix is the classic one from
+    # the Twiss parameters, sample by sample
+    _, tw = ring
+    line = _ring_with_markers()
+    _configure(line, twiss=tw)
+    for nn in line.xcoll.beamgas.marker_names:
+        marker = line.element_dict[nn]
+        x, px, y, py, _, delta = marker._generate_primaries(
+            1000, np.random.default_rng(42))
+        u = np.random.default_rng(42).standard_normal((6, 1000))
+        ex, ey = marker.gemitt_x, marker.gemitt_y
+        bx, ax, by, ay = (tw[kk, nn] for kk in ('betx', 'alfx', 'bety', 'alfy'))
+        assert np.allclose(delta, marker.sigma_delta*u[5] + marker.delta_co)
+        d = marker.sigma_delta*u[5]
+        np.testing.assert_allclose(
+            x, np.sqrt(ex*bx)*u[0] + tw['dx', nn]*d + tw['x', nn], atol=1e-15)
+        np.testing.assert_allclose(
+            px, np.sqrt(ex/bx)*(u[1] - ax*u[0]) + tw['dpx', nn]*d + tw['px', nn],
+            atol=1e-15)
+        np.testing.assert_allclose(
+            y, np.sqrt(ey*by)*u[2] + tw['dy', nn]*d + tw['y', nn], atol=1e-15)
+        np.testing.assert_allclose(
+            py, np.sqrt(ey/by)*(u[3] - ay*u[2]) + tw['dpy', nn]*d + tw['py', nn],
+            atol=1e-15)
+
+
+def _coupled_ring_with_markers():
+    """The ring with a skew quadrupole, coupling x and y, and the markers."""
+    line = _ring()
+    line.env.new('mqs', xt.Quadrupole, length=0.1, k1s=0.3)
+    line.insert('mqs', at=1.0)
+    length = line.get_length()
+    line.xcoll.beamgas.install_markers(at=list(np.arange(1, 8) * length / 8))
+    return line
+
+
+def test_beam_with_coupling_is_matched():
+    # With coupling, the generated beam has the covariance of the coupled
+    # normal modes, W diag(eps) W^T, plus the dispersive part; the x-py and
+    # y-px correlations missed by a Twiss construction are present
+    line = _coupled_ring_with_markers()
+    tw = line.twiss(method='4d')
+    _configure(line, twiss=tw)
+    n = 40_000
+    for nn in line.xcoll.beamgas.marker_names:
+        marker = line.element_dict[nn]
+        W = marker.W_matrix
+        assert np.abs(W[0, 2]) + np.abs(W[2, 0]) > 0.05*np.abs(W[0, 0])
+        x, px, y, py, _, _ = marker._generate_primaries(
+            n, np.random.default_rng(7))
+        sample = np.cov(np.array([x, px, y, py]))
+        emitt = np.diag([marker.gemitt_x, marker.gemitt_x,
+                         marker.gemitt_y, marker.gemitt_y])
+        disp = np.array([marker.dx, marker.dpx, marker.dy, marker.dpy])
+        expected = W @ emitt @ W.T + marker.sigma_delta**2*np.outer(disp, disp)
+        sigma = np.sqrt(np.diag(expected))
+        # Correlation matrices agree within the statistical error (~1/sqrt(n))
+        np.testing.assert_allclose(sample/np.outer(sigma, sigma),
+                                   expected/np.outer(sigma, sigma), atol=0.03)
 
 
 def test_generation_does_not_depend_on_the_other_markers(ring):

@@ -72,6 +72,10 @@ def _resolve_n_scattering_events(*, n_scattering_events, default):
     return int(n_scattering_events)
 
 
+# Fields of older versions, ignored when loading (see BeamGasMarker.__init__)
+_LEGACY_FIELDS = ('alfx', 'betx', 'alfy', 'bety')
+
+
 class BeamGasMarker(xt.BeamElement):
     """
     Passive marker of a beam-gas scattering location.
@@ -96,10 +100,11 @@ class BeamGasMarker(xt.BeamElement):
         Reference momentum at configuration [eV].
     bunch_intensity : float, optional
         Number of particles in the bunch.
-    alfx, betx : float, optional
-        Horizontal Twiss parameters at the marker.
-    alfy, bety : float, optional
-        Vertical Twiss parameters at the marker.
+    W_matrix : array_like, optional
+        Eigenvector matrix ``W`` of the one-turn map at the marker, as given
+        by the twiss (``twiss['W_matrix', name]``), 6x6 or its 4x4 transverse
+        block. Only the transverse block is stored. It describes the betatron
+        motion also where the planes are coupled.
     dx, dpx : float, optional
         Horizontal dispersion and its derivative at the marker.
     dy, dpy : float, optional
@@ -156,10 +161,10 @@ class BeamGasMarker(xt.BeamElement):
     For each of the ``n_scattering_events`` generated macro-particles:
 
     1. Initial coordinates are drawn from the local matched Gaussian
-       distribution, built from the Twiss parameters, the geometric
-       emittances, ``sigma_z`` and ``sigma_delta``, and shifted onto the local
-       closed orbit. Betatron and dispersive contributions are included;
-       transverse coupling is not.
+       distribution, built from the eigenvector matrix ``W_matrix`` of the
+       one-turn map (transverse coupling included), the geometric
+       emittances, the dispersion, ``sigma_z`` and ``sigma_delta``, and
+       shifted onto the local closed orbit.
     2. A gas species is drawn with a probability proportional to its
        contribution ``n_gas * sigma_gas`` to the local interaction rate.
     3. One interaction of the configured ``process`` is applied, using the
@@ -185,10 +190,7 @@ class BeamGasMarker(xt.BeamElement):
         'n_scattering_events': xo.Int64,
         'gemitt_x': xo.Float64,
         'gemitt_y': xo.Float64,
-        'alfx': xo.Float64,
-        'betx': xo.Float64,
-        'alfy': xo.Float64,
-        'bety': xo.Float64,
+        '_W_matrix': xo.Float64[16],
         'dx': xo.Float64,
         'dpx': xo.Float64,
         'dy': xo.Float64,
@@ -223,7 +225,7 @@ class BeamGasMarker(xt.BeamElement):
     def __init__(self, ds=0.0,
                  p0c=0.0,
                  bunch_intensity=0.0,
-                 alfx=0.0, betx=0.0, alfy=0.0, bety=0.0,
+                 W_matrix=None,
                  dx=0.0, dpx=0.0, dy=0.0, dpy=0.0,
                  x_co=0.0, px_co=0.0, y_co=0.0, py_co=0.0,
                  zeta_co=0.0, delta_co=0.0,
@@ -253,6 +255,11 @@ class BeamGasMarker(xt.BeamElement):
         """
         self.scatter_log = None
 
+        # Twiss parameters stored by older versions, superseded by W_matrix:
+        # ignored, so that lines saved before can still be loaded
+        for kk in _LEGACY_FIELDS:
+            kwargs.pop(kk, None)
+
         if '_xobject' in kwargs.keys():
             self.xoinitialize(**kwargs)
             return
@@ -262,10 +269,8 @@ class BeamGasMarker(xt.BeamElement):
         self.ds = ds
         self.p0c = p0c
         self.bunch_intensity = bunch_intensity
-        self.alfx = alfx
-        self.betx = betx
-        self.alfy = alfy
-        self.bety = bety
+        if W_matrix is not None:
+            self.W_matrix = W_matrix
         self.dx = dx
         self.dpx = dpx
         self.dy = dy
@@ -294,6 +299,31 @@ class BeamGasMarker(xt.BeamElement):
         if atomic_densities is not None:
             self.atomic_densities = atomic_densities
         self.seed = seed
+
+    @property
+    def W_matrix(self):
+        """
+        Transverse block of the eigenvector matrix W at the marker.
+
+        Returns
+        -------
+        W_matrix : numpy.ndarray
+            4x4 matrix mapping the normalised betatron coordinates of the two
+            transverse modes to ``(x, px, y, py)``. All zeros if not set.
+        """
+        return np.array(self._W_matrix).reshape(4, 4)
+
+    @W_matrix.setter
+    def W_matrix(self, value):
+        value = np.asarray(value, dtype=float)
+        if value.shape == (6, 6):
+            value = value[:4, :4]
+        if value.shape != (4, 4):
+            raise ValueError("`W_matrix` must be a 6x6 or 4x4 matrix "
+                             f"(got shape {value.shape}).")
+        if not np.all(np.isfinite(value)):
+            raise ValueError("`W_matrix` must be finite.")
+        self._W_matrix = value.ravel()
 
     @property
     def process(self):
@@ -407,7 +437,7 @@ class BeamGasMarker(xt.BeamElement):
         """
         config_allowed = {
             'ds', 'p0c', 'bunch_intensity',
-            'alfx', 'betx', 'alfy', 'bety',
+            'W_matrix',
             'dx', 'dpx', 'dy', 'dpy',
             'x_co', 'px_co', 'y_co', 'py_co',
             'zeta_co', 'delta_co',
@@ -437,10 +467,14 @@ class BeamGasMarker(xt.BeamElement):
         """
         Draw macro-particles from the local matched Gaussian distribution.
 
-        Betatron and dispersive contributions are generated relative to the
-        closed orbit, which is then added so that the returned coordinates are
-        the physical ones. The interaction is applied afterwards, on the
-        physical momentum direction of each macro-particle.
+        The betatron part is built from the eigenvector matrix ``W_matrix``
+        of the one-turn map, so that coupled optics (e.g. in a solenoid) are
+        described correctly; without coupling it reduces to the usual
+        construction from the Twiss parameters. Dispersive contributions are
+        added and everything is generated relative to the closed orbit,
+        which is then added so that the returned coordinates are the physical
+        ones. The interaction is applied afterwards, on the physical momentum
+        direction of each macro-particle.
 
         Parameters
         ----------
@@ -454,17 +488,26 @@ class BeamGasMarker(xt.BeamElement):
         x, px, y, py, zeta, delta : ndarray
             Physical coordinates of the generated macro-particles.
         """
+        W = self.W_matrix
+        if not np.any(W):
+            raise ValueError(
+                "BeamGasMarker has no `W_matrix`: configure the markers again "
+                "with `line.xcoll.beamgas.configure(...)`.")
+
         u = rng.standard_normal((6, n))
 
         delta = self.sigma_delta*u[5]
         zeta = self.sigma_z*u[4]
 
-        x = np.sqrt(self.gemitt_x*self.betx)*u[0] + self.dx*delta
-        px = (np.sqrt(self.gemitt_x/self.betx)*(u[1] - self.alfx*u[0])
-              + self.dpx*delta)
-        y = np.sqrt(self.gemitt_y*self.bety)*u[2] + self.dy*delta
-        py = (np.sqrt(self.gemitt_y/self.bety)*(u[3] - self.alfy*u[2])
-              + self.dpy*delta)
+        # Normalised betatron coordinates of the two transverse modes
+        sqrt_emitt = np.sqrt([self.gemitt_x, self.gemitt_x,
+                              self.gemitt_y, self.gemitt_y])
+        x, px, y, py = W @ (sqrt_emitt[:, None]*u[:4])
+
+        x += self.dx*delta
+        px += self.dpx*delta
+        y += self.dy*delta
+        py += self.dpy*delta
 
         return (x + self.x_co, px + self.px_co,
                 y + self.y_co, py + self.py_co,
