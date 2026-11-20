@@ -657,8 +657,9 @@ class BeamGasGenerator:
 
         Integrates the atomic density of each gas species over the section of
         each marker, and stores on the marker the resulting interaction rate,
-        the local gas composition, optics and closed orbit, the beam parameters
-        and the Monte Carlo settings. The section of a marker goes from the
+        the local gas composition, optics (including the eigenvector matrix
+        ``W_matrix`` of the twiss, which describes coupled motion) and closed
+        orbit, the beam parameters and the Monte Carlo settings. The section of a marker goes from the
         previous marker to it, and the section of the first one from
         ``s = 0``: the last marker must sit at the end of the line, which
         :meth:`install_markers` ensures.
@@ -811,6 +812,7 @@ class BeamGasGenerator:
                 ds=s - s_start,
                 alfx=twiss['alfx', nn], betx=twiss['betx', nn],
                 alfy=twiss['alfy', nn], bety=twiss['bety', nn],
+                W_matrix=twiss['W_matrix', nn],
                 dx=twiss['dx', nn], dpx=twiss['dpx', nn],
                 dy=twiss['dy', nn], dpy=twiss['dpy', nn],
                 x_co=twiss['x', nn], px_co=twiss['px', nn],
