@@ -8,11 +8,12 @@
 
 #ifdef XO_CONTEXT_CPU
 #include <math.h>
-#endif  // XO_CONTEXT_CPU
+#endif /* XO_CONTEXT_CPU */
+
+#include "xobjects/headers/common.h"
 
 
-/*gpufun*/
-double YRotation_single_particle_rotate_only(LocalParticle* part, double s, double angle){
+GPUFUN double YRotation_single_particle_rotate_only(LocalParticle* part, double s, double angle) {
     double x   = LocalParticle_get_x(part);
     double rpp = LocalParticle_get_rpp(part);
     double sin_y = sin(angle);

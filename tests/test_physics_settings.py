@@ -99,6 +99,7 @@ def snapshot(settings):
     }
 
 
+@pytest.mark.xcother
 def test_all_flags():
     # Assert we have all flags and no duplicates (to ensure test is
     # updated when new flags are added)
@@ -107,6 +108,7 @@ def test_all_flags():
     assert len(settings.all_flags) == len(set(settings.all_flags))
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "particle,p0c,mass,A,return_neutral,expected",
     [
@@ -300,6 +302,7 @@ def test_defaults(particle, p0c, mass, A, return_neutral, expected):
             assert getattr(settings, f"include_{process}") is True
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize("group,children", RETURN_GROUPS.items())
 def test_return_groups(group, children):
     _, settings = make_settings()
@@ -324,6 +327,7 @@ def test_return_groups(group, children):
     )
 
 
+@pytest.mark.xcother
 def test_return_none():
     _, settings = make_settings()
 
@@ -341,6 +345,7 @@ def test_return_none():
         assert getattr(settings, f"return_{flag}") is False
 
 
+@pytest.mark.xcother
 def test_return_all():
     _, settings = make_settings()
 
@@ -357,6 +362,7 @@ def test_return_all():
         assert getattr(settings, f"return_{flag}") is True
 
 
+@pytest.mark.xcother
 def test_return_all_charged():
     _, settings = make_settings()
 
@@ -376,6 +382,7 @@ def test_return_all_charged():
         assert getattr(settings, f"return_{flag}") is True
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize("process", INCLUDE_PROCESSES)
 def test_include_process(process):
     _, settings = make_settings("proton")
@@ -391,6 +398,7 @@ def test_include_process(process):
     assert getattr(settings, attr) is default
 
 
+@pytest.mark.xcother
 def test_showers_default_depends_on_reference():
     engine, settings = make_settings("proton")
     assert settings.include_showers is False
@@ -398,6 +406,7 @@ def test_showers_default_depends_on_reference():
     assert settings.include_showers is True
 
 
+@pytest.mark.xcother
 def test_showers_default_depends_on_return_all():
     _, settings = make_settings("proton")
     assert settings.include_showers is False
@@ -405,6 +414,7 @@ def test_showers_default_depends_on_return_all():
     assert settings.include_showers is True
 
 
+@pytest.mark.xcother
 def test_showers_follows_return_all_when_default():
     _, settings = make_settings("proton")
     assert settings.include_showers is False
@@ -414,6 +424,7 @@ def test_showers_follows_return_all_when_default():
     assert settings.include_showers is False
 
 
+@pytest.mark.xcother
 def test_showers_explicit_value_does_not_follow_return_all():
     _, settings = make_settings("proton")
     settings.include_showers = False
@@ -422,6 +433,7 @@ def test_showers_explicit_value_does_not_follow_return_all():
     assert settings.include_showers is False
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize("attr,value",
     [
         ("hadron_lower_momentum_cut",   2e9),
@@ -436,6 +448,7 @@ def test_explicit_cut(attr, value):
     assert getattr(settings, attr) == value
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "attr,value",
     [
@@ -453,6 +466,7 @@ def test_invalid_cut(attr, value):
     assert engine.stop_calls == 1
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "attr,value",
     [
@@ -469,6 +483,7 @@ def test_low_cut_warning(attr, value):
     assert "very low" in engine.messages[0]
 
 
+@pytest.mark.xcother
 def test_dynamic_defaults_follow_reference():
     engine, settings = make_settings("proton", 7e12)
     engine.particle_ref = xt.Particles("electron", p0c=5e12)
@@ -476,6 +491,7 @@ def test_dynamic_defaults_follow_reference():
     assert snapshot(settings) == snapshot(reference)
 
 
+@pytest.mark.xcother
 def test_explicit_settings_survive_reference_change():
     engine, settings = make_settings("proton", 7e12)
     settings.return_electrons = False
@@ -487,6 +503,7 @@ def test_explicit_settings_survive_reference_change():
     assert settings.include_elastic is False
 
 
+@pytest.mark.xcother
 def test_reset():
     _, settings = make_settings("proton", 7e12)
     _, reference = make_settings("proton", 7e12)
@@ -560,6 +577,7 @@ def selected(settings):
     return set(NAMES[mask])
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "flag,expected",
     [
@@ -585,6 +603,7 @@ def test_mask_single_return_type(flag, expected):
     assert selected(settings) == expected
 
 
+@pytest.mark.xcother
 def test_mask_leptons():
     _, settings = make_settings()
     settings.return_none = True
@@ -596,6 +615,7 @@ def test_mask_leptons():
     }
 
 
+@pytest.mark.xcother
 def test_mask_mesons_with_neutral():
     _, settings = make_settings()
     settings.return_none = True
@@ -608,6 +628,7 @@ def test_mask_mesons_with_neutral():
     }
 
 
+@pytest.mark.xcother
 def test_mask_baryons_with_neutral():
     _, settings = make_settings()
     settings.return_none = True
@@ -621,6 +642,7 @@ def test_mask_baryons_with_neutral():
     }
 
 
+@pytest.mark.xcother
 def test_all_ions_are_classified_as_ions():
     _, settings = make_settings()
     A = []
@@ -642,6 +664,7 @@ def test_all_ions_are_classified_as_ions():
     assert np.all(mask)
 
 
+@pytest.mark.xcother
 def test_ions_do_not_alias_mesons_or_baryons():
     _, settings = make_settings()
     A = []
@@ -664,6 +687,7 @@ def test_ions_do_not_alias_mesons_or_baryons():
     assert not np.any(mask)
 
 
+@pytest.mark.xcother
 def test_vetoed_setting():
     engine, settings = make_settings(
         veto=["include_elastic"],
@@ -680,6 +704,7 @@ def test_vetoed_setting():
         settings.include_elastic = False
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "attr",
     [
@@ -695,6 +720,7 @@ def test_unknown_setting(attr):
     assert engine.stop_calls == 1
 
 
+@pytest.mark.xcother
 def test_individual_pdg_id_overrides():
     _, settings = make_settings()
 
@@ -740,6 +766,7 @@ def test_individual_pdg_id_overrides():
     }
 
 
+@pytest.mark.xcother
 def test_individual_pdg_id_kill_overrides_return_flag():
     _, settings = make_settings()
 
@@ -760,6 +787,7 @@ def test_individual_pdg_id_kill_overrides_return_flag():
     assert "D+" in selected(settings)
 
 
+@pytest.mark.xcother
 def test_pdg_id_is_returned_array():
     _, settings = make_settings()
     settings.return_none = True
@@ -769,6 +797,7 @@ def test_pdg_id_is_returned_array():
     assert np.array_equal(result, [True, False, False, True])
 
 
+@pytest.mark.xcother
 def test_neutrino_flavour_requires_corresponding_lepton_family():
     _, settings = make_settings()
     settings.return_none = True
@@ -794,6 +823,7 @@ def test_neutrino_flavour_requires_corresponding_lepton_family():
     }
 
 
+@pytest.mark.xcother
 @pytest.mark.parametrize(
     "attr",
     [
@@ -811,6 +841,7 @@ def test_boolean_settings_reject_non_bool(attr):
     assert engine.stop_calls == 1
 
 
+@pytest.mark.xcother
 def test_pdg_id_is_returned_does_not_resolve_explicit_unknown_ids():
     _, settings = make_settings()
     settings.return_none = True

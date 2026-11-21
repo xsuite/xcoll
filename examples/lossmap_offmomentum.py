@@ -15,6 +15,10 @@ import xpart as xp
 import xcoll as xc
 
 
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
+
 beam          = 1
 plane         = 'DPpos'
 num_particles = 1000
@@ -49,16 +53,18 @@ assert not np.any(df_with_coll.has_aperture_problem)
 line.xcoll.collimators.assign_optics()
 
 
+# Move to a more efficient context for tracking
+line.discard_tracker()
+line.build_tracker(_context=context)
+
+
 # Generate initial matched bunch
 part = xp.generate_matched_gaussian_bunch(nemitt_x=colldb.nemitt_x,
                                           nemitt_y=colldb.nemitt_y,
-                                          sigma_z=7.55e-2, num_particles=num_particles, line=line)
-
-
-# Move the line to an OpenMP context to be able to use all cores
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
-# Should move iobuffer as well in case of impacts
+                                          sigma_z=7.55e-2,
+                                          num_particles=num_particles,
+                                          line=line,
+                                          _context=context)
 
 
 # Print some info of the RF sweep
@@ -69,14 +75,15 @@ rf_sweep.info()
 
 # Track during RF sweep:
 line.xcoll.scattering.enable()
-line.track(particles=part, num_turns=num_turns, time=True, with_progress=5)
+line.track(part, num_turns=num_turns, time=True, with_progress=5)
 line.xcoll.scattering.disable()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 
-# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu())
+# Move the line back to CPU to be able to use all prebuilt kernels for the aperture interpolation
+if not isinstance(context, xo.ContextCpu):
+    line.discard_tracker()
+    line.build_tracker(_context=xo.ContextCpu())
 
 
 # Let's visualise how the losses move from IR7 to IR3 during the sweep

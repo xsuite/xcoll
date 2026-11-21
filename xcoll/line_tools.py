@@ -345,7 +345,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 # line.insert, however, this has to be implemented cautiously
                 # and well-tested.
                 raise NotImplementedError("`at` must be a number indicating "
-                                    "the s position of the blow-up element.")
+                                          "the s position of the element.")
             existing_length = 0
             if name in tt.name:
                 if hasattr(self.line[name], 'length'):

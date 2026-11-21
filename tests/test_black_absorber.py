@@ -14,21 +14,20 @@ import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 
-n_part = int(2.e6)
-
-
 @pytest.mark.black
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@pytest.mark.gpu
+@for_all_test_contexts
 @fix_random_seed(3482634)
 def test_with_parallel_beam(test_context):
-    jaw_L, jaw_R, _, _, _, _, _, _, L, coll = _make_absorber(_context=test_context)
+    n_part = int(2.e6)
+    jaw_L, jaw_R, _, _, _, _, _, _, L, coll = _make_absorber(
+                                                  _context=test_context)
     # Create particles
-    part = _generate_particles(_context=test_context)
-    part_init = part.copy()
+    part = _generate_particles(n_part=n_part, _context=test_context)
+    part_init = part.copy(_context=xo.ContextCpu())
     coll.track(part)
-    part.move(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # As the angles are zero, only particles that started in front of the jaw are lost
     mask_hit = (part_init.x >= jaw_L) | (part_init.x <= jaw_R)
@@ -46,6 +45,7 @@ def test_with_parallel_beam(test_context):
 
 # Should test jaws with different angles
 @pytest.mark.black
+@pytest.mark.gpu
 @pytest.mark.parametrize("angle_L, angle_R, tilt_L, tilt_R", [
                         [0,  0,  0,       0],
                         [0,  0,  0.05,    0.05],
@@ -65,42 +65,52 @@ def test_with_parallel_beam(test_context):
                     ], ids=["H", "H tilt pos", "H tilt neg", "H tilt neg pos", "H tilt pos neg",
                             "V", "V tilt pos", "V tilt neg", "V tilt neg pos", "V tilt pos neg",
                             "S", "S tilt pos", "S tilt neg", "S tilt neg pos", "S tilt pos neg"])
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@for_all_test_contexts
 @fix_random_seed(3482634)
 def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
+    n_part = int(2.e6)
     # Create collimator
-    j_LU, j_RU, j_LD, j_RD, s_LU, s_RU, s_LD, s_RD, L, coll = _make_absorber(angle=[angle_L, angle_R], tilts=[tilt_L, tilt_R], _context=test_context)
+    j_LU, j_RU, j_LD, j_RD, s_LU, s_RU, s_LD, s_RD, L, coll = _make_absorber(
+        angle=[angle_L, angle_R], tilts=[tilt_L, tilt_R], _context=test_context
+    )
     # Create particles
-    part = _generate_particles(four_dim=True, _context=test_context)
-    part_init = part.copy()
+    part = _generate_particles(n_part=n_part, four_dim=True,
+                               _context=test_context)
+    part_init = part.copy(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part_init.reorganize() # This is needed, because part_init._num_active_particles = -1 in GPU but should be filled to be used on CPU
+
     # Track
     coll.track(part)
-    part.move(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
 
     # Get all expected hit locations
-    # # TODO adapt when exact drifts are implemented
+    # TODO: adapt when exact drifts are implemented
     dri = xt.Drift(length=s_LU)
     dri.track(part_init)
     assert np.allclose(part_init.s, s_LU, atol=1e-12, rtol=0)
-    x_rot = part_init.x * np.cos(np.deg2rad(angle_L)) + part_init.y * np.sin(np.deg2rad(angle_L))
+    x_rot = part_init.x * np.cos(np.deg2rad(angle_L)) \
+          + part_init.y * np.sin(np.deg2rad(angle_L))
     mask_hit_LU = x_rot >= j_LU
     dri.length = s_LD - s_LU
     dri.track(part_init)
     assert np.allclose(part_init.s, s_LD, atol=1e-12, rtol=0)
-    x_rot = part_init.x * np.cos(np.deg2rad(angle_L)) + part_init.y * np.sin(np.deg2rad(angle_L))
+    x_rot = part_init.x * np.cos(np.deg2rad(angle_L)) \
+          + part_init.y * np.sin(np.deg2rad(angle_L))
     mask_hit_L = ~mask_hit_LU & (x_rot >= j_LD)
     dri.length = s_RU - s_LD
     dri.track(part_init)
     assert np.allclose(part_init.s, s_RU, atol=1e-12, rtol=0)
-    x_rot = part_init.x * np.cos(np.deg2rad(angle_R)) + part_init.y * np.sin(np.deg2rad(angle_R))
+    x_rot = part_init.x * np.cos(np.deg2rad(angle_R)) \
+          + part_init.y * np.sin(np.deg2rad(angle_R))
     mask_hit_RU = x_rot <= j_RU
     dri.length = s_RD - s_RU
     dri.track(part_init)
     assert np.allclose(part_init.s, s_RD, atol=1e-12, rtol=0)
-    x_rot = part_init.x * np.cos(np.deg2rad(angle_R)) + part_init.y * np.sin(np.deg2rad(angle_R))
+    x_rot = part_init.x * np.cos(np.deg2rad(angle_R)) \
+          + part_init.y * np.sin(np.deg2rad(angle_R))
     mask_hit_R = ~mask_hit_RU & (x_rot <= j_RD)
     mask_hit = mask_hit_LU | mask_hit_RU | mask_hit_L | mask_hit_R
     # Correct for potential double hits (the upstream jaw is first, so that is kept):
@@ -124,64 +134,57 @@ def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     assert np.all([s > s_RU and s <= s_RD for s in part.s[mask_hit_R]])
 
     # Check that the particles are at the border of the jaws
-    x_rot = part.x * np.cos(np.deg2rad(angle_L)) + part.y * np.sin(np.deg2rad(angle_L))
+    x_rot = part.x * np.cos(np.deg2rad(angle_L)) \
+          + part.y * np.sin(np.deg2rad(angle_L))
     if tilt_L == 0:
         assert np.allclose(x_rot[mask_hit_L], j_LU, atol=1e-12, rtol=0)
     else:
-        assert np.allclose(x_rot[mask_hit_LU], (part.s[mask_hit_LU] - s_LU)*np.tan(tilt_L + np.pi/2) + j_LU, atol=1e-12, rtol=0)
-        assert np.allclose(x_rot[mask_hit_L], (part.s[mask_hit_L] - s_LU)*np.tan(tilt_L) + j_LU, atol=1e-12, rtol=0)
-    x_rot = part.x * np.cos(np.deg2rad(angle_R)) + part.y * np.sin(np.deg2rad(angle_R))
+        assert np.allclose(
+            x_rot[mask_hit_LU],
+            (part.s[mask_hit_LU] - s_LU)*np.tan(tilt_L + np.pi/2) + j_LU,
+            atol=1e-12, rtol=0
+        )
+        assert np.allclose(
+            x_rot[mask_hit_L],
+            (part.s[mask_hit_L] - s_LU)*np.tan(tilt_L) + j_LU,
+            atol=1e-12, rtol=0
+        )
+    x_rot = part.x * np.cos(np.deg2rad(angle_R)) \
+          + part.y * np.sin(np.deg2rad(angle_R))
     if tilt_R == 0:
         assert np.allclose(x_rot[mask_hit_R], j_RU, atol=1e-12, rtol=0)
     else:
-        assert np.allclose(x_rot[mask_hit_RU], (part.s[mask_hit_RU] - s_RU)*np.tan(tilt_R - np.pi/2) + j_RU, atol=1e-12, rtol=0)
-        assert np.allclose(x_rot[mask_hit_R], (part.s[mask_hit_R] - s_RU)*np.tan(tilt_R) + j_RU, atol=1e-12, rtol=0)
+        assert np.allclose(
+            x_rot[mask_hit_RU],
+            (part.s[mask_hit_RU] - s_RU)*np.tan(tilt_R - np.pi/2) + j_RU,
+            atol=1e-12, rtol=0
+        )
+        assert np.allclose(
+            x_rot[mask_hit_R],
+            (part.s[mask_hit_R] - s_RU)*np.tan(tilt_R) + j_RU,
+            atol=1e-12, rtol=0
+        )
 
 
-def _make_absorber(angle=0, tilts=[0,0], _context=None):
-    if _context is None:
-        _context = xo.ContextCpu()
-    jaws = [0.05 + 0.01*np.random.normal(), -0.05 + 0.001*np.random.normal()]
-    L = 0.873 + 0.1*np.random.normal()
-    coll = xc.BlackAbsorber(length=L, angle=angle, jaw=jaws, tilt=tilts, _context=_context)
-    return coll.jaw_LU, coll.jaw_RU, coll.jaw_LD, coll.jaw_RD, coll.jaw_s_LU, coll.jaw_s_RU, coll.jaw_s_LD, coll.jaw_s_RD, L, coll
-
-
-def _generate_particles(four_dim=False, angle=0, _context=None):
-    if _context is None:
-        _context = xo.ContextCpu()
-    # Make particles
-    x = np.random.uniform(-0.1, 0.1, n_part)
-    y = np.random.uniform(-0.1, 0.1, n_part)
-    if four_dim:
-        px = np.random.uniform(-0.1, 0.1, n_part)
-        py = np.random.uniform(-0.1, 0.1, n_part)
-    else:
-        px = 0
-        py = 0
-    ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12, _context=_context)
-    part = xp.build_particles(x=x, y=y, px=px, py=py, particle_ref=ref, _context=_context)
-    part_init = part.copy()
-    part_init.move(_context=xo.ContextCpu())
-    return part
-
-
+@pytest.mark.black
+@pytest.mark.gpu
 @pytest.mark.parametrize("side, sign_R", [
                         ['+', 1], ['-', 1], ['+', -1], ['-', -1]]
                         , ids=["L R>0", "R R>0", "L R<0", "R R<0"])
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
-)
+@for_all_test_contexts
 @fix_random_seed(3482634)
 def test_black_crystal(test_context, side, sign_R):
-    ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)
+    n_part = int(2.e6)
+    ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=7e12,
+                       _context=test_context)
     x = np.random.uniform(-1, 1, n_part)
     px = np.random.uniform(-1, 1, n_part)
     y = np.random.uniform(-1, 1, n_part)
     py = np.random.uniform(-1, 1, n_part)
-    part_init = xp.build_particles(x=x, px=px, y=y, py=py, particle_ref=ref)
+    part_init = xp.build_particles(x=x, px=px, y=y, py=py, particle_ref=ref,
+                                   _context=test_context)
     drift_length = 1  # To send the surviving particles further out
-    dri = xt.Drift(length=drift_length)
+    dri = xt.Drift(length=drift_length, _context=test_context)
 
     for R in [0.87, 3.3, 17]:
         R = sign_R*R
@@ -192,10 +195,14 @@ def test_black_crystal(test_context, side, sign_R):
             jaw = sign*0.13
             width = 0.2
             height = 0.5
-            coll = xc.BlackCrystal(length=length, bending_radius=R, jaw=jaw, width=width, height=height, side=side, tilt=np.deg2rad(tilt), _context=test_context)
-            part = part_init.copy()
+            coll = xc.BlackCrystal(length=length, bending_radius=R, jaw=jaw,
+                                   width=width, height=height, side=side,
+                                   tilt=np.deg2rad(tilt), _context=test_context)
+            part = part_init.copy(_context=test_context)
             coll.track(part)
             dri.track(part)
+            if not isinstance(test_context, xo.ContextCpu):
+                part.move(_context=xo.ContextCpu())
 
             Rpos = R - (sign_R-1)/2*width # full radius when positive
             Rneg = R - (sign_R+1)/2*width # shorter radius when positive (full radius when negative)
@@ -246,3 +253,28 @@ def test_black_crystal(test_context, side, sign_R):
             # ax[1][1].scatter(part.s[mask_upper_curve], part.x[mask_upper_curve], s=0.1)
             # ax[2][0].scatter(part.s[mask_back], part.x[mask_back], s=0.1)
             # ax[2][1].scatter(part.s[mask_lower_curve], part.x[mask_lower_curve], s=0.1)
+
+
+def _make_absorber(angle=0, tilts=[0,0], _context=None):
+    jaws = [0.05 + 0.01*np.random.normal(), -0.05 + 0.001*np.random.normal()]
+    L = 0.873 + 0.1*np.random.normal()
+    coll = xc.BlackAbsorber(length=L, angle=angle, jaw=jaws, tilt=tilts,
+                            _context=_context)
+    return coll.jaw_LU, coll.jaw_RU, coll.jaw_LD, coll.jaw_RD, coll.jaw_s_LU, \
+           coll.jaw_s_RU, coll.jaw_s_LD, coll.jaw_s_RD, L, coll
+
+def _generate_particles(n_part, four_dim=False, angle=0, _context=None):
+    # Make particles
+    x = np.random.uniform(-0.1, 0.1, n_part)
+    y = np.random.uniform(-0.1, 0.1, n_part)
+    if four_dim:
+        px = np.random.uniform(-0.1, 0.1, n_part)
+        py = np.random.uniform(-0.1, 0.1, n_part)
+    else:
+        px = 0
+        py = 0
+    ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=7e12,
+                       _context=_context)
+    part = xp.build_particles(x=x, y=y, px=px, py=py, particle_ref=ref,
+                              _context=_context)
+    return part

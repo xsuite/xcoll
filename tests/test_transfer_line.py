@@ -19,10 +19,9 @@ from xcoll.compare import deep_equal
 num_part = int(1e6)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_transfer_line(test_context):
     # Create the line
     line = _create_transfer_line()
@@ -34,7 +33,7 @@ def test_transfer_line(test_context):
     _add_monitors(line)
     line.build_tracker(_context=test_context)
     line.xcoll.scattering.disable()  # Scattering need to be disabled to be able to twiss
-    part = _generate_matched_particles(line)
+    part = _generate_matched_particles(line, _context=test_context)
     line.xcoll.scattering.enable()   # Re-enable scattering
     line.track(part)
     tt_mon = line.get_table().rows.match(element_type='EmittanceMonitor')
@@ -87,7 +86,7 @@ def _add_monitors(line):
     xc.EmittanceMonitor.install(line, name="monitor air 2 end", at="Air2@end", longitudinal=False)
     xc.EmittanceMonitor.install(line, name="monitor end", at=100, longitudinal=False)
 
-def _generate_matched_particles(line):
+def _generate_matched_particles(line, _context=None):
     # Matched initial parameters
     betx0 = 154.0835045206266
     bety0 = 5.222566527078791
@@ -105,5 +104,6 @@ def _generate_matched_particles(line):
     y_norm, py_norm = xp.generate_2D_gaussian(num_part)
     part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
                                 W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
-                                nemitt_x=nemitt_x,nemitt_y=nemitt_y)
+                                nemitt_x=nemitt_x,nemitt_y=nemitt_y,
+                                _context=_context)
     return part

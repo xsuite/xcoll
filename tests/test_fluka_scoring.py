@@ -142,6 +142,7 @@ def _global_scorer_is_enabled(text, particle):
     return _scorer_is_enabled(text, particle)
 
 
+@pytest.mark.fluka
 def test_scoring_matches_physics_settings(tmp_path, monkeypatch, settings):
     """Every concrete FLUKA scorer must agree with PhysicsSettingsHelper."""
     settings.return_none = True
@@ -166,6 +167,7 @@ def test_scoring_matches_physics_settings(tmp_path, monkeypatch, settings):
         )
 
 
+@pytest.mark.fluka
 def test_return_none_disables_all_particle_scoring(tmp_path, monkeypatch, settings):
     settings.return_none = True
     text = _generate_scoring(tmp_path, monkeypatch, settings)
@@ -176,6 +178,7 @@ def test_return_none_disables_all_particle_scoring(tmp_path, monkeypatch, settin
     assert not _scorer_is_enabled(text, "HEAVYION")
 
 
+@pytest.mark.fluka
 def test_return_all_uses_only_all_part(tmp_path, monkeypatch, settings):
     settings.return_all = True
     text = _generate_scoring(tmp_path, monkeypatch, settings)
@@ -187,6 +190,7 @@ def test_return_all_uses_only_all_part(tmp_path, monkeypatch, settings):
     assert not _scorer_is_enabled(text, "HEAVYION")
 
 
+@pytest.mark.fluka
 def test_return_all_charged(tmp_path, monkeypatch, settings):
     settings.return_all_charged = True
     text = _generate_scoring(tmp_path, monkeypatch, settings)
@@ -199,6 +203,7 @@ def test_return_all_charged(tmp_path, monkeypatch, settings):
     assert not _scorer_is_enabled(text, "HEAVYION")
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "flag,particles",
     [
@@ -281,6 +286,7 @@ def test_family_scoring_matches_physics_settings(
         )
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "pdg_id,fluka_name",
     [
@@ -304,6 +310,7 @@ def test_explicit_pdg_return(tmp_path, monkeypatch, settings, pdg_id, fluka_name
     assert not _global_scorer_is_enabled(text, "ALL-CHAR")
 
 
+@pytest.mark.fluka
 def test_explicit_neutral_pdg_with_all_charged(tmp_path, monkeypatch, settings):
     settings.return_all_charged = True
     settings.return_pdg_id(421)  # D0
@@ -315,6 +322,7 @@ def test_explicit_neutral_pdg_with_all_charged(tmp_path, monkeypatch, settings):
     assert _scorer_is_enabled(text, "D0")
 
 
+@pytest.mark.fluka
 def test_explicit_kill_disables_individual_card(tmp_path, monkeypatch, settings):
     settings.return_none = True
     settings.return_neutral = True
@@ -329,6 +337,7 @@ def test_explicit_kill_disables_individual_card(tmp_path, monkeypatch, settings)
     assert not _scorer_is_enabled(text, "D0")
 
 
+@pytest.mark.fluka
 def test_ions_enable_heavyion(tmp_path, monkeypatch, settings):
     settings.return_none = True
     settings.return_ions = True
@@ -344,6 +353,7 @@ def test_ions_enable_heavyion(tmp_path, monkeypatch, settings):
     assert _scorer_is_enabled(text, "HEAVYION")
 
 
+@pytest.mark.fluka
 def test_explicit_heavy_ion_enables_heavyion(tmp_path, monkeypatch, settings):
     settings.return_none = True
     settings.return_pdg_id(1000060120)  # C12
@@ -360,6 +370,7 @@ def test_explicit_heavy_ion_enables_heavyion(tmp_path, monkeypatch, settings):
     assert not _scorer_is_enabled(text, "4-HELIUM")
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "pdg_id,fluka_name",
     [
@@ -391,6 +402,7 @@ def test_explicit_light_ion_only_enables_its_card(
     assert not _scorer_is_enabled(text, "HEAVYION")
 
 
+@pytest.mark.fluka
 def test_touches_scoring(tmp_path, monkeypatch, settings):
     settings.return_none = True
     text = _generate_scoring(
@@ -408,6 +420,7 @@ def test_touches_scoring(tmp_path, monkeypatch, settings):
     assert not line.lstrip().startswith("*USERDUMP")
 
 
+@pytest.mark.fluka
 def test_crystal_scoring(tmp_path, monkeypatch, settings):
     settings.return_none = True
     text = _generate_scoring(tmp_path, monkeypatch, settings, crystals=True)
@@ -420,6 +433,7 @@ def test_crystal_scoring(tmp_path, monkeypatch, settings):
     assert not line.lstrip().startswith("*USRICALL")
 
 
+@pytest.mark.fluka
 def test_photon_scoring_includes_fluka_aliases(
     tmp_path,
     monkeypatch,
@@ -431,6 +445,7 @@ def test_photon_scoring_includes_fluka_aliases(
     assert _active_usrbdx_particles(text) == {"PHOTON", "OPTIPHOT", "RAY"}
 
 
+@pytest.mark.fluka
 def test_return_all_with_explicit_kill_still_uses_all_part(
     tmp_path,
     monkeypatch,
@@ -444,6 +459,7 @@ def test_return_all_with_explicit_kill_still_uses_all_part(
     assert not settings.pdg_id_is_returned(411)
 
 
+@pytest.mark.fluka
 def test_return_all_charged_with_explicit_kill_still_uses_all_char(
     tmp_path,
     monkeypatch,
@@ -456,6 +472,7 @@ def test_return_all_charged_with_explicit_kill_still_uses_all_char(
     assert not settings.pdg_id_is_returned(411)
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "pdg_id,score",
     [
@@ -482,6 +499,7 @@ def test_unrepresented_explicit_pdg_uses_broad_scorer(
     assert settings.pdg_id_is_returned(pdg_id)
 
 
+@pytest.mark.fluka
 def test_return_all_charged_plus_unrepresented_neutral_uses_all_part(
     tmp_path,
     monkeypatch,
@@ -495,6 +513,7 @@ def test_return_all_charged_plus_unrepresented_neutral_uses_all_part(
     assert _active_usrbdx_particles(text) == {"ALL-PART"}
 
 
+@pytest.mark.fluka
 def test_all_neut_suppresses_dedicated_neutral_scorers(
     tmp_path,
     monkeypatch,

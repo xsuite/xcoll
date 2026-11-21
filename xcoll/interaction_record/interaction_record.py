@@ -10,7 +10,7 @@ from warnings import warn
 import xobjects as xo
 import xtrack as xt
 
-from .interaction_types import interactions_src, interaction_names, shortcuts
+from .interaction_types import interactions_src, interaction_names, interactions_meta
 from ..general import _pkg_root
 from ..headers.particle_states import particle_states_src
 
@@ -19,6 +19,7 @@ interaction_names = {kk: vv.replace('_', ' ').title().\
                             replace(' Mcs',' MCS').replace(' Ch',' CH').\
                             replace(' Vr',' VR')
                      for kk, vv in interaction_names.items()}
+shortcuts = {vv['value']: vv['shortcut'] for vv in interactions_meta.values()}
 
 
 class InteractionRecord(xt.BeamElement):
@@ -61,27 +62,60 @@ class InteractionRecord(xt.BeamElement):
         _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
     ]
 
-    def __init__(self, *, line=None, elements=None, names=None, capacity=1e6,
+    def __init__(self, *, line=None, elements=None, names=None, num_rows=1e6,
                  columns=None, record_impacts=None, record_exits=None,
                  record_scatterings=None, io_buffer=None, **kwargs):
         elements, names = _get_xcoll_elements(line, elements, names)
         if len(elements) == 0:
             raise ValueError("No Xcoll elements provided to InteractionRecord!")
 
+        # Initialise record table
+        if 'capacity' in kwargs:
+            warn("`capacity` in the InteractionRecord init is deprecated. Use "
+                 "`num_rows` instead.", FutureWarning)
+            num_rows = kwargs.pop('capacity')
+        num_rows = int(num_rows)
+        init_dict, record_all_columns, recorded_columns = _make_columns(
+            num_rows=num_rows, columns=columns
+        )
+        init_dict.update(kwargs)
+
+        # Memory layout of InteractionRecord:
+        #       0: size
+        #       0: _index (size 32)
+        #      32: _record_all_columns (size 8)
+        #   40-96: <8 transformations (shift_x, rot_x_rad, ...)> (size 8*8=64)
+        # 104-304: <pointers to all 26 arrays> (size 26*8=208)
+        # 312-...: <all arrays> (each has size 8*num_rows + 16)
+        #
+        # Total size: 312 + num_logged*8*num_rows + 26*16
+
+        # Get context and buffer with correct capacity
+        _context = kwargs.get('_context')
+        if _context is None:
+            if line is not None and line.tracker is not None:
+                _context = line.tracker._context
+        if _context is None:
+            _context = elements[0]._context
+        capacity = 728 + 8*num_rows*len(recorded_columns)
         if getattr(line, 'tracker', None) is None \
         or getattr(line.tracker, 'io_buffer', None) is None:
             if io_buffer is None:
-                io_buffer = xt.new_io_buffer()
+                io_buffer = xt.new_io_buffer(_context=_context,
+                                             capacity=capacity)
         elif io_buffer is not None:
             raise ValueError("Cannot provide io_buffer when tracker already built!")
         else:
             io_buffer = line.tracker.io_buffer
+            if _context is None:
+                init_dict['_context'] = line.tracker._context
+        if io_buffer.capacity < capacity:
+            io_buffer.grow(capacity - io_buffer.capacity)
+        if _context is not None and type(_context) is not \
+        type(io_buffer.context):
+                raise ValueError("io_buffer context does not match provided "
+                                 "context!")
 
-        capacity = int(capacity)
-        init_dict, record_all_columns, recorded_columns = _make_columns(
-            capacity=capacity, columns=columns
-        )
-        init_dict.update(kwargs)
         super().__init__(_buffer=io_buffer, **init_dict)
 
         _set_recording_flags(elements, record_impacts, record_exits,
@@ -89,7 +123,7 @@ class InteractionRecord(xt.BeamElement):
 
         self._line = line
         self._io_buffer = io_buffer
-        self._index.capacity = capacity
+        self._index.capacity = num_rows
         self._record_all_columns = record_all_columns
         self._recorded_columns = recorded_columns
         self._recording_elements = {
@@ -145,7 +179,7 @@ class InteractionRecord(xt.BeamElement):
             return self._io_buffer
 
     @property
-    def capacity(self):
+    def num_rows(self):
         return self._index.capacity
 
     @property
@@ -160,7 +194,8 @@ class InteractionRecord(xt.BeamElement):
 
     @property
     def interaction_type(self):
-        return np.array([interaction_names[inter] for inter in self._inter])
+        inter = self._context.nparray_from_context_array(self._inter)
+        return np.array([interaction_names[int(ii)] for ii in inter])
 
     def to_pandas(self, frame=None):
         if frame is None:
@@ -170,19 +205,26 @@ class InteractionRecord(xt.BeamElement):
             raise ValueError(f"Invalid frame {frame}. Must be 'jaw', "
                              f"'collimator', or 'lattice'!")
         n_rows = self._index.num_recorded
+        nparr = self._context.nparray_from_context_array
+        element_ids = nparr(self.at_element[:n_rows]).tolist()
+        interaction_codes = nparr(self._inter[:n_rows]).tolist()
         data = {
-            'turn':             self.at_turn[:n_rows],
-            'collimator':       [self._collimator_name(element_id)
-                                 for element_id in self.at_element[:n_rows]],
-            'interaction_type': [interaction_names[inter]
-                                 for inter in self._inter[:n_rows]],
+            'turn': nparr(self.at_turn[:n_rows]),
+            'collimator': [
+                self._collimator_name(element_id)
+                for element_id in element_ids
+            ],
+            'interaction_type': [
+                interaction_names[inter]
+                for inter in interaction_codes
+            ],
         }
         for p in ['before', 'after']:
             for val in ['particle_id', 's', 'x', 'px', 'y', 'py', 'zeta',
                         'delta', 'energy', 'mass', 'pdgid']:
                 field = f'{val}_{p}'
                 if self._column_is_recorded(field):
-                    data[field] = getattr(self, field)[:n_rows]
+                    data[field] = nparr(getattr(self, field)[:n_rows])
         df = pd.DataFrame(data)
 
         # Different reference frames:
@@ -224,7 +266,7 @@ class InteractionRecord(xt.BeamElement):
             cat = df['collimator'].astype("category")
             codes = cat.cat.codes.to_numpy(copy=False)
             names = cat.cat.categories
-            sh  = self.shape_id[:n_rows]
+            sh  = nparr(self.shape_id[:n_rows])
             els = self.recording_elements
             sin_zL = np.array([els[name]._sin_zL for name in names])
             cos_zL = np.array([els[name]._cos_zL for name in names])
@@ -378,33 +420,41 @@ class InteractionRecord(xt.BeamElement):
 
 
     # TODO: does not work when multiple children
-    def interactions_per_collimator(self, collimator=0, *, turn=None):
+    def interactions_per_collimator(self, collimator=0, *, turn=None, show_impacts=False):
         self._check_columns_recorded(['particle_id_before'], 'interactions_per_collimator')
         n_rows = self._index.num_recorded
         if isinstance(collimator, str):
             collimator = self._collimator_id(collimator)
-        mask = (self._inter[:n_rows] > 0) & (self.at_element[:n_rows] == collimator)
+        nparr = self._context.nparray_from_context_array
+        mask = self.at_element[:n_rows] == collimator
+        if not show_impacts:
+            mask &= self._inter[:n_rows] > 0
         if turn is not None:
-            mask = mask & (self.at_turn[:n_rows] == turn)
+            mask &= self.at_turn[:n_rows] == turn
+        interaction_type = nparr(self._inter[:n_rows][mask])
+        if turn is not None:
             df = pd.DataFrame({
-                    'int':  [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
-                    'pid':  self.particle_id_before[:n_rows][mask]
+                    'int':  [shortcuts[inter] for inter in interaction_type],
+                    'pid':  nparr(self.particle_id_before[:n_rows][mask])
                 })
             return df.groupby('pid', sort=False, group_keys=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
-                    'int':   [shortcuts[inter] for inter in self._inter[:n_rows][mask]],
-                    'turn':  self.at_turn[:n_rows][mask],
-                    'pid':   self.particle_id_before[:n_rows][mask]
+                    'int':   [shortcuts[inter] for inter in interaction_type],
+                    'turn':  nparr(self.at_turn[:n_rows][mask]),
+                    'pid':   nparr(self.particle_id_before[:n_rows][mask])
                 })
             return df.groupby(['pid', 'turn'], sort=False, group_keys=False)['int'].apply(list)
 
     def first_touch_per_turn(self, frame=None):
         self._check_columns_recorded(['particle_id_before'], 'first_touch_per_turn')
+        nparr = self._context.nparray_from_context_array
         n_rows = self._index.num_recorded
-        df = pd.DataFrame({'particle_id_before': self.particle_id_before[:n_rows],
-                           'at_turn': self.at_turn[:n_rows],
-                           'at_element': self.at_element[:n_rows]})
+        df = pd.DataFrame({
+                    'particle_id_before': nparr(self.particle_id_before[:n_rows]),
+                    'at_turn':            nparr(self.at_turn[:n_rows]),
+                    'at_element':         nparr(self.at_element[:n_rows])
+                })
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
         idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(
                         ['at_turn', 'particle_id_before'], sort=False, group_keys=False)]
@@ -432,6 +482,8 @@ class InteractionRecord(xt.BeamElement):
                 f"columns {missing} were not recorded.")
 
     def _collimator_name(self, element_id):
+        if hasattr(element_id, 'tolist'):
+            element_id = element_id.tolist()
         if not hasattr(self, '_coll_names'):
             return element_id
         elif element_id not in self._coll_names:
@@ -444,6 +496,8 @@ class InteractionRecord(xt.BeamElement):
             return self._coll_names[element_id]
 
     def _collimator_id(self, element_name):
+        if hasattr(element_name, 'tolist'):
+            element_name = element_name.tolist()
         if not hasattr(self, '_coll_ids'):
             return element_name
         elif element_name not in self._coll_ids:
@@ -456,7 +510,7 @@ class InteractionRecord(xt.BeamElement):
             return self._coll_ids[element_name]
 
 
-def _make_columns(*, capacity, columns):
+def _make_columns(*, num_rows, columns):
     array_field_names = [ff.name for ff in InteractionRecord._XoStruct._fields
                             if hasattr(ff.ftype, 'to_nplike')]
     obligatory_columns = {'at_turn', 'at_element', 'shape_id', '_inter'}
@@ -492,13 +546,12 @@ def _make_columns(*, capacity, columns):
 
     final_columns |= obligatory_columns
     init_dict = {
-        field: capacity if field in final_columns else 0
+        field: num_rows if field in final_columns else 0
         for field in array_field_names
     }
     _record_all_columns = int(final_columns == set(array_field_names))
-    _recorded_columns = tuple(
-        ['_index'] + [field for field in array_field_names if field in final_columns]
-    )
+    _recorded_columns = tuple([field for field in array_field_names
+                               if field in final_columns])
 
     return init_dict, _record_all_columns, _recorded_columns
 

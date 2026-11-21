@@ -5,23 +5,23 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 from pathlib import Path
 
+import xobjects as xo
+from xobjects.test_helpers import for_all_test_contexts
 import xtrack as xt
 import xcoll as xc
-from xobjects.test_helpers import for_all_test_contexts
 import xcoll.constants as xcc
-
 
 num_part = 10000
 num_turns = 3
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize("beam, plane", [
                             [1, 'H'],
                             [2, 'V'],
@@ -35,13 +35,14 @@ def test_impacts_from_line(beam, plane, test_context):
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(line=line, record_impacts=True, record_exits=True,
+                                   _context=test_context)
     line.build_tracker(_context=test_context)
 
-    line.xcoll.collimators.assign_optics()
-    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     tw = line.twiss()
-    part = line.xcoll.collimators.generate_pencil(tcp, num_part, twiss=tw)
+    line.xcoll.collimators.assign_optics(twiss=tw)
+    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
+    part = line.xcoll.collimators.generate_pencil(tcp, num_part, twiss=tw, _context=test_context)
 
     line.xcoll.scattering.enable()
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
@@ -50,10 +51,9 @@ def test_impacts_from_line(beam, plane, test_context):
     _assert_impacts(impacts, lengths=line.xcoll.collimators.length)
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts(excluding="ContextPyopencl")
 def test_impacts_single_collimator(test_context):
     coll = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite,
                                 emittance=3.5e-6, _context=test_context)
@@ -62,43 +62,63 @@ def test_impacts_single_collimator(test_context):
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init,
+                            delta=0, p0c=4e11, _context=test_context)
 
-    impacts = xc.InteractionRecord(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCP',
+                                   record_impacts=True, record_exits=True,
+                                   _context=test_context)
     coll.track(part)
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
 
     _assert_impacts(impacts, lengths=coll.length)
 
 
+@pytest.mark.gpu
 @pytest.mark.everest
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize("R, side", [
                             [1, '+'],
                             [-1, '+'],
                             [1, '-'],
                             [-1, '-']], ids=["R>0 side=+ ", "R<0 side=+ ", "R>0 side=- ", "R<0 side=- "])
 def test_impacts_single_crystal(R, side, test_context):
-    coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon, bending_angle=R*149e-6,
-                        width=0.002, height=0.05, side=side, lattice='strip', jaw=0.001, _context=test_context)
-
-    x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
-    px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
+    sign = 1 if side == '+' else -1
+    coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon,
+                             bending_angle=R*149e-6, width=0.002, height=0.05,
+                             side=side, lattice='strip', jaw=sign*0.001,
+                             _context=test_context)
+    x_init   = np.random.normal(loc=sign*1.5e-3, scale=75.e-6, size=num_part)
+    if R > 0:
+        low = sign*-50.e-6
+        high = sign*250.e-6
+    else:
+        low = sign*50.e-6
+        high = sign*-250.e-6
+    px_init  = np.random.uniform(low=low, high=high, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+    part     = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init,
+                            delta=0, p0c=4e11, _context=test_context)
 
-    impacts = xc.InteractionRecord(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord(elements=[coll], names='TCPCH',
+                                   record_impacts=True, record_exits=True,
+                                   _context=test_context)
     coll.track(part)
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
+    enter = 'Enter Jaw L' if side == '+' else 'Enter Jaw R'
+    _assert_impacts(impacts, expected_types=[enter, 'Exit Jaw'])
 
-    _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'])
 
-
-def test_impacts_to_pandas_default_frame():
-    impacts, _, _ = _make_impacts_for_frame_tests()
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_to_pandas_default_frame(test_context):
+    impacts, _, _ = _make_impacts_for_frame_tests(_context=test_context)
 
     assert impacts._record_all_columns == 1
     assert impacts.to_pandas().equals(impacts.to_pandas(frame='jaw'))
@@ -106,12 +126,15 @@ def test_impacts_to_pandas_default_frame():
         impacts.to_pandas(frame='wrong')
 
 
-def test_impacts_selected_columns_to_pandas():
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_selected_columns_to_pandas(test_context):
     impacts, _, data = _make_impacts_for_frame_tests(
-        columns=['particle_id_before', 'x_before'])
+        columns=['particle_id_before', 'x_before'], _context=test_context)
 
     assert impacts._recorded_columns == (
-        '_index', 'at_turn', 'at_element', 'shape_id', '_inter',
+        'at_turn', 'at_element', 'shape_id', '_inter',
         'particle_id_before', 'x_before')
     assert impacts._record_all_columns == 0
     assert len(impacts.at_turn) == 2
@@ -131,24 +154,29 @@ def test_impacts_selected_columns_to_pandas():
         impacts.to_pandas(frame='collimator')
 
 
-def test_impacts_selected_columns_tracking():
-    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_selected_columns_tracking(test_context):
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP',
+                                    _context=test_context)
     part = xt.Particles(
         p0c=4e11,
         x=[1.1e-3, 1.2e-3, 1.3e-3],
         px=[0, 0, 0],
         y=[0, 0, 0],
         py=[0, 0, 0],
-        delta=[0, 0, 0])
-
+        delta=[0, 0, 0],
+        _context=test_context)
     impacts = xc.InteractionRecord(
         elements=[coll], columns=['particle_id_before', 'x_before'],
-        record_impacts=True, record_exits=True, capacity=10)
+        record_impacts=True, record_exits=True, num_rows=10,
+        _context=test_context)
     coll.track(part)
 
     n_rows = impacts._index.num_recorded
     assert n_rows > 0
-    assert impacts.capacity == 10
+    assert impacts.num_rows == 10
     assert impacts.io_buffer_capacity >= 10
     assert len(impacts.particle_id_before) == 10
     assert len(impacts.x_before) == 10
@@ -163,15 +191,22 @@ def test_impacts_selected_columns_tracking():
     assert 's_before' not in df.columns
 
 
-def test_impacts_selected_columns_unknown():
-    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP')
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_selected_columns_unknown(test_context):
+    coll = xc.TransparentCollimator(length=0.6, jaw=0.001, name='TCP',
+                                    _context=test_context)
 
     with pytest.raises(ValueError, match="Unknown InteractionRecord columns"):
         xc.InteractionRecord(elements=[coll], columns=['not_a_column'])
 
 
-def test_impacts_to_pandas_collimator_frame():
-    impacts, coll, data = _make_impacts_for_frame_tests()
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_to_pandas_collimator_frame(test_context):
+    impacts, coll, data = _make_impacts_for_frame_tests(_context=test_context)
     df = impacts.to_pandas(frame='collimator')
     expected = _expected_frame(data, coll, frame='collimator')
 
@@ -182,8 +217,11 @@ def test_impacts_to_pandas_collimator_frame():
         assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
-def test_impacts_to_pandas_lattice_frame():
-    impacts, coll, data = _make_impacts_for_frame_tests()
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_impacts_to_pandas_lattice_frame(test_context):
+    impacts, coll, data = _make_impacts_for_frame_tests(_context=test_context)
     df = impacts.to_pandas(frame='lattice')
     expected = _expected_frame(data, coll, frame='lattice')
 
@@ -192,10 +230,166 @@ def test_impacts_to_pandas_lattice_frame():
         assert np.allclose(df[f'{coord}_after'],  expected[f'{coord}_after'])
 
 
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_interaction_type(test_context):
+    impacts = _make_multiturn_interaction_record(test_context)
+    expected = np.array([
+        "Enter Jaw L",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Exit Jaw",
+        "Enter Jaw L",
+        "Multiple Coulomb Scattering",
+        "PN Elastic",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Multiple Coulomb Scattering",
+        "Absorbed",
+        "Enter Jaw L",
+        "Multiple Coulomb Scattering",
+        "Exit Jaw",
+        "Enter Jaw R",
+        "Multiple Coulomb Scattering",
+        "Absorbed",
+    ])
+    assert np.array_equal(
+        impacts.interaction_type[:22],
+        expected,
+    )
+
+
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_interactions_per_collimator_turn(test_context):
+    impacts = _make_multiturn_interaction_record(test_context)
+    interactions = impacts.interactions_per_collimator("TCP", show_impacts=True)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 3
+    assert interactions.loc[10].loc[0] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11].loc[0] == ['JI', 'JO']
+    assert interactions.loc[10].loc[1] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", show_impacts=True)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 4
+    assert interactions.loc[10].loc[0] == ['JI', 'MCS', 'PN', 'MCS', 'JO']
+    assert interactions.loc[11].loc[0] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11].loc[1] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11].loc[2] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=0, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 2
+    assert interactions.loc[10] == ['JI', 'MCS', 'JO']
+    assert interactions.loc[11] == ['JI', 'JO']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=0, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 2
+    assert interactions.loc[10] == ['JI', 'MCS', 'PN', 'MCS', 'JO']
+    assert interactions.loc[11] == ['JI', 'MCS', 'JO']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=1, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[10] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=1, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['JI', 'MCS', 'JO']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=2, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 0
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=2, show_impacts=True)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['JI', 'MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCP", show_impacts=False)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 2
+    assert interactions.loc[10].loc[0] == ['MCS']
+    assert interactions.loc[10].loc[1] == ['MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", show_impacts=False)
+    assert interactions.index.names == ['pid', 'turn']
+    assert len(interactions) == 4
+    assert interactions.loc[10].loc[0] == ['MCS', 'PN', 'MCS']
+    assert interactions.loc[11].loc[0] == ['MCS']
+    assert interactions.loc[11].loc[1] == ['MCS']
+    assert interactions.loc[11].loc[2] == ['MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=0, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[10] == ['MCS']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=0, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 2
+    assert interactions.loc[10] == ['MCS', 'PN', 'MCS']
+    assert interactions.loc[11] == ['MCS']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=1, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[10] == ['MCS', 'A']
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=1, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['MCS']
+
+    interactions = impacts.interactions_per_collimator("TCP", turn=2, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 0
+
+    interactions = impacts.interactions_per_collimator("TCS", turn=2, show_impacts=False)
+    assert interactions.index.name == 'pid'
+    assert len(interactions) == 1
+    assert interactions.loc[11] == ['MCS', 'A']
+
+
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts
+def test_first_touch_per_turn(test_context):
+    impacts = _make_multiturn_interaction_record(test_context)
+    df = impacts.first_touch_per_turn()
+    got = (
+        df[["turn", "pid", "jaw"]]
+        .sort_values(["turn", "pid"])
+        .reset_index(drop=True)
+    )
+    expected = pd.DataFrame({
+        "turn": [0, 0, 1, 1, 2],
+        "pid":  [10, 11, 10, 11, 11],
+        "jaw":  ["L", "R", "R", "L", "R"],
+    })
+    pd.testing.assert_frame_equal(
+        got,
+        expected,
+        check_dtype=False,
+    )
+
+
 def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], lengths=None):
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)
+    print(types)
     assert np.all([type in expected_types for type in types])
+    assert len(types) > 0   # Need at least some impacts to test
 
     for this_type in ['Enter Jaw L', 'Enter Jaw R']:
         if this_type in expected_types:
@@ -216,12 +410,13 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
 
 
-def _make_impacts_for_frame_tests(columns=None):
+def _make_impacts_for_frame_tests(columns=None, _context=None):
     coll = xc.TransparentCollimator(length=4., jaw=[[0.2, 1.0], [-0.9, -0.3]],
-                                    angle=[30, -45], name='TCP')
+                                    angle=[30, -45], name='TCP',
+                                    _context=_context)
     impacts = xc.InteractionRecord(elements=[coll], record_impacts=True,
-                                         record_exits=True, capacity=2,
-                                         columns=columns)
+                                  record_exits=True, num_rows=2,
+                                  columns=columns, _context=_context)
     data = {
         'at_turn':      np.array([0, 1]),
         'at_element':   np.array([0, 0]),
@@ -315,3 +510,64 @@ def _expected_lattice_frame(data, coll, x, px, y, py):
             px[ii] = old_px*cos_z - old_py*sin_z
             py[ii] = old_px*sin_z + old_py*cos_z
     return x, px, y, py
+
+
+def _make_multiturn_interaction_record(test_context):
+    coll1 = xc.TransparentCollimator(
+        length=1.0,
+        jaw=1e-3,
+        name="TCP",
+        _context=test_context,
+    )
+    coll2 = xc.TransparentCollimator(
+        length=1.0,
+        jaw=1e-3,
+        name="TCS",
+        _context=test_context,
+    )
+    impacts = xc.InteractionRecord(
+        elements=[coll1, coll2],
+        names=["TCP", "TCS"],
+        num_rows=22,
+        _context=test_context,
+    )
+    data = {
+        "at_turn": np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             1, 1, 1, 1, 1, 1, 2, 2, 2]),
+        "at_element": np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+                                0, 0, 0, 1, 1, 1, 1, 1, 1]),
+        "particle_id_before": np.array([10, 10, 10, 11, 11, 10, 10, 10, 10, 10,
+                                 11, 11, 11, 10, 10, 10, 11, 11, 11, 11, 11, 11
+        ]),
+        "shape_id": np.array([1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1,
+                              -1, -1, -1, 1, 1, 1, -1, -1, -1]),
+        "_inter": np.array([
+            xcc.ENTER_JAW_L,   # turn 0 coll 0 pid 10: MCS
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 0 coll 0 pid 11: hit but miss
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_L,   # turn 0 coll 1 pid 10: PN
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.PN_ELASTIC,
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 0 coll 1 pid 11: MCS
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 1 coll 0 pid 10: absorbed
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.ABSORBED,
+            xcc.ENTER_JAW_L,   # turn 1 coll 1 pid 11: MCS (missed coll 0)
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.EXIT_JAW,
+            xcc.ENTER_JAW_R,   # turn 2 coll 0 pid 11: absorbed
+            xcc.MULTIPLE_COULOMB_SCATTERING,
+            xcc.ABSORBED
+        ]),
+    }
+    impacts._index.num_recorded = 22
+    for field, values in data.items():
+        getattr(impacts, field)[:22] = test_context.nparray_to_context_array(values)
+
+    return impacts

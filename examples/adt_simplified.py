@@ -22,6 +22,10 @@ path_out = Path.cwd() / 'plots' / 'adt'
 # particle gets a different kick, randomly sampled. This allows for
 # a quicker and more controlled emittance growth (though less realistic).
 
+context = xo.ContextCpu(omp_num_threads='auto')  # For CPU
+# context = xo.ContextCupy()                     # For CUDA GPUs
+# context = xo.ContextPyopencl()                 # For OpenCL GPUs
+
 beam = 1
 plane = 'V'
 adt_turns = 1000
@@ -74,14 +78,19 @@ else:
 adt.amplitude = 0.1
 
 
-# Generate a matched Gaussian bunch
-part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_intensity_particles=1.6e11,
-                                          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
-
-
-# Move the tracker to a multi-core context
+# Move to a more efficient context for tracking
 line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
+line.build_tracker(_context=context)
+
+
+# Generate a matched Gaussian bunch
+part = xp.generate_matched_gaussian_bunch(num_particles=num_particles,
+                                          total_intensity_particles=1.6e11,
+                                          nemitt_x=nemitt_x,
+                                          nemitt_y=nemitt_y,
+                                          sigma_z=7.55e-2,
+                                          line=line,
+                                          _context=context)
 
 
 # Activate the ADT

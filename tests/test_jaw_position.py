@@ -8,9 +8,11 @@ import pytest
 import numpy as np
 
 import xpart as xp
-from xpart.test_helpers import flaky_assertions, retry
+import xobjects as xo
 import xtrack as xt
 import xcoll as xc
+from xpart.test_helpers import flaky_assertions, retry
+from xobjects.test_helpers import for_all_test_contexts
 
 from _common_api import all_engine_params
 
@@ -26,17 +28,21 @@ tilt_ids = ['no_tilt', 'positive_tilt', 'pos_neg_tilt']
 # particles with positive kick and slightly inside the jaw (up to around 1e-9) that survive but should
 # have hit, and similarily for the other jaw with negative kicks. Though most particles behave very well,
 # also in these regions.
+@pytest.mark.gpu
 @pytest.mark.parametrize("engine", all_engine_params)
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 @retry()
-def test_positions(engine, jaw, angle, tilt):
+@for_all_test_contexts
+def test_positions(engine, jaw, angle, tilt, test_context):
     length = 0.873
     material = xc.materials.MolybdenumGraphite
-    particle_ref = xt.Particles('proton', p0c=6.8e12)
+    particle_ref = xt.Particles('proton', p0c=6.8e12, _context=test_context)
 
     if engine == "everest":
+        if isinstance(test_context, xo.ContextPyopencl):
+            pytest.skip("Everest not supported on PyOpenCL context.")
         num_part = 2_500_000
         capacity = None
         jaw_band = 5e-9
@@ -44,7 +50,9 @@ def test_positions(engine, jaw, angle, tilt):
         x_dim = 0.05
         y_dim = 0.05
         exact_drift = False
-        coll = xc.EverestCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material=material)
+        coll = xc.EverestCollimator(length=length, jaw=jaw, angle=angle,
+                                    tilt=tilt, material=material,
+                                    _context=test_context)
 
     elif engine == "fluka":
         num_part = 5000
@@ -56,7 +64,9 @@ def test_positions(engine, jaw, angle, tilt):
         exact_drift = True
         if xc.fluka.engine.is_running():
             xc.fluka.engine.stop(clean=True)
-        coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt,  material=material)
+        coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle,
+                                  tilt=tilt,  material=material,
+                                  _context=test_context)
         xc.fluka.engine.particle_ref = particle_ref
         xc.fluka.engine.start(elements=coll, verbose=True)
         particle_ref = xc.fluka.engine.particle_ref
@@ -71,15 +81,28 @@ def test_positions(engine, jaw, angle, tilt):
         exact_drift = True
         if xc.geant4.engine.is_running():
             xc.geant4.engine.stop(clean=True)
-        coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material=material)
+        coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle,
+                                   tilt=tilt, material=material,
+                                   _context=test_context)
         xc.geant4.engine.particle_ref = particle_ref
         xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1, verbose=True)
         particle_ref = xc.geant4.engine.particle_ref
 
-    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
-                                                jaw_band=jaw_band, jaw_accuracy=jaw_accuracy, angular_spread=1e-3,
-                                                delta_spread=1e-3, zeta_spread=5e-2, exact_drift=exact_drift,
-                                                x_dim=x_dim, y_dim=y_dim, _capacity=capacity)
+    part_init, hit_ids, not_hit_ids = _generate_particles(
+                                        coll,
+                                        num_part=num_part,
+                                        particle_ref=particle_ref,
+                                        jaw_band=jaw_band,
+                                        jaw_accuracy=jaw_accuracy,
+                                        angular_spread=1e-3,
+                                        delta_spread=1e-3,
+                                        zeta_spread=5e-2,
+                                        exact_drift=exact_drift,
+                                        x_dim=x_dim,
+                                        y_dim=y_dim,
+                                        _capacity=capacity,
+                                        _context=test_context
+                                    )
 
     part = part_init.copy()
     t1 = time.time()
@@ -90,6 +113,13 @@ def test_positions(engine, jaw, angle, tilt):
         xc.fluka.engine.stop(clean=True)
     elif engine == "geant4":
         xc.geant4.engine.stop(clean=True)
+
+    # The validation helpers use NumPy and Python sets. Move the tracked data
+    # back once instead of mixing host masks with device arrays or triggering
+    # many implicit device-to-host conversions.
+    if not isinstance(test_context, xo.ContextCpu):
+        part_init.move(_context=xo.ContextCpu())
+        part.move(_context=xo.ContextCpu())
 
     # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     with flaky_assertions():
@@ -131,9 +161,11 @@ def test_positions(engine, jaw, angle, tilt):
 #     xc.fluka.engine.stop(clean=True)
 
 
-def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1.e-6,
-                        jaw_accuracy=1.e-12, x_dim=0.05,  y_dim=0.05, angular_spread=0,
-                        delta_spread=0, zeta_spread=0, exact_drift=False):
+def _generate_particles(coll, num_part, particle_ref, _capacity=None,
+                        jaw_band=1.e-6, jaw_accuracy=1.e-12, x_dim=0.05,
+                        y_dim=0.05, angular_spread=0, delta_spread=0,
+                        zeta_spread=0, exact_drift=False,
+                        _context=None):
     if _capacity is None:
         _capacity = num_part
 
@@ -185,13 +217,25 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1
         py_new = np.sin(np.deg2rad(coll.angle))*px + np.cos(np.deg2rad(coll.angle))*py
     else:
         px = 0; py = 0; pz = 1; px_new = 0; py_new = 0
-    part_init = xp.build_particles(x=x_new, y=y_new, px=px_new, py=py_new, delta=delta,
-                                   zeta=zeta, particle_ref=particle_ref, _capacity=_capacity)
+    part_init = xp.build_particles(
+                            x=x_new,
+                            y=y_new,
+                            px=px_new,
+                            py=py_new,
+                            delta=delta,
+                            zeta=zeta,
+                            particle_ref=particle_ref,
+                            _capacity=_capacity,
+                            _context=_context
+                        )
     mask  = (x + px/pz*coll.jaw_s_LU >= coll.jaw_LU) | (x + px/pz*coll.jaw_s_LD >= coll.jaw_LD)
     mask |= (x + px/pz*coll.jaw_s_RU <= coll.jaw_RU) | (x + px/pz*coll.jaw_s_RD <= coll.jaw_RD)
     mask = np.concatenate([mask, np.full(_capacity-num_part, False)])
-    expected_hit_ids = part_init.particle_id[mask & (part_init.state > 0)]
-    expected_not_hit_ids = part_init.particle_id[~mask & (part_init.state > 0)]
+    context = part_init._context
+    particle_id = context.nparray_from_context_array(part_init.particle_id)
+    state = context.nparray_from_context_array(part_init.state)
+    expected_hit_ids = particle_id[mask & (state > 0)]
+    expected_not_hit_ids = particle_id[~mask & (state > 0)]
 
     return part_init, expected_hit_ids, expected_not_hit_ids
 

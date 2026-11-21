@@ -4,13 +4,12 @@
 # ######################################### #
 
 import json
-import time
 import pytest
 import numpy as np
-import pandas as pd
 from pathlib import Path
 
 import xtrack as xt
+import xobjects as xo
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -28,10 +27,9 @@ except (ImportError, ModuleNotFoundError):
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.parametrize("engine", all_engine_params)
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
+@for_all_test_contexts
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals, identify_primary_losses", [
                             [1, 'H', 250, 0.2, True, True],
@@ -40,7 +38,8 @@ path = Path(__file__).parent / 'data'
                             [2, 'H', 3000, 0.15, False, True]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
-def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, identify_primary_losses, do_plot, test_context):
+def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals,
+                 identify_primary_losses, do_plot, test_context):
     if do_plot and plt is None:
         pytest.skip("matplotlib not installed")
     if not do_plot and plt is not None:
@@ -58,10 +57,14 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
             xc.geant4.engine.stop(clean=True)
         if not ignore_crystals:
             pytest.skip("Geant4 crystals not implemented yet")
-    else:
+    elif engine == "everest":
+        if isinstance(test_context, xo.ContextPyopencl):
+            pytest.skip("Everest not supported on PyOpenCL context.")
         npart *= 5
         num_turns = 5
         capacity = None
+    else:
+        raise ValueError(f"Unknown engine {engine}")
 
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
@@ -86,7 +89,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
-    line.xcoll.collimators.assign_optics()
+    tw = line.twiss()
+    line.xcoll.collimators.assign_optics(twiss=tw)
     if not ignore_crystals:
         line.xcoll.collimators.align_to_beam_divergence()
     if identify_primary_losses:
@@ -98,7 +102,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, ide
         xc.geant4.engine.start(line=line, verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line.xcoll.collimators.generate_pencil(tcp, npart, _capacity=capacity)
+    part = line.xcoll.collimators.generate_pencil(tcp, npart, _capacity=capacity,
+                                                  _context=test_context, twiss=tw)
     if engine == "fluka":
         # Make sure all primaries hit the collimator (not trivial because of assembly)
         if plane == 'H':

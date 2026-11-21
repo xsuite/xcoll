@@ -12,6 +12,7 @@ from xcoll.xaux import (
 )
 
 
+@pytest.mark.xaux
 def test_track_construction():
     observations = []
     @track_construction
@@ -23,6 +24,7 @@ def test_track_construction():
     assert not obj._being_constructed()
 
 
+@pytest.mark.xaux
 def test_track_construction_is_nesting_safe():
     observations = []
 
@@ -47,6 +49,7 @@ def test_track_construction_is_nesting_safe():
     assert not obj._being_constructed()
 
 
+@pytest.mark.xaux
 def test_track_construction_resets_after_exception():
     instances = []
 
@@ -63,6 +66,7 @@ def test_track_construction_resets_after_exception():
     assert not instances[0]._being_constructed()
 
 
+@pytest.mark.xaux
 def test_skip_if_being_constructed():
     @track_construction
     class Example:
@@ -86,6 +90,7 @@ def test_skip_if_being_constructed():
     assert obj.value == 456
 
 
+@pytest.mark.xaux
 def test_super_if_being_constructed():
     class Parent:
         def action(self, value):
@@ -110,6 +115,7 @@ def test_super_if_being_constructed():
     assert obj.calls == [("parent", "constructor"), ("child", "runtime")]
 
 
+@pytest.mark.xaux
 def test_super_if_being_constructed_with_decorated_subclass():
     class Parent:
         def action(self, value):
@@ -144,6 +150,7 @@ def test_super_if_being_constructed_with_decorated_subclass():
     assert obj.calls[-1] == ("child", "runtime")
 
 
+@pytest.mark.xaux
 def test_super_if_being_constructed_class_call():
     class Parent:
         def action(self, value):

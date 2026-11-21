@@ -9,6 +9,7 @@ from pathlib import Path
 from types import GeneratorType
 from concurrent.futures import ThreadPoolExecutor
 
+import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
@@ -404,6 +405,13 @@ class LossMap:
         collimator summary is updated.
         """
         tt = line.get_table()
+
+        # Use a copy of the particles to keep the original particles unchanged
+        part = part.copy(_context=xo.ContextCpu())
+        if weights is not None:
+            if not isinstance(weights, np.ndarray):
+                weights = np.array(weights)
+
         # # Check that collimators have been tracked
         # tt_geant4 = tt.rows.match(element_type='Geant4Collimator|Geant4Crystal')
         # geant4_coll = [line.get(nn) for nn in tt_geant4.name]
@@ -627,22 +635,31 @@ class LossMap:
         if len(part.s[part.state==0]) > 0:
             if verbose:
                 print("Performing the aperture losses refinement.")
-            time_dependent_was_enabled = False
-            if line.enable_time_dependent_vars:
-                line.enable_time_dependent_vars = False
-                if verbose:
-                    print("Temporarily disabled time-dependent variables in the line for loss location refinement.")
-                time_dependent_was_enabled = True
-            loss_loc_refinement = xt.LossLocationRefinement(
-                line,
-                n_theta = 360,            # Angular resolution
-                r_max = 0.5,              # Maximum transverse aperture [m]
-                dr = 50e-6,               # Transverse accuracy [m]
-                ds = self.interpolation   # Longitudinal accuracy [m]
-            )
-            loss_loc_refinement.refine_loss_location(part)
-            if time_dependent_was_enabled:
-                line.enable_time_dependent_vars = True
+
+            # Xtrack's LossLocationRefinement is CPU-only. Particles are
+            # already copied to CPU in add_particles; use a CPU copy of the
+            # line as well when the tracked line lives on an accelerator.
+            refinement_line = line
+            if not isinstance(line._context, xo.ContextCpu):
+                refinement_line = line.copy(_context=xo.ContextCpu())
+                refinement_line.build_tracker()
+
+            time_dependent_was_enabled = refinement_line.enable_time_dependent_vars
+            try:
+                if time_dependent_was_enabled:
+                    refinement_line.enable_time_dependent_vars = False
+                    if verbose:
+                        print("Temporarily disabled time-dependent variables in the line for loss location refinement.")
+                loss_loc_refinement = xt.LossLocationRefinement(
+                    refinement_line,
+                    n_theta = 360,            # Angular resolution
+                    r_max = 0.5,              # Maximum transverse aperture [m]
+                    dr = 50e-6,               # Transverse accuracy [m]
+                    ds = self.interpolation   # Longitudinal accuracy [m]
+                )
+                loss_loc_refinement.refine_loss_location(part)
+            finally:
+                refinement_line.enable_time_dependent_vars = time_dependent_was_enabled
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):

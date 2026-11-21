@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
+import xobjects as xo
 import xtrack as xt
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
@@ -15,24 +16,28 @@ from xobjects.test_helpers import for_all_test_contexts
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
+@for_all_test_contexts
 @pytest.mark.parametrize('length', [0., 0.2, 0.6, 1.2])
 @pytest.mark.parametrize('method', ['direct', 'black_absorbers', 'everest_collimators'])
 @pytest.mark.parametrize('apertures_mode', ['single', 'list', 'list_of_pairs'],
                          ids=['single_aperture', 'per_collimator_apertures',
                               'per_collimator_upstream_downstream_pairs'])
-def test_install_device_placeholder(length, method, apertures_mode, capsys):
+def test_install_device_placeholder(length, method, apertures_mode, capsys, test_context):
+    # Use test_context from the beginning to fully test installation on
+    # the context, even though this is slow and not advised for real use.
     line = xt.Line(elements={
-        'before': xt.Drift(length=2.),
-        'coll': xt.Device(length=length),
-        'between': xt.Drift(length=2.),
-        'coll2': xt.Device(length=length),
-        'after': xt.Drift(length=2.),
+        'before': xt.Drift(length=2., _context=test_context),
+        'coll': xt.Device(length=length, _context=test_context),
+        'between': xt.Drift(length=2., _context=test_context),
+        'coll2': xt.Device(length=length, _context=test_context),
+        'after': xt.Drift(length=2., _context=test_context),
     })
-    aperture1 = xt.LimitEllipse(a=0.02, b=0.03)
-    aperture2 = xt.LimitEllipse(a=0.05, b=0.07)
-    aperture1_down = xt.LimitEllipse(a=0.021, b=0.031)
-    aperture2_down = xt.LimitEllipse(a=0.051, b=0.071)
+    aperture1 = xt.LimitEllipse(a=0.02, b=0.03, _context=test_context)
+    aperture2 = xt.LimitEllipse(a=0.05, b=0.07, _context=test_context)
+    aperture1_down = xt.LimitEllipse(a=0.021, b=0.031, _context=test_context)
+    aperture2_down = xt.LimitEllipse(a=0.051, b=0.071, _context=test_context)
     # 'single': one aperture spec is broadcast to all installed collimators
     #           (used for both their upstream and downstream side).
     # 'list': a list with one aperture spec per collimator assigns a distinct
@@ -52,13 +57,15 @@ def test_install_device_placeholder(length, method, apertures_mode, capsys):
     if method == 'direct':
         line.xcoll.collimators.install(
             ['coll', 'coll2'],
-            [xc.BlackAbsorber(length=0.6), xc.BlackAbsorber(length=0.6)],
+            [xc.BlackAbsorber(length=0.6, _context=test_context), xc.BlackAbsorber(length=0.6, _context=test_context)],
             apertures=apertures, need_apertures=True)
     else:
         colldb = xc.CollimatorDatabase(
             collimator_dict={'coll': dict(length=0.6, gap=6., material='CFC'),
                              'coll2': dict(length=0.6, gap=6., material='CFC')},
             nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+        if method == 'everest_collimators' and isinstance(test_context, xo.ContextPyopencl):
+            pytest.skip("Everest not supported on PyOpenCL context.")
         getattr(colldb, f'install_{method}')(line, apertures=apertures)
 
     expected_class = (xc.EverestCollimator if method == 'everest_collimators'
@@ -112,20 +119,24 @@ def test_install_from_colldb_at_s_center(method):
         assert line[f'{name}/aper_end'].b == pytest.approx(0.03)
 
 
+@pytest.mark.gpu
 @pytest.mark.xcother
+@for_all_test_contexts
 @pytest.mark.parametrize('mode', [None, 'thin', 'thick'])
-def test_install_overlapping_devices(mode, capsys):
+def test_install_overlapping_devices(mode, capsys, test_context):
+    # Use test_context from the beginning to fully test installation on
+    # the context, even though this is slow and not advised for real use.
     line = xt.Line(elements={
-        'before': xt.Drift(length=2.),
-        'instrument': xt.Device(length=0.25),
-        'monitor': xt.Device(length=0.75),
-        'after': xt.Drift(length=2.),
+        'before': xt.Drift(length=2., _context=test_context),
+        'instrument': xt.Device(length=0.25, _context=test_context),
+        'monitor': xt.Device(length=0.75, _context=test_context),
+        'after': xt.Drift(length=2., _context=test_context),
     })
     if mode is not None:
         line.slice_thick_elements([xt.Strategy(
             xt.Uniform(2, mode=mode), element_type=xt.Device)])
 
-    line.xcoll.collimators.install('coll', xc.BlackAbsorber(length=1.), at=2.)
+    line.xcoll.collimators.install('coll', xc.BlackAbsorber(length=1., _context=test_context), at=2.)
 
     tt = line.get_table()
     assert tt['s_start', 'coll'] == pytest.approx(2.)
@@ -138,15 +149,15 @@ def test_install_overlapping_devices(mode, capsys):
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
 @pytest.mark.parametrize("aper", [None, "auto", "single", "both",
                                   "single_ref_aper", "both_ref_aper"],
                          ids=["without_aper", "auto_aper", "single_aper",
                               "both_aper", "single_ref_aper", "both_ref_aper"])
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_install_single_existing_marker(beam, aper, test_context):
+def test_install_single_existing_marker(beam, aper):
+    # Installation is a structural, host-side operation. GPU-context
+    # installation is covered on small lines above; doing it repeatedly on a
+    # 100k-element LHC line causes device-buffer reconstruction to dominate.
     aperture = None
     need_apertures = aper is not None
     if aper == 'auto' or (aper is not None and aper.endswith('_ref_aper')):
@@ -163,7 +174,8 @@ def test_install_single_existing_marker(beam, aper, test_context):
         if aper == 'single':
             aperture = xt.LimitEllipse(a=0.01, b=0.01)
         elif aper == 'both':
-            aperture = [xt.LimitEllipse(a=0.01, b=0.01), xt.LimitEllipse(a=0.02, b=0.02)]
+            aperture = [xt.LimitEllipse(a=0.01, b=0.01),
+                        xt.LimitEllipse(a=0.02, b=0.02)]
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
@@ -172,8 +184,13 @@ def test_install_single_existing_marker(beam, aper, test_context):
     assert not isinstance(line[name], xc.BlackAbsorber)
     tt = line.get_table()
     pos_centre = tt['s', name] + line[name].length/2
-    coll = xc.BlackAbsorber(length=0.6, angle=127.5, _context=test_context)
-    line.xcoll.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
+    coll = xc.BlackAbsorber(length=0.6, angle=127.5)
+    line.xcoll.collimators.install(
+                            name,
+                            coll,
+                            apertures=aperture,
+                            need_apertures=need_apertures
+                        )
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2,
                       line.get_table()['s', name])
@@ -208,9 +225,14 @@ def test_install_single_existing_marker(beam, aper, test_context):
             break
     tt = line.get_table()
     pos_centre = tt['s', name] + line[name].length/2
-    coll = xc.EverestCollimator(length=0.6, angle=90, _context=test_context,
+    coll = xc.EverestCollimator(length=0.6, angle=90,
                                 material=xc.materials.MolybdenumGraphite)
-    line.xcoll.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
+    line.xcoll.collimators.install(
+                            name,
+                            coll,
+                            apertures=aperture,
+                            need_apertures=need_apertures
+                        )
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2,
                       line.get_table()['s', name])
@@ -226,11 +248,8 @@ def test_install_single_existing_marker(beam, aper, test_context):
 
 
 @pytest.mark.xcother
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_install_single_no_marker(beam, test_context):
+def test_install_single_no_marker(beam):
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
@@ -238,9 +257,14 @@ def test_install_single_no_marker(beam, test_context):
     # Test absorber
     name = 'test_absorber'
     assert name not in line.element_names
-    coll = xc.BlackAbsorber(length=1.738, angle=127.5, _context=test_context)
-    line.xcoll.collimators.install(name, coll, at=12.4, need_apertures=True,
-                             apertures=xt.LimitEllipse(0.4, 0.4))
+    coll = xc.BlackAbsorber(length=1.738, angle=127.5)
+    line.xcoll.collimators.install(
+                                name,
+                                coll,
+                                at=12.4,
+                                need_apertures=True,
+                                apertures=xt.LimitEllipse(0.4, 0.4)
+                            )
     assert name in line.element_names
     assert np.isclose(line[name].length, 1.738)
     assert np.isclose(line.get_table()['s', name], 12.4)
@@ -259,8 +283,13 @@ def test_install_single_no_marker(beam, test_context):
     # Test block
     name = 'test_block'
     assert name not in line.element_names
-    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon, _context=test_context)
-    line.xcoll.collimators.install(name, el, need_apertures=False, at=17.89)
+    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon)
+    line.xcoll.collimators.install(
+                                name,
+                                el,
+                                need_apertures=False,
+                                at=17.89
+                            )
     assert name in line.element_names
     assert np.isclose(line[name].length, 0.63)
     assert np.isclose(line.get_table()['s', name], 17.89)

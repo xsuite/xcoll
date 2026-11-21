@@ -7,9 +7,17 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
-from ..scattering_routines.everest import EverestEngine
+from ..scattering_routines.everest import set_crystal_stack_limit
 from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
+
+
+def _assert_everest_context_supported(context):
+    if isinstance(context, xo.ContextPyopencl):
+        raise NotImplementedError(
+            "Everest scattering is not currently supported on "
+            "ContextPyopencl. CPU and ContextCupy are supported."
+        )
 
 
 class EverestBlock(BaseBlock):
@@ -32,7 +40,9 @@ class EverestBlock(BaseBlock):
     _store_in_to_dict      = [*BaseBlock._store_in_to_dict, 'material']
     _internal_record_class = BaseBlock._internal_record_class
 
-    _depends_on = [BaseBlock, EverestEngine]
+    # TODO: the dependencies can be removed after Xtrack splits random source files
+    _depends_on = [BaseBlock, xt.RandomUniform, xt.RandomUniformAccurate,
+                   xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_block.h')
@@ -56,6 +66,10 @@ class EverestBlock(BaseBlock):
         for key, val in to_assign.items():
             setattr(self, key, val)
 
+    def _on_context_change(self, old_context, new_context):
+        super()._on_context_change(old_context, new_context)
+        _assert_everest_context_supported(new_context)
+
 
     @property
     def material(self):
@@ -64,7 +78,7 @@ class EverestBlock(BaseBlock):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material)
+        material = _resolve_material(material, _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -94,7 +108,9 @@ class EverestCollimator(BaseCollimator):
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
-    _depends_on = [BaseCollimator, EverestEngine]
+    # TODO: the dependencies can be removed after Xtrack splits random source files
+    _depends_on = [BaseCollimator, xt.RandomUniform, xt.RandomUniformAccurate,
+                   xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_collimator.h')
@@ -118,6 +134,10 @@ class EverestCollimator(BaseCollimator):
         for key, val in to_assign.items():
             setattr(self, key, val)
 
+    def _on_context_change(self, old_context, new_context):
+        super()._on_context_change(old_context, new_context)
+        _assert_everest_context_supported(new_context)
+
     @property
     def material(self):
         if self._material != _DEFAULT_MATERIAL:
@@ -125,7 +145,7 @@ class EverestCollimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material)
+        material = _resolve_material(material, _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -159,7 +179,9 @@ class EverestCrystal(BaseCrystal):
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'lattice', 'material']
     _internal_record_class = BaseCrystal._internal_record_class
 
-    _depends_on = [BaseCrystal, EverestEngine]
+    # TODO: the dependencies can be removed after Xtrack splits random source files
+    _depends_on = [BaseCrystal, xt.RandomUniform, xt.RandomUniformAccurate,
+                   xt.RandomNormal, xt.RandomExponential, xt.RandomRutherford]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','everest_crystal.h')
@@ -185,6 +207,11 @@ class EverestCrystal(BaseCrystal):
         for key, val in to_assign.items():
             setattr(self, key, val)
 
+    def _on_context_change(self, old_context, new_context):
+        super()._on_context_change(old_context, new_context)
+        _assert_everest_context_supported(new_context)
+        set_crystal_stack_limit(new_context)
+
 
     @property
     def material(self):
@@ -193,7 +220,8 @@ class EverestCrystal(BaseCrystal):
 
     @material.setter
     def material(self, material):
-        material = _resolve_material(material, everest_crystal=True)
+        material = _resolve_material(material, everest_crystal=True,
+                                     _context=self._context)
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)
@@ -229,5 +257,3 @@ class EverestCrystal(BaseCrystal):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
                             _buffer=_buffer, _offset=_offset)
-
-

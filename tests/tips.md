@@ -5,6 +5,10 @@ export LD_PRELOAD=/home/fvanderv/miniforge3/envs/xcoll/lib/libasan.so.8
 xsuite-prebuild r
 gdb pytest test_adt.py::test_blow_up\[B1H-ContextCPU\]
 
+# Prebuilding kernels & selecting contexts
+xsuite-prebuild r --kind 'serial,openmp'
+export XOBJECTS_TEST_CONTEXTS='ContextCupy'
+
 # Only run absorber/Everest/FLUKA/Geant4 tests
 pytest -n 12 -m black
 pytest -n 12 -m everest

@@ -11,6 +11,7 @@ from pathlib import Path
 import xtrack as xt
 import xcoll as xc
 from xpart.test_helpers import flaky_assertions, retry
+from xobjects.test_helpers import for_all_test_contexts
 
 
 path = Path(__file__).parent / 'data'
@@ -18,10 +19,8 @@ path = Path(__file__).parent / 'data'
 
 # TODO:  we are not checking the angles of the pencil!
 
-# I feel like it does not make sense to test this on other contexts
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
+@pytest.mark.gpu
+@for_all_test_contexts(excluding=('ContextPyopencl',))
 @pytest.mark.xcother
 @pytest.mark.parametrize("beam, npart, impact_parameter, pencil_spread, "
                        + "longitudinal, longitudinal_betatron_cut", [
@@ -32,13 +31,17 @@ path = Path(__file__).parent / 'data'
                         , ids=["B1_default", "B2_diff_spread", "B1_bucket"])#, "B2_matched"])
 @retry()
 def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread,
-                                     longitudinal, longitudinal_betatron_cut): #, test_context):
+                                     longitudinal, longitudinal_betatron_cut,
+                                     test_context):
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                                    beam=beam)
 
     colldb.install_everest_collimators(line=line)
+    # The line is only needed for optics and particle construction in this
+    # test. Keep the large LHC line on CPU; only the generated particles need
+    # to exercise the requested context.
     line.build_tracker()
     line.xcoll.collimators.assign_optics()
 
@@ -50,14 +53,22 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     part_conv = line.xcoll.collimators.generate_pencil(
         tcp_conv, npart, twiss=tw, pencil_spread=pencil_spread,
         impact_parameter=impact_parameter, longitudinal=longitudinal,
-        longitudinal_betatron_cut=longitudinal_betatron_cut)
+        longitudinal_betatron_cut=longitudinal_betatron_cut,
+        _context=test_context
+    )
     part_div = line.xcoll.collimators.generate_pencil(
         tcp_div, npart, twiss=tw, pencil_spread=pencil_spread,
         impact_parameter=impact_parameter, longitudinal=longitudinal,
-        longitudinal_betatron_cut=longitudinal_betatron_cut)
-    assert np.unique(part_conv.at_element) == [line.element_names.index(tcp_conv)]
+        longitudinal_betatron_cut=longitudinal_betatron_cut,
+        _context=test_context
+    )
+    at_element_conv = test_context.nparray_from_context_array(part_conv.at_element)
+    np.testing.assert_array_equal(
+        np.unique(at_element_conv), [line.element_names.index(tcp_conv)])
     assert part_conv.start_tracking_at_element == line.element_names.index(tcp_conv)
-    assert np.unique(part_div.at_element) == [line.element_names.index(tcp_div)]
+    at_element_div = test_context.nparray_from_context_array(part_div.at_element)
+    np.testing.assert_array_equal(
+        np.unique(at_element_div), [line.element_names.index(tcp_div)])
     assert part_div.start_tracking_at_element == line.element_names.index(tcp_div)
 
     # Normalize coordinates
@@ -108,13 +119,14 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         # assert p > 0.05
         pass     #  TODO: temporary hack; need to understand but distribution looks fine (though a bit shifted)
     elif longitudinal == 'bucket':
-        count,_ = np.histogram(part_conv.delta, bins=50)
+        delta = test_context.nparray_from_context_array(part_conv.delta)
+        count,_ = np.histogram(delta, bins=50)
         _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
         assert p > 0.05
 
     # Vertical collimator (diverging beam) ---------------------------------------------
     coll_div = line[tcp_div]
-    drift = xt.Drift(length=coll_div.length)
+    drift = xt.Drift(length=coll_div.length, _context=test_context)
     drift.track(part_div)
     mask_div_L = part_div.y > 0
     mask_div_R = part_div.y < 0
@@ -155,6 +167,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         # assert p > 0.05
         pass     #  TODO: temporary hack; need to understand but distribution looks fine (though a bit shifted)
     elif longitudinal == 'bucket':
-        count,_ = np.histogram(part_div.delta, bins=50)
+        delta = test_context.nparray_from_context_array(part_div.delta)
+        count,_ = np.histogram(delta, bins=50)
         _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
         assert p > 0.05

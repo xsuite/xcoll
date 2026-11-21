@@ -12,7 +12,6 @@ import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from .geometry import XcollGeometry
 from .physics_settings import PhysicsSettingsHelper
 from ..materials import Material
 from ..interaction_record import InteractionRecord
@@ -33,10 +32,6 @@ class BaseEngine(xo.HybridClass):
     _uses_run_folder = False
     _multiple_input_files = False
     _physics_settings_veto_list = []
-
-    _depends_on = [Material, InteractionRecord, xt.RandomUniform,
-                   xt.RandomExponential, xt.RandomNormal, xt.RandomRutherford,
-                   xt.Drift, XcollGeometry]
 
     def __init__(self, **kwargs):
         if self._element_classes is None:

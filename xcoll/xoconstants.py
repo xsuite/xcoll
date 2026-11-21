@@ -327,7 +327,7 @@ class _IntMixin(int):
         if kwargs:
             extra = [f"{kk}={vv!r}" for kk, vv in kwargs.items()]
             additional.append("Additional info: " + ", ".join(extra) + ".")
-        self.__doc__ = ' '.join([*doc, *c_name, *additional])
+        self.__doc__ = '\n'.join([*doc, *c_name, *additional])
 
 class _FloatMixin(float):
     def __new__(cls, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict]={}):
@@ -343,7 +343,7 @@ class _FloatMixin(float):
         if kwargs:
             extra = [f"{kk}={vv!r}" for kk, vv in kwargs.items()]
             additional.append("Additional info: " + ", ".join(extra) + ".")
-        self.__doc__ = ' '.join([*doc, *c_name, *additional])
+        self.__doc__ = '\n'.join([*doc, *c_name, *additional])
 
 class _TupleMixin(tuple):
     def __new__(cls, *args):
@@ -373,7 +373,7 @@ class _StrMixin(str):
         if kwargs:
             extra = [f"{kk}={vv!r}" for kk, vv in kwargs.items()]
             additional.append("Additional info: " + ", ".join(extra) + ".")
-        self.__doc__ = ' '.join([*doc, *c_name_line, *additional])
+        self.__doc__ = '\n'.join([*doc, *c_name_line, *additional])
 
 
 # ---- enum member builder (returns *members*, not necessarily one enum) ------

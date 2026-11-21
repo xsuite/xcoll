@@ -6,6 +6,13 @@
 #ifndef XCOLL_EVEREST_CONSTANTS_H
 #define XCOLL_EVEREST_CONSTANTS_H
 
+// NVRTC (GPU) does not define M_PI: it is a POSIX/GNU extension to <math.h>,
+// not standard C. glibc only exposes it under _GNU_SOURCE/_USE_MATH_DEFINES,
+// so provide it here (guarded) for both CPU and GPU translation units.
+#if !defined( M_PI )
+    #define   M_PI ( 3.14159265358979323846 )
+#endif
+
 #if !defined( XC_PROTON_MASS )
     #define   XC_PROTON_MASS ( 938.271998 )
 #endif

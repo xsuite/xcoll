@@ -70,6 +70,7 @@ def test_simple_track(num_part):
     print(f"KS test passed with p = {p_value}")
 
 
+@pytest.mark.fluka
 def test_fluka_format_float():
     for i in [0.0000000000011229964381065508,
               0.000000000011229964381065508,

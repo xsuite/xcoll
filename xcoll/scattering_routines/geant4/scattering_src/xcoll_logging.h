@@ -15,7 +15,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-static fs::path resolve_path(const fs::path& workdir, const fs::path& name){
+static fs::path resolve_path(const fs::path& workdir, const fs::path& name) {
     if (workdir.empty() || name.is_absolute()) return name;
     return workdir / name;
 }

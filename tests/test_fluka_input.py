@@ -320,6 +320,7 @@ def _make_physics_input(tmp_path, monkeypatch, **kwargs):
     return filename.read_text()
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize("include_showers", [True, False])
 def test_fluka_input_showers(tmp_path, monkeypatch, include_showers):
     text = _make_physics_input(
@@ -339,6 +340,7 @@ def test_fluka_input_showers(tmp_path, monkeypatch, include_showers):
         assert len(deltaray) == 1
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "single,multiple,expected",
     [
@@ -385,6 +387,7 @@ def test_fluka_input_coulomb(
     assert _active_cards(text, "MULSOPT") == expected
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "pair,brem,what1",
     [
@@ -407,6 +410,7 @@ def test_fluka_input_pair_bremsstrahlung(
     assert float(cards[0].split()[1]) == what1
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize("fluctuations", [True, False])
 def test_fluka_input_ionisation_fluctuations(
     tmp_path, monkeypatch, fluctuations
@@ -423,6 +427,7 @@ def test_fluka_input_ionisation_fluctuations(
         assert "-1.0" in cards[0]
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "elastic,inelastic,comment,n_threshold_values",
     [
@@ -455,6 +460,7 @@ def test_fluka_input_hadronic_interactions(
     assert cards[0].count(threshold) == n_threshold_values
 
 
+@pytest.mark.fluka
 def test_fluka_input_momentum_cuts(tmp_path, monkeypatch):
     hadron_cut = 2e9
     photon_cut = 3e6
@@ -482,6 +488,7 @@ def test_fluka_input_momentum_cuts(tmp_path, monkeypatch):
         assert photon_gev in line
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize(
     "particle,p0c,active",
     [

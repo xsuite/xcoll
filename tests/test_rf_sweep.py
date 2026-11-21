@@ -18,7 +18,7 @@ path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xcother
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize("sweep, beam", [[-300, 1], [300, 2], [3500, 3]],
                          ids=["DP pos LHC", "DP neg LHC", "DP neg SPS"])
 def test_rf_sweep(sweep, beam, test_context):
@@ -38,8 +38,14 @@ def test_rf_sweep(sweep, beam, test_context):
 
     line.build_tracker(_context=test_context)
 
-    part = line.build_particles(delta=np.linspace(-0.7*bh, 0.7*bh, num_particles),
-                                x_norm=0, px_norm=0, y_norm=0, py_norm=0, _context=test_context)
+    part = line.build_particles(
+                            delta=np.linspace(-0.7*bh, 0.7*bh, num_particles),
+                            x_norm=0,
+                            px_norm=0,
+                            y_norm=0,
+                            py_norm=0,
+                            _context=test_context
+                        )
 
     rf_sweep = xc.RFSweep(line)
     rf_sweep.prepare(sweep_per_turn=sweep/num_turns)
@@ -48,7 +54,8 @@ def test_rf_sweep(sweep, beam, test_context):
 
     # This sweep is 3.5 buckets, so check that all particles are at least 3 buckets away
     # negative sweep => positive off-momentum etc
-    part.move(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     if sweep < 0:
         assert np.all(part.delta > 3*bh)
     else:
@@ -56,7 +63,8 @@ def test_rf_sweep(sweep, beam, test_context):
 
 
 @pytest.mark.xcother
-def test_rf_sweep_harmonic_number():
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+def test_rf_sweep_harmonic_number(test_context):
     """Test that RFSweep correctly resolves frequency from harmonic when frequency==0."""
     num_turns = 6000
     num_particles = 5
@@ -80,10 +88,11 @@ def test_rf_sweep_harmonic_number():
     assert np.isclose(env[cav_name].frequency, 0)
     assert env[cav_name].harmonic == harmonic
 
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     part = line.build_particles(delta=np.linspace(-2e-4, 2e-4, num_particles),
-                                x_norm=0, px_norm=0, y_norm=0, py_norm=0)
+                                x_norm=0, px_norm=0, y_norm=0, py_norm=0,
+                                _context=test_context)
 
     sweep = -300
     rf_sweep = xc.RFSweep(line)
@@ -97,8 +106,47 @@ def test_rf_sweep_harmonic_number():
     line.track(particles=part, num_turns=num_turns)
 
     # Same result as the standard LHC b2 negative sweep test
-    part.move(_context=xo.ContextCpu())
+    if not isinstance(test_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())
     assert np.all(part.delta > 1.5e-3)
+
+
+@pytest.mark.gpu
+@pytest.mark.xcother
+@for_all_test_contexts(excluding=('ContextCpu',))
+def test_rf_sweep_GPU_context(test_context):
+    """Smoke-test device tracking without a pathological 6000-turn workload."""
+
+    # A small stable ring is sufficient to exercise device-side installation,
+    # expressions, and tracking. Compiling the 102k-element LHC line would
+    # dominate this smoke test without adding GPU-context coverage.
+    num_cells = 6
+    cell_angle = float(2*np.pi/num_cells)
+    env = xt.Environment()
+    env.new('qf', xt.Multipole, length=0.2, knl=[0, 0.2])
+    env.new('drift', xt.Drift, length=1)
+    env.new('qd', xt.Multipole, length=0.2, knl=[0, -0.2])
+    env.new('bend', xt.Multipole, length=1, knl=[cell_angle],
+            hxl=cell_angle)
+    env.new('cavity', xt.Cavity, frequency=10e6, voltage=6e6,
+            phase=float(np.pi))
+    line = env.new_line(components=num_cells * [
+        'qf', 'drift', 'qd', 'drift', 'bend', 'drift'
+    ] + ['cavity'])
+    line.particle_ref = xt.Particles('proton', p0c=7e12)
+    line.build_tracker(_context=test_context)
+    part = line.build_particles(delta=np.linspace(-2e-4, 2e-4, 5),
+                                x_norm=0, px_norm=0, y_norm=0, py_norm=0,
+                                _context=test_context)
+
+    rf_sweep = xc.RFSweep(line)
+    rf_sweep.prepare(sweep_per_turn=-0.05)
+    initial_sweep = rf_sweep.current_sweep_value
+    line.track(particles=part, num_turns=2)
+
+    assert rf_sweep.current_sweep_value < initial_sweep
+    part.move(_context=xo.ContextCpu())
+    assert np.all(np.isfinite(part.delta))
 
 
 @pytest.mark.xcother

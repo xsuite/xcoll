@@ -11,6 +11,7 @@ import numpy as np
 import xpart as xp
 import xcoll as xc
 import xobjects as xo
+from xobjects.test_helpers import for_all_test_contexts
 
 
 path = Path(__file__).parent / 'data_test_everest'
@@ -85,85 +86,69 @@ crystals_b2 = [
 ]
 
 
-test_context = xo.ContextCpu()
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_primaries(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_primaries():
+def test_primaries(test_context):
     _track_collimator('tcp.c6l7.b1', _context=test_context)
     _track_collimator('tcp.c6r7.b2', _context=test_context)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_materials_b1(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_materials_b1():
+def test_materials_b1(test_context):
     for key, name in materials_b1.items():
         _track_collimator(name, _context=test_context)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_materials_b2(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_materials_b2():
+def test_materials_b2(test_context):
     for key, name in materials_b2.items():
         _track_collimator(name, _context=test_context)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_angles_b1(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_angles_b1():
+def test_angles_b1(test_context):
     for key, name in angles_b1.items():
         _track_collimator(name, _context=test_context)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_angles_b2(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_angles_b2():
+def test_angles_b2(test_context):
     for key, name in angles_b2.items():
         _track_collimator(name, _context=test_context)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_lengths_b1(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_lengths_b1():
+def test_lengths_b1(test_context):
     for key, name in lengths_b1.items():
         _track_collimator(name, _context=test_context, atolz=2e-11)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_lengths_b2(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_lengths_b2():
+def test_lengths_b2(test_context):
     for key, name in lengths_b2.items():
         _track_collimator(name, _context=test_context, atolz=2e-11)
 
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_crystals(test_context):
+@pytest.mark.gpu
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.everest
-def test_crystals():
+def test_crystals(test_context):
     for name in crystals_b1 + crystals_b2:
         _track_collimator(name, _context=test_context)
 
 
-def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, atolz=1e-11, atold=2e-8, _context=None):
+def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9,
+                      atolz=1e-11, atold=2e-8, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
-#     _context._cffi_verbose = True
-#     _context._compile_kernels_info = False
+        # _context._cffi_verbose = True
+        # _context._compile_kernels_info = False
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid), _context=_context)
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
@@ -177,6 +162,8 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, at
 #   Also, I want to pass the following compiler flags: -Wall -Wextra for more info.
 #     coll.compile_kernels(particles_class=xp.Particles, save_source_as='test.c')
     coll.track(part)
+    if not isinstance(_context, xo.ContextCpu):
+        part.move(_context=xo.ContextCpu())    # Not super fast
     part.sort(interleave_lost_particles=True)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))
