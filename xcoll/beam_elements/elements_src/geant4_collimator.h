@@ -95,7 +95,7 @@ void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticl
     double const length = Geant4CollimatorData_get_length(el);
 
     // Get geometry
-    CollimatorGeometry cg;
+    CollimatorGeometry cg = NULL;
     if (active){
         cg = Geant4Collimator_init_geometry(el, part0);
     }

@@ -168,9 +168,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double length = EverestCrystalData_get_length(el);
 
     // Initialise collimator data
-    EverestCollData coll;
-    CrystalGeometry cg;
-    MaterialData material;
+    EverestCollData coll = NULL;
+    CrystalGeometry cg = NULL;
+    MaterialData material = NULL;
     if (active){
         // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
         coll = EverestCrystal_init(el, part0);

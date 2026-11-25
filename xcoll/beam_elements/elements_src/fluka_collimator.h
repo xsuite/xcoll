@@ -97,7 +97,7 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
     double length_front = FlukaCollimatorData_get_length_front(el);
 
     // Get geometry
-    CollimatorGeometry cg;
+    CollimatorGeometry cg = NULL;
     if (active){
         cg = FlukaCollimator_init_geometry(el, part0);
     }

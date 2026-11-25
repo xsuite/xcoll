@@ -141,9 +141,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
-    EverestCollData coll;
-    CollimatorGeometry cg;
-    MaterialData material;
+    EverestCollData coll = NULL;
+    CollimatorGeometry cg = NULL;
+    MaterialData material = NULL;
     if (active){
         coll = EverestCollimator_init(el, part0);
         cg = EverestCollimator_init_geometry(el, part0);
