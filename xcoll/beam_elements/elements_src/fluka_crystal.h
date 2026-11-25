@@ -83,7 +83,7 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
     active       *= FlukaCrystalData_get__tracking(el);
 
     // Get geometry
-    CrystalGeometry cg;
+    CrystalGeometry cg = NULL;
     if (active){
         cg = FlukaCrystal_init_geometry(el, part0);
         if (cg->width==0 || cg->height==0 || cg->bending_radius==0){
